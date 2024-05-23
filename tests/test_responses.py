@@ -1,10 +1,10 @@
 import pytest
 
-from pydanticscim.group import Group
-from pydanticscim.resource_type import ResourceType
-from pydanticscim.responses import ListResponse
-from pydanticscim.service_provider import ServiceProviderConfiguration
-from pydanticscim.user import User
+from pydanticscim2.group import Group
+from pydanticscim2.resource_type import ResourceType
+from pydanticscim2.responses import ListResponse
+from pydanticscim2.service_provider import ServiceProviderConfiguration
+from pydanticscim2.user import User
 
 
 def test_user_response(minimal_user_payload):

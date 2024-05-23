@@ -21,7 +21,7 @@ def get_version() -> str:
 
 setup(
     version=get_version(),
-    name="pydantic-scim",
+    name="pydantic-scim2",
     author="Chalk AI, Inc.",
     description="Pydantic types for SCIM",
     long_description=read("README.md"),
@@ -32,7 +32,7 @@ setup(
     install_requires=read("requirements.txt").splitlines(),
     include_package_data=True,
     project_urls={
-        "Source Code": "https://github.com/chalk-ai/pydantic-scim",
+        "Source Code": "https://github.com/yaal-coop/pydantic-scim2",
     },
     classifiers=[
         # Trove classifiers
