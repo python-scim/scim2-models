@@ -3,6 +3,8 @@ pydantic-scim2
 
 SCIM2 models for pydantic
 
+.. toctree::
+    :maxdepth: 2
 
-.. automodule:: pydantic_scim2
-   :members:
+    reference
+    changelog
