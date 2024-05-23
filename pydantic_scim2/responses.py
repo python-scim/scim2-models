@@ -80,7 +80,7 @@ class ListResponse(BaseModel):
         users: List[User],
         total_results: int,
         start_index: int = 0,
-        items_per_page: int | None = None,
+        items_per_page: Optional[int] = None,
     ) -> "ListResponse":
         return cls(
             Resources=users,
@@ -95,7 +95,7 @@ class ListResponse(BaseModel):
         groups: List[Group],
         total_results: int,
         start_index: int = 0,
-        items_per_page: int | None = None,
+        items_per_page: Optional[int] = None,
     ) -> "ListResponse":
         return cls(
             Resources=groups,
