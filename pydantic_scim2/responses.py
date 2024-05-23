@@ -10,10 +10,10 @@ from pydantic import BaseModel
 from pydantic import Discriminator
 from pydantic import Tag
 
-from pydanticscim2.group import Group
-from pydanticscim2.resource_type import ResourceType
-from pydanticscim2.service_provider import ServiceProviderConfiguration
-from pydanticscim2.user import User
+from pydantic_scim2.group import Group
+from pydantic_scim2.resource_type import ResourceType
+from pydantic_scim2.service_provider import ServiceProviderConfiguration
+from pydantic_scim2.user import User
 
 
 class SCIMError(BaseModel):

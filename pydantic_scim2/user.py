@@ -8,7 +8,7 @@ from pydantic import BaseModel
 from pydantic import EmailStr
 from pydantic import Field
 
-from pydanticscim2.group import GroupMember
+from pydantic_scim2.group import GroupMember
 
 
 class Name(BaseModel):

@@ -1,10 +1,10 @@
 import pytest
 
-from pydanticscim2.group import Group
-from pydanticscim2.resource_type import ResourceType
-from pydanticscim2.responses import ListResponse
-from pydanticscim2.service_provider import ServiceProviderConfiguration
-from pydanticscim2.user import User
+from pydantic_scim2.group import Group
+from pydantic_scim2.resource_type import ResourceType
+from pydantic_scim2.responses import ListResponse
+from pydantic_scim2.service_provider import ServiceProviderConfiguration
+from pydantic_scim2.user import User
 
 
 def test_user_response(minimal_user_payload):
@@ -22,7 +22,7 @@ def test_user_response(minimal_user_payload):
 
 @pytest.mark.skip
 def test_enterprise_user_response(enterprise_user_payload):
-    from pydanticscim.enterprise_user import EnterpriseUser
+    from pydantic_scim.enterprise_user import EnterpriseUser
 
     payload = {
         "totalResults": 1,

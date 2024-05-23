@@ -3,7 +3,7 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
-name = "scim-cli"
+name = "pydantic_scim2"
 version = "0.1.0"
 description = "SCIM2 models for pydantic"
 authors = ["Yaal Coop <contact@yaal.coop>"]
@@ -35,7 +35,7 @@ pytest-coverage = "^0.0"
 
 [tool.coverage.run]
 source = [
-    "pydanticscim2",
+    "pydantic_scim2",
     "tests",
 ]
 omit = [".tox/*"]
