@@ -10,7 +10,7 @@ class Manager(BaseModel):
         None,
         description="The id of the SCIM resource representingthe User's manager.  REQUIRED.",
     )
-    _ref: Optional[AnyUrl] = Field(
+    ref: Optional[AnyUrl] = Field(
         None,
         alias="$ref",
         description="The URI of the SCIM resource representing the User's manager.  REQUIRED.",

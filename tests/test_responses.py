@@ -22,7 +22,7 @@ def test_user_response(minimal_user_payload):
 
 @pytest.mark.skip
 def test_enterprise_user_response(enterprise_user_payload):
-    from pydantic_scim.enterprise_user import EnterpriseUser
+    from pydantic_scim2.enterprise_user import EnterpriseUser
 
     payload = {
         "totalResults": 1,
@@ -65,7 +65,6 @@ def test_service_provider_configuration_response(
     assert isinstance(obj, ServiceProviderConfiguration)
 
 
-@pytest.mark.skip
 def test_resource_type_response(resource_type_payload):
     payload = {
         "totalResults": 2,
