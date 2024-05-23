@@ -61,3 +61,17 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - uses: pre-commit/action@v3.0.1
+
+  doc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'poetry'
+      - run: |
+          poetry install --with doc
+          poetry run sphinx-build doc build/sphinx/html
