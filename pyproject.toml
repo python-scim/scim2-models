@@ -1,0 +1,100 @@
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "scim-cli"
+version = "0.1.0"
+description = "SCIM2 models for pydantic"
+authors = ["Yaal Coop <contact@yaal.coop>"]
+license = "Apache"
+readme = "README.md"
+keywords = ["scim", "scim2", "provisioning"]
+classifiers = [
+    "Intended Audience :: Developers",
+    "Development Status :: 3 - Alpha",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "License :: OSI Approved :: MIT License",
+    "Environment :: Web Environment",
+    "Programming Language :: Python",
+    "Operating System :: OS Independent",
+]
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.9"
+pydantic = {version = "^2.5.0", extras = ["email"]}
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.2.1"
+pytest-coverage = "^0.0"
+
+[tool.coverage.run]
+source = [
+    "pydanticscim2",
+    "tests",
+]
+omit = [".tox/*"]
+branch = true
+
+[tool.coverage.report]
+exclude_lines = [
+    "@pytest.mark.skip",
+    "pragma: no cover",
+    "raise NotImplementedError",
+    "except ImportError",
+    "if app.debug",
+]
+
+[tool.ruff.lint]
+select = [
+    "E", # pycodestyle
+    "F", # pyflakes
+    "I", # isort
+    "UP", # pyupgrade
+]
+ignore = [
+    "E501", # line-too-long
+    "E722", # bare-except
+]
+
+[tool.ruff.lint.isort]
+force-single-line = true
+
+[too.ruff.format]
+docstring-code-format = true
+
+[tool.tox]
+legacy_tox_ini = """
+[tox]
+isolated_build = true
+skipsdist = true
+envlist =
+    style
+    py39
+    py310
+    py311
+    py312
+    coverage
+
+[testenv]
+allowlist_externals = poetry
+commands =
+    poetry install
+    poetry run pytest --showlocals --full-trace {posargs}
+
+[testenv:style]
+commands =
+    pip install pre-commit
+    pre-commit run --all-files
+
+[testenv:coverage]
+commands =
+    poetry install
+    poetry run pytest --cov --cov-fail-under=100 --cov-report term:skip-covered {posargs}
+    poetry run coverage html
+"""
