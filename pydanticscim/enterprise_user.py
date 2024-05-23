@@ -1,6 +1,8 @@
 from typing import Optional
 
-from pydantic import AnyUrl, BaseModel, Field
+from pydantic import AnyUrl
+from pydantic import BaseModel
+from pydantic import Field
 
 
 class Manager(BaseModel):

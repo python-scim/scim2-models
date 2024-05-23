@@ -1,12 +1,19 @@
 from enum import Enum
-from typing import Tuple, List, Optional, Any, Union, Annotated
+from typing import Annotated
+from typing import Any
+from typing import List
+from typing import Optional
+from typing import Tuple
+from typing import Union
 
-from pydantic import BaseModel, Discriminator, Tag
+from pydantic import BaseModel
+from pydantic import Discriminator
+from pydantic import Tag
 
 from pydanticscim.group import Group
-from pydanticscim.user import User
 from pydanticscim.resource_type import ResourceType
 from pydanticscim.service_provider import ServiceProviderConfiguration
+from pydanticscim.user import User
 
 
 class SCIMError(BaseModel):
@@ -57,11 +64,11 @@ class ListResponse(BaseModel):
     Resources: List[
         Annotated[
             Union[
-                    Annotated[User, Tag("User")],
-                    Annotated[Group, Tag("Group")],
-                    Annotated[ResourceType, Tag("ResourceType")],
-                    Annotated[ServiceProviderConfiguration, Tag("ServiceProviderConfig")],
-                ],
+                Annotated[User, Tag("User")],
+                Annotated[Group, Tag("Group")],
+                Annotated[ResourceType, Tag("ResourceType")],
+                Annotated[ServiceProviderConfiguration, Tag("ServiceProviderConfig")],
+            ],
             Discriminator(get_model_name),
         ]
     ]

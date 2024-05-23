@@ -1,6 +1,10 @@
-from typing import List, Optional
+from typing import List
+from typing import Optional
 
-from pydantic import AnyUrl, BaseModel, Extra, Field
+from pydantic import AnyUrl
+from pydantic import BaseModel
+from pydantic import Extra
+from pydantic import Field
 
 
 class SchemaExtension(BaseModel):

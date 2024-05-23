@@ -1,7 +1,12 @@
 from enum import Enum
-from typing import List, Optional, Tuple, Set
+from typing import List
+from typing import Optional
+from typing import Set
 
-from pydantic import AnyUrl, BaseModel, EmailStr, Field
+from pydantic import AnyUrl
+from pydantic import BaseModel
+from pydantic import EmailStr
+from pydantic import Field
 
 from pydanticscim.group import GroupMember
 
