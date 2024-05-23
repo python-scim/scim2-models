@@ -1,10 +1,12 @@
 from enum import Enum
-from typing import Tuple, List, Optional, Any
+from typing import Tuple, List, Optional, Any, Union, Annotated
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Discriminator, Tag
 
 from pydanticscim.group import Group
 from pydanticscim.user import User
+from pydanticscim.resource_type import ResourceType
+from pydanticscim.service_provider import ServiceProviderConfiguration
 
 
 class SCIMError(BaseModel):
@@ -41,11 +43,28 @@ class PatchRequest(BaseModel):
     Operations: List[PatchOperation]
 
 
+def get_model_name(obj: Any):
+    # TODO: If discriminators could return multiple values,
+    # we could read all the objects in obj["schemas"] instead and maybe implement
+    # several classes at once?
+    return obj["meta"]["resourceType"]
+
+
 class ListResponse(BaseModel):
     totalResults: int
     startIndex: int
     itemsPerPage: int
-    Resources: List[BaseModel]
+    Resources: List[
+        Annotated[
+            Union[
+                    Annotated[User, Tag("User")],
+                    Annotated[Group, Tag("Group")],
+                    Annotated[ResourceType, Tag("ResourceType")],
+                    Annotated[ServiceProviderConfiguration, Tag("ServiceProviderConfig")],
+                ],
+            Discriminator(get_model_name),
+        ]
+    ]
     schemas: Tuple[str] = ("urn:ietf:params:scim:api:messages:2.0:ListResponse",)
 
     @classmethod

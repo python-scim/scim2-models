@@ -30,12 +30,18 @@ setup(
     packages=find_packages(exclude=("tests",)),
     install_requires=read("requirements.txt").splitlines(),
     include_package_data=True,
+    project_urls={
+        "Source Code": "https://github.com/chalk-ai/pydantic-scim",
+    },
     classifiers=[
         # Trove classifiers
         # Full list: https://pypi.python.org/pypi?%3Aaction=list_classifiers
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
     ],
     setup_requires=[
         "setuptools_scm",

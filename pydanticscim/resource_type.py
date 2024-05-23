@@ -39,6 +39,6 @@ class ResourceType(BaseModel):
     schema_: AnyUrl = Field(
         ..., alias="schema", description="The resource type's primary/base schema URI."
     )
-    schemaExtensions: List[SchemaExtension] = Field(
-        ..., description="A list of URIs of the resource type's schema extensions."
+    schemaExtensions: Optional[List[SchemaExtension]] = Field(
+        None, description="A list of URIs of the resource type's schema extensions."
     )

@@ -1,2 +1,2 @@
-pydantic>=1.8.0
+pydantic>=2.5.0
 pydantic[email]>=1.8.0
