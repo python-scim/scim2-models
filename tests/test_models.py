@@ -10,6 +10,7 @@ from pydantic_scim2 import Group
 from pydantic_scim2 import ImKind
 from pydantic_scim2 import PhoneNumberKind
 from pydantic_scim2 import PhotoKind
+from pydantic_scim2 import ResourceType
 from pydantic_scim2 import ServiceProviderConfiguration
 from pydantic_scim2 import User
 
@@ -233,3 +234,30 @@ def test_service_provider_configuration(service_provider_configuration_payload):
         2011, 5, 13, 4, 42, 34, tzinfo=datetime.timezone.utc
     )
     assert obj.meta.version == 'W\\/"3694e05e9dff594"'
+
+
+def test_resource_type(resource_type_payload):
+    obj = ResourceType.model_validate(resource_type_payload[0])
+
+    assert obj.schemas == ["urn:ietf:params:scim:schemas:core:2.0:ResourceType"]
+    assert obj.id == "User"
+    assert obj.name == "User"
+    assert obj.endpoint == "/Users"
+    assert obj.description == "User Account"
+    assert obj.schema_ == AnyUrl("urn:ietf:params:scim:schemas:core:2.0:User")
+    assert obj.schemaExtensions[0].schema_ == AnyUrl(
+        "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"
+    )
+    assert obj.schemaExtensions[0].required is True
+    assert obj.meta.location == "https://example.com/v2/ResourceTypes/User"
+    assert obj.meta.resourceType == "ResourceType"
+
+    obj = ResourceType.model_validate(resource_type_payload[1])
+    assert obj.schemas == ["urn:ietf:params:scim:schemas:core:2.0:ResourceType"]
+    assert obj.id == "Group"
+    assert obj.name == "Group"
+    assert obj.endpoint == "/Groups"
+    assert obj.description == "Group"
+    assert obj.schema_ == AnyUrl("urn:ietf:params:scim:schemas:core:2.0:Group")
+    assert obj.meta.location == "https://example.com/v2/ResourceTypes/Group"
+    assert obj.meta.resourceType == "ResourceType"

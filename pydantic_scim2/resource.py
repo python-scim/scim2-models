@@ -15,20 +15,20 @@ class Meta(BaseModel):
     sub-attributes:
     """
 
-    resourceType: str
+    resourceType: Optional[str] = None
     """The name of the resource type of the resource.
 
     This attribute has a mutability of "readOnly" and "caseExact" as
     "true".
     """
 
-    created: datetime
+    created: Optional[datetime] = None
     """The "DateTime" that the resource was added to the service provider.
 
     This attribute MUST be a DateTime.
     """
 
-    lastModified: datetime
+    lastModified: Optional[datetime] = None
     """The most recent DateTime that the details of this resource were updated
     at the service provider.
 
@@ -36,14 +36,14 @@ class Meta(BaseModel):
     the value MUST be the same as the value of "created".
     """
 
-    location: str
+    location: Optional[str] = None
     """The URI of the resource being returned.
 
     This value MUST be the same as the "Content-Location" HTTP response
     header (see Section 3.1.4.2 of [RFC7231]).
     """
 
-    version: str
+    version: Optional[str] = None
     """The version of the resource being returned.
 
     This value must be the same as the entity-tag (ETag) HTTP response
