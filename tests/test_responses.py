@@ -13,10 +13,10 @@ def test_user_response(minimal_user_payload):
         "itemsPerPage": 10,
         "startIndex": 1,
         "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
-        "resources": [minimal_user_payload],
+        "Resources": [minimal_user_payload],
     }
     response = ListResponse.model_validate(payload)
-    obj = response.Resources[0]
+    obj = response.resources[0]
     assert isinstance(obj, User)
 
 
@@ -29,10 +29,10 @@ def test_enterprise_user_response(enterprise_user_payload):
         "itemsPerPage": 10,
         "startIndex": 1,
         "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
-        "resources": [enterprise_user_payload],
+        "Resources": [enterprise_user_payload],
     }
     response = ListResponse.model_validate(payload)
-    obj = response.Resources[0]
+    obj = response.resources[0]
     assert isinstance(obj, User)
     assert isinstance(obj, EnterpriseUser)
 
@@ -43,10 +43,10 @@ def test_group_response(group_payload):
         "itemsPerPage": 10,
         "startIndex": 1,
         "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
-        "resources": [group_payload],
+        "Resources": [group_payload],
     }
     response = ListResponse.model_validate(payload)
-    obj = response.Resources[0]
+    obj = response.resources[0]
     assert isinstance(obj, Group)
 
 
@@ -58,10 +58,10 @@ def test_service_provider_configuration_response(
         "itemsPerPage": 10,
         "startIndex": 1,
         "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
-        "resources": [service_provider_configuration_payload],
+        "Resources": [service_provider_configuration_payload],
     }
     response = ListResponse.model_validate(payload)
-    obj = response.Resources[0]
+    obj = response.resources[0]
     assert isinstance(obj, ServiceProviderConfiguration)
 
 
@@ -73,8 +73,8 @@ def test_resource_type_response(
         "itemsPerPage": 10,
         "startIndex": 1,
         "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
-        "resources": [user_resource_type_payload, group_resource_type_payload],
+        "Resources": [user_resource_type_payload, group_resource_type_payload],
     }
     response = ListResponse.model_validate(payload)
-    obj = response.Resources[0]
+    obj = response.resources[0]
     assert isinstance(obj, ResourceType)

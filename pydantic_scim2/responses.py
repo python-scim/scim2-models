@@ -6,6 +6,7 @@ from typing import Optional
 from typing import Union
 
 from pydantic import Discriminator
+from pydantic import Field
 from pydantic import Tag
 
 from pydantic_scim2.group import Group
@@ -61,7 +62,7 @@ class ListResponse(SCIM2Model):
     total_results: int
     start_index: int
     items_per_page: int
-    Resources: List[
+    resources: List[
         Annotated[
             Union[
                 Annotated[User, Tag("User")],
@@ -71,5 +72,5 @@ class ListResponse(SCIM2Model):
             ],
             Discriminator(get_model_name),
         ]
-    ]
+    ] = Field(..., alias="Resources")
     schemas: List[str] = ["urn:ietf:params:scim:api:messages:2.0:ListResponse"]
