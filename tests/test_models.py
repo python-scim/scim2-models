@@ -39,6 +39,13 @@ def test_minimal_user(minimal_user_payload):
         == "https://example.com/v2/Users/2819c223-7f76-453a-919d-413861904646"
     )
 
+    assert (
+        obj.model_dump(
+            exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
+        )
+        == minimal_user_payload
+    )
+
 
 def test_full_user(full_user_payload):
     obj = User.model_validate(full_user_payload)
@@ -149,6 +156,13 @@ def test_full_user(full_user_payload):
         == "https://example.com/v2/Users/2819c223-7f76-453a-919d-413861904646"
     )
 
+    assert (
+        obj.model_dump(
+            exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
+        )
+        == full_user_payload
+    )
+
 
 @pytest.mark.skip
 def test_enterprise_user(full_enterprise_payload): ...
@@ -181,6 +195,13 @@ def test_group(group_payload):
     assert (
         obj.meta.location
         == "https://example.com/v2/Groups/e9e30dba-f08f-4109-8486-d5c6a331660a"
+    )
+
+    assert (
+        obj.model_dump(
+            exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
+        )
+        == group_payload
     )
 
 
@@ -240,6 +261,13 @@ def test_service_provider_configuration(service_provider_configuration_payload):
     )
     assert obj.meta.version == 'W\\/"3694e05e9dff594"'
 
+    assert (
+        obj.model_dump(
+            exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
+        )
+        == service_provider_configuration_payload
+    )
+
 
 def test_resource_type(resource_type_payload):
     obj = ResourceType.model_validate(resource_type_payload[0])
@@ -257,6 +285,13 @@ def test_resource_type(resource_type_payload):
     assert obj.meta.location == "https://example.com/v2/ResourceTypes/User"
     assert obj.meta.resourceType == "ResourceType"
 
+    assert (
+        obj.model_dump(
+            exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
+        )
+        == resource_type_payload[0]
+    )
+
     obj = ResourceType.model_validate(resource_type_payload[1])
     assert obj.schemas == ["urn:ietf:params:scim:schemas:core:2.0:ResourceType"]
     assert obj.id == "Group"
@@ -267,10 +302,30 @@ def test_resource_type(resource_type_payload):
     assert obj.meta.location == "https://example.com/v2/ResourceTypes/Group"
     assert obj.meta.resourceType == "ResourceType"
 
+    assert (
+        obj.model_dump(
+            exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
+        )
+        == resource_type_payload[1]
+    )
+
 
 def test_schema(resource_schema_payload):
     obj = Schema.model_validate(resource_schema_payload[0])
+    assert (
+        obj.model_dump(
+            exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
+        )
+        == resource_schema_payload[0]
+    )
+
     obj = Schema.model_validate(resource_schema_payload[1])
+    assert (
+        obj.model_dump(
+            exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
+        )
+        == resource_schema_payload[1]
+    )
 
     assert obj.id == "urn:ietf:params:scim:schemas:core:2.0:Group"
     assert obj.name == "Group"
@@ -334,3 +389,9 @@ def test_schema(resource_schema_payload):
         obj.meta.location == "/v2/Schemas/urn:ietf:params:scim:schemas:core:2.0:Group"
     )
     obj = Schema.model_validate(resource_schema_payload[2])
+    assert (
+        obj.model_dump(
+            exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
+        )
+        == resource_schema_payload[2]
+    )
