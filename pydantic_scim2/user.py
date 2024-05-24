@@ -1,14 +1,14 @@
 from enum import Enum
 from typing import List
 from typing import Optional
-from typing import Set
 
 from pydantic import AnyUrl
 from pydantic import BaseModel
 from pydantic import EmailStr
 from pydantic import Field
 
-from pydantic_scim2.group import GroupMember
+from .group import GroupMember
+from .resource import Resource
 
 
 class Name(BaseModel):
@@ -163,6 +163,10 @@ class Address(BaseModel):
         None,
         description="A label indicating the attribute's function, e.g., 'work' or 'home'.",
     )
+    primary: Optional[bool] = Field(
+        None,
+        description="A Boolean value indicating the 'primary' or preferred attribute value for this attribute, e.g., the preferred photo or thumbnail.  The primary attribute value 'true' MUST appear no more than once.",
+    )
 
 
 class Entitlement(BaseModel):
@@ -210,13 +214,11 @@ class X509Certificate(BaseModel):
     )
 
 
-class User(BaseModel):
+class User(Resource):
     userName: str = Field(
         ...,
         description="Unique identifier for the User, typically used by the user to directly authenticate to the service provider.  Each User MUST include a non-empty userName value.  This identifier MUST be unique across the service provider's entire set of Users.  REQUIRED.",
     )
-    # Seems required by okta, but not in the json schema spec.
-    id: Optional[str] = None
     name: Optional[Name] = Field(
         None,
         description="The components of the user's real name.  Providers MAY return just the full name as a single string in the formatted sub-attribute, or they MAY return just the individual component attributes using the other sub-attributes, or they MAY return both.  If both variants are returned, they SHOULD be describing the same name, with the formatted name indicating how the component attributes should be combined.",
@@ -292,4 +294,4 @@ class User(BaseModel):
     x509Certificates: Optional[List[X509Certificate]] = Field(
         None, description="A list of certificates issued to the User."
     )
-    schemas: Set[str] = ("urn:ietf:params:scim:schemas:core:2.0:User",)
+    schemas: List[str] = {"urn:ietf:params:scim:schemas:core:2.0:User"}

@@ -3,7 +3,6 @@ from typing import Annotated
 from typing import Any
 from typing import List
 from typing import Optional
-from typing import Tuple
 from typing import Union
 
 from pydantic import BaseModel
@@ -19,7 +18,7 @@ from pydantic_scim2.user import User
 class SCIMError(BaseModel):
     detail: str
     status: int
-    schemas: Tuple[str] = ("urn:ietf:params:scim:api:messages:2.0:Error",)
+    schemas: List[str] = {"urn:ietf:params:scim:api:messages:2.0:Error"}
 
     @classmethod
     def not_found(cls, detail: str = "Not found") -> "SCIMError":
@@ -72,7 +71,7 @@ class ListResponse(BaseModel):
             Discriminator(get_model_name),
         ]
     ]
-    schemas: Tuple[str] = ("urn:ietf:params:scim:api:messages:2.0:ListResponse",)
+    schemas: List[str] = {"urn:ietf:params:scim:api:messages:2.0:ListResponse"}
 
     @classmethod
     def for_users(

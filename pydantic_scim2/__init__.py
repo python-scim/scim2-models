@@ -2,6 +2,8 @@ from .enterprise_user import EnterpriseUser
 from .enterprise_user import Manager
 from .group import Group
 from .group import GroupMember
+from .resource import Meta
+from .resource import Resource
 from .resource_type import ResourceType
 from .resource_type import SchemaExtension
 from .responses import ListResponse
@@ -66,4 +68,6 @@ __all__ = [
     "Role",
     "X509Certificate",
     "User",
+    "Resource",
+    "Meta",
 ]
