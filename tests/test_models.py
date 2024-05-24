@@ -4,11 +4,13 @@ import pytest
 from pydantic import AnyUrl
 
 from pydantic_scim2 import AddressKind
+from pydantic_scim2 import AuthenticationSchemeKind
 from pydantic_scim2 import EmailKind
 from pydantic_scim2 import Group
 from pydantic_scim2 import ImKind
 from pydantic_scim2 import PhoneNumberKind
 from pydantic_scim2 import PhotoKind
+from pydantic_scim2 import ServiceProviderConfiguration
 from pydantic_scim2 import User
 
 
@@ -148,6 +150,7 @@ def test_enterprise_user(full_enterprise_payload): ...
 
 def test_group(group_payload):
     obj = Group.model_validate(group_payload)
+
     assert obj.schemas == ["urn:ietf:params:scim:schemas:core:2.0:Group"]
     assert obj.id == "e9e30dba-f08f-4109-8486-d5c6a331660a"
     assert obj.displayName == "Tour Guides"
@@ -173,3 +176,60 @@ def test_group(group_payload):
         obj.meta.location
         == "https://example.com/v2/Groups/e9e30dba-f08f-4109-8486-d5c6a331660a"
     )
+
+
+def test_service_provider_configuration(service_provider_configuration_payload):
+    obj = ServiceProviderConfiguration.model_validate(
+        service_provider_configuration_payload
+    )
+
+    assert obj.schemas == [
+        "urn:ietf:params:scim:schemas:core:2.0:ServiceProviderConfig"
+    ]
+    assert obj.documentationUri == AnyUrl("http://example.com/help/scim.html")
+    assert obj.patch.supported is True
+    assert obj.bulk.supported is True
+    assert obj.bulk.maxOperations == 1000
+    assert obj.bulk.maxPayloadSize == 1048576
+    assert obj.filter.supported is True
+    assert obj.filter.maxResults == 200
+    assert obj.changePassword.supported is True
+    assert obj.sort.supported is True
+    assert obj.etag.supported is True
+    assert obj.authenticationSchemes[0].name == "OAuth Bearer Token"
+    assert (
+        obj.authenticationSchemes[0].description
+        == "Authentication scheme using the OAuth Bearer Token Standard"
+    )
+    assert obj.authenticationSchemes[0].specUri == AnyUrl(
+        "http://www.rfc-editor.org/info/rfc6750"
+    )
+    assert obj.authenticationSchemes[0].documentationUri == AnyUrl(
+        "http://example.com/help/oauth.html"
+    )
+    assert (
+        obj.authenticationSchemes[0].type == AuthenticationSchemeKind.oauthbearertoken
+    )
+    assert obj.authenticationSchemes[0].primary is True
+
+    assert obj.authenticationSchemes[1].name == "HTTP Basic"
+    assert (
+        obj.authenticationSchemes[1].description
+        == "Authentication scheme using the HTTP Basic Standard"
+    )
+    assert obj.authenticationSchemes[1].specUri == AnyUrl(
+        "http://www.rfc-editor.org/info/rfc2617"
+    )
+    assert obj.authenticationSchemes[1].documentationUri == AnyUrl(
+        "http://example.com/help/httpBasic.html"
+    )
+    assert obj.authenticationSchemes[1].type == AuthenticationSchemeKind.httpbasic
+    assert obj.meta.location == "https://example.com/v2/ServiceProviderConfig"
+    assert obj.meta.resourceType == "ServiceProviderConfig"
+    assert obj.meta.created == datetime.datetime(
+        2010, 1, 23, 4, 56, 22, tzinfo=datetime.timezone.utc
+    )
+    assert obj.meta.lastModified == datetime.datetime(
+        2011, 5, 13, 4, 42, 34, tzinfo=datetime.timezone.utc
+    )
+    assert obj.meta.version == 'W\\/"3694e05e9dff594"'

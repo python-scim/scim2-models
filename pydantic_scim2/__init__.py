@@ -12,8 +12,10 @@ from .responses import PatchOperation
 from .responses import PatchRequest
 from .responses import SCIMError
 from .service_provider import AuthenticationScheme
+from .service_provider import AuthenticationSchemeKind
 from .service_provider import Bulk
 from .service_provider import ChangePassword
+from .service_provider import ETag
 from .service_provider import Filter
 from .service_provider import Patch
 from .service_provider import ServiceProviderConfiguration
@@ -52,6 +54,7 @@ __all__ = [
     "ChangePassword",
     "Sort",
     "AuthenticationScheme",
+    "AuthenticationSchemeKind",
     "ServiceProviderConfiguration",
     "Name",
     "EmailKind",
@@ -70,4 +73,5 @@ __all__ = [
     "User",
     "Resource",
     "Meta",
+    "ETag",
 ]
