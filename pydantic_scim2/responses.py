@@ -72,33 +72,3 @@ class ListResponse(BaseModel):
         ]
     ]
     schemas: List[str] = {"urn:ietf:params:scim:api:messages:2.0:ListResponse"}
-
-    @classmethod
-    def for_users(
-        cls,
-        users: List[User],
-        total_results: int,
-        start_index: int = 0,
-        items_per_page: Optional[int] = None,
-    ) -> "ListResponse":
-        return cls(
-            Resources=users,
-            totalResults=total_results,
-            itemsPerPage=items_per_page or len(users),
-            startIndex=start_index,
-        )
-
-    @classmethod
-    def for_groups(
-        cls,
-        groups: List[Group],
-        total_results: int,
-        start_index: int = 0,
-        items_per_page: Optional[int] = None,
-    ) -> "ListResponse":
-        return cls(
-            Resources=groups,
-            totalResults=total_results,
-            itemsPerPage=items_per_page or len(groups),
-            startIndex=start_index,
-        )
