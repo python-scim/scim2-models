@@ -38,13 +38,12 @@ class Name(SCIM2Model):
     )
 
 
-class EmailKind(str, Enum):
-    work = "work"
-    home = "home"
-    other = "other"
-
-
 class Email(SCIM2Model):
+    class Type(str, Enum):
+        work = "work"
+        home = "home"
+        other = "other"
+
     value: Optional[EmailStr] = Field(
         None,
         description="Email addresses for the user.  The value SHOULD be canonicalized by the service provider, e.g., 'bjensen@example.com' instead of 'bjensen@EXAMPLE.COM'. Canonical type values of 'work', 'home', and 'other'.",
@@ -53,7 +52,7 @@ class Email(SCIM2Model):
         None,
         description="A human-readable name, primarily used for display purposes.  READ-ONLY.",
     )
-    type: Optional[EmailKind] = Field(
+    type: Optional[Type] = Field(
         None,
         description="A label indicating the attribute's function, e.g., 'work' or 'home'.",
     )
@@ -63,22 +62,21 @@ class Email(SCIM2Model):
     )
 
 
-class PhoneNumberKind(str, Enum):
-    work = "work"
-    home = "home"
-    mobile = "mobile"
-    fax = "fax"
-    pager = "pager"
-    other = "other"
-
-
 class PhoneNumber(SCIM2Model):
+    class Type(str, Enum):
+        work = "work"
+        home = "home"
+        mobile = "mobile"
+        fax = "fax"
+        pager = "pager"
+        other = "other"
+
     value: Optional[str] = Field(None, description="Phone number of the User.")
     display: Optional[str] = Field(
         None,
         description="A human-readable name, primarily used for display purposes.  READ-ONLY.",
     )
-    type: Optional[PhoneNumberKind] = Field(
+    type: Optional[Type] = Field(
         None,
         description="A label indicating the attribute's function, e.g., 'work', 'home', 'mobile'.",
     )
@@ -88,18 +86,17 @@ class PhoneNumber(SCIM2Model):
     )
 
 
-class ImKind(str, Enum):
-    aim = "aim"
-    gtalk = "gtalk"
-    icq = "icq"
-    xmpp = "xmpp"
-    msn = "msn"
-    skype = "skype"
-    qq = "qq"
-    yahoo = "yahoo"
-
-
 class Im(SCIM2Model):
+    class Type(str, Enum):
+        aim = "aim"
+        gtalk = "gtalk"
+        icq = "icq"
+        xmpp = "xmpp"
+        msn = "msn"
+        skype = "skype"
+        qq = "qq"
+        yahoo = "yahoo"
+
     value: Optional[str] = Field(
         None, description="Instant messaging address for the User."
     )
@@ -107,7 +104,7 @@ class Im(SCIM2Model):
         None,
         description="A human-readable name, primarily used for display purposes.  READ-ONLY.",
     )
-    type: Optional[ImKind] = Field(
+    type: Optional[Type] = Field(
         None,
         description="A label indicating the attribute's function, e.g., 'aim', 'gtalk', 'xmpp'.",
     )
@@ -117,18 +114,17 @@ class Im(SCIM2Model):
     )
 
 
-class PhotoKind(str, Enum):
-    photo = "photo"
-    thumbnail = "thumbnail"
-
-
 class Photo(SCIM2Model):
+    class Type(str, Enum):
+        photo = "photo"
+        thumbnail = "thumbnail"
+
     value: Optional[AnyUrl] = Field(None, description="URL of a photo of the User.")
     display: Optional[str] = Field(
         None,
         description="A human-readable name, primarily used for display purposes.  READ-ONLY.",
     )
-    type: Optional[PhotoKind] = Field(
+    type: Optional[Type] = Field(
         None,
         description="A label indicating the attribute's function, i.e., 'photo' or 'thumbnail'.",
     )
@@ -138,13 +134,12 @@ class Photo(SCIM2Model):
     )
 
 
-class AddressKind(str, Enum):
-    work = "work"
-    home = "home"
-    other = "other"
-
-
 class Address(SCIM2Model):
+    class Type(str, Enum):
+        work = "work"
+        home = "home"
+        other = "other"
+
     formatted: Optional[str] = Field(
         None,
         description="The full mailing address, formatted for display or use with a mailing label.  This attribute MAY contain newlines.",
@@ -159,7 +154,7 @@ class Address(SCIM2Model):
         None, description="The zip code or postal code component."
     )
     country: Optional[str] = Field(None, description="The country name component.")
-    type: Optional[AddressKind] = Field(
+    type: Optional[Type] = Field(
         None,
         description="A label indicating the attribute's function, e.g., 'work' or 'home'.",
     )

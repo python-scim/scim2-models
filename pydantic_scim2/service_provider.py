@@ -59,16 +59,15 @@ class ETag(SCIM2Model):
     """A Boolean value specifying whether or not the operation is supported."""
 
 
-class AuthenticationSchemeKind(str, Enum):
-    oauth = "oauth"
-    oauth2 = "oauth2"
-    oauthbearertoken = "oauthbearertoken"
-    httpbasic = "httpbasic"
-    httpdigest = "httpdigest"
-
-
 class AuthenticationScheme(SCIM2Model):
-    type: AuthenticationSchemeKind
+    class Type(str, Enum):
+        oauth = "oauth"
+        oauth2 = "oauth2"
+        oauthbearertoken = "oauthbearertoken"
+        httpbasic = "httpbasic"
+        httpdigest = "httpdigest"
+
+    type: Type
     """The authentication scheme."""
 
     name: str = Field(

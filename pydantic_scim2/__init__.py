@@ -11,13 +11,12 @@ from .responses import PatchOp
 from .responses import PatchOperation
 from .responses import PatchRequest
 from .responses import SCIMError
-from .schema import AttributeKind
+from .schema import Attribute
 from .schema import Mutability
 from .schema import Returned
 from .schema import Schema
 from .schema import Uniqueness
 from .service_provider import AuthenticationScheme
-from .service_provider import AuthenticationSchemeKind
 from .service_provider import Bulk
 from .service_provider import ChangePassword
 from .service_provider import ETag
@@ -26,17 +25,12 @@ from .service_provider import Patch
 from .service_provider import ServiceProviderConfiguration
 from .service_provider import Sort
 from .user import Address
-from .user import AddressKind
 from .user import Email
-from .user import EmailKind
 from .user import Entitlement
 from .user import Im
-from .user import ImKind
 from .user import Name
 from .user import PhoneNumber
-from .user import PhoneNumberKind
 from .user import Photo
-from .user import PhotoKind
 from .user import Role
 from .user import User
 from .user import X509Certificate
@@ -44,10 +38,10 @@ from .user import X509Certificate
 __all__ = [
     "Manager",
     "EnterpriseUser",
+    "Attribute",
     "Group",
     "GroupMember",
     "SchemaExtension",
-    "ResourceType",
     "SCIMError",
     "PatchOp",
     "PatchOperation",
@@ -59,18 +53,12 @@ __all__ = [
     "ChangePassword",
     "Sort",
     "AuthenticationScheme",
-    "AuthenticationSchemeKind",
     "ServiceProviderConfiguration",
     "Name",
-    "EmailKind",
     "Email",
-    "PhoneNumberKind",
     "PhoneNumber",
-    "ImKind",
     "Im",
-    "PhotoKind",
     "Photo",
-    "AddressKind",
     "Address",
     "Entitlement",
     "Role",
@@ -80,8 +68,8 @@ __all__ = [
     "Meta",
     "ETag",
     "Schema",
-    "AttributeKind",
     "Mutability",
     "Returned",
     "Uniqueness",
+    "ResourceType",
 ]

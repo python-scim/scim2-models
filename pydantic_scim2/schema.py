@@ -6,17 +6,6 @@ from .base import SCIM2Model
 from .resource import Meta
 
 
-class AttributeKind(str, Enum):
-    string = "string"
-    boolean = "boolean"
-    decimal = "decimal"
-    integer = "integer"
-    date_time = "dateTime"
-    reference = "reference"
-    binary = "binary"
-    complex = "complex"
-
-
 class Mutability(str, Enum):
     read_only = "readOnly"
     read_write = "readWrite"
@@ -38,10 +27,20 @@ class Uniqueness(str, Enum):
 
 
 class Attribute(SCIM2Model):
+    class Type(str, Enum):
+        string = "string"
+        boolean = "boolean"
+        decimal = "decimal"
+        integer = "integer"
+        date_time = "dateTime"
+        reference = "reference"
+        binary = "binary"
+        complex = "complex"
+
     name: str
     """The attribute's name."""
 
-    type: AttributeKind
+    type: Type
     """The attribute's data type."""
 
     sub_attributes: Optional[List["Attribute"]] = None

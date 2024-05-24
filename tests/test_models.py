@@ -3,15 +3,15 @@ import datetime
 import pytest
 from pydantic import AnyUrl
 
-from pydantic_scim2 import AddressKind
-from pydantic_scim2 import AttributeKind
-from pydantic_scim2 import AuthenticationSchemeKind
-from pydantic_scim2 import EmailKind
+from pydantic_scim2 import Address
+from pydantic_scim2 import Attribute
+from pydantic_scim2 import AuthenticationScheme
+from pydantic_scim2 import Email
 from pydantic_scim2 import Group
-from pydantic_scim2 import ImKind
+from pydantic_scim2 import Im
 from pydantic_scim2 import Mutability
-from pydantic_scim2 import PhoneNumberKind
-from pydantic_scim2 import PhotoKind
+from pydantic_scim2 import PhoneNumber
+from pydantic_scim2 import Photo
 from pydantic_scim2 import ResourceType
 from pydantic_scim2 import Returned
 from pydantic_scim2 import Schema
@@ -65,11 +65,11 @@ def test_full_user(full_user_payload):
     assert obj.nick_name == "Babs"
     assert obj.profile_url == AnyUrl("https://login.example.com/bjensen")
     assert obj.emails[0].value == "bjensen@example.com"
-    assert obj.emails[0].type == EmailKind.work
+    assert obj.emails[0].type == Email.Type.work
     assert obj.emails[0].primary is True
     assert obj.emails[1].value == "babs@jensen.org"
-    assert obj.emails[1].type == EmailKind.home
-    assert obj.addresses[0].type == AddressKind.work
+    assert obj.emails[1].type == Email.Type.home
+    assert obj.addresses[0].type == Address.Type.work
     assert obj.addresses[0].street_address == "100 Universal City Plaza"
     assert obj.addresses[0].locality == "Hollywood"
     assert obj.addresses[0].region == "CA"
@@ -80,7 +80,7 @@ def test_full_user(full_user_payload):
         == "100 Universal City Plaza\nHollywood, CA 91608 USA"
     )
     assert obj.addresses[0].primary is True
-    assert obj.addresses[1].type == AddressKind.home
+    assert obj.addresses[1].type == Address.Type.home
     assert obj.addresses[1].street_address == "456 Hollywood Blvd"
     assert obj.addresses[1].locality == "Hollywood"
     assert obj.addresses[1].region == "CA"
@@ -88,19 +88,19 @@ def test_full_user(full_user_payload):
     assert obj.addresses[1].country == "USA"
     assert obj.addresses[1].formatted == "456 Hollywood Blvd\nHollywood, CA 91608 USA"
     assert obj.phone_numbers[0].value == "555-555-5555"
-    assert obj.phone_numbers[0].type == PhoneNumberKind.work
+    assert obj.phone_numbers[0].type == PhoneNumber.Type.work
     assert obj.phone_numbers[1].value == "555-555-4444"
-    assert obj.phone_numbers[1].type == PhoneNumberKind.mobile
+    assert obj.phone_numbers[1].type == PhoneNumber.Type.mobile
     assert obj.ims[0].value == "someaimhandle"
-    assert obj.ims[0].type == ImKind.aim
+    assert obj.ims[0].type == Im.Type.aim
     assert obj.photos[0].value == AnyUrl(
         "https://photos.example.com/profilephoto/72930000000Ccne/F"
     )
-    assert obj.photos[0].type == PhotoKind.photo
+    assert obj.photos[0].type == Photo.Type.photo
     assert obj.photos[1].value == AnyUrl(
         "https://photos.example.com/profilephoto/72930000000Ccne/T"
     )
-    assert obj.photos[1].type == PhotoKind.thumbnail
+    assert obj.photos[1].type == Photo.Type.thumbnail
     assert obj.user_type == "Employee"
     assert obj.title == "Tour Guide"
     assert obj.preferred_language == "en-US"
@@ -235,7 +235,7 @@ def test_service_provider_configuration(service_provider_configuration_payload):
         "http://example.com/help/oauth.html"
     )
     assert (
-        obj.authentication_schemes[0].type == AuthenticationSchemeKind.oauthbearertoken
+        obj.authentication_schemes[0].type == AuthenticationScheme.Type.oauthbearertoken
     )
     assert obj.authentication_schemes[0].primary is True
 
@@ -250,7 +250,7 @@ def test_service_provider_configuration(service_provider_configuration_payload):
     assert obj.authentication_schemes[1].documentation_uri == AnyUrl(
         "http://example.com/help/httpBasic.html"
     )
-    assert obj.authentication_schemes[1].type == AuthenticationSchemeKind.httpbasic
+    assert obj.authentication_schemes[1].type == AuthenticationScheme.Type.httpbasic
     assert obj.meta.location == "https://example.com/v2/ServiceProviderConfig"
     assert obj.meta.resource_type == "ServiceProviderConfig"
     assert obj.meta.created == datetime.datetime(
@@ -329,7 +329,7 @@ def test_group_schema(group_schema_payload):
     assert obj.name == "Group"
     assert obj.description == "Group"
     assert obj.attributes[0].name == "displayName"
-    assert obj.attributes[0].type == AttributeKind.string
+    assert obj.attributes[0].type == Attribute.Type.string
     assert obj.attributes[0].multi_valued is False
     assert obj.attributes[0].description == (
         "A human-readable name for the Group. " "REQUIRED."
@@ -340,12 +340,12 @@ def test_group_schema(group_schema_payload):
     assert obj.attributes[0].returned == Returned.default
     assert obj.attributes[0].uniqueness == Uniqueness.none
     assert obj.attributes[1].name == "members"
-    assert obj.attributes[1].type == AttributeKind.complex
+    assert obj.attributes[1].type == Attribute.Type.complex
     assert obj.attributes[1].multi_valued is True
     assert obj.attributes[1].description == "A list of members of the Group."
     assert obj.attributes[1].required is False
     assert obj.attributes[1].sub_attributes[0].name == "value"
-    assert obj.attributes[1].sub_attributes[0].type == AttributeKind.string
+    assert obj.attributes[1].sub_attributes[0].type == Attribute.Type.string
     assert obj.attributes[1].sub_attributes[0].multi_valued is False
     assert (
         obj.attributes[1].sub_attributes[0].description
@@ -357,7 +357,7 @@ def test_group_schema(group_schema_payload):
     assert obj.attributes[1].sub_attributes[0].returned == Returned.default
     assert obj.attributes[1].sub_attributes[0].uniqueness == Uniqueness.none
     assert obj.attributes[1].sub_attributes[1].name == "$ref"
-    assert obj.attributes[1].sub_attributes[1].type == AttributeKind.reference
+    assert obj.attributes[1].sub_attributes[1].type == Attribute.Type.reference
     assert obj.attributes[1].sub_attributes[1].reference_types == ["User", "Group"]
     assert obj.attributes[1].sub_attributes[1].multi_valued is False
     assert obj.attributes[1].sub_attributes[1].description == (
@@ -369,7 +369,7 @@ def test_group_schema(group_schema_payload):
     assert obj.attributes[1].sub_attributes[1].returned == Returned.default
     assert obj.attributes[1].sub_attributes[1].uniqueness == Uniqueness.none
     assert obj.attributes[1].sub_attributes[2].name == "type"
-    assert obj.attributes[1].sub_attributes[2].type == AttributeKind.string
+    assert obj.attributes[1].sub_attributes[2].type == Attribute.Type.string
     assert obj.attributes[1].sub_attributes[2].multi_valued is False
     assert obj.attributes[1].sub_attributes[2].description == (
         "A label indicating the type of resource, " "e.g., 'User' or 'Group'."
