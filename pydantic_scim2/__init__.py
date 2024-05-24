@@ -11,6 +11,11 @@ from .responses import PatchOp
 from .responses import PatchOperation
 from .responses import PatchRequest
 from .responses import SCIMError
+from .schema import AttributeKind
+from .schema import Mutability
+from .schema import Returned
+from .schema import Schema
+from .schema import Uniqueness
 from .service_provider import AuthenticationScheme
 from .service_provider import AuthenticationSchemeKind
 from .service_provider import Bulk
@@ -74,4 +79,9 @@ __all__ = [
     "Resource",
     "Meta",
     "ETag",
+    "Schema",
+    "AttributeKind",
+    "Mutability",
+    "Returned",
+    "Uniqueness",
 ]

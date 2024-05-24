@@ -4,14 +4,19 @@ import pytest
 from pydantic import AnyUrl
 
 from pydantic_scim2 import AddressKind
+from pydantic_scim2 import AttributeKind
 from pydantic_scim2 import AuthenticationSchemeKind
 from pydantic_scim2 import EmailKind
 from pydantic_scim2 import Group
 from pydantic_scim2 import ImKind
+from pydantic_scim2 import Mutability
 from pydantic_scim2 import PhoneNumberKind
 from pydantic_scim2 import PhotoKind
 from pydantic_scim2 import ResourceType
+from pydantic_scim2 import Returned
+from pydantic_scim2 import Schema
 from pydantic_scim2 import ServiceProviderConfiguration
+from pydantic_scim2 import Uniqueness
 from pydantic_scim2 import User
 
 
@@ -261,3 +266,71 @@ def test_resource_type(resource_type_payload):
     assert obj.schema_ == AnyUrl("urn:ietf:params:scim:schemas:core:2.0:Group")
     assert obj.meta.location == "https://example.com/v2/ResourceTypes/Group"
     assert obj.meta.resourceType == "ResourceType"
+
+
+def test_schema(resource_schema_payload):
+    obj = Schema.model_validate(resource_schema_payload[0])
+    obj = Schema.model_validate(resource_schema_payload[1])
+
+    assert obj.id == "urn:ietf:params:scim:schemas:core:2.0:Group"
+    assert obj.name == "Group"
+    assert obj.description == "Group"
+    assert obj.attributes[0].name == "displayName"
+    assert obj.attributes[0].type == AttributeKind.string
+    assert obj.attributes[0].multiValued is False
+    assert obj.attributes[0].description == (
+        "A human-readable name for the Group. " "REQUIRED."
+    )
+    assert obj.attributes[0].required is False
+    assert obj.attributes[0].caseExact is False
+    assert obj.attributes[0].mutability == Mutability.readWrite
+    assert obj.attributes[0].returned == Returned.default
+    assert obj.attributes[0].uniqueness == Uniqueness.none
+    assert obj.attributes[1].name == "members"
+    assert obj.attributes[1].type == AttributeKind.complex
+    assert obj.attributes[1].multiValued is True
+    assert obj.attributes[1].description == "A list of members of the Group."
+    assert obj.attributes[1].required is False
+    assert obj.attributes[1].subAttributes[0].name == "value"
+    assert obj.attributes[1].subAttributes[0].type == AttributeKind.string
+    assert obj.attributes[1].subAttributes[0].multiValued is False
+    assert (
+        obj.attributes[1].subAttributes[0].description
+        == "Identifier of the member of this Group."
+    )
+    assert obj.attributes[1].subAttributes[0].required is False
+    assert obj.attributes[1].subAttributes[0].caseExact is False
+    assert obj.attributes[1].subAttributes[0].mutability == Mutability.immutable
+    assert obj.attributes[1].subAttributes[0].returned == Returned.default
+    assert obj.attributes[1].subAttributes[0].uniqueness == Uniqueness.none
+    assert obj.attributes[1].subAttributes[1].name == "$ref"
+    assert obj.attributes[1].subAttributes[1].type == AttributeKind.reference
+    assert obj.attributes[1].subAttributes[1].referenceTypes == ["User", "Group"]
+    assert obj.attributes[1].subAttributes[1].multiValued is False
+    assert obj.attributes[1].subAttributes[1].description == (
+        "The URI corresponding to a SCIM resource " "that is a member of this Group."
+    )
+    assert obj.attributes[1].subAttributes[1].required is False
+    assert obj.attributes[1].subAttributes[1].caseExact is False
+    assert obj.attributes[1].subAttributes[1].mutability == Mutability.immutable
+    assert obj.attributes[1].subAttributes[1].returned == Returned.default
+    assert obj.attributes[1].subAttributes[1].uniqueness == Uniqueness.none
+    assert obj.attributes[1].subAttributes[2].name == "type"
+    assert obj.attributes[1].subAttributes[2].type == AttributeKind.string
+    assert obj.attributes[1].subAttributes[2].multiValued is False
+    assert obj.attributes[1].subAttributes[2].description == (
+        "A label indicating the type of resource, " "e.g., 'User' or 'Group'."
+    )
+    assert obj.attributes[1].subAttributes[2].required is False
+    assert obj.attributes[1].subAttributes[2].caseExact is False
+    assert obj.attributes[1].subAttributes[2].canonicalValues == ["User", "Group"]
+    assert obj.attributes[1].subAttributes[2].mutability == Mutability.immutable
+    assert obj.attributes[1].subAttributes[2].returned == Returned.default
+    assert obj.attributes[1].subAttributes[2].uniqueness == Uniqueness.none
+    assert obj.attributes[1].mutability == Mutability.readWrite
+    assert obj.attributes[1].returned == Returned.default
+    assert obj.meta.resourceType == "Schema"
+    assert (
+        obj.meta.location == "/v2/Schemas/urn:ietf:params:scim:schemas:core:2.0:Group"
+    )
+    obj = Schema.model_validate(resource_schema_payload[2])
