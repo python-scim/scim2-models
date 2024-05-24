@@ -33,7 +33,7 @@ class SCIMError(BaseModel):
         return cls(detail=detail, status=422)
 
 
-class PatchOp(Enum):
+class PatchOp(str, Enum):
     replace = "replace"
     remove = "remove"
     add = "add"

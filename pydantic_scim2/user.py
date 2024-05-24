@@ -38,7 +38,7 @@ class Name(BaseModel):
     )
 
 
-class EmailKind(Enum):
+class EmailKind(str, Enum):
     work = "work"
     home = "home"
     other = "other"
@@ -63,7 +63,7 @@ class Email(BaseModel):
     )
 
 
-class PhoneNumberKind(Enum):
+class PhoneNumberKind(str, Enum):
     work = "work"
     home = "home"
     mobile = "mobile"
@@ -88,7 +88,7 @@ class PhoneNumber(BaseModel):
     )
 
 
-class ImKind(Enum):
+class ImKind(str, Enum):
     aim = "aim"
     gtalk = "gtalk"
     icq = "icq"
@@ -117,7 +117,7 @@ class Im(BaseModel):
     )
 
 
-class PhotoKind(Enum):
+class PhotoKind(str, Enum):
     photo = "photo"
     thumbnail = "thumbnail"
 
@@ -138,7 +138,7 @@ class Photo(BaseModel):
     )
 
 
-class AddressKind(Enum):
+class AddressKind(str, Enum):
     work = "work"
     home = "home"
     other = "other"

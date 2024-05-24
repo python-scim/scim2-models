@@ -59,7 +59,7 @@ class ETag(BaseModel):
     """A Boolean value specifying whether or not the operation is supported."""
 
 
-class AuthenticationSchemeKind(Enum):
+class AuthenticationSchemeKind(str, Enum):
     oauth = "oauth"
     oauth2 = "oauth2"
     oauthbearertoken = "oauthbearertoken"

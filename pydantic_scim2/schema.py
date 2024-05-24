@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from .resource import Meta
 
 
-class AttributeKind(Enum):
+class AttributeKind(str, Enum):
     string = "string"
     boolean = "boolean"
     decimal = "decimal"
@@ -18,21 +18,21 @@ class AttributeKind(Enum):
     complex = "complex"
 
 
-class Mutability(Enum):
+class Mutability(str, Enum):
     readOnly = "readOnly"
     readWrite = "readWrite"
     immutable = "immutable"
     writeOnly = "writeOnly"
 
 
-class Returned(Enum):
+class Returned(str, Enum):
     always = "always"
     never = "never"
     default = "default"
     request = "request"
 
 
-class Uniqueness(Enum):
+class Uniqueness(str, Enum):
     none = "none"
     server = "server"
     global_ = "global"
