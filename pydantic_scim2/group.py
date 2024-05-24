@@ -6,6 +6,8 @@ from pydantic import BaseModel
 from pydantic import ConfigDict
 from pydantic import Field
 
+from .resource import Resource
+
 
 class GroupMember(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
@@ -19,12 +21,11 @@ class GroupMember(BaseModel):
     )
 
 
-class Group(BaseModel):
-    id: Optional[str] = None
+class Group(Resource):
+    schemas: List[str] = ["urn:ietf:params:scim:schemas:core:2.0:Group"]
     displayName: str = Field(
         ..., description="A human-readable name for the Group. REQUIRED."
     )
     members: Optional[List[GroupMember]] = Field(
         None, description="A list of members of the Group."
     )
-    schemas: List[str] = {"urn:ietf:params:scim:schemas:core:2.0:Group"}
