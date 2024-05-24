@@ -1,10 +1,12 @@
-pydantic-scim2
-==============
+.. include:: ../README.md
+   :parser: myst_parser.parsers.docutils_
 
-SCIM2 models for pydantic
+Table of contents
+-----------------
 
 .. toctree::
     :maxdepth: 2
 
     reference
+    contributing
     changelog

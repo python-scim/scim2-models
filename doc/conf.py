@@ -10,13 +10,13 @@ sys.path.insert(0, os.path.abspath("../pydantic_scim2"))
 
 extensions = [
     "sphinx.ext.autodoc",
-    "sphinx.ext.autosectionlabel",
     "sphinx.ext.doctest",
     "sphinx.ext.graphviz",
     "sphinx.ext.intersphinx",
     "sphinx.ext.todo",
     "sphinx.ext.viewcode",
     "sphinxcontrib.autodoc_pydantic",
+    "myst_parser",
 ]
 
 templates_path = ["_templates"]
@@ -25,6 +25,11 @@ project = "pydantic-scim2"
 year = datetime.datetime.now().strftime("%Y")
 copyright = f"{year}, Yaal Coop"
 author = "Yaal Coop"
+source_suffix = {
+    ".rst": "restructuredtext",
+    ".txt": "markdown",
+    ".md": "markdown",
+}
 
 version = metadata.version("pydantic-scim2")
 language = "en"
@@ -51,6 +56,20 @@ html_theme_options = {
         {
             "title": "SCIM",
             "url": "https://simplecloud.info/",
+            "children": [
+                {
+                    "title": "RFC7642 - SCIM: Definitions, Overview, Concepts, and Requirements",
+                    "url": "https://tools.ietf.org/html/rfc7642",
+                },
+                {
+                    "title": "RFC7644 - SCIM: Protocol",
+                    "url": "https://tools.ietf.org/html/rfc7643",
+                },
+                {
+                    "title": "RFC7643 - SCIM: Core Schema",
+                    "url": "https://tools.ietf.org/html/rfc7644",
+                },
+            ],
         },
         {"title": "PyPI", "url": "https://pypi.org/project/pydantic-scim2"},
     ],
@@ -62,8 +81,3 @@ html_context = {
     "source_version": "main",
     "source_docs_path": "/doc/",
 }
-
-# -- Options for autosectionlabel -----------------------------------------
-
-autosectionlabel_prefix_document = True
-autosectionlabel_maxdepth = 2

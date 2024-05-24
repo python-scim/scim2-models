@@ -39,6 +39,7 @@ optional = true
 autodoc-pydantic = "^2.2.0"
 shibuya = "^2024.5.15"
 sphinx = "^7.3.7"
+myst-parser = "^3.0.1"
 
 [tool.coverage.run]
 source = [
