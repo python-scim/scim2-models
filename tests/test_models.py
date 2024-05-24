@@ -395,3 +395,15 @@ def test_schema(resource_schema_payload):
         )
         == resource_schema_payload[2]
     )
+
+
+def test_service_provider_configuration_schema(
+    service_provider_configuration_schema_payload,
+):
+    obj = Schema.model_validate(service_provider_configuration_schema_payload[0])
+    assert (
+        obj.model_dump(
+            exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
+        )
+        == service_provider_configuration_schema_payload[0]
+    )
