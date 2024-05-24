@@ -294,4 +294,4 @@ class User(Resource):
     x509Certificates: Optional[List[X509Certificate]] = Field(
         None, description="A list of certificates issued to the User."
     )
-    schemas: List[str] = {"urn:ietf:params:scim:schemas:core:2.0:User"}
+    schemas: List[str] = ["urn:ietf:params:scim:schemas:core:2.0:User"]

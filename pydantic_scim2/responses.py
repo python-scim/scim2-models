@@ -18,7 +18,7 @@ from pydantic_scim2.user import User
 class SCIMError(BaseModel):
     detail: str
     status: int
-    schemas: List[str] = {"urn:ietf:params:scim:api:messages:2.0:Error"}
+    schemas: List[str] = ["urn:ietf:params:scim:api:messages:2.0:Error"]
 
     @classmethod
     def not_found(cls, detail: str = "Not found") -> "SCIMError":
@@ -71,4 +71,4 @@ class ListResponse(BaseModel):
             Discriminator(get_model_name),
         ]
     ]
-    schemas: List[str] = {"urn:ietf:params:scim:api:messages:2.0:ListResponse"}
+    schemas: List[str] = ["urn:ietf:params:scim:api:messages:2.0:ListResponse"]
