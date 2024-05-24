@@ -5,7 +5,6 @@ from typing import List
 from typing import Optional
 from typing import Union
 
-from pydantic import BaseModel
 from pydantic import Discriminator
 from pydantic import Tag
 
@@ -14,8 +13,10 @@ from pydantic_scim2.resource_type import ResourceType
 from pydantic_scim2.service_provider import ServiceProviderConfiguration
 from pydantic_scim2.user import User
 
+from .base import SCIM2Model
 
-class SCIMError(BaseModel):
+
+class SCIMError(SCIM2Model):
     detail: str
     status: int
     schemas: List[str] = ["urn:ietf:params:scim:api:messages:2.0:Error"]
@@ -39,13 +40,13 @@ class PatchOp(str, Enum):
     add = "add"
 
 
-class PatchOperation(BaseModel):
+class PatchOperation(SCIM2Model):
     op: PatchOp
     path: str
     value: Optional[Any] = None
 
 
-class PatchRequest(BaseModel):
+class PatchRequest(SCIM2Model):
     Operations: List[PatchOperation]
 
 
@@ -56,10 +57,10 @@ def get_model_name(obj: Any):
     return obj["meta"]["resourceType"]
 
 
-class ListResponse(BaseModel):
-    totalResults: int
-    startIndex: int
-    itemsPerPage: int
+class ListResponse(SCIM2Model):
+    total_results: int
+    start_index: int
+    items_per_page: int
     Resources: List[
         Annotated[
             Union[

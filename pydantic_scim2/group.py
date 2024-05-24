@@ -2,14 +2,14 @@ from typing import List
 from typing import Optional
 
 from pydantic import AnyUrl
-from pydantic import BaseModel
 from pydantic import ConfigDict
 from pydantic import Field
 
+from .base import SCIM2Model
 from .resource import Resource
 
 
-class GroupMember(BaseModel):
+class GroupMember(SCIM2Model):
     model_config = ConfigDict(populate_by_name=True)
 
     value: Optional[str] = None
@@ -23,7 +23,7 @@ class GroupMember(BaseModel):
 
 class Group(Resource):
     schemas: List[str] = ["urn:ietf:params:scim:schemas:core:2.0:Group"]
-    displayName: str = Field(
+    display_name: str = Field(
         ..., description="A human-readable name for the Group. REQUIRED."
     )
     members: Optional[List[GroupMember]] = Field(

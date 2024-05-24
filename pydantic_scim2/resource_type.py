@@ -2,15 +2,15 @@ from typing import List
 from typing import Optional
 
 from pydantic import AnyUrl
-from pydantic import BaseModel
 from pydantic import ConfigDict
 from pydantic import Field
 
+from .base import SCIM2Model
 from .resource import Meta
 from .resource import Resource
 
 
-class SchemaExtension(BaseModel):
+class SchemaExtension(SCIM2Model):
     model_config = ConfigDict(extra="allow")
 
     schema_: AnyUrl = Field(
@@ -48,7 +48,7 @@ class ResourceType(Resource):
     Section 9 for additional considerations regarding privacy.
     """
 
-    externalId: Optional[str] = None
+    external_id: Optional[str] = None
     """A String that is an identifier for the resource as defined by the
     provisioning client.
 
@@ -91,6 +91,6 @@ class ResourceType(Resource):
     schema_: AnyUrl = Field(
         ..., alias="schema", description="The resource type's primary/base schema URI."
     )
-    schemaExtensions: Optional[List[SchemaExtension]] = Field(
+    schema_extensions: Optional[List[SchemaExtension]] = Field(
         None, description="A list of URIs of the resource type's schema extensions."
     )

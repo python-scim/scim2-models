@@ -2,10 +2,13 @@ from datetime import datetime
 from typing import List
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import ConfigDict
+from pydantic.alias_generators import to_camel
+
+from .base import SCIM2Model
 
 
-class Meta(BaseModel):
+class Meta(SCIM2Model):
     """All "meta" sub-attributes are assigned by the service provider (have a
     "mutability" of "readOnly"), and all of these sub-attributes have a
     "returned" characteristic of "default".
@@ -15,7 +18,7 @@ class Meta(BaseModel):
     sub-attributes:
     """
 
-    resourceType: Optional[str] = None
+    resource_type: Optional[str] = None
     """The name of the resource type of the resource.
 
     This attribute has a mutability of "readOnly" and "caseExact" as
@@ -28,7 +31,7 @@ class Meta(BaseModel):
     This attribute MUST be a DateTime.
     """
 
-    lastModified: Optional[datetime] = None
+    last_modified: Optional[datetime] = None
     """The most recent DateTime that the details of this resource were updated
     at the service provider.
 
@@ -60,7 +63,9 @@ class Meta(BaseModel):
     """
 
 
-class Resource(BaseModel):
+class Resource(SCIM2Model):
+    model_config = ConfigDict(extra="allow", alias_generator=to_camel)
+
     schemas: List[str]
     """The "schemas" attribute is a REQUIRED attribute and is an array of
     Strings containing URIs that are used to indicate the namespaces of the
@@ -97,7 +102,7 @@ class Resource(BaseModel):
     Section 9 for additional considerations regarding privacy.
     """
 
-    externalId: Optional[str] = None
+    external_id: Optional[str] = None
     """A String that is an identifier for the resource as defined by the
     provisioning client.
 

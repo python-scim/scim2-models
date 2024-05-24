@@ -2,8 +2,7 @@ from enum import Enum
 from typing import List
 from typing import Optional
 
-from pydantic import BaseModel
-
+from .base import SCIM2Model
 from .resource import Meta
 
 
@@ -12,17 +11,17 @@ class AttributeKind(str, Enum):
     boolean = "boolean"
     decimal = "decimal"
     integer = "integer"
-    dateTime = "dateTime"
+    date_time = "dateTime"
     reference = "reference"
     binary = "binary"
     complex = "complex"
 
 
 class Mutability(str, Enum):
-    readOnly = "readOnly"
-    readWrite = "readWrite"
+    read_only = "readOnly"
+    read_write = "readWrite"
     immutable = "immutable"
-    writeOnly = "writeOnly"
+    write_only = "writeOnly"
 
 
 class Returned(str, Enum):
@@ -38,18 +37,18 @@ class Uniqueness(str, Enum):
     global_ = "global"
 
 
-class Attribute(BaseModel):
+class Attribute(SCIM2Model):
     name: str
     """The attribute's name."""
 
     type: AttributeKind
     """The attribute's data type."""
 
-    subAttributes: Optional[List["Attribute"]] = None
+    sub_attributes: Optional[List["Attribute"]] = None
     """When an attribute is of type "complex", "subAttributes" defines a set of
     sub-attributes."""
 
-    multiValued: bool
+    multi_valued: bool
     """A Boolean value indicating the attribute's plurality."""
 
     description: str
@@ -59,15 +58,15 @@ class Attribute(BaseModel):
     """A Boolean value that specifies whether or not the attribute is
     required."""
 
-    canonicalValues: Optional[List[str]] = None
+    canonical_values: Optional[List[str]] = None
     """A collection of suggested canonical values that MAY be used (e.g.,
     "work" and "home")."""
 
-    caseExact: bool = True
+    case_exact: bool = True
     """A Boolean value that specifies whether or not a string attribute is case
     sensitive."""
 
-    mutability: Mutability = Mutability.readWrite
+    mutability: Mutability = Mutability.read_write
     """A single keyword indicating the circumstances under which the value of
     the attribute can be (re)defined."""
 
@@ -80,12 +79,12 @@ class Attribute(BaseModel):
     """A single keyword value that specifies how the service provider enforces
     uniqueness of attribute values."""
 
-    referenceTypes: Optional[List[str]] = None
+    reference_types: Optional[List[str]] = None
     """A multi-valued array of JSON strings that indicate the SCIM resource
     types that may be referenced."""
 
 
-class Schema(BaseModel):
+class Schema(SCIM2Model):
     id: str
     """The unique URI of the schema."""
 

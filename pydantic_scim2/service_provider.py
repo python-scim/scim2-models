@@ -3,58 +3,58 @@ from typing import List
 from typing import Optional
 
 from pydantic import AnyUrl
-from pydantic import BaseModel
 from pydantic import Field
 
+from .base import SCIM2Model
 from .resource import Meta
 from .resource import Resource
 
 
-class Patch(BaseModel):
+class Patch(SCIM2Model):
     supported: bool = Field(
         ...,
         description="A Boolean value specifying whether or not the operation is supported.",
     )
 
 
-class Bulk(BaseModel):
+class Bulk(SCIM2Model):
     supported: bool = Field(
         ...,
         description="A Boolean value specifying whether or not the operation is supported.",
     )
-    maxOperations: int
+    max_operations: int
     """An integer value specifying the maximum number of operations."""
 
-    maxPayloadSize: int
+    max_payload_size: int
     """An integer value specifying the maximum payload size in bytes."""
 
 
-class Filter(BaseModel):
+class Filter(SCIM2Model):
     supported: bool = Field(
         ...,
         description="A Boolean value specifying whether or not the operation is supported.",
     )
-    maxResults: Optional[int] = Field(
+    max_results: Optional[int] = Field(
         None,
         description="A Boolean value specifying whether or not the operation is supported.",
     )
 
 
-class ChangePassword(BaseModel):
+class ChangePassword(SCIM2Model):
     supported: bool = Field(
         ...,
         description="A Boolean value specifying whether or not the operation is supported.",
     )
 
 
-class Sort(BaseModel):
+class Sort(SCIM2Model):
     supported: bool = Field(
         ...,
         description="A Boolean value specifying whether or not the operation is supported.",
     )
 
 
-class ETag(BaseModel):
+class ETag(SCIM2Model):
     supported: bool
     """A Boolean value specifying whether or not the operation is supported."""
 
@@ -67,7 +67,7 @@ class AuthenticationSchemeKind(str, Enum):
     httpdigest = "httpdigest"
 
 
-class AuthenticationScheme(BaseModel):
+class AuthenticationScheme(SCIM2Model):
     type: AuthenticationSchemeKind
     """The authentication scheme."""
 
@@ -77,11 +77,11 @@ class AuthenticationScheme(BaseModel):
     description: str = Field(
         ..., description="A description of the authentication scheme."
     )
-    specUri: Optional[AnyUrl] = Field(
+    spec_uri: Optional[AnyUrl] = Field(
         None,
         description="An HTTP-addressable URL pointing to the authentication scheme's specification.",
     )
-    documentationUri: Optional[AnyUrl] = Field(
+    documentation_uri: Optional[AnyUrl] = Field(
         None,
         description="An HTTP-addressable URL pointing to the authentication scheme's usage documentation.",
     )
@@ -115,7 +115,7 @@ class ServiceProviderConfiguration(Resource):
     Section 9 for additional considerations regarding privacy.
     """
 
-    externalId: Optional[str] = None
+    external_id: Optional[str] = None
     """A String that is an identifier for the resource as defined by the
     provisioning client.
 
@@ -139,7 +139,7 @@ class ServiceProviderConfiguration(Resource):
     meta: Optional[Meta] = None
     """A complex attribute containing resource metadata."""
 
-    documentationUri: Optional[AnyUrl] = Field(
+    documentation_uri: Optional[AnyUrl] = Field(
         None,
         description="An HTTP-addressable URL pointing to the service provider's human-consumable help documentation.",
     )
@@ -152,7 +152,7 @@ class ServiceProviderConfiguration(Resource):
     filter: Filter = Field(
         ..., description="A complex type that specifies FILTER options."
     )
-    changePassword: ChangePassword = Field(
+    change_password: ChangePassword = Field(
         ...,
         description="A complex type that specifies configuration options related to changing a password.",
     )
@@ -162,7 +162,7 @@ class ServiceProviderConfiguration(Resource):
     etag: ETag
     """A complex type that specifies ETag configuration options."""
 
-    authenticationSchemes: List[AuthenticationScheme] = Field(
+    authentication_schemes: List[AuthenticationScheme] = Field(
         ...,
         description="A complex type that specifies supported authentication scheme properties.",
     )

@@ -3,36 +3,36 @@ from typing import List
 from typing import Optional
 
 from pydantic import AnyUrl
-from pydantic import BaseModel
 from pydantic import EmailStr
 from pydantic import Field
 
+from .base import SCIM2Model
 from .group import GroupMember
 from .resource import Resource
 
 
-class Name(BaseModel):
+class Name(SCIM2Model):
     formatted: Optional[str] = Field(
         None,
         description="The full name, including all middle names, titles, and suffixes as appropriate, formatted for display (e.g., 'Ms. Barbara J Jensen, III').",
     )
-    familyName: Optional[str] = Field(
+    family_name: Optional[str] = Field(
         None,
         description="The family name of the User, or last name in most Western languages (e.g., 'Jensen' given the full name 'Ms. Barbara J Jensen, III').",
     )
-    givenName: Optional[str] = Field(
+    given_name: Optional[str] = Field(
         None,
         description="The given name of the User, or first name in most Western languages (e.g., 'Barbara' given the full name 'Ms. Barbara J Jensen, III').",
     )
-    middleName: Optional[str] = Field(
+    middle_name: Optional[str] = Field(
         None,
         description="The middle name(s) of the User (e.g., 'Jane' given the full name 'Ms. Barbara J Jensen, III').",
     )
-    honorificPrefix: Optional[str] = Field(
+    honorific_prefix: Optional[str] = Field(
         None,
         description="The honorific prefix(es) of the User, or title in most Western languages (e.g., 'Ms.' given the full name 'Ms. Barbara J Jensen, III').",
     )
-    honorificSuffix: Optional[str] = Field(
+    honorific_suffix: Optional[str] = Field(
         None,
         description="The honorific suffix(es) of the User, or suffix in most Western languages (e.g., 'III' given the full name 'Ms. Barbara J Jensen, III').",
     )
@@ -44,7 +44,7 @@ class EmailKind(str, Enum):
     other = "other"
 
 
-class Email(BaseModel):
+class Email(SCIM2Model):
     value: Optional[EmailStr] = Field(
         None,
         description="Email addresses for the user.  The value SHOULD be canonicalized by the service provider, e.g., 'bjensen@example.com' instead of 'bjensen@EXAMPLE.COM'. Canonical type values of 'work', 'home', and 'other'.",
@@ -72,7 +72,7 @@ class PhoneNumberKind(str, Enum):
     other = "other"
 
 
-class PhoneNumber(BaseModel):
+class PhoneNumber(SCIM2Model):
     value: Optional[str] = Field(None, description="Phone number of the User.")
     display: Optional[str] = Field(
         None,
@@ -99,7 +99,7 @@ class ImKind(str, Enum):
     yahoo = "yahoo"
 
 
-class Im(BaseModel):
+class Im(SCIM2Model):
     value: Optional[str] = Field(
         None, description="Instant messaging address for the User."
     )
@@ -122,7 +122,7 @@ class PhotoKind(str, Enum):
     thumbnail = "thumbnail"
 
 
-class Photo(BaseModel):
+class Photo(SCIM2Model):
     value: Optional[AnyUrl] = Field(None, description="URL of a photo of the User.")
     display: Optional[str] = Field(
         None,
@@ -144,18 +144,18 @@ class AddressKind(str, Enum):
     other = "other"
 
 
-class Address(BaseModel):
+class Address(SCIM2Model):
     formatted: Optional[str] = Field(
         None,
         description="The full mailing address, formatted for display or use with a mailing label.  This attribute MAY contain newlines.",
     )
-    streetAddress: Optional[str] = Field(
+    street_address: Optional[str] = Field(
         None,
         description="The full street address component, which may include house number, street name, P.O. box, and multi-line extended street address information.  This attribute MAY contain newlines.",
     )
     locality: Optional[str] = Field(None, description="The city or locality component.")
     region: Optional[str] = Field(None, description="The state or region component.")
-    postalCode: Optional[str] = Field(
+    postal_code: Optional[str] = Field(
         None, description="The zip code or postal code component."
     )
     country: Optional[str] = Field(None, description="The country name component.")
@@ -169,7 +169,7 @@ class Address(BaseModel):
     )
 
 
-class Entitlement(BaseModel):
+class Entitlement(SCIM2Model):
     value: Optional[str] = Field(None, description="The value of an entitlement.")
     display: Optional[str] = Field(
         None,
@@ -184,7 +184,7 @@ class Entitlement(BaseModel):
     )
 
 
-class Role(BaseModel):
+class Role(SCIM2Model):
     value: Optional[str] = Field(None, description="The value of a role.")
     display: Optional[str] = Field(
         None,
@@ -199,7 +199,7 @@ class Role(BaseModel):
     )
 
 
-class X509Certificate(BaseModel):
+class X509Certificate(SCIM2Model):
     value: Optional[str] = Field(None, description="The value of an X.509 certificate.")
     display: Optional[str] = Field(
         None,
@@ -215,7 +215,7 @@ class X509Certificate(BaseModel):
 
 
 class User(Resource):
-    userName: str = Field(
+    user_name: str = Field(
         ...,
         description="Unique identifier for the User, typically used by the user to directly authenticate to the service provider.  Each User MUST include a non-empty userName value.  This identifier MUST be unique across the service provider's entire set of Users.  REQUIRED.",
     )
@@ -223,26 +223,26 @@ class User(Resource):
         None,
         description="The components of the user's real name.  Providers MAY return just the full name as a single string in the formatted sub-attribute, or they MAY return just the individual component attributes using the other sub-attributes, or they MAY return both.  If both variants are returned, they SHOULD be describing the same name, with the formatted name indicating how the component attributes should be combined.",
     )
-    displayName: Optional[str] = Field(
+    display_name: Optional[str] = Field(
         None,
         description="The name of the User, suitable for display to end-users.  The name SHOULD be the full name of the User being described, if known.",
     )
-    nickName: Optional[str] = Field(
+    nick_name: Optional[str] = Field(
         None,
         description="The casual way to address the user in real life, e.g., 'Bob' or 'Bobby' instead of 'Robert'.  This attribute SHOULD NOT be used to represent a User's username (e.g., 'bjensen' or 'mpepperidge').",
     )
-    profileUrl: Optional[AnyUrl] = Field(
+    profile_url: Optional[AnyUrl] = Field(
         None,
         description="A fully qualified URL pointing to a page representing the User's online profile.",
     )
     title: Optional[str] = Field(
         None, description='The user\'s title, such as "Vice President."'
     )
-    userType: Optional[str] = Field(
+    user_type: Optional[str] = Field(
         None,
         description="Used to identify the relationship between the organization and the user.  Typical values used might be 'Contractor', 'Employee', 'Intern', 'Temp', 'External', and 'Unknown', but any value may be used.",
     )
-    preferredLanguage: Optional[str] = Field(
+    preferred_language: Optional[str] = Field(
         None,
         description="Indicates the User's preferred written or spoken language.  Generally used for selecting a localized user interface; e.g., 'en_US' specifies the language English and country US.",
     )
@@ -265,7 +265,7 @@ class User(Resource):
         None,
         description="Email addresses for the user.  The value SHOULD be canonicalized by the service provider, e.g., 'bjensen@example.com' instead of 'bjensen@EXAMPLE.COM'. Canonical type values of 'work', 'home', and 'other'.",
     )
-    phoneNumbers: Optional[List[PhoneNumber]] = Field(
+    phone_numbers: Optional[List[PhoneNumber]] = Field(
         None,
         description="Phone numbers for the User.  The value SHOULD be canonicalized by the service provider according to the format specified in RFC 3966, e.g., 'tel:+1-201-555-0123'. Canonical type values of 'work', 'home', 'mobile', 'fax', 'pager', and 'other'.",
     )
