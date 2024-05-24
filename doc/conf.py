@@ -62,11 +62,11 @@ html_theme_options = {
                     "url": "https://tools.ietf.org/html/rfc7642",
                 },
                 {
-                    "title": "RFC7644 - SCIM: Protocol",
+                    "title": "RFC7643 - SCIM: Core Schema",
                     "url": "https://tools.ietf.org/html/rfc7643",
                 },
                 {
-                    "title": "RFC7643 - SCIM: Core Schema",
+                    "title": "RFC7644 - SCIM: Protocol",
                     "url": "https://tools.ietf.org/html/rfc7644",
                 },
             ],

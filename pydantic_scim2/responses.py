@@ -1,18 +1,11 @@
 from enum import Enum
-from typing import Annotated
 from typing import Any
+from typing import Generic
 from typing import List
 from typing import Optional
-from typing import Union
+from typing import TypeVar
 
-from pydantic import Discriminator
 from pydantic import Field
-from pydantic import Tag
-
-from pydantic_scim2.group import Group
-from pydantic_scim2.resource_type import ResourceType
-from pydantic_scim2.service_provider import ServiceProviderConfiguration
-from pydantic_scim2.user import User
 
 from .base import SCIM2Model
 
@@ -58,19 +51,12 @@ def get_model_name(obj: Any):
     return obj["meta"]["resourceType"]
 
 
-class ListResponse(SCIM2Model):
+T = TypeVar("T")
+
+
+class ListResponse(SCIM2Model, Generic[T]):
     total_results: int
     start_index: int
     items_per_page: int
-    resources: List[
-        Annotated[
-            Union[
-                Annotated[User, Tag("User")],
-                Annotated[Group, Tag("Group")],
-                Annotated[ResourceType, Tag("ResourceType")],
-                Annotated[ServiceProviderConfiguration, Tag("ServiceProviderConfig")],
-            ],
-            Discriminator(get_model_name),
-        ]
-    ] = Field(..., alias="Resources")
+    resources: List[T] = Field(..., alias="Resources")
     schemas: List[str] = ["urn:ietf:params:scim:api:messages:2.0:ListResponse"]

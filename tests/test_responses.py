@@ -15,7 +15,7 @@ def test_user_response(minimal_user_payload):
         "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
         "Resources": [minimal_user_payload],
     }
-    response = ListResponse.model_validate(payload)
+    response = ListResponse[User].model_validate(payload)
     obj = response.resources[0]
     assert isinstance(obj, User)
 
@@ -31,7 +31,7 @@ def test_enterprise_user_response(enterprise_user_payload):
         "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
         "Resources": [enterprise_user_payload],
     }
-    response = ListResponse.model_validate(payload)
+    response = ListResponse[User].model_validate(payload)
     obj = response.resources[0]
     assert isinstance(obj, User)
     assert isinstance(obj, EnterpriseUser)
@@ -45,7 +45,7 @@ def test_group_response(group_payload):
         "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
         "Resources": [group_payload],
     }
-    response = ListResponse.model_validate(payload)
+    response = ListResponse[Group].model_validate(payload)
     obj = response.resources[0]
     assert isinstance(obj, Group)
 
@@ -60,7 +60,7 @@ def test_service_provider_configuration_response(
         "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
         "Resources": [service_provider_configuration_payload],
     }
-    response = ListResponse.model_validate(payload)
+    response = ListResponse[ServiceProviderConfiguration].model_validate(payload)
     obj = response.resources[0]
     assert isinstance(obj, ServiceProviderConfiguration)
 
@@ -75,6 +75,6 @@ def test_resource_type_response(
         "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
         "Resources": [user_resource_type_payload, group_resource_type_payload],
     }
-    response = ListResponse.model_validate(payload)
+    response = ListResponse[ResourceType].model_validate(payload)
     obj = response.resources[0]
     assert isinstance(obj, ResourceType)
