@@ -65,13 +65,15 @@ def test_service_provider_configuration_response(
     assert isinstance(obj, ServiceProviderConfiguration)
 
 
-def test_resource_type_response(resource_type_payload):
+def test_resource_type_response(
+    user_resource_type_payload, group_resource_type_payload
+):
     payload = {
         "totalResults": 2,
         "itemsPerPage": 10,
         "startIndex": 1,
         "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
-        "Resources": resource_type_payload,
+        "Resources": [user_resource_type_payload, group_resource_type_payload],
     }
     response = ListResponse.model_validate(payload)
     obj = response.Resources[0]

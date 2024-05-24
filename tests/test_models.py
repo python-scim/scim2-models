@@ -269,8 +269,8 @@ def test_service_provider_configuration(service_provider_configuration_payload):
     )
 
 
-def test_resource_type(resource_type_payload):
-    obj = ResourceType.model_validate(resource_type_payload[0])
+def test_user_resource_type(user_resource_type_payload):
+    obj = ResourceType.model_validate(user_resource_type_payload)
 
     assert obj.schemas == ["urn:ietf:params:scim:schemas:core:2.0:ResourceType"]
     assert obj.id == "User"
@@ -289,10 +289,12 @@ def test_resource_type(resource_type_payload):
         obj.model_dump(
             exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
         )
-        == resource_type_payload[0]
+        == user_resource_type_payload
     )
 
-    obj = ResourceType.model_validate(resource_type_payload[1])
+
+def test_group_resource_type(group_resource_type_payload):
+    obj = ResourceType.model_validate(group_resource_type_payload)
     assert obj.schemas == ["urn:ietf:params:scim:schemas:core:2.0:ResourceType"]
     assert obj.id == "Group"
     assert obj.name == "Group"
@@ -306,26 +308,22 @@ def test_resource_type(resource_type_payload):
         obj.model_dump(
             exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
         )
-        == resource_type_payload[1]
+        == group_resource_type_payload
     )
 
 
-def test_schema(resource_schema_payload):
-    obj = Schema.model_validate(resource_schema_payload[0])
+def test_user_schema(user_schema_payload):
+    obj = Schema.model_validate(user_schema_payload)
     assert (
         obj.model_dump(
             exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
         )
-        == resource_schema_payload[0]
+        == user_schema_payload
     )
 
-    obj = Schema.model_validate(resource_schema_payload[1])
-    assert (
-        obj.model_dump(
-            exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
-        )
-        == resource_schema_payload[1]
-    )
+
+def test_group_schema(group_schema_payload):
+    obj = Schema.model_validate(group_schema_payload)
 
     assert obj.id == "urn:ietf:params:scim:schemas:core:2.0:Group"
     assert obj.name == "Group"
@@ -388,22 +386,56 @@ def test_schema(resource_schema_payload):
     assert (
         obj.meta.location == "/v2/Schemas/urn:ietf:params:scim:schemas:core:2.0:Group"
     )
-    obj = Schema.model_validate(resource_schema_payload[2])
+
     assert (
         obj.model_dump(
             exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
         )
-        == resource_schema_payload[2]
+        == group_schema_payload
+    )
+
+
+def test_enterprise_user_schema(enterprise_user_schema_payload):
+    obj = Schema.model_validate(enterprise_user_schema_payload)
+    assert (
+        obj.model_dump(
+            exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
+        )
+        == enterprise_user_schema_payload
     )
 
 
 def test_service_provider_configuration_schema(
     service_provider_configuration_schema_payload,
 ):
-    obj = Schema.model_validate(service_provider_configuration_schema_payload[0])
+    obj = Schema.model_validate(service_provider_configuration_schema_payload)
     assert (
         obj.model_dump(
             exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
         )
-        == service_provider_configuration_schema_payload[0]
+        == service_provider_configuration_schema_payload
+    )
+
+
+def test_resource_type_schema(
+    resource_type_schema_payload,
+):
+    obj = Schema.model_validate(resource_type_schema_payload)
+    assert (
+        obj.model_dump(
+            exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
+        )
+        == resource_type_schema_payload
+    )
+
+
+def test_schema_schema(
+    schema_schema_payload,
+):
+    obj = Schema.model_validate(schema_schema_payload)
+    assert (
+        obj.model_dump(
+            exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
+        )
+        == schema_schema_payload
     )

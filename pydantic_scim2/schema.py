@@ -99,5 +99,5 @@ class Schema(BaseModel):
     """A complex type that defines service provider attributes and their
     qualities via the following set of sub-attributes."""
 
-    meta: Meta
+    meta: Optional[Meta] = None
     """A complex attribute containing resource metadata."""
