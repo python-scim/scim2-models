@@ -14,18 +14,14 @@ class GroupMember(SCIM2Model):
 
     value: Optional[str] = None
     display: Optional[str] = None
-    ref: Optional[AnyUrl] = Field(
-        None,
-        alias="$ref",
-        description="The URI of the SCIM resource representing the User's manager.  REQUIRED.",
-    )
+    ref: Optional[AnyUrl] = Field(None, alias="$ref")
+    """The URI of the SCIM resource representing the User's manager."""
 
 
 class Group(Resource):
     schemas: List[str] = ["urn:ietf:params:scim:schemas:core:2.0:Group"]
-    display_name: str = Field(
-        ..., description="A human-readable name for the Group. REQUIRED."
-    )
-    members: Optional[List[GroupMember]] = Field(
-        None, description="A list of members of the Group."
-    )
+    display_name: str
+    """A human-readable name for the Group."""
+
+    members: Optional[List[GroupMember]] = None
+    """A list of members of the Group."""
