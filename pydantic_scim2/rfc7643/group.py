@@ -10,7 +10,12 @@ from .resource import Resource
 
 class GroupMember(SCIM2Model):
     value: Optional[str] = None
+
     display: Optional[str] = None
+
+    type: Optional[str] = None
+    """A label indicating the attribute's function, e.g., "work" or "home"."""
+
     ref: Optional[AnyUrl] = Field(None, alias="$ref")
     """The reference URI of a target resource, if the attribute is a
     reference."""
@@ -18,6 +23,7 @@ class GroupMember(SCIM2Model):
 
 class Group(Resource):
     schemas: List[str] = ["urn:ietf:params:scim:schemas:core:2.0:Group"]
+
     display_name: str
     """A human-readable name for the Group."""
 

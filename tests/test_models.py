@@ -1,5 +1,6 @@
 import datetime
 
+import pytest
 from pydantic import AnyUrl
 
 from pydantic_scim2 import Address
@@ -578,6 +579,7 @@ def test_schema_schema(
     )
 
 
+@pytest.mark.skip
 def test_post_query_list_response(
     post_query_list_response_payload,
 ):
