@@ -5,7 +5,7 @@ from pydantic import AnyUrl
 from pydantic import ConfigDict
 from pydantic import Field
 
-from .base import SCIM2Model
+from ..base import SCIM2Model
 from .resource import Resource
 
 

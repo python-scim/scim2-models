@@ -4,7 +4,7 @@ from typing import Optional
 
 from pydantic import AnyUrl
 
-from .base import SCIM2Model
+from ..base import SCIM2Model
 from .resource import Meta
 from .resource import Resource
 

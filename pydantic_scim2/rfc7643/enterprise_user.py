@@ -3,7 +3,7 @@ from typing import Optional
 from pydantic import AnyUrl
 from pydantic import Field
 
-from .base import SCIM2Model
+from ..base import SCIM2Model
 
 
 class Manager(SCIM2Model):

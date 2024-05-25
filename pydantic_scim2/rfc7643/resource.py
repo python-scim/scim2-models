@@ -5,7 +5,7 @@ from typing import Optional
 from pydantic import ConfigDict
 from pydantic.alias_generators import to_camel
 
-from .base import SCIM2Model
+from ..base import SCIM2Model
 
 
 class Meta(SCIM2Model):

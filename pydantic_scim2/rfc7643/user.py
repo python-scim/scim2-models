@@ -5,7 +5,7 @@ from typing import Optional
 from pydantic import AnyUrl
 from pydantic import EmailStr
 
-from .base import SCIM2Model
+from ..base import SCIM2Model
 from .group import GroupMember
 from .resource import Resource
 

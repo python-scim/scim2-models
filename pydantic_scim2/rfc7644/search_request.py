@@ -2,7 +2,7 @@ from enum import Enum
 from typing import List
 from typing import Optional
 
-from .base import SCIM2Model
+from ..base import SCIM2Model
 
 
 class SortOrder(str, Enum):

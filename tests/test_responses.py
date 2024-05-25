@@ -1,8 +1,8 @@
-from pydantic_scim2.group import Group
-from pydantic_scim2.resource_type import ResourceType
-from pydantic_scim2.responses import ListResponse
-from pydantic_scim2.service_provider import ServiceProviderConfiguration
-from pydantic_scim2.user import User
+from pydantic_scim2 import Group
+from pydantic_scim2 import ListResponse
+from pydantic_scim2 import ResourceType
+from pydantic_scim2 import ServiceProviderConfiguration
+from pydantic_scim2 import User
 
 
 def test_user_response(minimal_user_payload):
