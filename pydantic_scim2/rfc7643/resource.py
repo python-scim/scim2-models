@@ -1,10 +1,18 @@
 from datetime import datetime
+from typing import Any
+from typing import Generic
 from typing import List
 from typing import Optional
+from typing import TypeVar
 
 from pydantic import ConfigDict
+from pydantic import field_serializer
+from pydantic import model_validator
+from typing_extensions import Self
 
 from ..base import SCIM2Model
+
+T = TypeVar("T", SCIM2Model, Any)
 
 
 class Meta(SCIM2Model):
@@ -62,7 +70,7 @@ class Meta(SCIM2Model):
     """
 
 
-class Resource(SCIM2Model):
+class Resource(SCIM2Model, Generic[T]):
     model_config = ConfigDict(extra="allow")
 
     schemas: List[str]
@@ -124,3 +132,50 @@ class Resource(SCIM2Model):
 
     meta: Meta
     """A complex attribute containing resource metadata."""
+
+    def __getitem__(self, item):
+        schema = item.model_fields["schemas"].default[0]
+
+        if not hasattr(self, schema):
+            setattr(self, schema, item())
+
+        return getattr(self, schema)
+
+    def __setitem__(self, item: type, value: "Resource"):
+        schema = item.model_fields["schemas"].default[0]
+        setattr(self, schema, value)
+
+    @model_validator(mode="after")
+    def load_model_extensions(self) -> Self:
+        """Instanciate schema objects if found in the payload."""
+
+        extension_models = self.__pydantic_generic_metadata__.get("args")
+        if not extension_models:
+            return self
+
+        main_schema = self.model_fields["schemas"].default[0]
+        by_schema = {
+            ext.model_fields["schemas"].default[0]: ext for ext in extension_models
+        }
+        for schema in self.schemas:
+            if schema == main_schema:
+                continue
+
+            model = by_schema[schema]
+            if payload := getattr(self, schema, None):
+                setattr(self, schema, model.model_validate(payload))
+
+        return self
+
+    @field_serializer("schemas")
+    def set_extension_schemas(self, schemas: List[str]):
+        """Add model extensions to 'schemas'."""
+
+        extension_models = self.__pydantic_generic_metadata__.get("args")
+        extension_schemas = [
+            ext.model_fields["schemas"].default[0] for ext in extension_models
+        ]
+        schemas = self.schemas + [
+            schema for schema in extension_schemas if schema not in self.schemas
+        ]
+        return schemas
