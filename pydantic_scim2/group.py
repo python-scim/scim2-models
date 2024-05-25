@@ -15,7 +15,8 @@ class GroupMember(SCIM2Model):
     value: Optional[str] = None
     display: Optional[str] = None
     ref: Optional[AnyUrl] = Field(None, alias="$ref")
-    """The URI of the SCIM resource representing the User's manager."""
+    """The reference URI of a target resource, if the attribute is a
+    reference."""
 
 
 class Group(Resource):

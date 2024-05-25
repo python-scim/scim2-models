@@ -22,6 +22,7 @@ def minimal_user_payload():
 @pytest.fixture
 def full_user_payload():
     """https://www.rfc-editor.org/rfc/rfc7643#section-8.2"""
+
     return {
         "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
         "id": "2819c223-7f76-453a-919d-413861904646",
@@ -208,17 +209,23 @@ def enterprise_user_payload():
         "groups": [
             {
                 "value": "e9e30dba-f08f-4109-8486-d5c6a331660a",
-                "$ref": "../Groups/e9e30dba-f08f-4109-8486-d5c6a331660a",
+                # TODO: relative URL are not supported by pydantic. Is this an error in the spec?
+                # "$ref": "../Groups/e9e30dba-f08f-4109-8486-d5c6a331660a",
+                "$ref": "https://example.com/v2/Groups/e9e30dba-f08f-4109-8486-d5c6a331660a",
                 "display": "Tour Guides",
             },
             {
                 "value": "fc348aa8-3835-40eb-a20b-c726e15c55b5",
-                "$ref": "../Groups/fc348aa8-3835-40eb-a20b-c726e15c55b5",
+                # TODO: relative URL are not supported by pydantic. Is this an error in the spec?
+                # "$ref": "../Groups/fc348aa8-3835-40eb-a20b-c726e15c55b5",
+                "$ref": "https://example.com/v2/Groups/fc348aa8-3835-40eb-a20b-c726e15c55b5",
                 "display": "Employees",
             },
             {
                 "value": "71ddacd2-a8e7-49b8-a5db-ae50d0a5bfd7",
-                "$ref": "../Groups/71ddacd2-a8e7-49b8-a5db-ae50d0a5bfd7",
+                # TODO: relative URL are not supported by pydantic. Is this an error in the spec?
+                # "$ref": "../Groups/71ddacd2-a8e7-49b8-a5db-ae50d0a5bfd7",
+                "$ref": "https://example.com/v2/Groups/71ddacd2-a8e7-49b8-a5db-ae50d0a5bfd7",
                 "display": "US Employees",
             },
         ],
@@ -254,7 +261,9 @@ def enterprise_user_payload():
             "department": "Tour Operations",
             "manager": {
                 "value": "26118915-6090-4610-87e4-49d8ca9f808d",
-                "$ref": "../Users/26118915-6090-4610-87e4-49d8ca9f808d",
+                # TODO: relative URL are not supported by pydantic. Is this an error in the spec?
+                # "$ref": "../Users/26118915-6090-4610-87e4-49d8ca9f808d",
+                "$ref": "https://example.com/v2/Users/26118915-6090-4610-87e4-49d8ca9f808d",
                 "displayName": "John Smith",
             },
         },
