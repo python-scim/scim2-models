@@ -2,7 +2,6 @@ from typing import List
 from typing import Optional
 
 from pydantic import AnyUrl
-from pydantic import ConfigDict
 from pydantic import Field
 
 from ..base import SCIM2Model
@@ -11,8 +10,6 @@ from .resource import Resource
 
 
 class SchemaExtension(SCIM2Model):
-    model_config = ConfigDict(extra="allow")
-
     schema_: AnyUrl = Field(..., alias="schema")
     """The URI of a schema extension."""
 
@@ -28,8 +25,6 @@ class SchemaExtension(SCIM2Model):
 
 
 class ResourceType(Resource):
-    model_config = ConfigDict(extra="allow")
-
     schemas: List[str] = ["urn:ietf:params:scim:schemas:core:2.0:ResourceType"]
 
     # Each SCIM resource (Users, Groups, etc.) includes the following

@@ -2,9 +2,6 @@ from datetime import datetime
 from typing import List
 from typing import Optional
 
-from pydantic import ConfigDict
-from pydantic.alias_generators import to_camel
-
 from ..base import SCIM2Model
 
 
@@ -64,8 +61,6 @@ class Meta(SCIM2Model):
 
 
 class Resource(SCIM2Model):
-    model_config = ConfigDict(extra="allow", alias_generator=to_camel)
-
     schemas: List[str]
     """The "schemas" attribute is a REQUIRED attribute and is an array of
     Strings containing URIs that are used to indicate the namespaces of the
