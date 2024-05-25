@@ -2348,3 +2348,586 @@ def schema_schema_payload():
             },
         ],
     }
+
+
+def post_query_list_response_payload():
+    """https://datatracker.ietf.org/doc/html/rfc7644#autoid-21"""
+
+    return {
+        "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
+        "totalResults": 100,
+        "itemsPerPage": 10,
+        "startIndex": 1,
+        "Resources": [
+            {
+                "id": "2819c223-7f76-413861904646",
+                "userName": "jsmith",
+                "displayName": "Smith, James",
+            },
+            {"id": "c8596b90-7539-4f20968d1908", "displayName": "Smith Family"},
+        ],
+    }
+
+
+def circular_reference_list_response_payload():
+    """https://datatracker.ietf.org/doc/html/rfc7644#section-3.7.1"""
+
+    return {
+        "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
+        "totalResults": 2,
+        "Resources": [
+            {
+                "id": "c3a26dd3-27a0-4dec-a2ac-ce211e105f97",
+                "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
+                "displayName": "Group A",
+                "meta": {
+                    "resourceType": "Group",
+                    "created": "2011-08-01T18:29:49.793Z",
+                    "lastModified": "2011-08-01T18:29:51.135Z",
+                    "location": "https://example.com/v2/Groups/c3a26dd3-27a0-4dec-a2ac-ce211e105f97",
+                    "version": 'W\\/"mvwNGaxB5SDq074p"',
+                },
+                "members": [
+                    {
+                        "value": "6c5bb468-14b2-4183-baf2-06d523e03bd3",
+                        "$ref": "https://example.com/v2/Groups/6c5bb468-14b2-4183-baf2-06d523e03bd3",
+                        "type": "Group",
+                    }
+                ],
+            },
+            {
+                "id": "6c5bb468-14b2-4183-baf2-06d523e03bd3",
+                "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
+                "displayName": "Group B",
+                "meta": {
+                    "resourceType": "Group",
+                    "created": "2011-08-01T18:29:50.873Z",
+                    "lastModified": "2011-08-01T18:29:50.873Z",
+                    "location": "https://example.com/v2/Groups/6c5bb468-14b2-4183-baf2-06d523e03bd3",
+                    "version": 'W\\/"wGB85s2QJMjiNnuI"',
+                },
+                "members": [
+                    {
+                        "value": "c3a26dd3-27a0-4dec-a2ac-ce211e105f97",
+                        "$ref": "https://example.com/v2/Groups/c3a26dd3-27a0-4dec-a2ac-ce211e105f97",
+                        "type": "Group",
+                    }
+                ],
+            },
+        ],
+    }
+
+
+@pytest.fixture
+def patch_add_members_payload():
+    """https://datatracker.ietf.org/doc/html/rfc7644#section-3.5.2"""
+
+    return {
+        "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+        "Operations": [
+            {
+                "op": "add",
+                "path": "members",
+                "value": [
+                    {
+                        "display": "Babs Jensen",
+                        "$ref": "https://example.com/v2/Users/2819c223...413861904646",
+                        "value": "2819c223-7f76-453a-919d-413861904646",
+                    }
+                ],
+            },
+        ],
+    }
+
+
+@pytest.fixture
+def patch_add_emails_payload():
+    """https://datatracker.ietf.org/doc/html/rfc7644#section-3.5.2.1"""
+    return {
+        "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+        "Operations": [
+            {
+                "op": "add",
+                "value": {
+                    "emails": [{"value": "babs@jensen.org", "type": "home"}],
+                    "nickname": "Babs",
+                },
+            }
+        ],
+    }
+
+
+@pytest.fixture
+def patch_remove_one_member_payload():
+    """https://datatracker.ietf.org/doc/html/rfc7644#section-3.5.2.2"""
+
+    return {
+        "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+        "Operations": [
+            {
+                "op": "remove",
+                "path": 'members[value eq "2819c223-7f76-...413861904646"]',
+            }
+        ],
+    }
+
+
+@pytest.fixture
+def patch_remove_all_members_payload():
+    """https://datatracker.ietf.org/doc/html/rfc7644#section-3.5.2.2"""
+
+    return {
+        "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+        "Operations": [{"op": "remove", "path": "members"}],
+    }
+
+
+@pytest.fixture
+def patch_remove_multi_complex_value():
+    """https://datatracker.ietf.org/doc/html/rfc7644#section-3.5.2.2"""
+
+    return {
+        "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+        "Operations": [
+            {
+                "op": "remove",
+                "path": 'emails[type eq "work" and value ew "example.com"]',
+            }
+        ],
+    }
+
+
+@pytest.fixture
+def patch_remove_and_add_one_member():
+    """https://datatracker.ietf.org/doc/html/rfc7644#section-3.5.2.2"""
+
+    return {
+        "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+        "Operations": [
+            {"op": "remove", "path": 'members[value eq"2819c223...919d-413861904646"]'},
+            {
+                "op": "add",
+                "path": "members",
+                "value": [
+                    {
+                        "display": "James Smith",
+                        "$ref": "https://example.com/v2/Users/08e1d05d...473d93df9210",
+                        "value": "08e1d05d...473d93df9210",
+                    }
+                ],
+            },
+        ],
+    }
+
+
+@pytest.fixture
+def patch_replace_all_members():
+    """https://datatracker.ietf.org/doc/html/rfc7644#section-3.5.2.3"""
+
+    return {
+        "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+        "Operations": [
+            {"op": "remove", "path": "members"},
+            {
+                "op": "add",
+                "path": "members",
+                "value": [
+                    {
+                        "display": "Babs Jensen",
+                        "$ref": "https://example.com/v2/Users/2819c223...413861904646",
+                        "value": "2819c223-7f76-453a-919d-413861904646",
+                    },
+                    {
+                        "display": "James Smith",
+                        "$ref": "https://example.com/v2/Users/08e1d05d...473d93df9210",
+                        "value": "08e1d05d-121c-4561-8b96-473d93df9210",
+                    },
+                ],
+            },
+        ],
+    }
+
+
+@pytest.fixture
+def patch_replace_user_work_address():
+    """https://datatracker.ietf.org/doc/html/rfc7644#section-3.5.2.3"""
+
+    return {
+        "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+        "Operations": [
+            {
+                "op": "replace",
+                "path": 'addresses[type eq "work"]',
+                "value": {
+                    "type": "work",
+                    "streetAddress": "911 Universal City Plaza",
+                    "locality": "Hollywood",
+                    "region": "CA",
+                    "postalCode": "91608",
+                    "country": "US",
+                    "formatted": "911 Universal City Plaza\nHollywood, CA 91608 US",
+                    "primary": True,
+                },
+            }
+        ],
+    }
+
+
+@pytest.fixture
+def patch_replace_street_address():
+    """https://datatracker.ietf.org/doc/html/rfc7644#section-3.5.2.3"""
+
+    return {
+        "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+        "Operations": [
+            {
+                "op": "replace",
+                "path": 'addresses[type eq "work"].streetAddress',
+                "value": "1010 Broadway Ave",
+            }
+        ],
+    }
+
+
+@pytest.fixture
+def patch_replace_all_email_values():
+    return {
+        "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+        "Operations": [
+            {
+                "op": "replace",
+                "value": {
+                    "emails": [
+                        {
+                            "value": "bjensen@example.com",
+                            "type": "work",
+                            "primary": True,
+                        },
+                        {"value": "babs@jensen.org", "type": "home"},
+                    ],
+                    "nickname": "Babs",
+                },
+            }
+        ],
+    }
+
+
+@pytest.fixture
+def error_not_found():
+    """https://datatracker.ietf.org/doc/html/rfc7644#section-3.6"""
+    return {
+        "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+        "detail": "Resource 2819c223-7f76-453a-919d-413861904646 not found",
+        "status": "404",
+    }
+
+
+@pytest.fixture
+def bulk_request_circular_conflict_payload():
+    """https://datatracker.ietf.org/doc/html/rfc7644#section-3.7.1"""
+
+    return {
+        "schemas": ["urn:ietf:params:scim:api:messages:2.0:BulkRequest"],
+        "Operations": [
+            {
+                "method": "POST",
+                "path": "/Groups",
+                "bulkId": "qwerty",
+                "data": {
+                    "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
+                    "displayName": "Group A",
+                    "members": [{"type": "Group", "value": "bulkId:ytrewq"}],
+                },
+            },
+            {
+                "method": "POST",
+                "path": "/Groups",
+                "bulkId": "ytrewq",
+                "data": {
+                    "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
+                    "displayName": "Group B",
+                    "members": [{"type": "Group", "value": "bulkId:qwerty"}],
+                },
+            },
+        ],
+    }
+
+
+@pytest.fixture
+def bulk_request_temporary_identifier_payload():
+    """https://datatracker.ietf.org/doc/html/rfc7644#section-3.7.2"""
+
+    return {
+        "schemas": ["urn:ietf:params:scim:api:messages:2.0:BulkRequest"],
+        "Operations": [
+            {
+                "method": "POST",
+                "path": "/Users",
+                "bulkId": "qwerty",
+                "data": {
+                    "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+                    "userName": "Alice",
+                },
+            },
+            {
+                "method": "POST",
+                "path": "/Groups",
+                "bulkId": "ytrewq",
+                "data": {
+                    "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
+                    "displayName": "Tour Guides",
+                    "members": [{"type": "User", "value": "bulkId:qwerty"}],
+                },
+            },
+        ],
+    }
+
+
+@pytest.fixture
+def bulk_response_temporary_identifier_payload():
+    """https://datatracker.ietf.org/doc/html/rfc7644#section-3.7.2"""
+
+    return {
+        "schemas": ["urn:ietf:params:scim:api:messages:2.0:BulkResponse"],
+        "Operations": [
+            {
+                "location": "https://example.com/v2/Users/92b725cd-9465-4e7d-8c16-01f8e146b87a",
+                "method": "POST",
+                "bulkId": "qwerty",
+                "version": 'W\\/"4weymrEsh5O6cAEK"',
+                "status": {"code": "201"},
+            },
+            {
+                "location": "https://example.com/v2/Groups/e9e30dba-f08f-4109-8486-d5c6a331660a",
+                "method": "POST",
+                "bulkId": "ytrewq",
+                "version": 'W\\/"lha5bbazU3fNvfe5"',
+                "status": {"code": "201"},
+            },
+        ],
+    }
+
+
+@pytest.fixture
+def bulk_request_enterprise_user_payload():
+    """https://datatracker.ietf.org/doc/html/rfc7644#section-3.7.2"""
+
+    return {
+        "schemas": ["urn:ietf:params:scim:api:messages:2.0:BulkRequest"],
+        "Operations": [
+            {
+                "method": "POST",
+                "path": "/Users",
+                "bulkId": "qwerty",
+                "data": {
+                    "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+                    "userName": "Alice",
+                },
+            },
+            {
+                "method": "POST",
+                "path": "/Users",
+                "bulkId": "ytrewq",
+                "data": {
+                    "schemas": [
+                        "urn:ietf:params:scim:schemas:core:2.0:User",
+                        "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User",
+                    ],
+                    "userName": "Bob",
+                    "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User": {
+                        "employeeNumber": "11250",
+                        "manager": {"value": "bulkId:qwerty"},
+                    },
+                },
+            },
+        ],
+    }
+
+
+@pytest.fixture
+def error_invalid_syntax_payload():
+    """https://datatracker.ietf.org/doc/html/rfc7644#section-3.7.3"""
+
+    return {
+        "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+        "scimType": "invalidSyntax",
+        "detail": "Request is unparsable, syntactically incorrect, or violates schema.",
+        "status": "400",
+    }
+
+
+@pytest.fixture
+def bulk_request_multiple_operations_payload():
+    """https://datatracker.ietf.org/doc/html/rfc7644#section-3.7.3"""
+
+    return {
+        "schemas": ["urn:ietf:params:scim:api:messages:2.0:BulkRequest"],
+        "failOnErrors": 1,
+        "Operations": [
+            {
+                "method": "POST",
+                "path": "/Users",
+                "bulkId": "qwerty",
+                "data": {
+                    "schemas": ["urn:ietf:params:scim:api:messages:2.0:User"],
+                    "userName": "Alice",
+                },
+            },
+            {
+                "method": "PUT",
+                "path": "/Users/b7c14771-226c-4d05-8860-134711653041",
+                "version": 'W\\/"3694e05e9dff591"',
+                "data": {
+                    "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+                    "id": "b7c14771-226c-4d05-8860-134711653041",
+                    "userName": "Bob",
+                },
+            },
+            {
+                "method": "PATCH",
+                "path": "/Users/5d8d29d3-342c-4b5f-8683-a3cb6763ffcc",
+                "version": 'W/"edac3253e2c0ef2"',
+                "data": {
+                    [
+                        {"op": "remove", "path": "nickName"},
+                        {"op": "add", "path": "userName", "value": "Dave"},
+                    ]
+                },
+            },
+            {
+                "method": "DELETE",
+                "path": "/Users/e9025315-6bea-44e1-899c-1e07454e468b",
+                "version": 'W\\/"0ee8add0a938e1a"',
+            },
+        ],
+    }
+
+
+@pytest.fixture
+def bulk_response_multiple_operations_payload():
+    """https://datatracker.ietf.org/doc/html/rfc7644#section-3.7.3"""
+
+    return {
+        "schemas": ["urn:ietf:params:scim:api:messages:2.0:BulkResponse"],
+        "Operations": [
+            {
+                "location": "https://example.com/v2/Users/92b725cd-9465-4e7d-8c16-01f8e146b87a",
+                "method": "POST",
+                "bulkId": "qwerty",
+                "version": 'W\\/"oY4m4wn58tkVjJxK"',
+                "status": "201",
+            },
+            {
+                "location": "https://example.com/v2/Users/b7c14771-226c-4d05-8860-134711653041",
+                "method": "PUT",
+                "version": 'W\\/"huJj29dMNgu3WXPD"',
+                "status": "200",
+            },
+            {
+                "location": "https://example.com/v2/Users/5d8d29d3-342c-4b5f-8683-a3cb6763ffcc",
+                "method": "PATCH",
+                "version": 'W\\/"huJj29dMNgu3WXPD"',
+                "status": "200",
+            },
+            {
+                "location": "https://example.com/v2/Users/e9025315-6bea-44e1-899c-1e07454e468b",
+                "method": "DELETE",
+                "status": "204",
+            },
+        ],
+    }
+
+
+@pytest.fixture
+def bulk_response_error_invalid_syntax_payload():
+    """https://datatracker.ietf.org/doc/html/rfc7644#section-3.7.3"""
+
+    return {
+        "schemas": ["urn:ietf:params:scim:api:messages:2.0:BulkResponse"],
+        "Operations": [
+            {
+                "method": "POST",
+                "bulkId": "qwerty",
+                "status": "400",
+                "response": {
+                    "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+                    "scimType": "invalidSyntax",
+                    "detail": "Request is unparsable, syntactically incorrect, or violates schema.",
+                    "status": "400",
+                },
+            }
+        ],
+    }
+
+
+@pytest.fixture
+def bulk_response_multiple_errors_payload():
+    """https://datatracker.ietf.org/doc/html/rfc7644#section-3.7.3"""
+
+    return {
+        "schemas": ["urn:ietf:params:scim:api:messages:2.0:BulkResponse"],
+        "Operations": [
+            {
+                "method": "POST",
+                "bulkId": "qwerty",
+                "status": "400",
+                "response": {
+                    "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+                    "scimType": "invalidSyntax",
+                    "detail": "Request is unparsable, syntactically incorrect, or violates schema.",
+                    "status": "400",
+                },
+            },
+            {
+                "location": "https://example.com/v2/Users/b7c14771-226c-4d05-8860-134711653041",
+                "method": "PUT",
+                "status": "412",
+                "response": {
+                    "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+                    "detail": "Failed to update.  Resource changed on the server.",
+                    "status": "412",
+                },
+            },
+            {
+                "location": "https://example.com/v2/Users/5d8d29d3-342c-4b5f-8683-a3cb6763ffcc",
+                "method": "PATCH",
+                "status": "412",
+                "response": {
+                    "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+                    "detail": "Failed to update.  Resource changed on the server.",
+                    "status": "412",
+                },
+            },
+            {
+                "location": "https://example.com/v2/Users/e9025315-6bea-44e1-899c-1e07454e468b",
+                "method": "DELETE",
+                "status": "404",
+                "response": {
+                    "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+                    "detail": "Resource does not exist.",
+                    "status": "404",
+                },
+            },
+        ],
+    }
+
+
+def error_payload_too_large_payload():
+    """https://datatracker.ietf.org/doc/html/rfc7644#section-3.7.4"""
+
+    return {
+        "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+        "status": "413",
+        "detail": "The size of the bulk operation exceeds the maxPayloadSize (1048576).",
+    }
+
+
+def error_bad_request():
+    """https://datatracker.ietf.org/doc/html/rfc7644#section-3.12"""
+
+    return {
+        "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+        "scimType": "mutability",
+        "detail": "Attribute 'id' is readOnly",
+        "status": "400",
+    }

@@ -51,7 +51,7 @@ def get_model_name(obj: Any):
     return obj["meta"]["resourceType"]
 
 
-T = TypeVar("T")
+T = TypeVar("T", SCIM2Model, Any)
 
 
 class ListResponse(SCIM2Model, Generic[T]):

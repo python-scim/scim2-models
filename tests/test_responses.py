@@ -68,6 +68,8 @@ def test_service_provider_configuration_response(
 def test_resource_type_response(
     user_resource_type_payload, group_resource_type_payload
 ):
+    """https://datatracker.ietf.org/doc/html/rfc7644#section-4"""
+
     payload = {
         "totalResults": 2,
         "itemsPerPage": 10,
