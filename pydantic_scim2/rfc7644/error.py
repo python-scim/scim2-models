@@ -22,15 +22,3 @@ class Error(SCIM2Model):
 
     detail: Optional[str] = None
     """A detailed human-readable message."""
-
-    @classmethod
-    def not_found(cls, detail: str = "Not found") -> "Error":
-        return cls(detail=detail, status=404)
-
-    @classmethod
-    def conflict(cls, detail: str = "Conflict") -> "Error":
-        return cls(detail=detail, status=409)
-
-    @classmethod
-    def unprocessable(cls, detail: str = "Unprocessable Entity") -> "Error":
-        return cls(detail=detail, status=422)
