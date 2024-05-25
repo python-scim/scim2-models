@@ -33,7 +33,7 @@ payload = {
 # Pythonize JSON SCIM payload:
 
 user = User.model_validate(payload)
-assert user.userName == "bjensen@example.com"
+assert user.user_name == "bjensen@example.com"
 assert user.meta.created == datetime.datetime(
     2010, 1, 23, 4, 56, 22, tzinfo=datetime.timezone.utc
 )
