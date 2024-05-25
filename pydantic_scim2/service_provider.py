@@ -89,6 +89,8 @@ class ServiceProviderConfiguration(Resource):
     # resources, these attributes MUST be defined for all resources,
     # including any extended resource types.
 
+    schemas: List[str] = ["urn:ietf:params:scim:schemas:core:2.0:ServiceProviderConfig"]
+
     id: Optional[str] = None
     """A unique identifier for a SCIM resource as defined by the service
     provider.

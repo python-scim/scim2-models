@@ -30,6 +30,8 @@ class SchemaExtension(SCIM2Model):
 class ResourceType(Resource):
     model_config = ConfigDict(extra="allow")
 
+    schemas: List[str] = ["urn:ietf:params:scim:schemas:core:2.0:ResourceType"]
+
     # Each SCIM resource (Users, Groups, etc.) includes the following
     # common attributes.  With the exception of the "ServiceProviderConfig"
     # and "ResourceType" server discovery endpoints and their associated

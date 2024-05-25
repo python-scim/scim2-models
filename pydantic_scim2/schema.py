@@ -84,6 +84,8 @@ class Attribute(SCIM2Model):
 
 
 class Schema(SCIM2Model):
+    schemas: List[str] = ["urn:ietf:params:scim:schemas:core:2.0:Schema"]
+
     id: str
     """The unique URI of the schema."""
 
