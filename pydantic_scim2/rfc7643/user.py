@@ -381,7 +381,7 @@ class User(Resource):
     """A list of roles for the User that collectively represent who the User
     is, e.g., 'Student', 'Faculty'."""
 
-    x509Certificates: Optional[List[X509Certificate]] = None
+    x509_certificates: Optional[List[X509Certificate]] = None
     """A list of certificates issued to the User."""
 
     schemas: List[str] = ["urn:ietf:params:scim:schemas:core:2.0:User"]
