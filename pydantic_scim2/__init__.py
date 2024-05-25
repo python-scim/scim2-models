@@ -19,6 +19,7 @@ from .schema import Mutability
 from .schema import Returned
 from .schema import Schema
 from .schema import Uniqueness
+from .search_request import SearchRequest
 from .service_provider import AuthenticationScheme
 from .service_provider import Bulk
 from .service_provider import ChangePassword
@@ -73,6 +74,7 @@ __all__ = [
     "Role",
     "Schema",
     "SchemaExtension",
+    "SearchRequest",
     "ServiceProviderConfiguration",
     "Sort",
     "Uniqueness",

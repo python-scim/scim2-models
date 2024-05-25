@@ -2952,3 +2952,16 @@ def error_bad_request_payload():
         "detail": "Attribute 'id' is readOnly",
         "status": "400",
     }
+
+
+@pytest.fixture
+def search_request_payload():
+    """https://datatracker.ietf.org/doc/html/rfc7644#section-3.4.3"""
+
+    return {
+        "schemas": ["urn:ietf:params:scim:api:messages:2.0:SearchRequest"],
+        "attributes": ["displayName", "userName"],
+        "filter": 'displayName sw "smith"',
+        "startIndex": 1,
+        "count": 10,
+    }

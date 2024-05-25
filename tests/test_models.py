@@ -19,6 +19,7 @@ from pydantic_scim2 import Photo
 from pydantic_scim2 import ResourceType
 from pydantic_scim2 import Returned
 from pydantic_scim2 import Schema
+from pydantic_scim2 import SearchRequest
 from pydantic_scim2 import ServiceProviderConfiguration
 from pydantic_scim2 import Uniqueness
 from pydantic_scim2 import User
@@ -862,4 +863,16 @@ def test_error_bad_request(
             exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
         )
         == error_bad_request_payload
+    )
+
+
+def test_search_request(
+    search_request_payload,
+):
+    obj = SearchRequest.model_validate(search_request_payload)
+    assert (
+        obj.model_dump(
+            exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
+        )
+        == search_request_payload
     )
