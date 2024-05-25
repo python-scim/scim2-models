@@ -81,3 +81,9 @@ html_context = {
     "source_version": "main",
     "source_docs_path": "/doc/",
 }
+
+# -- Options for autodoc_pydantic_settings -------------------------------------------
+
+autodoc_pydantic_model_show_config_summary = False
+autodoc_pydantic_model_show_field_summary = False
+autodoc_pydantic_model_show_json = False
