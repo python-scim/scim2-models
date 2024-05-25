@@ -6,10 +6,15 @@ from pydantic import AnyUrl
 from pydantic_scim2 import Address
 from pydantic_scim2 import Attribute
 from pydantic_scim2 import AuthenticationScheme
+from pydantic_scim2 import BulkRequest
+from pydantic_scim2 import BulkResponse
 from pydantic_scim2 import Email
+from pydantic_scim2 import Error
 from pydantic_scim2 import Group
 from pydantic_scim2 import Im
+from pydantic_scim2 import ListResponse
 from pydantic_scim2 import Mutability
+from pydantic_scim2 import PatchOp
 from pydantic_scim2 import PhoneNumber
 from pydantic_scim2 import Photo
 from pydantic_scim2 import ResourceType
@@ -438,4 +443,293 @@ def test_schema_schema(
             exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
         )
         == schema_schema_payload
+    )
+
+
+@pytest.mark.skip
+def test_post_query_list_response(
+    post_query_list_response_payload,
+):
+    obj = ListResponse.model_validate(post_query_list_response_payload)
+    assert (
+        obj.model_dump(
+            exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
+        )
+        == post_query_list_response_payload
+    )
+
+
+def test_circular_reference_list_response(
+    circular_reference_list_response_payload,
+):
+    obj = ListResponse[Group].model_validate(circular_reference_list_response_payload)
+    assert (
+        obj.model_dump(
+            exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
+        )
+        == circular_reference_list_response_payload
+    )
+
+
+def test_patch_add_members(
+    patch_add_members_payload,
+):
+    obj = PatchOp.model_validate(patch_add_members_payload)
+    assert (
+        obj.model_dump(
+            exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
+        )
+        == patch_add_members_payload
+    )
+
+
+def test_patch_add_emails(
+    patch_add_emails_payload,
+):
+    obj = PatchOp.model_validate(patch_add_emails_payload)
+    assert (
+        obj.model_dump(
+            exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
+        )
+        == patch_add_emails_payload
+    )
+
+
+def test_patch_remove_one_member(
+    patch_remove_one_member_payload,
+):
+    obj = PatchOp.model_validate(patch_remove_one_member_payload)
+    assert (
+        obj.model_dump(
+            exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
+        )
+        == patch_remove_one_member_payload
+    )
+
+
+def test_patch_remove_all_members(
+    patch_remove_all_members_payload,
+):
+    obj = PatchOp.model_validate(patch_remove_all_members_payload)
+    assert (
+        obj.model_dump(
+            exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
+        )
+        == patch_remove_all_members_payload
+    )
+
+
+def test_patch_remove_multi_complex_value(
+    patch_remove_multi_complex_value_payload,
+):
+    obj = PatchOp.model_validate(patch_remove_multi_complex_value_payload)
+    assert (
+        obj.model_dump(
+            exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
+        )
+        == patch_remove_multi_complex_value_payload
+    )
+
+
+def test_patch_remove_and_add_one_member(
+    patch_remove_and_add_one_member_payload,
+):
+    obj = PatchOp.model_validate(patch_remove_and_add_one_member_payload)
+    assert (
+        obj.model_dump(
+            exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
+        )
+        == patch_remove_and_add_one_member_payload
+    )
+
+
+def test_patch_replace_all_members(
+    patch_replace_all_members_payload,
+):
+    obj = PatchOp.model_validate(patch_replace_all_members_payload)
+    assert (
+        obj.model_dump(
+            exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
+        )
+        == patch_replace_all_members_payload
+    )
+
+
+def test_patch_replace_user_work_address(
+    patch_replace_user_work_address_payload,
+):
+    obj = PatchOp.model_validate(patch_replace_user_work_address_payload)
+    assert (
+        obj.model_dump(
+            exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
+        )
+        == patch_replace_user_work_address_payload
+    )
+
+
+def test_patch_replace_street_address(
+    patch_replace_street_address_payload,
+):
+    obj = PatchOp.model_validate(patch_replace_street_address_payload)
+    assert (
+        obj.model_dump(
+            exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
+        )
+        == patch_replace_street_address_payload
+    )
+
+
+def test_patch_replace_all_email_values(
+    patch_replace_all_email_values_payload,
+):
+    obj = PatchOp.model_validate(patch_replace_all_email_values_payload)
+    assert (
+        obj.model_dump(
+            exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
+        )
+        == patch_replace_all_email_values_payload
+    )
+
+
+def test_error_not_found(
+    error_not_found_payload,
+):
+    obj = Error.model_validate(error_not_found_payload)
+    assert (
+        obj.model_dump(
+            exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
+        )
+        == error_not_found_payload
+    )
+
+
+def test_bulk_request_circular_conflict(
+    bulk_request_circular_conflict_payload,
+):
+    obj = BulkRequest.model_validate(bulk_request_circular_conflict_payload)
+    assert (
+        obj.model_dump(
+            exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
+        )
+        == bulk_request_circular_conflict_payload
+    )
+
+
+def test_bulk_request_temporary_identifier(
+    bulk_request_temporary_identifier_payload,
+):
+    obj = BulkRequest.model_validate(bulk_request_temporary_identifier_payload)
+    assert (
+        obj.model_dump(
+            exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
+        )
+        == bulk_request_temporary_identifier_payload
+    )
+
+
+def test_bulk_response_temporary_identifier(
+    bulk_response_temporary_identifier_payload,
+):
+    obj = BulkResponse.model_validate(bulk_response_temporary_identifier_payload)
+    assert (
+        obj.model_dump(
+            exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
+        )
+        == bulk_response_temporary_identifier_payload
+    )
+
+
+def test_bulk_request_enterprise_user(
+    bulk_request_enterprise_user_payload,
+):
+    obj = BulkRequest.model_validate(bulk_request_enterprise_user_payload)
+    assert (
+        obj.model_dump(
+            exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
+        )
+        == bulk_request_enterprise_user_payload
+    )
+
+
+def test_error_invalid_syntax(
+    error_invalid_syntax_payload,
+):
+    obj = Error.model_validate(error_invalid_syntax_payload)
+    assert (
+        obj.model_dump(
+            exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
+        )
+        == error_invalid_syntax_payload
+    )
+
+
+def test_bulk_request_multiple_operations(
+    bulk_request_multiple_operations_payload,
+):
+    obj = BulkRequest.model_validate(bulk_request_multiple_operations_payload)
+    assert (
+        obj.model_dump(
+            exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
+        )
+        == bulk_request_multiple_operations_payload
+    )
+
+
+def test_bulk_response_multiple_operations(
+    bulk_response_multiple_operations_payload,
+):
+    obj = BulkResponse.model_validate(bulk_response_multiple_operations_payload)
+    assert (
+        obj.model_dump(
+            exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
+        )
+        == bulk_response_multiple_operations_payload
+    )
+
+
+def test_bulk_response_error_invalid_syntax(
+    bulk_response_error_invalid_syntax_payload,
+):
+    obj = BulkResponse.model_validate(bulk_response_error_invalid_syntax_payload)
+    assert (
+        obj.model_dump(
+            exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
+        )
+        == bulk_response_error_invalid_syntax_payload
+    )
+
+
+def test_bulk_response_multiple_errors(
+    bulk_response_multiple_errors_payload,
+):
+    obj = BulkResponse.model_validate(bulk_response_multiple_errors_payload)
+    assert (
+        obj.model_dump(
+            exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
+        )
+        == bulk_response_multiple_errors_payload
+    )
+
+
+def test_error_payload_too_large(
+    error_payload_too_large_payload,
+):
+    obj = Error.model_validate(error_payload_too_large_payload)
+    assert (
+        obj.model_dump(
+            exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
+        )
+        == error_payload_too_large_payload
+    )
+
+
+def test_error_bad_request(
+    error_bad_request_payload,
+):
+    obj = Error.model_validate(error_bad_request_payload)
+    assert (
+        obj.model_dump(
+            exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
+        )
+        == error_bad_request_payload
     )

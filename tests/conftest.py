@@ -2350,6 +2350,7 @@ def schema_schema_payload():
     }
 
 
+@pytest.fixture
 def post_query_list_response_payload():
     """https://datatracker.ietf.org/doc/html/rfc7644#autoid-21"""
 
@@ -2369,6 +2370,7 @@ def post_query_list_response_payload():
     }
 
 
+@pytest.fixture
 def circular_reference_list_response_payload():
     """https://datatracker.ietf.org/doc/html/rfc7644#section-3.7.1"""
 
@@ -2382,8 +2384,12 @@ def circular_reference_list_response_payload():
                 "displayName": "Group A",
                 "meta": {
                     "resourceType": "Group",
-                    "created": "2011-08-01T18:29:49.793Z",
-                    "lastModified": "2011-08-01T18:29:51.135Z",
+                    # TODO: force milliseconds resolution?
+                    # "created": "2011-08-01T18:29:49.793Z",
+                    "created": "2011-08-01T18:29:49.793000Z",
+                    # TODO: force milliseconds resolution?
+                    # "lastModified": "2011-08-01T18:29:51.135Z",
+                    "lastModified": "2011-08-01T18:29:51.135000Z",
                     "location": "https://example.com/v2/Groups/c3a26dd3-27a0-4dec-a2ac-ce211e105f97",
                     "version": 'W\\/"mvwNGaxB5SDq074p"',
                 },
@@ -2401,8 +2407,12 @@ def circular_reference_list_response_payload():
                 "displayName": "Group B",
                 "meta": {
                     "resourceType": "Group",
-                    "created": "2011-08-01T18:29:50.873Z",
-                    "lastModified": "2011-08-01T18:29:50.873Z",
+                    # TODO: force milliseconds resolution?
+                    # "created": "2011-08-01T18:29:50.873Z",
+                    "created": "2011-08-01T18:29:50.873000Z",
+                    # TODO: force milliseconds resolution?
+                    # "lastModified": "2011-08-01T18:29:50.873Z",
+                    "lastModified": "2011-08-01T18:29:50.873000Z",
                     "location": "https://example.com/v2/Groups/6c5bb468-14b2-4183-baf2-06d523e03bd3",
                     "version": 'W\\/"wGB85s2QJMjiNnuI"',
                 },
@@ -2483,7 +2493,7 @@ def patch_remove_all_members_payload():
 
 
 @pytest.fixture
-def patch_remove_multi_complex_value():
+def patch_remove_multi_complex_value_payload():
     """https://datatracker.ietf.org/doc/html/rfc7644#section-3.5.2.2"""
 
     return {
@@ -2498,7 +2508,7 @@ def patch_remove_multi_complex_value():
 
 
 @pytest.fixture
-def patch_remove_and_add_one_member():
+def patch_remove_and_add_one_member_payload():
     """https://datatracker.ietf.org/doc/html/rfc7644#section-3.5.2.2"""
 
     return {
@@ -2521,7 +2531,7 @@ def patch_remove_and_add_one_member():
 
 
 @pytest.fixture
-def patch_replace_all_members():
+def patch_replace_all_members_payload():
     """https://datatracker.ietf.org/doc/html/rfc7644#section-3.5.2.3"""
 
     return {
@@ -2549,7 +2559,7 @@ def patch_replace_all_members():
 
 
 @pytest.fixture
-def patch_replace_user_work_address():
+def patch_replace_user_work_address_payload():
     """https://datatracker.ietf.org/doc/html/rfc7644#section-3.5.2.3"""
 
     return {
@@ -2574,7 +2584,7 @@ def patch_replace_user_work_address():
 
 
 @pytest.fixture
-def patch_replace_street_address():
+def patch_replace_street_address_payload():
     """https://datatracker.ietf.org/doc/html/rfc7644#section-3.5.2.3"""
 
     return {
@@ -2590,7 +2600,7 @@ def patch_replace_street_address():
 
 
 @pytest.fixture
-def patch_replace_all_email_values():
+def patch_replace_all_email_values_payload():
     return {
         "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
         "Operations": [
@@ -2613,7 +2623,7 @@ def patch_replace_all_email_values():
 
 
 @pytest.fixture
-def error_not_found():
+def error_not_found_payload():
     """https://datatracker.ietf.org/doc/html/rfc7644#section-3.6"""
     return {
         "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
@@ -2695,14 +2705,16 @@ def bulk_response_temporary_identifier_payload():
                 "method": "POST",
                 "bulkId": "qwerty",
                 "version": 'W\\/"4weymrEsh5O6cAEK"',
-                "status": {"code": "201"},
+                # "status": {"code": "201"},
+                "status": "201",
             },
             {
                 "location": "https://example.com/v2/Groups/e9e30dba-f08f-4109-8486-d5c6a331660a",
                 "method": "POST",
                 "bulkId": "ytrewq",
                 "version": 'W\\/"lha5bbazU3fNvfe5"',
-                "status": {"code": "201"},
+                # "status": {"code": "201"},
+                "status": "201",
             },
         ],
     }
@@ -2787,12 +2799,10 @@ def bulk_request_multiple_operations_payload():
                 "method": "PATCH",
                 "path": "/Users/5d8d29d3-342c-4b5f-8683-a3cb6763ffcc",
                 "version": 'W/"edac3253e2c0ef2"',
-                "data": {
-                    [
-                        {"op": "remove", "path": "nickName"},
-                        {"op": "add", "path": "userName", "value": "Dave"},
-                    ]
-                },
+                "data": [
+                    {"op": "remove", "path": "nickName"},
+                    {"op": "add", "path": "userName", "value": "Dave"},
+                ],
             },
             {
                 "method": "DELETE",
@@ -2912,6 +2922,7 @@ def bulk_response_multiple_errors_payload():
     }
 
 
+@pytest.fixture
 def error_payload_too_large_payload():
     """https://datatracker.ietf.org/doc/html/rfc7644#section-3.7.4"""
 
@@ -2922,7 +2933,8 @@ def error_payload_too_large_payload():
     }
 
 
-def error_bad_request():
+@pytest.fixture
+def error_bad_request_payload():
     """https://datatracker.ietf.org/doc/html/rfc7644#section-3.12"""
 
     return {

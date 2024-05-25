@@ -6,11 +6,14 @@ from .resource import Meta
 from .resource import Resource
 from .resource_type import ResourceType
 from .resource_type import SchemaExtension
+from .responses import BulkOperation
+from .responses import BulkRequest
+from .responses import BulkResponse
+from .responses import Error
 from .responses import ListResponse
+from .responses import Op
 from .responses import PatchOp
 from .responses import PatchOperation
-from .responses import PatchRequest
-from .responses import SCIMError
 from .schema import Attribute
 from .schema import Mutability
 from .schema import Returned
@@ -36,40 +39,43 @@ from .user import User
 from .user import X509Certificate
 
 __all__ = [
-    "Manager",
-    "EnterpriseUser",
+    "Address",
     "Attribute",
+    "AuthenticationScheme",
+    "Bulk",
+    "BulkOperation",
+    "BulkRequest",
+    "BulkResponse",
+    "ChangePassword",
+    "ETag",
+    "Email",
+    "EnterpriseUser",
+    "Entitlement",
+    "Error",
+    "Filter",
     "Group",
     "GroupMember",
-    "SchemaExtension",
-    "SCIMError",
+    "Im",
+    "ListResponse",
+    "Manager",
+    "Meta",
+    "Mutability",
+    "Name",
+    "Op",
+    "Patch",
     "PatchOp",
     "PatchOperation",
-    "PatchRequest",
-    "ListResponse",
-    "Patch",
-    "Bulk",
-    "Filter",
-    "ChangePassword",
-    "Sort",
-    "AuthenticationScheme",
-    "ServiceProviderConfiguration",
-    "Name",
-    "Email",
     "PhoneNumber",
-    "Im",
     "Photo",
-    "Address",
-    "Entitlement",
-    "Role",
-    "X509Certificate",
-    "User",
     "Resource",
-    "Meta",
-    "ETag",
-    "Schema",
-    "Mutability",
-    "Returned",
-    "Uniqueness",
     "ResourceType",
+    "Returned",
+    "Role",
+    "Schema",
+    "SchemaExtension",
+    "ServiceProviderConfiguration",
+    "Sort",
+    "Uniqueness",
+    "User",
+    "X509Certificate",
 ]
