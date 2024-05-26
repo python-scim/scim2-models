@@ -1,0 +1,56 @@
+{
+    "schemas": [
+        "urn:ietf:params:scim:api:messages:2.0:BulkResponse"
+    ],
+    "Operations": [
+        {
+            "method": "POST",
+            "bulkId": "qwerty",
+            "status": "400",
+            "response": {
+                "schemas": [
+                    "urn:ietf:params:scim:api:messages:2.0:Error"
+                ],
+                "scimType": "invalidSyntax",
+                "detail": "Request is unparsable, syntactically incorrect, or violates schema.",
+                "status": "400"
+            }
+        },
+        {
+            "location": "https://example.com/v2/Users/b7c14771-226c-4d05-8860-134711653041",
+            "method": "PUT",
+            "status": "412",
+            "response": {
+                "schemas": [
+                    "urn:ietf:params:scim:api:messages:2.0:Error"
+                ],
+                "detail": "Failed to update.  Resource changed on the server.",
+                "status": "412"
+            }
+        },
+        {
+            "location": "https://example.com/v2/Users/5d8d29d3-342c-4b5f-8683-a3cb6763ffcc",
+            "method": "PATCH",
+            "status": "412",
+            "response": {
+                "schemas": [
+                    "urn:ietf:params:scim:api:messages:2.0:Error"
+                ],
+                "detail": "Failed to update.  Resource changed on the server.",
+                "status": "412"
+            }
+        },
+        {
+            "location": "https://example.com/v2/Users/e9025315-6bea-44e1-899c-1e07454e468b",
+            "method": "DELETE",
+            "status": "404",
+            "response": {
+                "schemas": [
+                    "urn:ietf:params:scim:api:messages:2.0:Error"
+                ],
+                "detail": "Resource does not exist.",
+                "status": "404"
+            }
+        }
+    ]
+}

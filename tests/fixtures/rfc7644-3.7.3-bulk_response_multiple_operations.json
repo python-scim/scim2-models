@@ -1,0 +1,31 @@
+{
+    "schemas": [
+        "urn:ietf:params:scim:api:messages:2.0:BulkResponse"
+    ],
+    "Operations": [
+        {
+            "location": "https://example.com/v2/Users/92b725cd-9465-4e7d-8c16-01f8e146b87a",
+            "method": "POST",
+            "bulkId": "qwerty",
+            "version": "W\\/\"oY4m4wn58tkVjJxK\"",
+            "status": "201"
+        },
+        {
+            "location": "https://example.com/v2/Users/b7c14771-226c-4d05-8860-134711653041",
+            "method": "PUT",
+            "version": "W\\/\"huJj29dMNgu3WXPD\"",
+            "status": "200"
+        },
+        {
+            "location": "https://example.com/v2/Users/5d8d29d3-342c-4b5f-8683-a3cb6763ffcc",
+            "method": "PATCH",
+            "version": "W\\/\"huJj29dMNgu3WXPD\"",
+            "status": "200"
+        },
+        {
+            "location": "https://example.com/v2/Users/e9025315-6bea-44e1-899c-1e07454e468b",
+            "method": "DELETE",
+            "status": "204"
+        }
+    ]
+}

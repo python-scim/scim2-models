@@ -1,0 +1,8 @@
+{
+    "schemas": [
+        "urn:ietf:params:scim:api:messages:2.0:Error"
+    ],
+    "scimType": "invalidSyntax",
+    "detail": "Request is unparsable, syntactically incorrect, or violates schema.",
+    "status": "400"
+}

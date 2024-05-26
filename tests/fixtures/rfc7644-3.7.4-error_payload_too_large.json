@@ -1,0 +1,7 @@
+{
+    "schemas": [
+        "urn:ietf:params:scim:api:messages:2.0:Error"
+    ],
+    "status": "413",
+    "detail": "The size of the bulk operation exceeds the maxPayloadSize (1048576)."
+}

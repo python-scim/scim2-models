@@ -26,8 +26,9 @@ from pydantic_scim2 import Uniqueness
 from pydantic_scim2 import User
 
 
-def test_minimal_user(minimal_user_payload):
-    obj = User.model_validate(minimal_user_payload)
+def test_minimal_user(load_sample):
+    payload = load_sample("rfc7643-8.1-minimal_user_payload.json")
+    obj = User.model_validate(payload)
 
     assert obj.schemas == ["urn:ietf:params:scim:schemas:core:2.0:User"]
     assert obj.id == "2819c223-7f76-453a-919d-413861904646"
@@ -49,12 +50,13 @@ def test_minimal_user(minimal_user_payload):
         obj.model_dump(
             exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
         )
-        == minimal_user_payload
+        == payload
     )
 
 
-def test_full_user(full_user_payload):
-    obj = User.model_validate(full_user_payload)
+def test_full_user(load_sample):
+    payload = load_sample("rfc7643-8.2-full_user.json")
+    obj = User.model_validate(payload)
 
     assert obj.schemas == ["urn:ietf:params:scim:schemas:core:2.0:User"]
     assert obj.id == "2819c223-7f76-453a-919d-413861904646"
@@ -166,12 +168,13 @@ def test_full_user(full_user_payload):
         obj.model_dump(
             exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
         )
-        == full_user_payload
+        == payload
     )
 
 
-def test_enterprise_user(enterprise_user_payload):
-    obj = User.model_validate(enterprise_user_payload)
+def test_enterprise_user(load_sample):
+    payload = load_sample("rfc7643-8.3-enterprise_user.json")
+    obj = User.model_validate(payload)
 
     assert obj.schemas == [
         "urn:ietf:params:scim:schemas:core:2.0:User",
@@ -302,12 +305,13 @@ def test_enterprise_user(enterprise_user_payload):
         obj.model_dump(
             exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
         )
-        == enterprise_user_payload
+        == payload
     )
 
 
-def test_group(group_payload):
-    obj = Group.model_validate(group_payload)
+def test_group(load_sample):
+    payload = load_sample("rfc7643-8.4-group.json")
+    obj = Group.model_validate(payload)
 
     assert obj.schemas == ["urn:ietf:params:scim:schemas:core:2.0:Group"]
     assert obj.id == "e9e30dba-f08f-4109-8486-d5c6a331660a"
@@ -339,14 +343,13 @@ def test_group(group_payload):
         obj.model_dump(
             exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
         )
-        == group_payload
+        == payload
     )
 
 
-def test_service_provider_configuration(service_provider_configuration_payload):
-    obj = ServiceProviderConfiguration.model_validate(
-        service_provider_configuration_payload
-    )
+def test_service_provider_configuration(load_sample):
+    payload = load_sample("rfc7643-8.5-service_provider_configuration.json")
+    obj = ServiceProviderConfiguration.model_validate(payload)
 
     assert obj.schemas == [
         "urn:ietf:params:scim:schemas:core:2.0:ServiceProviderConfig"
@@ -403,12 +406,13 @@ def test_service_provider_configuration(service_provider_configuration_payload):
         obj.model_dump(
             exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
         )
-        == service_provider_configuration_payload
+        == payload
     )
 
 
-def test_user_resource_type(user_resource_type_payload):
-    obj = ResourceType.model_validate(user_resource_type_payload)
+def test_user_resource_type(load_sample):
+    payload = load_sample("rfc7643-8.6-user_resource_type.json")
+    obj = ResourceType.model_validate(payload)
 
     assert obj.schemas == ["urn:ietf:params:scim:schemas:core:2.0:ResourceType"]
     assert obj.id == "User"
@@ -427,12 +431,13 @@ def test_user_resource_type(user_resource_type_payload):
         obj.model_dump(
             exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
         )
-        == user_resource_type_payload
+        == payload
     )
 
 
-def test_group_resource_type(group_resource_type_payload):
-    obj = ResourceType.model_validate(group_resource_type_payload)
+def test_group_resource_type(load_sample):
+    payload = load_sample("rfc7643-8.6-group_resource_type.json")
+    obj = ResourceType.model_validate(payload)
     assert obj.schemas == ["urn:ietf:params:scim:schemas:core:2.0:ResourceType"]
     assert obj.id == "Group"
     assert obj.name == "Group"
@@ -446,22 +451,24 @@ def test_group_resource_type(group_resource_type_payload):
         obj.model_dump(
             exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
         )
-        == group_resource_type_payload
+        == payload
     )
 
 
-def test_user_schema(user_schema_payload):
-    obj = Schema.model_validate(user_schema_payload)
+def test_user_schema(load_sample):
+    payload = load_sample("rfc7643-8.7.1-user_schema.json")
+    obj = Schema.model_validate(payload)
     assert (
         obj.model_dump(
             exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
         )
-        == user_schema_payload
+        == payload
     )
 
 
-def test_group_schema(group_schema_payload):
-    obj = Schema.model_validate(group_schema_payload)
+def test_group_schema(load_sample):
+    payload = load_sample("rfc7643-8.7.1-group_schema.json")
+    obj = Schema.model_validate(payload)
 
     assert obj.id == "urn:ietf:params:scim:schemas:core:2.0:Group"
     assert obj.name == "Group"
@@ -529,352 +536,325 @@ def test_group_schema(group_schema_payload):
         obj.model_dump(
             exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
         )
-        == group_schema_payload
+        == payload
     )
 
 
-def test_enterprise_user_schema(enterprise_user_schema_payload):
-    obj = Schema.model_validate(enterprise_user_schema_payload)
+def test_enterprise_user_schema(load_sample):
+    payload = load_sample("rfc7643-8.7.1-enterprise_user_schema.json")
+    obj = Schema.model_validate(payload)
     assert (
         obj.model_dump(
             exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
         )
-        == enterprise_user_schema_payload
+        == payload
     )
 
 
-def test_service_provider_configuration_schema(
-    service_provider_configuration_schema_payload,
-):
-    obj = Schema.model_validate(service_provider_configuration_schema_payload)
+def test_service_provider_configuration_schema(load_sample):
+    payload = load_sample("rfc7643-8.7.2-service_provider_configuration_schema.json")
+    obj = Schema.model_validate(payload)
     assert (
         obj.model_dump(
             exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
         )
-        == service_provider_configuration_schema_payload
+        == payload
     )
 
 
-def test_resource_type_schema(
-    resource_type_schema_payload,
-):
-    obj = Schema.model_validate(resource_type_schema_payload)
+def test_resource_type_schema(load_sample):
+    payload = load_sample("rfc7643-8.7.2-resource_type_schema.json")
+    obj = Schema.model_validate(payload)
     assert (
         obj.model_dump(
             exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
         )
-        == resource_type_schema_payload
+        == payload
     )
 
 
-def test_schema_schema(
-    schema_schema_payload,
-):
-    obj = Schema.model_validate(schema_schema_payload)
+def test_schema_schema(load_sample):
+    payload = load_sample("rfc7643-8.7.2-schema_schema.json")
+    obj = Schema.model_validate(payload)
     assert (
         obj.model_dump(
             exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
         )
-        == schema_schema_payload
+        == payload
     )
 
 
 @pytest.mark.skip
-def test_post_query_list_response(
-    post_query_list_response_payload,
-):
-    obj = ListResponse.model_validate(post_query_list_response_payload)
+def test_post_query_list_response(load_sample):
+    payload = load_sample("rfc7644-8.4.3-post_query_list_response.json")
+    obj = ListResponse.model_validate(payload)
     assert (
         obj.model_dump(
             exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
         )
-        == post_query_list_response_payload
+        == payload
     )
 
 
-def test_circular_reference_list_response(
-    circular_reference_list_response_payload,
-):
-    obj = ListResponse[Group].model_validate(circular_reference_list_response_payload)
+def test_circular_reference_list_response(load_sample):
+    payload = load_sample("rfc7644-3.7.1-circular_reference_list_response.json")
+    obj = ListResponse[Group].model_validate(payload)
     assert (
         obj.model_dump(
             exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
         )
-        == circular_reference_list_response_payload
+        == payload
     )
 
 
-def test_patch_add_members(
-    patch_add_members_payload,
-):
-    obj = PatchOp.model_validate(patch_add_members_payload)
+def test_patch_add_members(load_sample):
+    payload = load_sample("rfc7644-3.5.2-patch_add_members.json")
+    obj = PatchOp.model_validate(payload)
     assert (
         obj.model_dump(
             exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
         )
-        == patch_add_members_payload
+        == payload
     )
 
 
-def test_patch_add_emails(
-    patch_add_emails_payload,
-):
-    obj = PatchOp.model_validate(patch_add_emails_payload)
+def test_patch_add_emails(load_sample):
+    payload = load_sample("rfc7644-3.5.2.1-patch_add_emails.json")
+    obj = PatchOp.model_validate(payload)
     assert (
         obj.model_dump(
             exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
         )
-        == patch_add_emails_payload
+        == payload
     )
 
 
-def test_patch_remove_one_member(
-    patch_remove_one_member_payload,
-):
-    obj = PatchOp.model_validate(patch_remove_one_member_payload)
+def test_patch_remove_one_member(load_sample):
+    payload = load_sample("rfc7644-3.5.2.2-patch_remove_one_member.json")
+    obj = PatchOp.model_validate(payload)
     assert (
         obj.model_dump(
             exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
         )
-        == patch_remove_one_member_payload
+        == payload
     )
 
 
-def test_patch_remove_all_members(
-    patch_remove_all_members_payload,
-):
-    obj = PatchOp.model_validate(patch_remove_all_members_payload)
+def test_patch_remove_all_members(load_sample):
+    payload = load_sample("rfc7644-3.5.2.2-patch_remove_one_member.json")
+    obj = PatchOp.model_validate(payload)
     assert (
         obj.model_dump(
             exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
         )
-        == patch_remove_all_members_payload
+        == payload
     )
 
 
-def test_patch_remove_multi_complex_value(
-    patch_remove_multi_complex_value_payload,
-):
-    obj = PatchOp.model_validate(patch_remove_multi_complex_value_payload)
+def test_patch_remove_multi_complex_value(load_sample):
+    payload = load_sample("rfc7644-3.5.2.2-patch_remove_multi_complex_value.json")
+    obj = PatchOp.model_validate(payload)
     assert (
         obj.model_dump(
             exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
         )
-        == patch_remove_multi_complex_value_payload
+        == payload
     )
 
 
-def test_patch_remove_and_add_one_member(
-    patch_remove_and_add_one_member_payload,
-):
-    obj = PatchOp.model_validate(patch_remove_and_add_one_member_payload)
+def test_patch_remove_and_add_one_member(load_sample):
+    payload = load_sample("rfc7644-3.5.2.2-patch_remove_and_add_one_member.json")
+    obj = PatchOp.model_validate(payload)
     assert (
         obj.model_dump(
             exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
         )
-        == patch_remove_and_add_one_member_payload
+        == payload
     )
 
 
-def test_patch_replace_all_members(
-    patch_replace_all_members_payload,
-):
-    obj = PatchOp.model_validate(patch_replace_all_members_payload)
+def test_patch_replace_all_members(load_sample):
+    payload = load_sample("rfc7644-3.5.2.3-patch_replace_all_members.json")
+    obj = PatchOp.model_validate(payload)
     assert (
         obj.model_dump(
             exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
         )
-        == patch_replace_all_members_payload
+        == payload
     )
 
 
-def test_patch_replace_user_work_address(
-    patch_replace_user_work_address_payload,
-):
-    obj = PatchOp.model_validate(patch_replace_user_work_address_payload)
+def test_patch_replace_user_work_address(load_sample):
+    payload = load_sample("rfc7644-3.5.2.3-patch_replace_user_work_address.json")
+    obj = PatchOp.model_validate(payload)
     assert (
         obj.model_dump(
             exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
         )
-        == patch_replace_user_work_address_payload
+        == payload
     )
 
 
-def test_patch_replace_street_address(
-    patch_replace_street_address_payload,
-):
-    obj = PatchOp.model_validate(patch_replace_street_address_payload)
+def test_patch_replace_street_address(load_sample):
+    payload = load_sample("rfc7644-3.5.2.3-patch_replace_street_address.json")
+    obj = PatchOp.model_validate(payload)
     assert (
         obj.model_dump(
             exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
         )
-        == patch_replace_street_address_payload
+        == payload
     )
 
 
-def test_patch_replace_all_email_values(
-    patch_replace_all_email_values_payload,
-):
-    obj = PatchOp.model_validate(patch_replace_all_email_values_payload)
+def test_patch_replace_all_email_values(load_sample):
+    payload = load_sample("rfc7644-3.5.2.3-patch_replace_all_email_values.json")
+    obj = PatchOp.model_validate(payload)
     assert (
         obj.model_dump(
             exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
         )
-        == patch_replace_all_email_values_payload
+        == payload
     )
 
 
-def test_error_not_found(
-    error_not_found_payload,
-):
-    obj = Error.model_validate(error_not_found_payload)
+def test_error_not_found(load_sample):
+    payload = load_sample("rfc7644-3.6-error_not_found.json")
+    obj = Error.model_validate(payload)
     assert (
         obj.model_dump(
             exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
         )
-        == error_not_found_payload
+        == payload
     )
 
 
-def test_bulk_request_circular_conflict(
-    bulk_request_circular_conflict_payload,
-):
-    obj = BulkRequest.model_validate(bulk_request_circular_conflict_payload)
+def test_bulk_request_circular_conflict(load_sample):
+    payload = load_sample("rfc7644-3.7.1-bulk_request_circular_conflict.json")
+    obj = BulkRequest.model_validate(payload)
     assert (
         obj.model_dump(
             exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
         )
-        == bulk_request_circular_conflict_payload
+        == payload
     )
 
 
-def test_bulk_request_temporary_identifier(
-    bulk_request_temporary_identifier_payload,
-):
-    obj = BulkRequest.model_validate(bulk_request_temporary_identifier_payload)
+def test_bulk_request_temporary_identifier(load_sample):
+    payload = load_sample("rfc7644-3.7.2-bulk_request_temporary_identifier.json")
+    obj = BulkRequest.model_validate(payload)
     assert (
         obj.model_dump(
             exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
         )
-        == bulk_request_temporary_identifier_payload
+        == payload
     )
 
 
-def test_bulk_response_temporary_identifier(
-    bulk_response_temporary_identifier_payload,
-):
-    obj = BulkResponse.model_validate(bulk_response_temporary_identifier_payload)
+def test_bulk_response_temporary_identifier(load_sample):
+    payload = load_sample("rfc7644-3.7.2-bulk_response_temporary_identifier.json")
+    obj = BulkResponse.model_validate(payload)
     assert (
         obj.model_dump(
             exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
         )
-        == bulk_response_temporary_identifier_payload
+        == payload
     )
 
 
-def test_bulk_request_enterprise_user(
-    bulk_request_enterprise_user_payload,
-):
-    obj = BulkRequest.model_validate(bulk_request_enterprise_user_payload)
+def test_bulk_request_enterprise_user(load_sample):
+    payload = load_sample("rfc7644-3.7.2-bulk_request_enterprise_user.json")
+    obj = BulkRequest.model_validate(payload)
     assert (
         obj.model_dump(
             exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
         )
-        == bulk_request_enterprise_user_payload
+        == payload
     )
 
 
-def test_error_invalid_syntax(
-    error_invalid_syntax_payload,
-):
-    obj = Error.model_validate(error_invalid_syntax_payload)
+def test_error_invalid_syntax(load_sample):
+    payload = load_sample("rfc7644-3.7.3-error_invalid_syntax.json")
+    obj = Error.model_validate(payload)
     assert (
         obj.model_dump(
             exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
         )
-        == error_invalid_syntax_payload
+        == payload
     )
 
 
-def test_bulk_request_multiple_operations(
-    bulk_request_multiple_operations_payload,
-):
-    obj = BulkRequest.model_validate(bulk_request_multiple_operations_payload)
+def test_bulk_request_multiple_operations(load_sample):
+    payload = load_sample("rfc7644-3.7.3-bulk_request_multiple_operations.json")
+    obj = BulkRequest.model_validate(payload)
     assert (
         obj.model_dump(
             exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
         )
-        == bulk_request_multiple_operations_payload
+        == payload
     )
 
 
-def test_bulk_response_multiple_operations(
-    bulk_response_multiple_operations_payload,
-):
-    obj = BulkResponse.model_validate(bulk_response_multiple_operations_payload)
+def test_bulk_response_multiple_operations(load_sample):
+    payload = load_sample("rfc7644-3.7.3-bulk_response_multiple_operations.json")
+    obj = BulkResponse.model_validate(payload)
     assert (
         obj.model_dump(
             exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
         )
-        == bulk_response_multiple_operations_payload
+        == payload
     )
 
 
-def test_bulk_response_error_invalid_syntax(
-    bulk_response_error_invalid_syntax_payload,
-):
-    obj = BulkResponse.model_validate(bulk_response_error_invalid_syntax_payload)
+def test_bulk_response_error_invalid_syntax(load_sample):
+    payload = load_sample("rfc7644-3.7.3-bulk_response_error_invalid_syntax.json")
+    obj = BulkResponse.model_validate(payload)
     assert (
         obj.model_dump(
             exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
         )
-        == bulk_response_error_invalid_syntax_payload
+        == payload
     )
 
 
-def test_bulk_response_multiple_errors(
-    bulk_response_multiple_errors_payload,
-):
-    obj = BulkResponse.model_validate(bulk_response_multiple_errors_payload)
+def test_bulk_response_multiple_errors(load_sample):
+    payload = load_sample("rfc7644-3.7.3-bulk_response_multiple_errors.json")
+    obj = BulkResponse.model_validate(payload)
     assert (
         obj.model_dump(
             exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
         )
-        == bulk_response_multiple_errors_payload
+        == payload
     )
 
 
-def test_error_payload_too_large(
-    error_payload_too_large_payload,
-):
-    obj = Error.model_validate(error_payload_too_large_payload)
+def test_error_payload_too_large(load_sample):
+    payload = load_sample("rfc7644-3.7.4-error_payload_too_large.json")
+    obj = Error.model_validate(payload)
     assert (
         obj.model_dump(
             exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
         )
-        == error_payload_too_large_payload
+        == payload
     )
 
 
-def test_error_bad_request(
-    error_bad_request_payload,
-):
-    obj = Error.model_validate(error_bad_request_payload)
+def test_error_bad_request(load_sample):
+    payload = load_sample("rfc7644-3.12-error_bad_request.json")
+    obj = Error.model_validate(payload)
     assert (
         obj.model_dump(
             exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
         )
-        == error_bad_request_payload
+        == payload
     )
 
 
-def test_search_request(
-    search_request_payload,
-):
-    obj = SearchRequest.model_validate(search_request_payload)
+def test_search_request(load_sample):
+    payload = load_sample("rfc7644-3.4.3-search_request.json")
+    obj = SearchRequest.model_validate(payload)
     assert (
         obj.model_dump(
             exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
         )
-        == search_request_payload
+        == payload
     )

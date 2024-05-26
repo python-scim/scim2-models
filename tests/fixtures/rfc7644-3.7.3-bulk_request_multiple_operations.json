@@ -1,0 +1,52 @@
+{
+    "schemas": [
+        "urn:ietf:params:scim:api:messages:2.0:BulkRequest"
+    ],
+    "failOnErrors": 1,
+    "Operations": [
+        {
+            "method": "POST",
+            "path": "/Users",
+            "bulkId": "qwerty",
+            "data": {
+                "schemas": [
+                    "urn:ietf:params:scim:api:messages:2.0:User"
+                ],
+                "userName": "Alice"
+            }
+        },
+        {
+            "method": "PUT",
+            "path": "/Users/b7c14771-226c-4d05-8860-134711653041",
+            "version": "W\\/\"3694e05e9dff591\"",
+            "data": {
+                "schemas": [
+                    "urn:ietf:params:scim:schemas:core:2.0:User"
+                ],
+                "id": "b7c14771-226c-4d05-8860-134711653041",
+                "userName": "Bob"
+            }
+        },
+        {
+            "method": "PATCH",
+            "path": "/Users/5d8d29d3-342c-4b5f-8683-a3cb6763ffcc",
+            "version": "W/\"edac3253e2c0ef2\"",
+            "data": [
+                {
+                    "op": "remove",
+                    "path": "nickName"
+                },
+                {
+                    "op": "add",
+                    "path": "userName",
+                    "value": "Dave"
+                }
+            ]
+        },
+        {
+            "method": "DELETE",
+            "path": "/Users/e9025315-6bea-44e1-899c-1e07454e468b",
+            "version": "W\\/\"0ee8add0a938e1a\""
+        }
+    ]
+}

@@ -1,0 +1,50 @@
+{
+    "schemas": [
+        "urn:ietf:params:scim:api:messages:2.0:ListResponse"
+    ],
+    "totalResults": 2,
+    "Resources": [
+        {
+            "id": "c3a26dd3-27a0-4dec-a2ac-ce211e105f97",
+            "schemas": [
+                "urn:ietf:params:scim:schemas:core:2.0:Group"
+            ],
+            "displayName": "Group A",
+            "meta": {
+                "resourceType": "Group",
+                "created": "2011-08-01T18:29:49.793000Z",
+                "lastModified": "2011-08-01T18:29:51.135000Z",
+                "location": "https://example.com/v2/Groups/c3a26dd3-27a0-4dec-a2ac-ce211e105f97",
+                "version": "W\\/\"mvwNGaxB5SDq074p\""
+            },
+            "members": [
+                {
+                    "value": "6c5bb468-14b2-4183-baf2-06d523e03bd3",
+                    "$ref": "https://example.com/v2/Groups/6c5bb468-14b2-4183-baf2-06d523e03bd3",
+                    "type": "Group"
+                }
+            ]
+        },
+        {
+            "id": "6c5bb468-14b2-4183-baf2-06d523e03bd3",
+            "schemas": [
+                "urn:ietf:params:scim:schemas:core:2.0:Group"
+            ],
+            "displayName": "Group B",
+            "meta": {
+                "resourceType": "Group",
+                "created": "2011-08-01T18:29:50.873000Z",
+                "lastModified": "2011-08-01T18:29:50.873000Z",
+                "location": "https://example.com/v2/Groups/6c5bb468-14b2-4183-baf2-06d523e03bd3",
+                "version": "W\\/\"wGB85s2QJMjiNnuI\""
+            },
+            "members": [
+                {
+                    "value": "c3a26dd3-27a0-4dec-a2ac-ce211e105f97",
+                    "$ref": "https://example.com/v2/Groups/c3a26dd3-27a0-4dec-a2ac-ce211e105f97",
+                    "type": "Group"
+                }
+            ]
+        }
+    ]
+}

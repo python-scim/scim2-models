@@ -1,0 +1,21 @@
+{
+    "schemas": [
+        "urn:ietf:params:scim:api:messages:2.0:BulkResponse"
+    ],
+    "Operations": [
+        {
+            "location": "https://example.com/v2/Users/92b725cd-9465-4e7d-8c16-01f8e146b87a",
+            "method": "POST",
+            "bulkId": "qwerty",
+            "version": "W\\/\"4weymrEsh5O6cAEK\"",
+            "status": "201"
+        },
+        {
+            "location": "https://example.com/v2/Groups/e9e30dba-f08f-4109-8486-d5c6a331660a",
+            "method": "POST",
+            "bulkId": "ytrewq",
+            "version": "W\\/\"lha5bbazU3fNvfe5\"",
+            "status": "201"
+        }
+    ]
+}

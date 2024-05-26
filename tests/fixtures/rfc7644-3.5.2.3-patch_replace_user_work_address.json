@@ -1,0 +1,21 @@
+{
+    "schemas": [
+        "urn:ietf:params:scim:api:messages:2.0:PatchOp"
+    ],
+    "Operations": [
+        {
+            "op": "replace",
+            "path": "addresses[type eq \"work\"]",
+            "value": {
+                "type": "work",
+                "streetAddress": "911 Universal City Plaza",
+                "locality": "Hollywood",
+                "region": "CA",
+                "postalCode": "91608",
+                "country": "US",
+                "formatted": "911 Universal City Plaza\nHollywood, CA 91608 US",
+                "primary": true
+            }
+        }
+    ]
+}

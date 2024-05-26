@@ -1,0 +1,19 @@
+{
+    "schemas": [
+        "urn:ietf:params:scim:api:messages:2.0:ListResponse"
+    ],
+    "totalResults": 100,
+    "itemsPerPage": 10,
+    "startIndex": 1,
+    "Resources": [
+        {
+            "id": "2819c223-7f76-413861904646",
+            "userName": "jsmith",
+            "displayName": "Smith, James"
+        },
+        {
+            "id": "c8596b90-7539-4f20968d1908",
+            "displayName": "Smith Family"
+        }
+    ]
+}

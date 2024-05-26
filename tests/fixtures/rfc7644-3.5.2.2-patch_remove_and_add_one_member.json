@@ -1,0 +1,22 @@
+{
+    "schemas": [
+        "urn:ietf:params:scim:api:messages:2.0:PatchOp"
+    ],
+    "Operations": [
+        {
+            "op": "remove",
+            "path": "members[value eq\"2819c223...919d-413861904646\"]"
+        },
+        {
+            "op": "add",
+            "path": "members",
+            "value": [
+                {
+                    "display": "James Smith",
+                    "$ref": "https://example.com/v2/Users/08e1d05d...473d93df9210",
+                    "value": "08e1d05d...473d93df9210"
+                }
+            ]
+        }
+    ]
+}
