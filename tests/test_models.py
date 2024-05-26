@@ -14,7 +14,7 @@ from pydantic_scim2 import User
 
 
 def test_parse_and_serialize_examples(load_sample):
-    samples = list(os.walk("tests/fixtures"))[0][2]
+    samples = list(os.walk("samples"))[0][2]
     models = {
         "user": User,
         "group": Group,
