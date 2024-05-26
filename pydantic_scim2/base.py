@@ -10,5 +10,4 @@ class SCIM2Model(BaseModel):
 
 
 def int_to_str(status: Optional[int]) -> Optional[str]:
-    if status is not None:
-        return str(status)
+    return None if status is None else str(status)
