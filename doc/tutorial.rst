@@ -4,7 +4,9 @@ Tutorial
 Parse models
 ============
 
-Pydantic :func:`~pydantic.BaseModel.model_validate` method can be used to parse and validate SCIM2 payloads:
+Pydantic :func:`~pydantic.BaseModel.model_validate` method can be used to parse and validate SCIM2 payloads.
+Python models have generally the same name than in the SCIM specifications, they are simply snake cased.
+
 
 .. code-block:: python
 
