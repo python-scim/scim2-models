@@ -6,7 +6,7 @@ from pydantic_scim2 import User
 
 
 def test_user_response(load_sample):
-    resource_payload = load_sample("rfc7643-8.1-minimal_user_payload.json")
+    resource_payload = load_sample("rfc7643-8.1-user-minimal.json")
     payload = {
         "totalResults": 1,
         "itemsPerPage": 10,
@@ -20,7 +20,7 @@ def test_user_response(load_sample):
 
 
 def test_enterprise_user_response(load_sample):
-    resource_payload = load_sample("rfc7643-8.3-enterprise_user.json")
+    resource_payload = load_sample("rfc7643-8.3-user-enterprise_user.json")
     payload = {
         "totalResults": 1,
         "itemsPerPage": 10,
@@ -66,8 +66,8 @@ def test_service_provider_configuration_response(load_sample):
 def test_resource_type_response(load_sample):
     """https://datatracker.ietf.org/doc/html/rfc7644#section-4"""
 
-    user_resource_type_payload = load_sample("rfc7643-8.6-user_resource_type.json")
-    group_resource_type_payload = load_sample("rfc7643-8.6-group_resource_type.json")
+    user_resource_type_payload = load_sample("rfc7643-8.6-resource_type-user.json")
+    group_resource_type_payload = load_sample("rfc7643-8.6-resource_type-group.json")
     payload = {
         "totalResults": 2,
         "itemsPerPage": 10,
