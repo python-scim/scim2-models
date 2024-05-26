@@ -3,8 +3,6 @@
 Pydantic models for SCIM2 schemas defined in [RFC7643](https://www.rfc-editor.org/rfc/rfc7643) and [RFC7644](https://www.rfc-editor.org/rfc/rfc7644).
 This library provide utilities to parse and produce SCIM2 payloads.
 
-pydantic-scim2 is a fork of [pydantic-scim](https://github.com/chalk-ai/pydantic-scim) to bring support for pydantic 2.
-
 ## Installation
 
 ```shell
