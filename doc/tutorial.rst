@@ -131,6 +131,49 @@ If a response resource type cannot be found, a `pydantic.ValidationError` will b
     assert isinstance(group, Group)
 
 
+Schema extensions
+=================
+
+:rfc:`7643 §3.3 <7643#section-3.3>` extensions are supported.
+Extensions must be passed as resource type parameter, e.g. ``user = User[EnterpriseUser]`` or ``user = User[EnterpriseUser, SuperHero]``.
+Extensions attributes are accessed with brackets, e.g. ``user[EnterpriseUser].employee_number``.
+
+.. code-block:: python
+
+    import datetime
+    from pydantic_scim2 import User, EnterpriseUser, Meta
+
+    user = User[EnterpriseUser](
+        id="2819c223-7f76-453a-919d-413861904646",
+        user_name="bjensen@example.com",
+        meta=Meta(
+            resource_type="User",
+            created=datetime.datetime(
+                2010, 1, 23, 4, 56, 22, tzinfo=datetime.timezone.utc
+            ),
+        ),
+    )
+    user[EnterpriseUser].employee_number = "701984"
+    dump = user.model_dump(exclude_none=True, by_alias=True, mode="json")
+    assert dump == {
+        "schemas": [
+            "urn:ietf:params:scim:schemas:core:2.0:User",
+            "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"
+        ],
+        "id": "2819c223-7f76-453a-919d-413861904646",
+        "meta": {
+            "resourceType": "User",
+            "created": "2010-01-23T04:56:22Z"
+        },
+        "userName": "bjensen@example.com",
+        "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User": {
+            "schemas": [
+                "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"
+            ],
+            "employeeNumber": "701984"
+        }
+    }
+
 Custom models
 =============
 

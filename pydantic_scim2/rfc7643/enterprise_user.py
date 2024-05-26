@@ -1,3 +1,4 @@
+from typing import List
 from typing import Optional
 
 from pydantic import AnyUrl
@@ -21,6 +22,8 @@ class Manager(SCIM2Model):
 
 
 class EnterpriseUser(SCIM2Model):
+    schemas: List[str] = ["urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"]
+
     employee_number: Optional[str] = None
     """Numeric or alphanumeric identifier assigned to a person, typically based
     on order of hire or association with anorganization."""

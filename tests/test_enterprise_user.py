@@ -4,6 +4,7 @@ from pydantic import AnyUrl
 
 from pydantic_scim2 import Address
 from pydantic_scim2 import Email
+from pydantic_scim2 import EnterpriseUser
 from pydantic_scim2 import Im
 from pydantic_scim2 import PhoneNumber
 from pydantic_scim2 import Photo
@@ -12,7 +13,7 @@ from pydantic_scim2 import User
 
 def test_enterprise_user(load_sample):
     payload = load_sample("rfc7643-8.3-user-enterprise_user.json")
-    obj = User.model_validate(payload)
+    obj = User[EnterpriseUser].model_validate(payload)
 
     assert obj.schemas == [
         "urn:ietf:params:scim:schemas:core:2.0:User",
@@ -123,21 +124,16 @@ def test_enterprise_user(load_sample):
         == "https://example.com/v2/Users/2819c223-7f76-453a-919d-413861904646"
     )
 
-    # TODO: implement assertions for this
-    # "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User": {
-    #     "employeeNumber": "701984",
-    #     "costCenter": "4130",
-    #     "organization": "Universal Studios",
-    #     "division": "Theme Park",
-    #     "department": "Tour Operations",
-    #     "manager": {
-    #         "value": "26118915-6090-4610-87e4-49d8ca9f808d",
-    #         # TODO: relative URL are not supported by pydantic. Is this an error in the spec?
-    #         #"$ref": "../Users/26118915-6090-4610-87e4-49d8ca9f808d",
-    #         "$ref": "https://example.com/v2/Users/26118915-6090-4610-87e4-49d8ca9f808d",
-    #         "displayName": "John Smith",
-    #     },
-    # },
+    assert obj[EnterpriseUser].employee_number == "701984"
+    assert obj[EnterpriseUser].cost_center == "4130"
+    assert obj[EnterpriseUser].organization == "Universal Studios"
+    assert obj[EnterpriseUser].division == "Theme Park"
+    assert obj[EnterpriseUser].department == "Tour Operations"
+    assert obj[EnterpriseUser].manager.value == "26118915-6090-4610-87e4-49d8ca9f808d"
+    assert obj[EnterpriseUser].manager.ref == AnyUrl(
+        "https://example.com/v2/Users/26118915-6090-4610-87e4-49d8ca9f808d"
+    )
+    assert obj[EnterpriseUser].manager.display_name == "John Smith"
 
     assert (
         obj.model_dump(
