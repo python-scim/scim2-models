@@ -11,7 +11,9 @@ pydantic-scim2 is a fork of [pydantic-scim](https://github.com/chalk-ai/pydantic
 pip install pydantic-scim2
 ```
 
-## Example
+## Usage
+
+Check the [tutorial](https://pydantic-scim2.readthedocs.io/en/latest/tutorial.html) and the [reference](https://pydantic-scim2.readthedocs.io/en/latest/reference.html) for more details.
 
 ```python
 from pydantic_scim2 import User
@@ -30,18 +32,9 @@ payload = {
     },
 }
 
-# Pythonize JSON SCIM payload:
-
 user = User.model_validate(payload)
 assert user.user_name == "bjensen@example.com"
 assert user.meta.created == datetime.datetime(
     2010, 1, 23, 4, 56, 22, tzinfo=datetime.timezone.utc
 )
-
-# JSONify Python SCIM models:
-
-dump = user.model_dump(
-    exclude_none=True, exclude_unset=True, by_alias=True, mode="json",
-)
-assert dump == payload
 ```

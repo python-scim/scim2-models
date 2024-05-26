@@ -1,4 +1,5 @@
 import os
+from typing import Union
 
 from pydantic_scim2 import BulkRequest
 from pydantic_scim2 import BulkResponse
@@ -21,7 +22,7 @@ def test_parse_and_serialize_examples(load_sample):
         "schema": Schema,
         "resource_type": ResourceType,
         "service_provider_configuration": ServiceProviderConfiguration,
-        "list_response": ListResponse,
+        "list_response": ListResponse[Union[User, Group, Schema, ResourceType]],
         "patch_op": PatchOp,
         "bulk_request": BulkRequest,
         "bulk_response": BulkResponse,
@@ -33,8 +34,7 @@ def test_parse_and_serialize_examples(load_sample):
         model_name = sample.replace(".json", "").split("-")[2]
         model = models[model_name]
 
-        # TODO: ListResponse must take a type parameter
-        if model is ListResponse:
+        if sample.endswith("-skip.json"):
             continue
 
         payload = load_sample(sample)
