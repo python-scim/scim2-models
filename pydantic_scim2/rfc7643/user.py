@@ -43,18 +43,10 @@ class Email(SCIM2Model):
         other = "other"
 
     value: Optional[EmailStr] = None
-    """Email addresses for the user.
-
-    The value SHOULD be canonicalized by the service provider, e.g.,
-    'bjensen@example.com' instead of 'bjensen@EXAMPLE.COM'. Canonical
-    type values of 'work', 'home', and 'other'.
-    """
+    """Email addresses for the user."""
 
     display: Optional[str] = None
-    """A human-readable name, primarily used for display purposes.
-
-    READ-ONLY.
-    """
+    """A human-readable name, primarily used for display purposes."""
 
     type: Optional[Type] = None
     """A label indicating the attribute's function, e.g., 'work' or 'home'."""
@@ -62,10 +54,8 @@ class Email(SCIM2Model):
     primary: Optional[bool] = None
     """A Boolean value indicating the 'primary' or preferred attribute value
     for this attribute, e.g., the preferred mailing address or primary email
-    address.
-
-    The primary attribute value 'true' MUST appear no more than once.
-    """
+    address."""
+    # TODO: The primary attribute value 'true' MUST appear no more than once.
 
 
 class PhoneNumber(SCIM2Model):
@@ -79,11 +69,9 @@ class PhoneNumber(SCIM2Model):
 
     value: Optional[str] = None
     """Phone number of the User."""
-    display: Optional[str] = None
-    """A human-readable name, primarily used for display purposes.
 
-    READ-ONLY.
-    """
+    display: Optional[str] = None
+    """A human-readable name, primarily used for display purposes."""
 
     type: Optional[Type] = None
     """A label indicating the attribute's function, e.g., 'work', 'home',
@@ -92,10 +80,8 @@ class PhoneNumber(SCIM2Model):
     primary: Optional[bool] = None
     """A Boolean value indicating the 'primary' or preferred attribute value
     for this attribute, e.g., the preferred phone number or primary phone
-    number.
-
-    The primary attribute value 'true' MUST appear no more than once.
-    """
+    number."""
+    # TODO: The primary attribute value 'true' MUST appear no more than once.
 
 
 class Im(SCIM2Model):
@@ -113,10 +99,7 @@ class Im(SCIM2Model):
     """Instant messaging address for the User."""
 
     display: Optional[str] = None
-    """A human-readable name, primarily used for display purposes.
-
-    READ-ONLY.
-    """
+    """A human-readable name, primarily used for display purposes."""
 
     type: Optional[Type] = None
     """A label indicating the attribute's function, e.g., 'aim', 'gtalk',
@@ -124,10 +107,8 @@ class Im(SCIM2Model):
 
     primary: Optional[bool] = None
     """A Boolean value indicating the 'primary' or preferred attribute value
-    for this attribute, e.g., the preferred messenger or primary messenger.
-
-    The primary attribute value 'true' MUST appear no more than once.
-    """
+    for this attribute, e.g., the preferred messenger or primary messenger."""
+    # TODO: The primary attribute value 'true' MUST appear no more than once.
 
 
 class Photo(SCIM2Model):
@@ -139,10 +120,7 @@ class Photo(SCIM2Model):
     """URL of a photo of the User."""
 
     display: Optional[str] = None
-    """A human-readable name, primarily used for display purposes.
-
-    READ-ONLY.
-    """
+    """A human-readable name, primarily used for display purposes."""
 
     type: Optional[Type] = None
     """A label indicating the attribute's function, i.e., 'photo' or
@@ -150,10 +128,8 @@ class Photo(SCIM2Model):
 
     primary: Optional[bool] = None
     """A Boolean value indicating the 'primary' or preferred attribute value
-    for this attribute, e.g., the preferred photo or thumbnail.
-
-    The primary attribute value 'true' MUST appear no more than once.
-    """
+    for this attribute, e.g., the preferred photo or thumbnail."""
+    # TODO: The primary attribute value 'true' MUST appear no more than once.
 
 
 class Address(SCIM2Model):
@@ -164,17 +140,13 @@ class Address(SCIM2Model):
 
     formatted: Optional[str] = None
     """The full mailing address, formatted for display or use with a mailing
-    label.
-
-    This attribute MAY contain newlines.
-    """
+    label."""
 
     street_address: Optional[str] = None
     """The full street address component, which may include house number,
     street name, P.O.
 
-    box, and multi-line extended street address information.  This
-    attribute MAY contain newlines.
+    box, and multi-line extended street address information.
     """
 
     locality: Optional[str] = None
@@ -194,10 +166,8 @@ class Address(SCIM2Model):
 
     primary: Optional[bool] = None
     """A Boolean value indicating the 'primary' or preferred attribute value
-    for this attribute, e.g., the preferred photo or thumbnail.
-
-    The primary attribute value 'true' MUST appear no more than once.
-    """
+    for this attribute, e.g., the preferred photo or thumbnail."""
+    # TODO: The primary attribute value 'true' MUST appear no more than once.
 
 
 class Entitlement(SCIM2Model):
@@ -205,20 +175,15 @@ class Entitlement(SCIM2Model):
     """The value of an entitlement."""
 
     display: Optional[str] = None
-    """A human-readable name, primarily used for display purposes.
-
-    READ-ONLY.
-    """
+    """A human-readable name, primarily used for display purposes."""
 
     type: Optional[str] = None
     """A label indicating the attribute's function."""
 
     primary: Optional[bool] = None
     """A Boolean value indicating the 'primary' or preferred attribute value
-    for this attribute.
-
-    The primary attribute value 'true' MUST appear no more than once.
-    """
+    for this attribute."""
+    # TODO: The primary attribute value 'true' MUST appear no more than once.
 
 
 class Role(SCIM2Model):
@@ -226,20 +191,16 @@ class Role(SCIM2Model):
     """The value of a role."""
 
     display: Optional[str] = None
-    """A human-readable name, primarily used for display purposes.
-
-    READ-ONLY.
-    """
+    """A human-readable name, primarily used for display purposes."""
 
     type: Optional[str] = None
     """A label indicating the attribute's function."""
 
     primary: Optional[bool] = None
     """A Boolean value indicating the 'primary' or preferred attribute value
-    for this attribute.
+    for this attribute."""
 
-    The primary attribute value 'true' MUST appear no more than once.
-    """
+    # TODO: The primary attribute value 'true' MUST appear no more than once.
 
 
 class X509Certificate(SCIM2Model):
@@ -247,57 +208,31 @@ class X509Certificate(SCIM2Model):
     """The value of an X.509 certificate."""
 
     display: Optional[str] = None
-    """A human-readable name, primarily used for display purposes.
-
-    READ-ONLY.
-    """
+    """A human-readable name, primarily used for display purposes."""
 
     type: Optional[str] = None
     """A label indicating the attribute's function."""
 
     primary: Optional[bool] = None
     """A Boolean value indicating the 'primary' or preferred attribute value
-    for this attribute.
-
-    The primary attribute value 'true' MUST appear no more than once.
-    """
+    for this attribute."""
+    # TODO: The primary attribute value 'true' MUST appear no more than once.
 
 
 class User(Resource):
-    user_name: str = ...
+    user_name: str
     """Unique identifier for the User, typically used by the user to directly
-    authenticate to the service provider.
-
-    Each User MUST include a non-empty userName value.  This identifier
-    MUST be unique across the service provider's entire set of Users.
-    REQUIRED.
-    """
+    authenticate to the service provider."""
 
     name: Optional[Name] = None
-    """The components of the user's real name.
-
-    Providers MAY return just the full name as a single string in the
-    formatted sub-attribute, or they MAY return just the individual
-    component attributes using the other sub-attributes, or they MAY
-    return both.  If both variants are returned, they SHOULD be
-    describing the same name, with the formatted name indicating how the
-    component attributes should be combined.
-    """
+    """The components of the user's real name."""
 
     display_name: Optional[str] = None
-    """The name of the User, suitable for display to end-users.
-
-    The name SHOULD be the full name of the User being described, if
-    known.
-    """
+    """The name of the User, suitable for display to end-users."""
 
     nick_name: Optional[str] = None
     """The casual way to address the user in real life, e.g., 'Bob' or 'Bobby'
-    instead of 'Robert'.
-
-    This attribute SHOULD NOT be used to represent a User's username
-    (e.g., 'bjensen' or 'mpepperidge').
-    """
+    instead of 'Robert'."""
 
     profile_url: Optional[AnyUrl] = None
     """A fully qualified URL pointing to a page representing the User's online
@@ -332,29 +267,13 @@ class User(Resource):
     """A Boolean value indicating the User's administrative status."""
 
     password: Optional[str] = None
-    """The User's cleartext password.
-
-    This attribute is intended to be used as a means to specify an
-    initial password when creating a new User or to reset an existing
-    User's password.
-    """
+    """The User's cleartext password."""
 
     emails: Optional[List[Email]] = None
-    """Email addresses for the user.
-
-    The value SHOULD be canonicalized by the service provider, e.g.,
-    'bjensen@example.com' instead of 'bjensen@EXAMPLE.COM'. Canonical
-    type values of 'work', 'home', and 'other'.
-    """
+    """Email addresses for the user."""
 
     phone_numbers: Optional[List[PhoneNumber]] = None
-    """Phone numbers for the User.
-
-    The value SHOULD be canonicalized by the service provider according
-    to the format specified in RFC 3966, e.g., 'tel:+1-201-555-0123'.
-    Canonical type values of 'work', 'home', 'mobile', 'fax', 'pager',
-    and 'other'.
-    """
+    """Phone numbers for the User."""
 
     ims: Optional[List[Im]] = None
     """Instant messaging addresses for the User."""
@@ -363,11 +282,7 @@ class User(Resource):
     """URLs of photos of the User."""
 
     addresses: Optional[List[Address]] = None
-    """A physical mailing address for this User.
-
-    Canonical type values of 'work', 'home', and 'other'.  This
-    attribute is a complex type with the following sub-attributes.
-    """
+    """A physical mailing address for this User."""
 
     groups: Optional[List[GroupMember]] = None
     """A list of groups to which the user belongs, either through direct
