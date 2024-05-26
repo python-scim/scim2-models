@@ -1,12 +1,14 @@
 from enum import Enum
+from typing import Annotated
 from typing import Any
 from typing import List
 from typing import Optional
 
 from pydantic import Field
-from pydantic import field_serializer
+from pydantic import PlainSerializer
 
 from ..base import SCIM2Model
+from ..base import int_to_str
 
 
 class BulkOperation(SCIM2Model):
@@ -43,13 +45,8 @@ class BulkOperation(SCIM2Model):
     response: Optional[Any] = None
     """The HTTP response body for the specified request operation."""
 
-    status: Optional[int] = None
+    status: Annotated[Optional[int], PlainSerializer(int_to_str)] = None
     """The HTTP response status code for the requested operation."""
-
-    @field_serializer("status")
-    def serialize_int_to_string(status: Optional[int]):
-        if status is not None:
-            return str(status)
 
 
 class BulkRequest(SCIM2Model):
