@@ -55,7 +55,6 @@ class Email(SCIM2Model):
     """A Boolean value indicating the 'primary' or preferred attribute value
     for this attribute, e.g., the preferred mailing address or primary email
     address."""
-    # TODO: The primary attribute value 'true' MUST appear no more than once.
 
 
 class PhoneNumber(SCIM2Model):
@@ -81,7 +80,6 @@ class PhoneNumber(SCIM2Model):
     """A Boolean value indicating the 'primary' or preferred attribute value
     for this attribute, e.g., the preferred phone number or primary phone
     number."""
-    # TODO: The primary attribute value 'true' MUST appear no more than once.
 
 
 class Im(SCIM2Model):
@@ -108,7 +106,6 @@ class Im(SCIM2Model):
     primary: Optional[bool] = None
     """A Boolean value indicating the 'primary' or preferred attribute value
     for this attribute, e.g., the preferred messenger or primary messenger."""
-    # TODO: The primary attribute value 'true' MUST appear no more than once.
 
 
 class Photo(SCIM2Model):
@@ -129,7 +126,6 @@ class Photo(SCIM2Model):
     primary: Optional[bool] = None
     """A Boolean value indicating the 'primary' or preferred attribute value
     for this attribute, e.g., the preferred photo or thumbnail."""
-    # TODO: The primary attribute value 'true' MUST appear no more than once.
 
 
 class Address(SCIM2Model):
@@ -167,7 +163,6 @@ class Address(SCIM2Model):
     primary: Optional[bool] = None
     """A Boolean value indicating the 'primary' or preferred attribute value
     for this attribute, e.g., the preferred photo or thumbnail."""
-    # TODO: The primary attribute value 'true' MUST appear no more than once.
 
 
 class Entitlement(SCIM2Model):
@@ -183,7 +178,6 @@ class Entitlement(SCIM2Model):
     primary: Optional[bool] = None
     """A Boolean value indicating the 'primary' or preferred attribute value
     for this attribute."""
-    # TODO: The primary attribute value 'true' MUST appear no more than once.
 
 
 class Role(SCIM2Model):
@@ -200,8 +194,6 @@ class Role(SCIM2Model):
     """A Boolean value indicating the 'primary' or preferred attribute value
     for this attribute."""
 
-    # TODO: The primary attribute value 'true' MUST appear no more than once.
-
 
 class X509Certificate(SCIM2Model):
     value: Optional[str] = None
@@ -216,7 +208,6 @@ class X509Certificate(SCIM2Model):
     primary: Optional[bool] = None
     """A Boolean value indicating the 'primary' or preferred attribute value
     for this attribute."""
-    # TODO: The primary attribute value 'true' MUST appear no more than once.
 
 
 class User(Resource):

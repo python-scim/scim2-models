@@ -27,4 +27,3 @@ class ListResponse(SCIM2Model, Generic[T]):
     resources: Optional[List[T]] = Field(None, alias="Resources")
     """A multi-valued list of complex objects containing the requested
     resources."""
-    # TODO: REQUIRED if "totalResults" is non-zero.

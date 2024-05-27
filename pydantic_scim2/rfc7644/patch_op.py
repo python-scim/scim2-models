@@ -23,7 +23,7 @@ class PatchOperation(SCIM2Model):
     path: Optional[str] = None
     """The "path" attribute value is a String containing an attribute path
     describing the target of the operation."""
-    # TODO: The "path" attribute is OPTIONAL for "add" and "replace" and is REQUIRED for "remove"
+
     value: Optional[Any] = None
 
 

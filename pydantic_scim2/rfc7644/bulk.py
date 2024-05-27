@@ -24,23 +24,19 @@ class BulkOperation(SCIM2Model):
     bulk_id: Optional[str] = None
     """The transient identifier of a newly created resource, unique within a
     bulk request and created by the client."""
-    # TODO:  REQUIRED when "method" is "POST".
 
     version: Optional[str] = None
     """The current resource version."""
 
     path: Optional[str] = None
     """The resource's relative path to the SCIM service provider's root."""
-    # TODO: REQUIRED in a request. (so not in a response)
 
     data: Optional[Any] = None
     """The resource data as it would appear for a single SCIM POST, PUT, or
     PATCH operation."""
-    # TODO: REQUIRED in a request when "method" is "POST", "PUT", or "PATCH".
 
     location: Optional[str] = None
     """The resource endpoint URL."""
-    # TODO: REQUIRED in a response, except in the event of a POST failure.
 
     response: Optional[Any] = None
     """The HTTP response body for the specified request operation."""

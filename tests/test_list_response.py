@@ -3,6 +3,7 @@ from typing import Union
 import pytest
 from pydantic import ValidationError
 
+from pydantic_scim2 import EnterpriseUser
 from pydantic_scim2 import Group
 from pydantic_scim2 import ListResponse
 from pydantic_scim2 import ResourceType
@@ -33,11 +34,9 @@ def test_enterprise_user(load_sample):
         "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
         "Resources": [resource_payload],
     }
-    response = ListResponse[User].model_validate(payload)
+    response = ListResponse[User[EnterpriseUser]].model_validate(payload)
     obj = response.resources[0]
-    assert isinstance(obj, User)
-
-    # TODO: add checks for the EnterpriseUser attributes
+    assert isinstance(obj, User[EnterpriseUser])
 
 
 def test_group(load_sample):

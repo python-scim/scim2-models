@@ -9,7 +9,7 @@ description = "SCIM2 models for pydantic"
 authors = ["Yaal Coop <contact@yaal.coop>"]
 license = "Apache"
 readme = "README.md"
-keywords = ["scim", "scim2", "provisioning"]
+keywords = ["scim", "scim2", "provisioning", "pydantic"]
 classifiers = [
     "Intended Audience :: Developers",
     "Development Status :: 3 - Alpha",

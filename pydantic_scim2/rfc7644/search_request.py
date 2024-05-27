@@ -19,24 +19,17 @@ class SearchRequest(SCIM2Model):
     """A multi-valued list of strings indicating the names of resource
     attributes to return in the response, overriding the set of attributes that
     would be returned by default."""
-    # TODO: Attribute names
-    # MUST be in standard attribute notation (Section 3.10) form.
 
     excluded_attributes: Optional[List[str]] = None
     """A multi-valued list of strings indicating the names of resource
     attributes to be removed from the default set of attributes to return."""
-    # TODO:  Attribute names MUST be in
-    # standard attribute notation (Section 3.10) form.  See Section 3.9
-    # for additional retrieval query parameters.
 
     filter: Optional[str] = None
     """The filter string used to request a subset of resources."""
-    # TODO: The filter string MUST be a valid filter (Section 3.4.2.2) expression.
 
     sort_by: Optional[str] = None
     """A string indicating the attribute whose value SHALL be used to order the
     returned responses."""
-    # TODO: The "sortBy" attribute MUST be in standard attribute notation (Section 3.10) form.
 
     sort_order: Optional[SortOrder] = None
     """A string indicating the order in which the "sortBy" parameter is
