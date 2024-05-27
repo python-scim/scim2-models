@@ -10,6 +10,8 @@ authors = ["Yaal Coop <contact@yaal.coop>"]
 license = "Apache"
 readme = "README.md"
 keywords = ["scim", "scim2", "provisioning", "pydantic"]
+documentation = "https://pydantic-scim2.readthedocs.io"
+repository = "https://github.com/yaal-coop/pydantic-scim2"
 classifiers = [
     "Intended Audience :: Developers",
     "Development Status :: 3 - Alpha",
