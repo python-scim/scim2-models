@@ -48,6 +48,7 @@ from .rfc7644.patch_op import Op
 from .rfc7644.patch_op import PatchOp
 from .rfc7644.patch_op import PatchOperation
 from .rfc7644.search_request import SearchRequest
+from .rfc7644.search_request import SortOrder
 
 __all__ = [
     "Address",
@@ -92,6 +93,7 @@ __all__ = [
     "Schema",
     "SchemaExtension",
     "SearchRequest",
+    "SortOrder",
     "SensitiveError",
     "ServiceProviderConfiguration",
     "Sort",
