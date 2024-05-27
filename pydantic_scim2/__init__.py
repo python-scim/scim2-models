@@ -33,6 +33,16 @@ from .rfc7644.bulk import BulkOperation
 from .rfc7644.bulk import BulkRequest
 from .rfc7644.bulk import BulkResponse
 from .rfc7644.error import Error
+from .rfc7644.error import InvalidFilterError
+from .rfc7644.error import InvalidPathError
+from .rfc7644.error import InvalidSyntaxError
+from .rfc7644.error import InvalidValueError
+from .rfc7644.error import InvalidVersionError
+from .rfc7644.error import MutabilityError
+from .rfc7644.error import NoTargetError
+from .rfc7644.error import SensitiveError
+from .rfc7644.error import TooManyError
+from .rfc7644.error import UniquenessError
 from .rfc7644.list_response import ListResponse
 from .rfc7644.patch_op import Op
 from .rfc7644.patch_op import PatchOp
@@ -57,11 +67,18 @@ __all__ = [
     "Group",
     "GroupMember",
     "Im",
+    "InvalidFilterError",
+    "InvalidPathError",
+    "InvalidSyntaxError",
+    "InvalidValueError",
+    "InvalidVersionError",
     "ListResponse",
     "Manager",
     "Meta",
     "Mutability",
+    "MutabilityError",
     "Name",
+    "NoTargetError",
     "Op",
     "Patch",
     "PatchOp",
@@ -75,9 +92,12 @@ __all__ = [
     "Schema",
     "SchemaExtension",
     "SearchRequest",
+    "SensitiveError",
     "ServiceProviderConfiguration",
     "Sort",
+    "TooManyError",
     "Uniqueness",
+    "UniquenessError",
     "User",
     "X509Certificate",
 ]
