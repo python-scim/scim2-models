@@ -177,7 +177,7 @@ Extensions attributes are accessed with brackets, e.g. ``user[EnterpriseUser].em
 Custom models
 =============
 
-You can write your own model and use it the same way than the other pydantic-scim2 models. Just inherit from `:class:`pydantic_scim2.Resource`:
+You can write your own model and use it the same way than the other pydantic-scim2 models. Just inherit from :class:`~pydantic_scim2.Resource`:
 
 .. code-block:: python
 
