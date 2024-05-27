@@ -76,6 +76,11 @@ force-single-line = true
 [too.ruff.format]
 docstring-code-format = true
 
+[tool.pytest.ini_options]
+addopts = "--doctest-modules --doctest-glob='*.rst'"
+doctest_optionflags= "ALLOW_UNICODE IGNORE_EXCEPTION_DETAIL ELLIPSIS"
+
+
 [tool.tox]
 legacy_tox_ini = """
 [tox]
