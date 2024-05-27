@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "pydantic-scim2"
-version = "0.2.0"
+version = "0.2.1"
 description = "SCIM2 models for pydantic"
 authors = ["Yaal Coop <contact@yaal.coop>"]
 license = "Apache"
@@ -56,8 +56,6 @@ exclude_lines = [
     "@pytest.mark.skip",
     "pragma: no cover",
     "raise NotImplementedError",
-    "except ImportError",
-    "if app.debug",
 ]
 
 [tool.ruff.lint]
