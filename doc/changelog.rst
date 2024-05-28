@@ -3,14 +3,19 @@ Changelog
 
 Added
 ^^^^^
-- expose `AnyResource` type
+- expose :data:`~pydantic_scim2.AnyResource` type
+
+Changed
+^^^^^^^
+
+- :attr:`~pydantic_scim2.Resource.id` and :attr:`~pydantic_scim2.Resource.meta` are made optional
 
 [0.2.2] - Unreleased
 --------------------
 
 Added
 ^^^^^
-- expose `SortOrder`
+- expose :class:`~pydantic_scim2.SortOrder`
 
 [0.2.1] - 2024-05-27
 --------------------
@@ -25,7 +30,7 @@ Added
 Added
 ^^^^^
 - SCIM Extension support
-- ListResponse generic types
+- :class:`~pydantic_scim2.ListResponse` generic types
 - Documentation
 
 [0.1.0] - 2024-05-23
