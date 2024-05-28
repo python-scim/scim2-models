@@ -34,7 +34,8 @@ def test_parse_and_serialize_examples(load_sample):
         model_name = sample.replace(".json", "").split("-")[2]
         model = models[model_name]
 
-        if sample.endswith("-skip.json"):
+        skipped = ["rfc7644-8.4.3-list_response-post_query.json"]
+        if sample in skipped:
             continue
 
         payload = load_sample(sample)
