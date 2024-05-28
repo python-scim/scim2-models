@@ -1,0 +1,21 @@
+{
+    "schemas":["urn:ietf:params:scim:schemas:core:2.0:User"],
+    "id":"2819c223-7f76-453a-919d-413861904646",
+    "userName":"bjensen",
+    "externalId":"bjensen",
+    "name":{
+        "formatted":"Ms. Barbara J Jensen III",
+        "familyName":"Jensen",
+        "givenName":"Barbara",
+        "middleName":"Jane"
+    },
+    "roles":[],
+    "emails":[
+        {
+            "value":"bjensen@example.com"
+        },
+        {
+            "value":"babs@jensen.org"
+        }
+    ]
+}

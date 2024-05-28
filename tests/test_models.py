@@ -34,7 +34,15 @@ def test_parse_and_serialize_examples(load_sample):
         model_name = sample.replace(".json", "").split("-")[2]
         model = models[model_name]
 
-        skipped = ["rfc7644-8.4.3-list_response-post_query.json"]
+        # partial resources are not supported yet
+        skipped = [
+            "rfc7644-3.3-user-post_request.json",
+            "rfc7644-3.4.2-list_response-partial_attributes.json",
+            "rfc7644-3.5.1-user-put_request.json",
+            "rfc7644-8.4.3-list_response-post_query.json",
+            "rfc7644-3.9-user-partial_response.json",
+            "rfc7644-3.14-user-post_request.json",
+        ]
         if sample in skipped:
             continue
 

@@ -1,0 +1,10 @@
+{
+    "schemas":["urn:ietf:params:scim:schemas:core:2.0:User"],
+    "userName":"bjensen",
+    "externalId":"bjensen",
+    "name":{
+        "formatted":"Ms. Barbara J Jensen III",
+        "familyName":"Jensen",
+        "givenName":"Barbara"
+    }
+}
