@@ -1,5 +1,7 @@
 import datetime
 
+import pytest
+
 from pydantic_scim2 import EnterpriseUser
 from pydantic_scim2 import Manager
 from pydantic_scim2 import Meta
@@ -24,16 +26,18 @@ def test_extension_getitem():
             location="https://example.com/v2/Users/2819c223-7f76-453a-919d-413861904646",
         ),
     )
-    user[EnterpriseUser].employee_number = "701984"
-    user[EnterpriseUser].cost_center = "4130"
-    user[EnterpriseUser].organization = "Universal Studios"
-    user[EnterpriseUser].division = "Theme Park"
-    user[EnterpriseUser].department = "Tour Operations"
-    user[EnterpriseUser].manager = Manager(
-        value="26118915-6090-4610-87e4-49d8ca9f808d",
-        ref="https://example.com/v2/Users/26118915-6090-4610-87e4-49d8ca9f808d",
-        display_name="John Smith",
+    user[EnterpriseUser] = EnterpriseUser(
+        cost_center="4130",
+        organization="Universal Studios",
+        division="Theme Park",
+        department="Tour Operations",
+        manager=Manager(
+            value="26118915-6090-4610-87e4-49d8ca9f808d",
+            ref="https://example.com/v2/Users/26118915-6090-4610-87e4-49d8ca9f808d",
+            display_name="John Smith",
+        ),
     )
+    user[EnterpriseUser].employee_number = "701984"
 
     expected_payload = {
         "id": "2819c223-7f76-453a-919d-413861904646",
@@ -158,3 +162,27 @@ def test_extension_no_payload():
     }
 
     User[EnterpriseUser].model_validate(payload)
+
+
+def test_invalid_getitem():
+    """Test that an non Resource subclass __getitem__ attribute raise a
+    KeyError."""
+
+    user = User[EnterpriseUser](user_name="foobar")
+    with pytest.raises(KeyError):
+        user["invalid"]
+
+    with pytest.raises(KeyError):
+        user[object]
+
+
+def test_invalid_setitem():
+    """Test that an non Resource subclass __getitem__ attribute raise a
+    KeyError."""
+
+    user = User[EnterpriseUser](user_name="foobar")
+    with pytest.raises(KeyError):
+        user["invalid"] = "foobar"
+
+    with pytest.raises(KeyError):
+        user[object] = "foobar"

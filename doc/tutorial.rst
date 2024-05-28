@@ -159,7 +159,8 @@ Extensions attributes are accessed with brackets, e.g. ``user[EnterpriseUser].em
     ...     ),
     ... )
 
-    >>> user[EnterpriseUser].employee_number = "701984"
+    >>> user[EnterpriseUser] = EnterpriseUser(employee_number = "701984")
+    >>> user[EnterpriseUser].division="Theme Park"
     >>> dump = user.model_dump(exclude_none=True, by_alias=True, mode="json")
     >>> assert dump == {
     ...     "schemas": [
@@ -176,7 +177,8 @@ Extensions attributes are accessed with brackets, e.g. ``user[EnterpriseUser].em
     ...         "schemas": [
     ...             "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"
     ...         ],
-    ...         "employeeNumber": "701984"
+    ...         "employeeNumber": "701984",
+    ...         "division": "Theme Park",
     ...     }
     ... }
 

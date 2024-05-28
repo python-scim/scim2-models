@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Any
 from typing import Generic
 from typing import List
 from typing import Optional
@@ -95,15 +96,17 @@ class Resource(SCIM2Model, Generic[AnyModel]):
     meta: Optional[Meta] = None
     """A complex attribute containing resource metadata."""
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: Any):
+        if not isinstance(item, type) or not issubclass(item, SCIM2Model):
+            raise KeyError(f"{item} is not a valid extension type")
+
         schema = item.model_fields["schemas"].default[0]
-
-        if not hasattr(self, schema):
-            setattr(self, schema, item())
-
         return getattr(self, schema)
 
-    def __setitem__(self, item: type, value: "Resource"):
+    def __setitem__(self, item: Any, value: "Resource"):
+        if not isinstance(item, type) or not issubclass(item, SCIM2Model):
+            raise KeyError(f"{item} is not a valid extension type")
+
         schema = item.model_fields["schemas"].default[0]
         setattr(self, schema, value)
 
@@ -131,7 +134,7 @@ class Resource(SCIM2Model, Generic[AnyModel]):
 
     @field_serializer("schemas")
     def set_extension_schemas(self, schemas: List[str]):
-        """Add model extensions to 'schemas'."""
+        """Add model extension ids to the 'schemas' attribute."""
 
         extension_models = self.__pydantic_generic_metadata__.get("args")
         extension_schemas = [
@@ -143,4 +146,4 @@ class Resource(SCIM2Model, Generic[AnyModel]):
         return schemas
 
 
-AnyResource = TypeVar("AnyResource", bound=Resource)
+AnyResource = TypeVar("AnyResource", bound="Resource")
