@@ -1,6 +1,10 @@
 Changelog
 =========
 
+Added
+^^^^^
+- expose `AnyResource` type
+
 [0.2.2] - Unreleased
 --------------------
 

@@ -1,17 +1,14 @@
-from typing import Any
 from typing import Generic
 from typing import List
 from typing import Optional
-from typing import TypeVar
 
 from pydantic import Field
 
 from ..base import SCIM2Model
+from ..rfc7643.resource import AnyResource
 
-T = TypeVar("T", SCIM2Model, Any)
 
-
-class ListResponse(SCIM2Model, Generic[T]):
+class ListResponse(SCIM2Model, Generic[AnyResource]):
     schemas: List[str] = ["urn:ietf:params:scim:api:messages:2.0:ListResponse"]
 
     total_results: int
@@ -24,6 +21,6 @@ class ListResponse(SCIM2Model, Generic[T]):
     items_per_page: Optional[int] = None
     """The number of resources returned in a list response page."""
 
-    resources: Optional[List[T]] = Field(None, alias="Resources")
+    resources: Optional[List[AnyResource]] = Field(None, alias="Resources")
     """A multi-valued list of complex objects containing the requested
     resources."""

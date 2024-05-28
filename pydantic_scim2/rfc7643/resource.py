@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Any
 from typing import Generic
 from typing import List
 from typing import Optional
@@ -10,9 +9,8 @@ from pydantic import field_serializer
 from pydantic import model_validator
 from typing_extensions import Self
 
+from ..base import AnyModel
 from ..base import SCIM2Model
-
-T = TypeVar("T", SCIM2Model, Any)
 
 
 class Meta(SCIM2Model):
@@ -70,7 +68,7 @@ class Meta(SCIM2Model):
     """
 
 
-class Resource(SCIM2Model, Generic[T]):
+class Resource(SCIM2Model, Generic[AnyModel]):
     model_config = ConfigDict(extra="allow")
 
     schemas: List[str]
@@ -179,3 +177,6 @@ class Resource(SCIM2Model, Generic[T]):
             schema for schema in extension_schemas if schema not in self.schemas
         ]
         return schemas
+
+
+AnyResource = TypeVar("AnyResource", bound=Resource)

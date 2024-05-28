@@ -1,4 +1,5 @@
 from typing import Optional
+from typing import TypeVar
 
 from pydantic import BaseModel
 from pydantic import ConfigDict
@@ -11,3 +12,6 @@ class SCIM2Model(BaseModel):
 
 def int_to_str(status: Optional[int]) -> Optional[str]:
     return None if status is None else str(status)
+
+
+AnyModel = TypeVar("AnyModel", bound=SCIM2Model)
