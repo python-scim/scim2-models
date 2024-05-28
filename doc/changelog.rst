@@ -1,21 +1,17 @@
 Changelog
 =========
 
-Added
-^^^^^
-- expose :data:`~pydantic_scim2.AnyResource` type
-
-Changed
-^^^^^^^
-
-- :attr:`~pydantic_scim2.Resource.id` and :attr:`~pydantic_scim2.Resource.meta` are made optional
-
-[0.2.2] - Unreleased
+[0.2.2] - 2024-05-28
 --------------------
 
 Added
 ^^^^^
+- expose :data:`~pydantic_scim2.AnyResource` type
 - expose :class:`~pydantic_scim2.SortOrder`
+
+Changed
+^^^^^^^
+- :attr:`~pydantic_scim2.Resource.id` and :attr:`~pydantic_scim2.Resource.meta` are made optional
 
 [0.2.1] - 2024-05-27
 --------------------
