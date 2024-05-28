@@ -127,7 +127,7 @@ TooManyError = Error(
 )
 
 UniquenessError = Error(
-    status=400,
+    status=409,
     scim_type="uniqueness",
     detail="""One or more of the attribute values are already in use or are reserved.""",
 )
