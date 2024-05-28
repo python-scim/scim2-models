@@ -9,6 +9,98 @@ from ..base import int_to_str
 
 
 class Error(SCIM2Model):
+    """Representation of SCIM API errors.
+
+    Here is the exhaustive list of pre-defined errors:
+
+    .. py:data:: pydanti_scim2.InvalidFilterError
+
+       The specified filter syntax
+       was invalid (does not comply
+       with :rfc:`Figure 1 of RFC7644 <7644#section-3.4.2.2>`), or the
+       specified attribute and filter
+       comparison combination is not
+       supported.
+
+    .. py:data:: pydanti_scim2.TooManyError
+
+       The specified filter yields
+       many more results than the
+       server is willing to calculate
+       or process.  For example, a
+       filter such as ``(userName pr)``
+       by itself would return all
+       entries with a ``userName`` and
+       MAY not be acceptable to the
+       service provider.
+
+    .. py:data:: pydanti_scim2.UniquenessError
+
+       One or more of the attribute
+       values are already in use or
+       are reserved.
+
+    .. py:data:: pydanti_scim2.MutabilityError
+
+       The attempted modification is
+       not compatible with the target
+       attribute's mutability or
+       current state (e.g.,
+       modification of an "immutable"
+       attribute with an existing
+       value).
+
+    .. py:data:: pydanti_scim2.InvalidSyntaxError
+
+       The request body message
+       structure was invalid or did
+       not conform to the request
+       schema.
+
+    .. py:data:: pydanti_scim2.InvalidPathError
+
+       The "path" attribute was
+       invalid or malformed (see
+       :rfc:`Figure 7 of RFC7644 <7644#section-3.5.2>`).
+
+    .. py:data:: pydanti_scim2.NoTargetError
+
+       The specified "path" did not
+       yield an attribute or
+       attribute value that could be
+       operated on.  This occurs when
+       the specified "path" value
+       contains a filter that yields
+       no match.
+
+    .. py:data:: pydanti_scim2.InvalidValueError
+
+       A required value was missing,
+       or the value specified was not
+       compatible with the operation
+       or attribute type (see :rfc:`Section
+       2.2 of RFC7643 <7643#section-2.2>`), or resource
+       schema (see :rfc:`Section 4 of
+       RFC7643 <7643#section-4>`).
+
+    .. py:data:: pydanti_scim2.InvalidVersionError
+
+       The specified SCIM protocol
+       version is not supported (see
+       :rfc:`Section 3.13 of RFC7644 <7644#section-3.13>`).
+
+    .. py:data:: pydanti_scim2.SensitiveError
+
+       The specified request cannot
+       be completed, due to the
+       passing of sensitive (e.g.,
+       personal) information in a
+       request URI.  For example,
+       personal information SHALL NOT
+       be transmitted over request
+       URIs.  See :rfc:`Section 7.5.2 of RFC7644 <7644#section-7.5.2>`.
+    """
+
     schemas: List[str] = ["urn:ietf:params:scim:api:messages:2.0:Error"]
 
     status: Annotated[int, PlainSerializer(int_to_str)]
