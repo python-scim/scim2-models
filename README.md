@@ -1,7 +1,7 @@
 # pydantic-scim2
 
-Pydantic models for SCIM2 schemas defined in [RFC7643](https://www.rfc-editor.org/rfc/rfc7643) and [RFC7644](https://www.rfc-editor.org/rfc/rfc7644).
-This library provide utilities to parse and produce SCIM2 payloads, and handle them with native Python objects.
+Pydantic models for SCIM2 schemas defined in [RFC7643](https://datatracker.ietf.org/doc/html/rfc7643.html) and [RFC7644](https://datatracker.ietf.org/doc/html/rfc7644.html).
+This library provide utilities to parse and produce SCIM2 payloads, and handle them with native Python objects. It can be use as a basis to build SCIM2 servers and clients.
 
 ## Installation
 
