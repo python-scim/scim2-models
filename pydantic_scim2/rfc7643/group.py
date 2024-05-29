@@ -24,7 +24,7 @@ class GroupMember(SCIM2Model):
 class Group(Resource):
     schemas: List[str] = ["urn:ietf:params:scim:schemas:core:2.0:Group"]
 
-    display_name: Optional[str] = True
+    display_name: Optional[str] = None
     """A human-readable name for the Group."""
 
     members: Optional[List[GroupMember]] = None
