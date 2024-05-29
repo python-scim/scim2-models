@@ -1,6 +1,14 @@
 Changelog
 =========
 
+Unreleased
+----------
+
+Changed
+^^^^^^^
+- pydantic minimum version is 2.5
+- use of pydantic discriminated unions to discriminate resources
+
 [0.2.2] - 2024-05-28
 --------------------
 
