@@ -172,7 +172,7 @@ def tagged_resource_union(resource_types: Resource):
             return None
 
     def get_tag(resource_type: Type):
-        return Tag(type.model_fields["schemas"].default[0])
+        return Tag(resource_type.model_fields["schemas"].default[0])
 
     resource_types = get_args(resource_types)
     tagged_resources = [
