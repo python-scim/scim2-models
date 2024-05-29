@@ -75,7 +75,7 @@ Typed ListResponse
 ==================
 
 :class:`~pydantic_scim2.ListResponse` models take a type or a :data:`~typing.Union` of types.
-You must pass the type you expect in the response, e.g. :class:`~pydantic_scim2.ListResponse[User]` or :class:`~pydantic_scim2.ListResponse[Union[User, Group]]`.
+You must pass the type you expect in the response, e.g. :class:`~pydantic_scim2.ListResponse.of(User)` or :class:`~pydantic_scim2.ListResponse.of(User, Group)`.
 If a response resource type cannot be found, a ``pydantic.ValidationError`` will be raised.
 
 .. doctest::
@@ -128,7 +128,7 @@ If a response resource type cannot be found, a ``pydantic.ValidationError`` will
     ...     ],
     ... }
 
-    >>> response = ListResponse[Union[User, Group]].model_validate(payload)
+    >>> response = ListResponse.of(User, Group).model_validate(payload)
     >>> user, group = response.resources
     >>> type(user)
     <class 'pydantic_scim2.rfc7643.user.User'>

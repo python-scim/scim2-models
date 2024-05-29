@@ -1,14 +1,22 @@
 from typing import Generic
 from typing import List
 from typing import Optional
+from typing import Union
 
 from pydantic import Field
 
 from ..base import SCIM2Model
 from ..rfc7643.resource import AnyResource
+from ..rfc7643.resource import tagged_resource_union
 
 
 class ListResponse(SCIM2Model, Generic[AnyResource]):
+    @classmethod
+    def of(cls, *resource_types: AnyResource):
+        """Build a ListResponse instance that can handle resource_types."""
+
+        return cls[tagged_resource_union(Union[resource_types])]
+
     schemas: List[str] = ["urn:ietf:params:scim:api:messages:2.0:ListResponse"]
 
     total_results: int

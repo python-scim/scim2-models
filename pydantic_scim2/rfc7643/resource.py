@@ -1,11 +1,17 @@
 from datetime import datetime
+from typing import Annotated
 from typing import Any
 from typing import Generic
 from typing import List
 from typing import Optional
 from typing import TypeVar
+from typing import Union
+from typing import get_args
+from typing import get_origin
 
 from pydantic import ConfigDict
+from pydantic import Discriminator
+from pydantic import Tag
 from pydantic import field_serializer
 from pydantic import model_validator
 from typing_extensions import Self
@@ -147,3 +153,27 @@ class Resource(SCIM2Model, Generic[AnyModel]):
 
 
 AnyResource = TypeVar("AnyResource", bound="Resource")
+
+
+def tagged_resource_union(resource_types: Resource):
+    """Build Discriminated Unions, so pydantic can guess which class are needed
+    to instantiate by inspecting a payload.
+
+    https://docs.pydantic.dev/latest/concepts/unions/#discriminated-unions
+    """
+    if not get_origin(resource_types) == Union:
+        return resource_types
+
+    def get_schema_from_payload(payload: Any):
+        try:
+            return payload["schemas"][0]
+        except KeyError:
+            return None
+
+    tagged_resources = [
+        Annotated[type, Tag(type.model_fields["schemas"].default[0])]
+        for type in get_args(resource_types)
+    ]
+    return Annotated[
+        Union[tuple(tagged_resources)], Discriminator(get_schema_from_payload)
+    ]

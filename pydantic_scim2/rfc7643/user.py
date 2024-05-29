@@ -211,7 +211,7 @@ class X509Certificate(SCIM2Model):
 
 
 class User(Resource):
-    user_name: str
+    user_name: Optional[str] = None
     """Unique identifier for the User, typically used by the user to directly
     authenticate to the service provider."""
 
