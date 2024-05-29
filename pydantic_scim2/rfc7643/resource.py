@@ -4,6 +4,7 @@ from typing import Any
 from typing import Generic
 from typing import List
 from typing import Optional
+from typing import Type
 from typing import TypeVar
 from typing import Union
 from typing import get_args
@@ -170,9 +171,13 @@ def tagged_resource_union(resource_types: Resource):
         except KeyError:
             return None
 
+    def get_tag(resource_type: Type):
+        return Tag(type.model_fields["schemas"].default[0])
+
+    resource_types = get_args(resource_types)
     tagged_resources = [
-        Annotated[type, Tag(type.model_fields["schemas"].default[0])]
-        for type in get_args(resource_types)
+        Annotated[resource_type, get_tag(resource_type)]
+        for resource_type in resource_types
     ]
     return Annotated[
         Union[tuple(tagged_resources)], Discriminator(get_schema_from_payload)
