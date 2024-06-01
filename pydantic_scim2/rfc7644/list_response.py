@@ -5,12 +5,12 @@ from typing import Union
 
 from pydantic import Field
 
-from ..base import SCIM2Model
+from ..base import ComplexAttribute
 from ..rfc7643.resource import AnyResource
 from ..rfc7643.resource import tagged_resource_union
 
 
-class ListResponse(SCIM2Model, Generic[AnyResource]):
+class ListResponse(ComplexAttribute, Generic[AnyResource]):
     @classmethod
     def of(cls, *resource_types: AnyResource):
         """Build a ListResponse instance that can handle resource_types."""

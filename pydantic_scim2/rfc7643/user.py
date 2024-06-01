@@ -1,16 +1,22 @@
 from enum import Enum
+from typing import Annotated
 from typing import List
 from typing import Optional
 
 from pydantic import AnyUrl
 from pydantic import EmailStr
 
-from ..base import SCIM2Model
+from ..base import ComplexAttribute
+from ..base import Mutability
+from ..base import Required
+from ..base import Uniqueness
 from .group import GroupMember
 from .resource import Resource
 
 
-class Name(SCIM2Model):
+class Name(ComplexAttribute):
+    _attribute_urn: str = "urn:ietf:params:scim:schemas:core:2.0:User.name"
+
     formatted: Optional[str] = None
     """The full name, including all middle names, titles, and suffixes as
     appropriate, formatted for display (e.g., 'Ms. Barbara J Jensen, III')."""
@@ -36,7 +42,9 @@ class Name(SCIM2Model):
     languages (e.g., 'III' given the full name 'Ms. Barbara J Jensen, III')."""
 
 
-class Email(SCIM2Model):
+class Email(ComplexAttribute):
+    _attribute_urn: str = "urn:ietf:params:scim:schemas:core:2.0:User.emails"
+
     class Type(str, Enum):
         work = "work"
         home = "home"
@@ -57,7 +65,9 @@ class Email(SCIM2Model):
     address."""
 
 
-class PhoneNumber(SCIM2Model):
+class PhoneNumber(ComplexAttribute):
+    _attribute_urn: str = "urn:ietf:params:scim:schemas:core:2.0:User.phoneNumbers"
+
     class Type(str, Enum):
         work = "work"
         home = "home"
@@ -82,7 +92,9 @@ class PhoneNumber(SCIM2Model):
     number."""
 
 
-class Im(SCIM2Model):
+class Im(ComplexAttribute):
+    _attribute_urn: str = "urn:ietf:params:scim:schemas:core:2.0:User.ims"
+
     class Type(str, Enum):
         aim = "aim"
         gtalk = "gtalk"
@@ -108,7 +120,9 @@ class Im(SCIM2Model):
     for this attribute, e.g., the preferred messenger or primary messenger."""
 
 
-class Photo(SCIM2Model):
+class Photo(ComplexAttribute):
+    _attribute_urn: str = "urn:ietf:params:scim:schemas:core:2.0:User.photos"
+
     class Type(str, Enum):
         photo = "photo"
         thumbnail = "thumbnail"
@@ -128,7 +142,9 @@ class Photo(SCIM2Model):
     for this attribute, e.g., the preferred photo or thumbnail."""
 
 
-class Address(SCIM2Model):
+class Address(ComplexAttribute):
+    _attribute_urn: str = "urn:ietf:params:scim:schemas:core:2.0:User.addresses"
+
     class Type(str, Enum):
         work = "work"
         home = "home"
@@ -165,7 +181,9 @@ class Address(SCIM2Model):
     for this attribute, e.g., the preferred photo or thumbnail."""
 
 
-class Entitlement(SCIM2Model):
+class Entitlement(ComplexAttribute):
+    _attribute_urn: str = "urn:ietf:params:scim:schemas:core:2.0:User.entitlements"
+
     value: Optional[str] = None
     """The value of an entitlement."""
 
@@ -180,7 +198,9 @@ class Entitlement(SCIM2Model):
     for this attribute."""
 
 
-class Role(SCIM2Model):
+class Role(ComplexAttribute):
+    _attribute_urn: str = "urn:ietf:params:scim:schemas:core:2.0:User.roles"
+
     value: Optional[str] = None
     """The value of a role."""
 
@@ -195,7 +215,9 @@ class Role(SCIM2Model):
     for this attribute."""
 
 
-class X509Certificate(SCIM2Model):
+class X509Certificate(ComplexAttribute):
+    _attribute_urn: str = "urn:ietf:params:scim:schemas:core:2.0:User.x509Certificates"
+
     value: Optional[str] = None
     """The value of an X.509 certificate."""
 
@@ -211,7 +233,9 @@ class X509Certificate(SCIM2Model):
 
 
 class User(Resource):
-    user_name: Optional[str] = None
+    schemas: List[str] = ["urn:ietf:params:scim:schemas:core:2.0:User"]
+
+    user_name: Annotated[Optional[str], Uniqueness.server, Required.true] = None
     """Unique identifier for the User, typically used by the user to directly
     authenticate to the service provider."""
 
@@ -257,7 +281,7 @@ class User(Resource):
     active: Optional[bool] = None
     """A Boolean value indicating the User's administrative status."""
 
-    password: Optional[str] = None
+    password: Annotated[Optional[str], Mutability.write_only] = None
     """The User's cleartext password."""
 
     emails: Optional[List[Email]] = None
@@ -289,5 +313,3 @@ class User(Resource):
 
     x509_certificates: Optional[List[X509Certificate]] = None
     """A list of certificates issued to the User."""
-
-    schemas: List[str] = ["urn:ietf:params:scim:schemas:core:2.0:User"]

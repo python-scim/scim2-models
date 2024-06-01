@@ -71,9 +71,4 @@ def test_group_schema(load_sample):
         obj.meta.location == "/v2/Schemas/urn:ietf:params:scim:schemas:core:2.0:Group"
     )
 
-    assert (
-        obj.model_dump(
-            exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
-        )
-        == payload
-    )
+    assert obj.model_dump(exclude_unset=True) == payload

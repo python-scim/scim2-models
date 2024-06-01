@@ -88,3 +88,9 @@ html_context = {
 autodoc_pydantic_model_show_config_summary = False
 autodoc_pydantic_model_show_field_summary = False
 autodoc_pydantic_model_show_json = False
+
+# -- Options for doctest -------------------------------------------
+
+doctest_global_setup = """
+from pydantic_scim2 import *
+"""

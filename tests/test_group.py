@@ -35,9 +35,4 @@ def test_group(load_sample):
         == "https://example.com/v2/Groups/e9e30dba-f08f-4109-8486-d5c6a331660a"
     )
 
-    assert (
-        obj.model_dump(
-            exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
-        )
-        == payload
-    )
+    assert obj.model_dump() == payload

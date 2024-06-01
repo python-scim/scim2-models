@@ -5,7 +5,7 @@ from typing import Optional
 
 from pydantic import Field
 
-from ..base import SCIM2Model
+from ..base import ComplexAttribute
 
 
 class Op(str, Enum):
@@ -14,7 +14,7 @@ class Op(str, Enum):
     add = "add"
 
 
-class PatchOperation(SCIM2Model):
+class PatchOperation(ComplexAttribute):
     op: Op
     """Each PATCH operation object MUST have exactly one "op" member, whose
     value indicates the operation to perform and MAY be one of "add", "remove",
@@ -27,7 +27,7 @@ class PatchOperation(SCIM2Model):
     value: Optional[Any] = None
 
 
-class PatchOp(SCIM2Model):
+class PatchOp(ComplexAttribute):
     schemas: List[str] = ["urn:ietf:params:scim:api:messages:2.0:PatchOp"]
 
     operations: List[PatchOperation] = Field(..., alias="Operations")

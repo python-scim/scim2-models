@@ -4,11 +4,11 @@ from typing import Optional
 
 from pydantic import PlainSerializer
 
-from ..base import SCIM2Model
-from ..base import int_to_str
+from ..base import ComplexAttribute
+from ..utils import int_to_str
 
 
-class Error(SCIM2Model):
+class Error(ComplexAttribute):
     """Representation of SCIM API errors.
 
     Here is the exhaustive list of pre-defined errors:

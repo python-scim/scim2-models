@@ -4,10 +4,14 @@ from typing import Optional
 from pydantic import AnyUrl
 from pydantic import Field
 
-from ..base import SCIM2Model
+from ..base import ComplexAttribute
 
 
-class Manager(SCIM2Model):
+class Manager(ComplexAttribute):
+    _attribute_urn: str = (
+        "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:manager"
+    )
+
     value: Optional[str] = None
     """The id of the SCIM resource representingthe User's manager."""
 
@@ -21,7 +25,7 @@ class Manager(SCIM2Model):
     """The displayName of the User's manager."""
 
 
-class EnterpriseUser(SCIM2Model):
+class EnterpriseUser(ComplexAttribute):
     schemas: List[str] = ["urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"]
 
     employee_number: Optional[str] = None

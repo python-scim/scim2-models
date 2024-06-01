@@ -1,22 +1,27 @@
+from typing import Annotated
 from typing import List
 from typing import Optional
 
 from pydantic import AnyUrl
 from pydantic import Field
 
-from ..base import SCIM2Model
+from ..base import ComplexAttribute
+from ..base import Mutability
 from .resource import Resource
 
 
-class GroupMember(SCIM2Model):
-    value: Optional[str] = None
+class GroupMember(ComplexAttribute):
+    _attribute_urn: str = "urn:ietf:params:scim:schemas:core:2.0:Group.members"
 
-    display: Optional[str] = None
+    value: Annotated[Optional[str], Mutability.immutable] = None
+    """Identifier of the member of this Group."""
 
-    type: Optional[str] = None
+    display: Annotated[Optional[str], Mutability.immutable] = None
+
+    type: Annotated[Optional[str], Mutability.immutable] = None
     """A label indicating the attribute's function, e.g., "work" or "home"."""
 
-    ref: Optional[AnyUrl] = Field(None, alias="$ref")
+    ref: Annotated[Optional[AnyUrl], Mutability.immutable] = Field(None, alias="$ref")
     """The reference URI of a target resource, if the attribute is a
     reference."""
 

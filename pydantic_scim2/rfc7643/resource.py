@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Annotated
 from typing import Any
+from typing import Dict
 from typing import Generic
 from typing import List
 from typing import Optional
@@ -18,10 +19,13 @@ from pydantic import model_validator
 from typing_extensions import Self
 
 from ..base import AnyModel
-from ..base import SCIM2Model
+from ..base import ComplexAttribute
+from ..base import Mutability
+from ..base import Returned
+from ..base import Uniqueness
 
 
-class Meta(SCIM2Model):
+class Meta(ComplexAttribute):
     """All "meta" sub-attributes are assigned by the service provider (have a
     "mutability" of "readOnly"), and all of these sub-attributes have a
     "returned" characteristic of "default".
@@ -76,7 +80,7 @@ class Meta(SCIM2Model):
     """
 
 
-class Resource(SCIM2Model, Generic[AnyModel]):
+class Resource(ComplexAttribute, Generic[AnyModel]):
     model_config = ConfigDict(extra="allow")
 
     schemas: List[str]
@@ -88,7 +92,9 @@ class Resource(SCIM2Model, Generic[AnyModel]):
     # Common attributes as defined by
     # https://www.rfc-editor.org/rfc/rfc7643#section-3.1
 
-    id: Optional[str] = None
+    id: Annotated[
+        Optional[str], Mutability.read_only, Returned.always, Uniqueness.global_
+    ] = None
     """A unique identifier for a SCIM resource as defined by the service
     provider.
 
@@ -96,44 +102,74 @@ class Resource(SCIM2Model, Generic[AnyModel]):
     resource creation or replacement requests.
     """
 
-    external_id: Optional[str] = None
+    external_id: Annotated[Optional[str], Mutability.read_write, Returned.default] = (
+        None
+    )
     """A String that is an identifier for the resource as defined by the
     provisioning client."""
 
-    meta: Optional[Meta] = None
+    meta: Annotated[Optional[Meta], Mutability.read_only, Returned.default] = None
     """A complex attribute containing resource metadata."""
 
     def __getitem__(self, item: Any):
-        if not isinstance(item, type) or not issubclass(item, SCIM2Model):
+        if not isinstance(item, type) or not issubclass(item, ComplexAttribute):
             raise KeyError(f"{item} is not a valid extension type")
 
         schema = item.model_fields["schemas"].default[0]
         return getattr(self, schema)
 
     def __setitem__(self, item: Any, value: "Resource"):
-        if not isinstance(item, type) or not issubclass(item, SCIM2Model):
+        if not isinstance(item, type) or not issubclass(item, ComplexAttribute):
             raise KeyError(f"{item} is not a valid extension type")
 
         schema = item.model_fields["schemas"].default[0]
         setattr(self, schema, value)
 
+    @classmethod
+    def get_extension_models(cls) -> Dict[str, Type]:
+        """Return extension a dict associating extension models with their
+        schemas."""
+
+        extension_models = cls.__pydantic_generic_metadata__.get("args", [])
+        by_schema = {
+            ext.model_fields["schemas"].default[0]: ext for ext in extension_models
+        }
+        return by_schema
+
+    @staticmethod
+    def get_by_schema(
+        resource_types: List[Type], schema: str, with_extensions=True
+    ) -> Optional[Type]:
+        """Given a resource type list and a schema, find the matching resource
+        type."""
+
+        by_schema = {
+            resource_type.model_fields["schemas"].default[0]: resource_type
+            for resource_type in (resource_types or [])
+        }
+        if with_extensions:
+            for resource_type in list(by_schema.values()):
+                by_schema.update(**resource_type.get_extension_models())
+
+        return by_schema.get(schema)
+
     @model_validator(mode="after")
     def load_model_extensions(self) -> Self:
         """Instanciate schema objects if found in the payload."""
 
-        extension_models = self.__pydantic_generic_metadata__.get("args")
-        if not extension_models:
-            return self
-
         main_schema = self.model_fields["schemas"].default[0]
-        by_schema = {
-            ext.model_fields["schemas"].default[0]: ext for ext in extension_models
-        }
+        extension_models = self.get_extension_models()
         for schema in self.schemas:
             if schema == main_schema:
                 continue
 
-            model = by_schema[schema]
+            try:
+                model = extension_models[schema]
+            except KeyError as exc:
+                raise ValueError(
+                    f"No extension model found for schema '{schema}'"
+                ) from exc
+
             if payload := getattr(self, schema, None):
                 setattr(self, schema, model.model_validate(payload))
 
@@ -151,6 +187,17 @@ class Resource(SCIM2Model, Generic[AnyModel]):
             schema for schema in extension_schemas if schema not in self.schemas
         ]
         return schemas
+
+    def get_attribute_urn(self, field_name: str) -> Returned:
+        """Build the full URN of the attribute.
+
+        See :rfc:`RFC7644 §3.12 <7644#section-3.12>`.
+
+        .. todo:: Actually *guess* the URN instead of using the hacky `_schema` attribute.
+        """
+        main_schema = self.model_fields["schemas"].default[0]
+        alias = self.model_fields[field_name].alias or field_name
+        return f"{main_schema}:{alias}"
 
 
 AnyResource = TypeVar("AnyResource", bound="Resource")

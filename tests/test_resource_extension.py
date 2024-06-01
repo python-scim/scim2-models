@@ -69,10 +69,7 @@ def test_extension_getitem():
         },
         "userName": "bjensen@example.com",
     }
-    assert (
-        user.model_dump(exclude_none=True, by_alias=True, mode="json")
-        == expected_payload
-    )
+    assert user.model_dump() == expected_payload
 
 
 def test_extension_setitem():
@@ -136,10 +133,7 @@ def test_extension_setitem():
         },
         "userName": "bjensen@example.com",
     }
-    assert (
-        user.model_dump(exclude_none=True, by_alias=True, mode="json")
-        == expected_payload
-    )
+    assert user.model_dump() == expected_payload
 
 
 def test_extension_no_payload():

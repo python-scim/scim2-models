@@ -1,3 +1,9 @@
+from .base import ComplexAttribute
+from .base import Context
+from .base import Mutability
+from .base import Required
+from .base import Returned
+from .base import Uniqueness
 from .rfc7643.enterprise_user import EnterpriseUser
 from .rfc7643.enterprise_user import Manager
 from .rfc7643.group import Group
@@ -8,10 +14,7 @@ from .rfc7643.resource import Resource
 from .rfc7643.resource_type import ResourceType
 from .rfc7643.resource_type import SchemaExtension
 from .rfc7643.schema import Attribute
-from .rfc7643.schema import Mutability
-from .rfc7643.schema import Returned
 from .rfc7643.schema import Schema
-from .rfc7643.schema import Uniqueness
 from .rfc7643.service_provider import AuthenticationScheme
 from .rfc7643.service_provider import Bulk
 from .rfc7643.service_provider import ChangePassword
@@ -61,6 +64,8 @@ __all__ = [
     "BulkRequest",
     "BulkResponse",
     "ChangePassword",
+    "ComplexAttribute",
+    "Context",
     "ETag",
     "Email",
     "EnterpriseUser",
@@ -88,6 +93,7 @@ __all__ = [
     "PatchOperation",
     "PhoneNumber",
     "Photo",
+    "Required",
     "Resource",
     "ResourceType",
     "Returned",

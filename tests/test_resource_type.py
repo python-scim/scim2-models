@@ -20,12 +20,7 @@ def test_user_resource_type(load_sample):
     assert obj.meta.location == "https://example.com/v2/ResourceTypes/User"
     assert obj.meta.resource_type == "ResourceType"
 
-    assert (
-        obj.model_dump(
-            exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
-        )
-        == payload
-    )
+    assert obj.model_dump(exclude_unset=True) == payload
 
 
 def test_group_resource_type(load_sample):
@@ -40,9 +35,4 @@ def test_group_resource_type(load_sample):
     assert obj.meta.location == "https://example.com/v2/ResourceTypes/Group"
     assert obj.meta.resource_type == "ResourceType"
 
-    assert (
-        obj.model_dump(
-            exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
-        )
-        == payload
-    )
+    assert obj.model_dump(exclude_unset=True) == payload

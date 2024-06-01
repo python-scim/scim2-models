@@ -61,9 +61,4 @@ def test_service_provider_configuration(load_sample):
     )
     assert obj.meta.version == 'W\\/"3694e05e9dff594"'
 
-    assert (
-        obj.model_dump(
-            exclude_none=True, exclude_unset=True, by_alias=True, mode="json"
-        )
-        == payload
-    )
+    assert obj.model_dump() == payload
