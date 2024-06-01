@@ -19,6 +19,7 @@ from pydantic import model_validator
 from typing_extensions import Self
 
 from ..base import AnyModel
+from ..base import BaseModel
 from ..base import ComplexAttribute
 from ..base import Mutability
 from ..base import Returned
@@ -80,7 +81,7 @@ class Meta(ComplexAttribute):
     """
 
 
-class Resource(ComplexAttribute, Generic[AnyModel]):
+class Resource(BaseModel, Generic[AnyModel]):
     model_config = ConfigDict(extra="allow")
 
     schemas: List[str]
@@ -187,17 +188,6 @@ class Resource(ComplexAttribute, Generic[AnyModel]):
             schema for schema in extension_schemas if schema not in self.schemas
         ]
         return schemas
-
-    def get_attribute_urn(self, field_name: str) -> Returned:
-        """Build the full URN of the attribute.
-
-        See :rfc:`RFC7644 §3.12 <7644#section-3.12>`.
-
-        .. todo:: Actually *guess* the URN instead of using the hacky `_schema` attribute.
-        """
-        main_schema = self.model_fields["schemas"].default[0]
-        alias = self.model_fields[field_name].alias or field_name
-        return f"{main_schema}:{alias}"
 
 
 AnyResource = TypeVar("AnyResource", bound="Resource")

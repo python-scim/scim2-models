@@ -272,16 +272,6 @@ class BaseModel(BaseModel):
         field_returned = next(filter(returned_filter, field_metadata), default_returned)
         return field_returned
 
-    def get_attribute_urn(self, field_name: str) -> Returned:
-        """Build the full URN of the attribute.
-
-        See :rfc:`RFC7644 §3.12 <7644#section-3.12>`.
-
-        .. todo:: Actually *guess* the URN instead of using the hacky `_attribute_urn` attribute.
-        """
-        alias = self.model_fields[field_name].alias or field_name
-        return f"{self._attribute_urn}.{alias}"
-
     @classmethod
     def get_field_root_type(cls, attribute_name: str) -> Type:
         """Extract the root type from a model field.
@@ -526,10 +516,31 @@ class BaseModel(BaseModel):
 
         return super().model_dump(*args, **kwargs)
 
+    def get_attribute_urn(self, field_name: str) -> Returned:
+        """Build the full URN of the attribute.
+
+        See :rfc:`RFC7644 §3.12 <7644#section-3.12>`.
+
+        .. todo:: Actually *guess* the URN instead of using the hacky `_schema` attribute.
+        """
+        main_schema = self.model_fields["schemas"].default[0]
+        alias = self.model_fields[field_name].alias or field_name
+        return f"{main_schema}:{alias}"
+
 
 class ComplexAttribute(BaseModel):
     """A complex attribute as defined in :rfc:`RFC7643 §2.3.8
     <7643#section-2.3.8>`."""
+
+    def get_attribute_urn(self, field_name: str) -> Returned:
+        """Build the full URN of the attribute.
+
+        See :rfc:`RFC7644 §3.12 <7644#section-3.12>`.
+
+        .. todo:: Actually *guess* the URN instead of using the hacky `_attribute_urn` attribute.
+        """
+        alias = self.model_fields[field_name].alias or field_name
+        return f"{self._attribute_urn}.{alias}"
 
 
 AnyModel = TypeVar("AnyModel", bound=BaseModel)

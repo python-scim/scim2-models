@@ -6,13 +6,14 @@ import pytest
 
 from scim2_models.attributes import validate_attribute_urn
 from scim2_models.base import BaseModel
+from scim2_models.base import ComplexAttribute
 from scim2_models.base import Returned
 from scim2_models.rfc7643.resource import Resource
 from scim2_models.rfc7643.user import User
 
 
 def test_get_attribute_urn():
-    class Sub(BaseModel):
+    class Sub(ComplexAttribute):
         _attribute_urn = "urn:example:2.0:Sup:sub"
         dummy: str
 
@@ -33,7 +34,7 @@ def test_get_attribute_urn():
 
 
 def test_guess_root_type():
-    class Sub(BaseModel):
+    class Sub(ComplexAttribute):
         _attribute_urn = "urn:example:2.0:Sup:sub"
         dummy: str
 
@@ -55,7 +56,7 @@ class ReturnedModel(BaseModel):
     request: Annotated[Optional[str], Returned.request] = None
 
 
-class Baz(BaseModel):
+class Baz(ComplexAttribute):
     baz_snake_case: str
 
 
