@@ -4,6 +4,11 @@ Changelog
 Unreleased
 ----------
 
+Added
+^^^^^
+
+- Implement serialization and validation :class:`~pydantic_scim2.Context`
+
 Changed
 ^^^^^^^
 - pydantic minimum version is 2.5
