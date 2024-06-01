@@ -1,3 +1,4 @@
+from .base import BaseModel
 from .base import ComplexAttribute
 from .base import Context
 from .base import Mutability
@@ -59,6 +60,7 @@ __all__ = [
     "AnyResource",
     "Attribute",
     "AuthenticationScheme",
+    "BaseModel",
     "Bulk",
     "BulkOperation",
     "BulkRequest",
