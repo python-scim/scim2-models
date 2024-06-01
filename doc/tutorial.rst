@@ -256,9 +256,10 @@ Pre-defined Error objects
 
 .. code-block:: python
 
-    >>> from scim2_models import InvalidPathError
+    >>> from scim2_models import Error
 
-    >>> dump = InvalidPathError.model_dump()
+    >>> error = Error.make_invalid_path_error()
+    >>> dump = error.model_dump()
     >>> assert dump == {
     ...     'detail': 'The "path" attribute was invalid or malformed (see Figure 7 of RFC7644).',
     ...     'schemas': ['urn:ietf:params:scim:api:messages:2.0:Error'],
