@@ -1,8 +1,8 @@
-from pydantic_scim2 import Attribute
-from pydantic_scim2 import Mutability
-from pydantic_scim2 import Returned
-from pydantic_scim2 import Schema
-from pydantic_scim2 import Uniqueness
+from scim2_models import Attribute
+from scim2_models import Mutability
+from scim2_models import Returned
+from scim2_models import Schema
+from scim2_models import Uniqueness
 
 
 def test_group_schema(load_sample):

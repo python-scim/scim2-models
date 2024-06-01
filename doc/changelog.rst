@@ -7,7 +7,7 @@ Unreleased
 Added
 ^^^^^
 
-- Implement serialization and validation :class:`~pydantic_scim2.Context`
+- Implement serialization and validation :class:`~scim2_models.Context`
 
 Changed
 ^^^^^^^
@@ -19,12 +19,12 @@ Changed
 
 Added
 ^^^^^
-- expose :data:`~pydantic_scim2.AnyResource` type
-- expose :class:`~pydantic_scim2.SortOrder`
+- expose :data:`~scim2_models.AnyResource` type
+- expose :class:`~scim2_models.SortOrder`
 
 Changed
 ^^^^^^^
-- :attr:`~pydantic_scim2.Resource.id` and :attr:`~pydantic_scim2.Resource.meta` are made optional
+- :attr:`~scim2_models.Resource.id` and :attr:`~scim2_models.Resource.meta` are made optional
 
 [0.2.1] - 2024-05-27
 --------------------
@@ -39,7 +39,7 @@ Added
 Added
 ^^^^^
 - SCIM Extension support
-- :class:`~pydantic_scim2.ListResponse` generic types
+- :class:`~scim2_models.ListResponse` generic types
 - Documentation
 
 [0.1.0] - 2024-05-23

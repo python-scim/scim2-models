@@ -5,10 +5,10 @@ from typing import Optional
 import pytest
 from pydantic import ValidationError
 
-from pydantic_scim2.base import Context
-from pydantic_scim2.base import Mutability
-from pydantic_scim2.base import Returned
-from pydantic_scim2.rfc7643.resource import Resource
+from scim2_models.base import Context
+from scim2_models.base import Mutability
+from scim2_models.base import Returned
+from scim2_models.rfc7643.resource import Resource
 
 
 class RetResource(Resource):

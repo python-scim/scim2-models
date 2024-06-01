@@ -3,13 +3,13 @@ Contributions
 
 Contributions are welcome!
 
-The repository is hosted at `github.com/yaal-coop/pydantic-scim2 <https://github.com/yaal-coop/pydantic-scim2>`_.
+The repository is hosted at `github.com/yaal-coop/scim2-models <https://github.com/yaal-coop/scim2-models>`_.
 
 Discuss
 -------
 
 If you want to implement a feature or a bugfix, please start by discussing it with us on
-the `bugtracker <https://github.com/yaal-coop/pydantic-scim2/issues>`_.
+the `bugtracker <https://github.com/yaal-coop/scim2-models/issues>`_.
 
 Unit tests
 ----------

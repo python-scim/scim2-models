@@ -1,18 +1,18 @@
 import os
 
-from pydantic_scim2 import BulkRequest
-from pydantic_scim2 import BulkResponse
-from pydantic_scim2 import EnterpriseUser
-from pydantic_scim2 import Error
-from pydantic_scim2 import Group
-from pydantic_scim2 import ListResponse
-from pydantic_scim2 import PatchOp
-from pydantic_scim2 import Resource
-from pydantic_scim2 import ResourceType
-from pydantic_scim2 import Schema
-from pydantic_scim2 import SearchRequest
-from pydantic_scim2 import ServiceProviderConfiguration
-from pydantic_scim2 import User
+from scim2_models import BulkRequest
+from scim2_models import BulkResponse
+from scim2_models import EnterpriseUser
+from scim2_models import Error
+from scim2_models import Group
+from scim2_models import ListResponse
+from scim2_models import PatchOp
+from scim2_models import Resource
+from scim2_models import ResourceType
+from scim2_models import Schema
+from scim2_models import SearchRequest
+from scim2_models import ServiceProviderConfiguration
+from scim2_models import User
 
 
 def test_parse_and_serialize_examples(load_sample):

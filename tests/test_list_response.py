@@ -4,13 +4,13 @@ from typing import Union
 import pytest
 from pydantic import ValidationError
 
-from pydantic_scim2 import EnterpriseUser
-from pydantic_scim2 import Group
-from pydantic_scim2 import ListResponse
-from pydantic_scim2 import Resource
-from pydantic_scim2 import ResourceType
-from pydantic_scim2 import ServiceProviderConfiguration
-from pydantic_scim2 import User
+from scim2_models import EnterpriseUser
+from scim2_models import Group
+from scim2_models import ListResponse
+from scim2_models import Resource
+from scim2_models import ResourceType
+from scim2_models import ServiceProviderConfiguration
+from scim2_models import User
 
 
 def test_user(load_sample):

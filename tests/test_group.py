@@ -2,7 +2,7 @@ import datetime
 
 from pydantic import AnyUrl
 
-from pydantic_scim2 import Group
+from scim2_models import Group
 
 
 def test_group(load_sample):

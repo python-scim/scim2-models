@@ -8,7 +8,7 @@ def validate_model_attribute(model: Type, attribute_base: str) -> None:
     """Validate that an attribute name or a sub-attribute path exist for a
     given model."""
 
-    from pydantic_scim2.base import BaseModel
+    from scim2_models.base import BaseModel
 
     attribute_name, *sub_attribute_blocks = attribute_base.split(".")
     sub_attribute_base = ".".join(sub_attribute_blocks)
@@ -53,7 +53,7 @@ def validate_attribute_urn(
     :return: The normalized attribute URN.
     """
 
-    from pydantic_scim2.rfc7643.resource import Resource
+    from scim2_models.rfc7643.resource import Resource
 
     if not resource_types:
         resource_types = []

@@ -2,13 +2,13 @@ import datetime
 
 from pydantic import AnyUrl
 
-from pydantic_scim2 import Address
-from pydantic_scim2 import Email
-from pydantic_scim2 import EnterpriseUser
-from pydantic_scim2 import Im
-from pydantic_scim2 import PhoneNumber
-from pydantic_scim2 import Photo
-from pydantic_scim2 import User
+from scim2_models import Address
+from scim2_models import Email
+from scim2_models import EnterpriseUser
+from scim2_models import Im
+from scim2_models import PhoneNumber
+from scim2_models import Photo
+from scim2_models import User
 
 
 def test_enterprise_user(load_sample):

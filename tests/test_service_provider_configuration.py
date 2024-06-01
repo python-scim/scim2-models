@@ -2,8 +2,8 @@ import datetime
 
 from pydantic import AnyUrl
 
-from pydantic_scim2 import AuthenticationScheme
-from pydantic_scim2 import ServiceProviderConfiguration
+from scim2_models import AuthenticationScheme
+from scim2_models import ServiceProviderConfiguration
 
 
 def test_service_provider_configuration(load_sample):

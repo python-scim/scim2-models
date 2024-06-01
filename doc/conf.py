@@ -4,7 +4,7 @@ import sys
 from importlib import metadata
 
 sys.path.insert(0, os.path.abspath(".."))
-sys.path.insert(0, os.path.abspath("../pydantic_scim2"))
+sys.path.insert(0, os.path.abspath("../scim2_models"))
 
 # -- General configuration ------------------------------------------------
 
@@ -21,7 +21,7 @@ extensions = [
 
 templates_path = ["_templates"]
 master_doc = "index"
-project = "pydantic-scim2"
+project = "scim2-models"
 year = datetime.datetime.now().strftime("%Y")
 copyright = f"{year}, Yaal Coop"
 author = "Yaal Coop"
@@ -31,7 +31,7 @@ source_suffix = {
     ".md": "markdown",
 }
 
-version = metadata.version("pydantic-scim2")
+version = metadata.version("scim2-models")
 language = "en"
 exclude_patterns = []
 pygments_style = "sphinx"
@@ -47,38 +47,24 @@ intersphinx_mapping = {
 
 html_theme = "shibuya"
 # html_static_path = ["_static"]
-html_baseurl = "https://pydantic-scim2.readthedocs.io"
+html_baseurl = "https://scim2-models.readthedocs.io"
 html_theme_options = {
     "globaltoc_expand_depth": 3,
     "accent_color": "amber",
-    "github_url": "https://github.com/yaal-coop/pydantic-scim2",
+    "github_url": "https://github.com/yaal-coop/scim2-models",
     "mastodon_url": "https://toot.aquilenet.fr/@yaal",
     "nav_links": [
+        {"title": "scim2-client", "url": "https://scim2-client.readthedocs.io"},
         {
-            "title": "SCIM",
-            "url": "https://simplecloud.info/",
-            "children": [
-                {
-                    "title": "RFC7642 - SCIM: Definitions, Overview, Concepts, and Requirements",
-                    "url": "https://tools.ietf.org/html/rfc7642",
-                },
-                {
-                    "title": "RFC7643 - SCIM: Core Schema",
-                    "url": "https://tools.ietf.org/html/rfc7643",
-                },
-                {
-                    "title": "RFC7644 - SCIM: Protocol",
-                    "url": "https://tools.ietf.org/html/rfc7644",
-                },
-            ],
+            "title": "scim2-cli",
+            "url": "https://scim2-cli.readthedocs.io",
         },
-        {"title": "PyPI", "url": "https://pypi.org/project/pydantic-scim2"},
     ],
 }
 html_context = {
     "source_type": "github",
     "source_user": "yaal-coop",
-    "source_repo": "pydantic-scim2",
+    "source_repo": "scim2-models",
     "source_version": "main",
     "source_docs_path": "/doc/",
 }
@@ -92,5 +78,5 @@ autodoc_pydantic_model_show_json = False
 # -- Options for doctest -------------------------------------------
 
 doctest_global_setup = """
-from pydantic_scim2 import *
+from scim2_models import *
 """

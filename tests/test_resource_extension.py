@@ -2,10 +2,10 @@ import datetime
 
 import pytest
 
-from pydantic_scim2 import EnterpriseUser
-from pydantic_scim2 import Manager
-from pydantic_scim2 import Meta
-from pydantic_scim2 import User
+from scim2_models import EnterpriseUser
+from scim2_models import Manager
+from scim2_models import Meta
+from scim2_models import User
 
 
 def test_extension_getitem():

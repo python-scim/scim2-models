@@ -12,4 +12,4 @@ Table of contents
     contributing
     changelog
 
-pydantic-scim2 is a fork of `pydantic-scim <https://github.com/chalk-ai/pydantic-scim>`_ to bring support for pydantic 2.
+scim2-models is a fork of `pydantic-scim <https://github.com/chalk-ai/pydantic-scim>`_ to bring support for pydantic 2.

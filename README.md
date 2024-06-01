@@ -1,4 +1,4 @@
-# pydantic-scim2
+# scim2-models
 
 Pydantic models for SCIM2 schemas defined in [RFC7643](https://datatracker.ietf.org/doc/html/rfc7643.html) and [RFC7644](https://datatracker.ietf.org/doc/html/rfc7644.html).
 
@@ -8,15 +8,15 @@ It can be use as a basis to build SCIM2 servers and clients.
 ## Installation
 
 ```shell
-pip install pydantic-scim2
+pip install scim2-models
 ```
 
 ## Usage
 
-Check the [tutorial](https://pydantic-scim2.readthedocs.io/en/latest/tutorial.html) and the [reference](https://pydantic-scim2.readthedocs.io/en/latest/reference.html) for more details.
+Check the [tutorial](https://scim2-models.readthedocs.io/en/latest/tutorial.html) and the [reference](https://scim2-models.readthedocs.io/en/latest/reference.html) for more details.
 
 ```python
-from pydantic_scim2 import User
+from scim2_models import User
 import datetime
 
 payload = {

@@ -1,6 +1,6 @@
 from pydantic import AnyUrl
 
-from pydantic_scim2 import ResourceType
+from scim2_models import ResourceType
 
 
 def test_user_resource_type(load_sample):

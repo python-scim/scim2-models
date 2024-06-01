@@ -4,14 +4,14 @@ Tutorial
 Model parsing
 =============
 
-Pydantic :func:`~pydantic_scim2.BaseModel.model_validate` method can be used to parse and validate SCIM2 payloads.
+Pydantic :func:`~scim2_models.BaseModel.model_validate` method can be used to parse and validate SCIM2 payloads.
 Python models have generally the same name than in the SCIM specifications, they are simply snake cased.
 
 
 .. code-block:: python
     :emphasize-lines: 17
 
-    >>> from pydantic_scim2 import User
+    >>> from scim2_models import User
     >>> import datetime
 
     >>> payload = {
@@ -37,12 +37,12 @@ Python models have generally the same name than in the SCIM specifications, they
 Model serialization
 ===================
 
-Pydantic :func:`~pydantic_scim2.BaseModel.model_dump` method have been tuned to produce valid SCIM2 payloads.
+Pydantic :func:`~scim2_models.BaseModel.model_dump` method have been tuned to produce valid SCIM2 payloads.
 
 .. code-block:: python
     :emphasize-lines: 16
 
-    >>> from pydantic_scim2 import User, Meta
+    >>> from scim2_models import User, Meta
     >>> import datetime
 
     >>> user = User(
@@ -76,26 +76,26 @@ Pydantic :func:`~pydantic_scim2.BaseModel.model_dump` method have been tuned to 
 Contexts
 ========
 
-The SCIM specifications detail some :class:`~pydantic_scim2.Mutability` and :class:`~pydantic_scim2.Returned` parameters for model attributes.
+The SCIM specifications detail some :class:`~scim2_models.Mutability` and :class:`~scim2_models.Returned` parameters for model attributes.
 Depending on the context, they will indicate that attributes should be present, absent, be ignored.
 
-For instance, attributes marked as :attr:`~pydantic_scim2.Mutability.read_only` should not be sent by SCIM clients on resource creation requests.
-By passing the right :class:`~pydantic_scim2.Context` to the :meth:`~pydantic_scim2.BaseModel.model_dump` method, only the expected fields will be dumped for this context:
+For instance, attributes marked as :attr:`~scim2_models.Mutability.read_only` should not be sent by SCIM clients on resource creation requests.
+By passing the right :class:`~scim2_models.Context` to the :meth:`~scim2_models.BaseModel.model_dump` method, only the expected fields will be dumped for this context:
 
 .. code-block:: python
     :caption: Client generating a resource creation request payload
 
-    >>> from pydantic_scim2 import User, Context
+    >>> from scim2_models import User, Context
     >>> user = User(user_name="bjensen@example.com")
     >>> payload = user.model_dump(scim_ctx=Context.RESOURCE_CREATION_REQUEST)
 
-In the same fashion, by passing the right :class:`~pydantic_scim2.Context` to the :meth:`~pydantic_scim2.BaseModel.model_validate` method,
+In the same fashion, by passing the right :class:`~scim2_models.Context` to the :meth:`~scim2_models.BaseModel.model_validate` method,
 fields with unexpected values will raise :class:`~pydantic.ValidationError`:
 
 .. code-block:: python
     :caption: Server validating a resource creation request payload
 
-    >>> from pydantic_scim2 import User, Context
+    >>> from scim2_models import User, Context
     >>> from pydantic import ValidationError
     >>> try:
     ...    obj = User.model_validate(payload, scim_ctx=Context.RESOURCE_CREATION_REQUEST)
@@ -108,14 +108,14 @@ Attributes inclusions and exclusions
 In some situations it might be needed to exclude, or only include a given set of attributes when serializing a model.
 This happens for instance when servers build response payloads for clients requesting only a sub-set the model attributes.
 As defined in :rfc:`RFC7644 §3.9 <7644#section-3.9>`, :code:`attributes` and :code:`excluded_attributes` parameters can
-be passed to :meth:`~pydantic_scim2.BaseModel.model_dump`.
+be passed to :meth:`~scim2_models.BaseModel.model_dump`.
 The expected attribute notation is the one detailed on :rfc:`RFC7644 §3.10 <7644#section-3.10>`,
 like :code:`urn:ietf:params:scim:schemas:core:2.0:User:userName`, or :code:`userName` for short.
 
 .. code-block:: python
     :emphasize-lines: 5
 
-    >>> from pydantic_scim2 import User, Context
+    >>> from scim2_models import User, Context
     >>> user = User(user_name="bjensen@example.com", display_name="bjensen")
     >>> payload = user.model_dump(
     ...     scim_ctx=Context.RESOURCE_QUERY_REQUEST,
@@ -127,27 +127,27 @@ like :code:`urn:ietf:params:scim:schemas:core:2.0:User:userName`, or :code:`user
     ...     "displayName": "bjensen",
     ... }
 
-Values read from :attr:`~pydantic_scim2.SearchRequest.attributes` and :attr:`~pydantic_scim2.SearchRequest.excluded_attributes` in :class:`~pydantic_scim2.SearchRequest` objects can directly be used in :meth:`~pydantic_scim2.BaseModel.model_dump`.
+Values read from :attr:`~scim2_models.SearchRequest.attributes` and :attr:`~scim2_models.SearchRequest.excluded_attributes` in :class:`~scim2_models.SearchRequest` objects can directly be used in :meth:`~scim2_models.BaseModel.model_dump`.
 
-Attribute inclusions and exclusions interact with attributes :class:`~pydantic_scim2.Returned`, in the server response :class:`Contexts <pydantic_scim2.Context>`:
+Attribute inclusions and exclusions interact with attributes :class:`~scim2_models.Returned`, in the server response :class:`Contexts <scim2_models.Context>`:
 
-- attributes annotated with :attr:`~pydantic_scim2.Returned.always` will always be dumped;
-- attributes annotated with :attr:`~pydantic_scim2.Returned.never` will never be dumped;
-- attributes annotated with :attr:`~pydantic_scim2.Returned.default` will be dumped unless being explicitly excluded;
-- attributes annotated with :attr:`~pydantic_scim2.Returned.request` will be not dumped unless being explicitly included.
+- attributes annotated with :attr:`~scim2_models.Returned.always` will always be dumped;
+- attributes annotated with :attr:`~scim2_models.Returned.never` will never be dumped;
+- attributes annotated with :attr:`~scim2_models.Returned.default` will be dumped unless being explicitly excluded;
+- attributes annotated with :attr:`~scim2_models.Returned.request` will be not dumped unless being explicitly included.
 
 Typed ListResponse
 ==================
 
-:class:`~pydantic_scim2.ListResponse` models take a type or a :data:`~typing.Union` of types.
-You must pass the type you expect in the response, e.g. :class:`~pydantic_scim2.ListResponse.of(User)` or :class:`~pydantic_scim2.ListResponse.of(User, Group)`.
+:class:`~scim2_models.ListResponse` models take a type or a :data:`~typing.Union` of types.
+You must pass the type you expect in the response, e.g. :class:`~scim2_models.ListResponse.of(User)` or :class:`~scim2_models.ListResponse.of(User, Group)`.
 If a response resource type cannot be found, a ``pydantic.ValidationError`` will be raised.
 
 .. code-block:: python
     :emphasize-lines: 49
 
     >>> from typing import Union
-    >>> from pydantic_scim2 import User, Group, ListResponse
+    >>> from scim2_models import User, Group, ListResponse
 
     >>> payload = {
     ...     "totalResults": 2,
@@ -197,9 +197,9 @@ If a response resource type cannot be found, a ``pydantic.ValidationError`` will
     >>> response = ListResponse.of(User, Group).model_validate(payload)
     >>> user, group = response.resources
     >>> type(user)
-    <class 'pydantic_scim2.rfc7643.user.User'>
+    <class 'scim2_models.rfc7643.user.User'>
     >>> type(group)
-    <class 'pydantic_scim2.rfc7643.group.Group'>
+    <class 'scim2_models.rfc7643.group.Group'>
 
 
 Schema extensions
@@ -212,7 +212,7 @@ Extensions attributes are accessed with brackets, e.g. ``user[EnterpriseUser].em
 .. code-block:: python
 
     >>> import datetime
-    >>> from pydantic_scim2 import User, EnterpriseUser, Meta
+    >>> from scim2_models import User, EnterpriseUser, Meta
 
     >>> user = User[EnterpriseUser](
     ...     id="2819c223-7f76-453a-919d-413861904646",
@@ -256,7 +256,7 @@ Pre-defined Error objects
 
 .. code-block:: python
 
-    >>> from pydantic_scim2 import InvalidPathError
+    >>> from scim2_models import InvalidPathError
 
     >>> dump = InvalidPathError.model_dump()
     >>> assert dump == {
@@ -266,20 +266,20 @@ Pre-defined Error objects
     ...     'status': '400'
     ... }
 
-The exhaustive list is availaible in the :class:`reference <pydantic_scim2.Error>`.
+The exhaustive list is availaible in the :class:`reference <scim2_models.Error>`.
 
 
 Custom models
 =============
 
-You can write your own model and use it the same way than the other pydantic-scim2 models.
-Just inherit from :class:`~pydantic_scim2.Resource` for your main resource,
-and from :class:`~pydantic_scim2.ComplexAttribute` for the complex attributes:
+You can write your own model and use it the same way than the other scim2-models models.
+Just inherit from :class:`~scim2_models.Resource` for your main resource,
+and from :class:`~scim2_models.ComplexAttribute` for the complex attributes:
 
 .. code-block:: python
 
     >>> from typing import Annotated, Optional
-    >>> from pydantic_scim2 import Resource, Returned, Mutability, ComplexAttribute
+    >>> from scim2_models import Resource, Returned, Mutability, ComplexAttribute
     >>> from enum import Enum
 
     >>> class PetType(ComplexAttribute):
@@ -296,10 +296,10 @@ and from :class:`~pydantic_scim2.ComplexAttribute` for the complex attributes:
     ...     pet_type: Optional[PetType]
     ...     """The pet type."""
 
-You can annotate fields to indicate their :class:`~pydantic_scim2.Mutability` and :class:`~pydantic_scim2.Returned`.
-If unset the default values will be :attr:`~pydantic_scim2.Mutability.read_write` and :attr:`~pydantic_scim2.Returned.default`.
+You can annotate fields to indicate their :class:`~scim2_models.Mutability` and :class:`~scim2_models.Returned`.
+If unset the default values will be :attr:`~scim2_models.Mutability.read_write` and :attr:`~scim2_models.Returned.default`.
 
 .. warning::
 
     Be sure to make all the fields of your model :data:`~typing.Optional`.
-    There will always be a :class:`~pydantic_scim2.Context` in which this will be true.
+    There will always be a :class:`~scim2_models.Context` in which this will be true.

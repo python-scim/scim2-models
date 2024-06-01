@@ -3,15 +3,15 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
-name = "pydantic-scim2"
+name = "scim2-models"
 version = "0.2.2"
-description = "SCIM2 models for pydantic"
+description = "SCIM2 models serialization and validation with pydantic"
 authors = ["Yaal Coop <contact@yaal.coop>"]
 license = "Apache"
 readme = "README.md"
 keywords = ["scim", "scim2", "provisioning", "pydantic"]
-documentation = "https://pydantic-scim2.readthedocs.io"
-repository = "https://github.com/yaal-coop/pydantic-scim2"
+documentation = "https://scim2-models.readthedocs.io"
+repository = "https://github.com/yaal-coop/scim2-models"
 classifiers = [
     "Intended Audience :: Developers",
     "Development Status :: 3 - Alpha",
@@ -45,7 +45,7 @@ myst-parser = "^3.0.1"
 
 [tool.coverage.run]
 source = [
-    "pydantic_scim2",
+    "scim2_models",
     "tests",
 ]
 omit = [".tox/*"]

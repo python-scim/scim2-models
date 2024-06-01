@@ -4,11 +4,11 @@ from typing import Optional
 
 import pytest
 
-from pydantic_scim2.attributes import validate_attribute_urn
-from pydantic_scim2.base import BaseModel
-from pydantic_scim2.base import Returned
-from pydantic_scim2.rfc7643.resource import Resource
-from pydantic_scim2.rfc7643.user import User
+from scim2_models.attributes import validate_attribute_urn
+from scim2_models.base import BaseModel
+from scim2_models.base import Returned
+from scim2_models.rfc7643.resource import Resource
+from scim2_models.rfc7643.user import User
 
 
 def test_get_attribute_urn():
