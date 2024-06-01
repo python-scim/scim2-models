@@ -478,7 +478,7 @@ class BaseModel(BaseModel):
         self, handler, info: SerializationInfo
     ) -> Dict[str, Any]:
         """Remove `None` values inserted by the
-        :meth:`~pydantic_scim2.base.BaseModel.scim_field_serializer`."""
+        :meth:`~pydantic_scim2.base.BaseModel.scim_serializer`."""
 
         result = handler(self)
         return {key: value for key, value in result.items() if value is not None}
