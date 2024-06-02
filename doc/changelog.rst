@@ -1,6 +1,11 @@
 Changelog
 =========
 
+Added
+^^^^^
+
+- Implement :meth:`~scim2_models.Resource.guess_by_payload`
+
 [0.1.1] - 2024-06⁻01
 --------------------
 

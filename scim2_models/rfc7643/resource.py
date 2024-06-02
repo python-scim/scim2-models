@@ -13,6 +13,7 @@ from typing import get_origin
 
 from pydantic import ConfigDict
 from pydantic import Discriminator
+from pydantic import ValidationError
 from pydantic import Tag
 from pydantic import field_serializer
 from pydantic import model_validator
@@ -154,6 +155,14 @@ class Resource(BaseModel, Generic[AnyModel]):
 
         return by_schema.get(schema)
 
+    @staticmethod
+    def get_by_payload(resource_types: List[Type], payload:Dict, **kwargs):
+        """Given a resource type list and a payload, find the matching resource
+        type."""
+
+        schema = payload["schemas"][0] if payload.get("schemas") else None
+        return Resource.get_by_schema(resource_types, schema, **kwargs)
+
     @model_validator(mode="after")
     def load_model_extensions(self) -> Self:
         """Instanciate schema objects if found in the payload."""
@@ -194,7 +203,7 @@ AnyResource = TypeVar("AnyResource", bound="Resource")
 
 
 def tagged_resource_union(resource_types: Resource):
-    """Build Discriminated Unions, so pydantic can guess which class are needed
+    """Build Discriminated Unions, so pydantic can get which class are needed
     to instantiate by inspecting a payload.
 
     https://docs.pydantic.dev/latest/concepts/unions/#discriminated-unions

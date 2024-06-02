@@ -81,3 +81,41 @@ def test_get_resource_by_schema():
         )
         == EnterpriseUser
     )
+
+
+def test_get_resource_by_payload():
+    resource_types = [Group, User[EnterpriseUser]]
+    payload = {"schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"]}
+    assert (
+        Resource.get_by_payload(
+            resource_types, payload
+        )
+        == Group
+    )
+
+    payload = {"schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"]}
+    assert (
+        Resource.get_by_payload(
+            resource_types, payload
+        )
+        == User[EnterpriseUser]
+    )
+
+    payload = {"schemas": ["urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"]}
+    assert (
+        Resource.get_by_payload(
+            resource_types,
+            payload,
+            with_extensions=False,
+        )
+        is None
+    )
+
+    payload = {"schemas": ["urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"]}
+    assert (
+        Resource.get_by_payload(
+            resource_types,
+            payload
+        )
+        == EnterpriseUser
+    )
