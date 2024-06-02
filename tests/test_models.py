@@ -86,22 +86,14 @@ def test_get_resource_by_schema():
 def test_get_resource_by_payload():
     resource_types = [Group, User[EnterpriseUser]]
     payload = {"schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"]}
-    assert (
-        Resource.get_by_payload(
-            resource_types, payload
-        )
-        == Group
-    )
+    assert Resource.get_by_payload(resource_types, payload) == Group
 
     payload = {"schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"]}
-    assert (
-        Resource.get_by_payload(
-            resource_types, payload
-        )
-        == User[EnterpriseUser]
-    )
+    assert Resource.get_by_payload(resource_types, payload) == User[EnterpriseUser]
 
-    payload = {"schemas": ["urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"]}
+    payload = {
+        "schemas": ["urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"]
+    }
     assert (
         Resource.get_by_payload(
             resource_types,
@@ -111,11 +103,7 @@ def test_get_resource_by_payload():
         is None
     )
 
-    payload = {"schemas": ["urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"]}
-    assert (
-        Resource.get_by_payload(
-            resource_types,
-            payload
-        )
-        == EnterpriseUser
-    )
+    payload = {
+        "schemas": ["urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"]
+    }
+    assert Resource.get_by_payload(resource_types, payload) == EnterpriseUser

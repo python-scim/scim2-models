@@ -13,7 +13,6 @@ from typing import get_origin
 
 from pydantic import ConfigDict
 from pydantic import Discriminator
-from pydantic import ValidationError
 from pydantic import Tag
 from pydantic import field_serializer
 from pydantic import model_validator
@@ -156,7 +155,7 @@ class Resource(BaseModel, Generic[AnyModel]):
         return by_schema.get(schema)
 
     @staticmethod
-    def get_by_payload(resource_types: List[Type], payload:Dict, **kwargs):
+    def get_by_payload(resource_types: List[Type], payload: Dict, **kwargs):
         """Given a resource type list and a payload, find the matching resource
         type."""
 
