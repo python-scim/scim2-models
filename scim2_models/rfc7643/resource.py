@@ -159,7 +159,7 @@ class Resource(BaseModel, Generic[AnyModel]):
         """Given a resource type list and a payload, find the matching resource
         type."""
 
-        schema = payload["schemas"][0] if payload.get("schemas") else None
+        schema = payload["schemas"][0] if payload and payload.get("schemas") else None
         return Resource.get_by_schema(resource_types, schema, **kwargs)
 
     @model_validator(mode="after")
