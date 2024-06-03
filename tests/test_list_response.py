@@ -9,7 +9,7 @@ from scim2_models import Group
 from scim2_models import ListResponse
 from scim2_models import Resource
 from scim2_models import ResourceType
-from scim2_models import ServiceProviderConfiguration
+from scim2_models import ServiceProviderConfig
 from scim2_models import User
 
 
@@ -64,9 +64,9 @@ def test_service_provider_configuration(load_sample):
         "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
         "Resources": [resource_payload],
     }
-    response = ListResponse.of(ServiceProviderConfiguration).model_validate(payload)
+    response = ListResponse.of(ServiceProviderConfig).model_validate(payload)
     obj = response.resources[0]
-    assert isinstance(obj, ServiceProviderConfiguration)
+    assert isinstance(obj, ServiceProviderConfig)
 
 
 def test_resource_type(load_sample):

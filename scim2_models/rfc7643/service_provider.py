@@ -81,7 +81,7 @@ class AuthenticationScheme(ComplexAttribute):
     address."""
 
 
-class ServiceProviderConfiguration(Resource):
+class ServiceProviderConfig(Resource):
     schemas: List[str] = ["urn:ietf:params:scim:schemas:core:2.0:ServiceProviderConfig"]
 
     documentation_uri: Annotated[Optional[AnyUrl], Mutability.read_only] = None

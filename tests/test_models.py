@@ -11,7 +11,7 @@ from scim2_models import Resource
 from scim2_models import ResourceType
 from scim2_models import Schema
 from scim2_models import SearchRequest
-from scim2_models import ServiceProviderConfiguration
+from scim2_models import ServiceProviderConfig
 from scim2_models import User
 
 
@@ -23,7 +23,7 @@ def test_parse_and_serialize_examples(load_sample):
         "group": Group,
         "schema": Schema,
         "resource_type": ResourceType,
-        "service_provider_configuration": ServiceProviderConfiguration,
+        "service_provider_configuration": ServiceProviderConfig,
         "list_response": ListResponse.of(
             User[EnterpriseUser], Group, Schema, ResourceType
         ),

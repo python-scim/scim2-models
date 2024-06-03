@@ -22,7 +22,7 @@ from .rfc7643.service_provider import ChangePassword
 from .rfc7643.service_provider import ETag
 from .rfc7643.service_provider import Filter
 from .rfc7643.service_provider import Patch
-from .rfc7643.service_provider import ServiceProviderConfiguration
+from .rfc7643.service_provider import ServiceProviderConfig
 from .rfc7643.service_provider import Sort
 from .rfc7643.user import Address
 from .rfc7643.user import Email
@@ -87,7 +87,7 @@ __all__ = [
     "SchemaExtension",
     "SearchRequest",
     "SortOrder",
-    "ServiceProviderConfiguration",
+    "ServiceProviderConfig",
     "Sort",
     "Uniqueness",
     "User",

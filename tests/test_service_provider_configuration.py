@@ -3,12 +3,12 @@ import datetime
 from pydantic import AnyUrl
 
 from scim2_models import AuthenticationScheme
-from scim2_models import ServiceProviderConfiguration
+from scim2_models import ServiceProviderConfig
 
 
 def test_service_provider_configuration(load_sample):
     payload = load_sample("rfc7643-8.5-service_provider_configuration.json")
-    obj = ServiceProviderConfiguration.model_validate(payload)
+    obj = ServiceProviderConfig.model_validate(payload)
 
     assert obj.schemas == [
         "urn:ietf:params:scim:schemas:core:2.0:ServiceProviderConfig"

@@ -1,6 +1,11 @@
 Changelog
 =========
 
+Changed
+^^^^^^^
+
+- Rename :code:`ServiceProviderConfiguration` to :code:`ServiceProviderConfig` to match the RFCs naming convention.
+
 [0.1.2] - 2024-06⁻02
 --------------------
 
