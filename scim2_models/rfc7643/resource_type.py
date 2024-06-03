@@ -8,6 +8,8 @@ from pydantic import Field
 from ..base import ComplexAttribute
 from ..base import Mutability
 from ..base import Required
+from ..base import Returned
+from ..base import Uniqueness
 from .resource import Resource
 
 
@@ -35,10 +37,12 @@ class SchemaExtension(ComplexAttribute):
 class ResourceType(Resource):
     schemas: List[str] = ["urn:ietf:params:scim:schemas:core:2.0:ResourceType"]
 
-    id: Annotated[Optional[str], Mutability.read_only] = None
+    id: Annotated[
+        Optional[str], Mutability.read_only, Returned.default, Uniqueness.global_
+    ] = None
     """The resource type's server unique id.
 
-    May be the same as the 'name' attribute.
+    This is often the same value as the "name" attribute.
     """
 
     name: Annotated[str, Mutability.read_only, Required.true]

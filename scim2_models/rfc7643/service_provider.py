@@ -8,6 +8,8 @@ from pydantic import AnyUrl
 from ..base import ComplexAttribute
 from ..base import Mutability
 from ..base import Required
+from ..base import Returned
+from ..base import Uniqueness
 from .resource import Resource
 
 
@@ -58,7 +60,7 @@ class AuthenticationScheme(ComplexAttribute):
         httpbasic = "httpbasic"
         httpdigest = "httpdigest"
 
-    type: Annotated[Type, Mutability.read_only]
+    type: Annotated[Type, Mutability.read_only, Required.true]
     """The authentication scheme."""
 
     name: Annotated[str, Mutability.read_only, Required.true]
@@ -83,6 +85,12 @@ class AuthenticationScheme(ComplexAttribute):
 
 class ServiceProviderConfig(Resource):
     schemas: List[str] = ["urn:ietf:params:scim:schemas:core:2.0:ServiceProviderConfig"]
+
+    id: Annotated[
+        Optional[str], Mutability.read_only, Returned.default, Uniqueness.global_
+    ] = None
+    """A unique identifier for a SCIM resource as defined by the service
+    provider."""
 
     documentation_uri: Annotated[Optional[AnyUrl], Mutability.read_only] = None
     """An HTTP-addressable URL pointing to the service provider's human-

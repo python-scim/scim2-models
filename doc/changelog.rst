@@ -1,6 +1,11 @@
 Changelog
 =========
 
+Fix
+^^^
+
+- :code:`ServiceProviderConfiguration` `id` is optional.
+
 [0.1.3] - 2024-06-03
 --------------------
 
