@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "scim2-models"
-version = "0.1.2"
+version = "0.1.3"
 description = "SCIM2 models serialization and validation with pydantic"
 authors = ["Yaal Coop <contact@yaal.coop>"]
 license = "Apache"
