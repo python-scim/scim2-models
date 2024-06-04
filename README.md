@@ -10,6 +10,7 @@ It aims to be used as a basis to build SCIM2 servers and clients.
 SCIM stands for System for Cross-domain Identity Management, and it is a provisioning protocol.
 Provisioning is the action of managing a set of resources across different services, usually users and groups.
 SCIM is often used between Identity Providers and applications in completion of standards like OAuth2 and OpenID Connect.
+It allows users and groups creations, modifications and deletions to be synchronized between applications.
 
 ## Installation
 
@@ -44,3 +45,8 @@ assert user.meta.created == datetime.datetime(
     2010, 1, 23, 4, 56, 22, tzinfo=datetime.timezone.utc
 )
 ```
+
+scim2-models belongs in a collection of SCIM tools developed by [Yaal Coop](https://yaal.coop),
+with [scim2-client](https://github.com/yaal-coop/scim2-client),
+[scim2-tester](https://github.com/yaal-coop/scim2-tester) and
+[scim2-cli](https://github.com/yaal-coop/scim2-cli)
