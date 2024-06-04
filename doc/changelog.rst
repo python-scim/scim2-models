@@ -1,6 +1,9 @@
 Changelog
 =========
 
+[0.1.5] - 2024-06-04
+--------------------
+
 Fix
 ^^^
 - :class:`~scim2_models.Schema` is a :class:`~scim2_models.Resource`.
