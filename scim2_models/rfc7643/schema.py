@@ -9,6 +9,7 @@ from ..base import Required
 from ..base import Returned
 from ..base import Uniqueness
 from .resource import Meta
+from .resource import Resource
 
 
 class Attribute(ComplexAttribute):
@@ -78,7 +79,7 @@ class Attribute(ComplexAttribute):
     types that may be referenced."""
 
 
-class Schema(ComplexAttribute):
+class Schema(Resource):
     schemas: List[str] = ["urn:ietf:params:scim:schemas:core:2.0:Schema"]
 
     meta: Annotated[Optional[Meta], Mutability.read_only] = None
