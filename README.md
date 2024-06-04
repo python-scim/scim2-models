@@ -1,9 +1,15 @@
 # scim2-models
 
-Pydantic models for SCIM2 schemas defined in [RFC7643](https://datatracker.ietf.org/doc/html/rfc7643.html) and [RFC7644](https://datatracker.ietf.org/doc/html/rfc7644.html).
+Pydantic models for SCIM schemas defined in [RFC7643](https://datatracker.ietf.org/doc/html/rfc7643.html) and [RFC7644](https://datatracker.ietf.org/doc/html/rfc7644.html).
 
 This library provides utilities to parse and produce SCIM2 payloads, and handle them with native Python objects.
 It aims to be used as a basis to build SCIM2 servers and clients.
+
+## What's SCIM anyway?
+
+SCIM stands for System for Cross-domain Identity Management, and it is a provisioning protocol.
+Provisioning is the action of managing a set of resources across different services, usually users and groups.
+SCIM is often used between Identity Providers and applications in completion of standards like OAuth2 and OpenID Connect.
 
 ## Installation
 
