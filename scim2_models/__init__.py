@@ -39,6 +39,7 @@ from .rfc7644.bulk import BulkRequest
 from .rfc7644.bulk import BulkResponse
 from .rfc7644.error import Error
 from .rfc7644.list_response import ListResponse
+from .rfc7644.message import Message
 from .rfc7644.patch_op import Op
 from .rfc7644.patch_op import PatchOp
 from .rfc7644.patch_op import PatchOperation
@@ -69,6 +70,7 @@ __all__ = [
     "Im",
     "ListResponse",
     "Manager",
+    "Message",
     "Meta",
     "Mutability",
     "Name",

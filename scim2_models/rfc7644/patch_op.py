@@ -5,8 +5,8 @@ from typing import Optional
 
 from pydantic import Field
 
-from ..base import BaseModel
 from ..base import ComplexAttribute
+from .message import Message
 
 
 class Op(str, Enum):
@@ -28,7 +28,7 @@ class PatchOperation(ComplexAttribute):
     value: Optional[Any] = None
 
 
-class PatchOp(BaseModel):
+class PatchOp(Message):
     schemas: List[str] = ["urn:ietf:params:scim:api:messages:2.0:PatchOp"]
 
     operations: List[PatchOperation] = Field(..., alias="Operations")

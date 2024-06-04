@@ -2,7 +2,7 @@ from enum import Enum
 from typing import List
 from typing import Optional
 
-from scim2_models.rfc7643.resource import Resource
+from .message import Message
 
 
 class SortOrder(str, Enum):
@@ -10,7 +10,7 @@ class SortOrder(str, Enum):
     descending = "descending"
 
 
-class SearchRequest(Resource):
+class SearchRequest(Message):
     """SearchRequest object defined at https://datatracker.ietf.org/doc/html/rfc7644#section-3.4.3"""
 
     schemas: List[str] = ["urn:ietf:params:scim:api:messages:2.0:SearchRequest"]

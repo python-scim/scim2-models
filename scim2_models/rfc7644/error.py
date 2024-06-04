@@ -4,11 +4,11 @@ from typing import Optional
 
 from pydantic import PlainSerializer
 
-from ..base import BaseModel
 from ..utils import int_to_str
+from .message import Message
 
 
-class Error(BaseModel):
+class Error(Message):
     """Representation of SCIM API errors.
 
     Here is the exhaustive list of pre-defined errors:

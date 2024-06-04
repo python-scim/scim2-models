@@ -5,12 +5,12 @@ from typing import Union
 
 from pydantic import Field
 
-from ..base import BaseModel
 from ..rfc7643.resource import AnyResource
 from ..rfc7643.resource import tagged_resource_union
+from .message import Message
 
 
-class ListResponse(BaseModel, Generic[AnyResource]):
+class ListResponse(Message, Generic[AnyResource]):
     @classmethod
     def of(cls, *resource_types: AnyResource):
         """Build a ListResponse instance that can handle resource_types."""
