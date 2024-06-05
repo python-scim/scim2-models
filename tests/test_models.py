@@ -38,11 +38,11 @@ def test_parse_and_serialize_examples(load_sample):
         model_name = sample.replace(".json", "").split("-")[2]
         model = models[model_name]
 
-        # partial resources are not supported yet
+        # resources without schemas are not yet supported
+        # https://github.com/yaal-coop/scim2-models/issues/20
         skipped = [
             "rfc7644-3.4.2-list_response-partial_attributes.json",
             "rfc7644-3.4.3-list_response-post_query.json",
-            "rfc7644-3.9-user-partial_response.json",
         ]
         if sample in skipped:
             continue
