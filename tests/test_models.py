@@ -107,3 +107,9 @@ def test_get_resource_by_payload():
         "schemas": ["urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"]
     }
     assert Resource.get_by_payload(resource_types, payload) == EnterpriseUser
+
+    payload = {"schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"]}
+    assert (
+        Resource.get_by_payload([ListResponse[User]], payload, with_extensions=False)
+        == ListResponse[User]
+    )

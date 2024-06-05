@@ -55,6 +55,7 @@ html_theme_options = {
     "mastodon_url": "https://toot.aquilenet.fr/@yaal",
     "nav_links": [
         {"title": "scim2-client", "url": "https://scim2-client.readthedocs.io"},
+        {"title": "scim2-tester", "url": "https://scim2-tester.readthedocs.io"},
         {
             "title": "scim2-cli",
             "url": "https://scim2-cli.readthedocs.io",
