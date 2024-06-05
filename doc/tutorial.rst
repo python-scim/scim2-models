@@ -304,3 +304,49 @@ If unset the default values will be :attr:`~scim2_models.Mutability.read_write` 
 
     Be sure to make all the fields of your model :data:`~typing.Optional`.
     There will always be a :class:`~scim2_models.Context` in which this will be true.
+
+Dynamic model from schemas
+==========================
+
+Given a :class:`~scim2_models.Schema` object, scim2-models can dynamically generate a pythonic model to be used in your code with the :meth:`~scim2_models.Schema.make_model` method.
+
+
+.. code-block:: python
+   :class: dropdown
+   :caption: sample
+
+    payload = {
+        "id": "urn:ietf:params:scim:schemas:core:2.0:Group",
+        "name": "Group",
+        "description": "Group",
+        "attributes": [
+            {
+                "name": "displayName",
+                "type": "string",
+                "multiValued": false,
+                "description": "A human-readable name for the Group. REQUIRED.",
+                "required": false,
+                "caseExact": false,
+                "mutability": "readWrite",
+                "returned": "default",
+                "uniqueness": "none"
+            },
+            ...
+        ],
+    }
+    schema = Schema.model_validate(payload)
+    Group = schema.make_model()
+    my_group = Group(display_name="This is my group")
+
+This can be used by client applications that intends to dynamically discover server resources by browsing the `/Schemas` endpoint.
+
+.. tip::
+
+   Sub-Attribute models are automatically created and set as members of their parent model classes.
+   For instance the RFC7643 Group members sub-attribute can be accessed with ``Group.Members``.
+
+    .. toggle::
+
+        .. literalinclude :: ../samples/rfc7643-8.7.1-schema-group.json
+           :language: json
+           :caption: schema-group.json

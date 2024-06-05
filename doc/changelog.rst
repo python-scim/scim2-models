@@ -1,6 +1,10 @@
 Changelog
 =========
 
+Added
+^^^^^
+- Dynamic pydantic model creation from SCIM schemas. #6
+
 Changed
 ^^^^^^^
 - Use a custom :data:`~scim2_models.Reference` type instead of :class:`~pydantic.AnyUrl` as RFC7643 reference type.

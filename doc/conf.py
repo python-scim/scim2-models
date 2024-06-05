@@ -16,6 +16,7 @@ extensions = [
     "sphinx.ext.todo",
     "sphinx.ext.viewcode",
     "sphinxcontrib.autodoc_pydantic",
+    "sphinx_togglebutton",
     "myst_parser",
 ]
 
