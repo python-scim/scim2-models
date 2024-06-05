@@ -3,6 +3,7 @@ from typing import Annotated
 from typing import List
 from typing import Optional
 
+from ..base import CaseExact
 from ..base import ComplexAttribute
 from ..base import Mutability
 from ..base import Required
@@ -25,27 +26,27 @@ class Attribute(ComplexAttribute):
         binary = "binary"
         complex = "complex"
 
-    name: Annotated[str, Mutability.read_only, Required.true]
+    name: Annotated[str, Mutability.read_only, Required.true, CaseExact.true]
     """The attribute's name."""
 
     type: Annotated[Type, Mutability.read_only, Required.true]
     """The attribute's data type."""
 
-    sub_attributes: Annotated[Optional[List["Attribute"]], Mutability.read_only] = None
-    """When an attribute is of type "complex", "subAttributes" defines a set of
-    sub-attributes."""
-
     multi_valued: Annotated[Optional[bool], Mutability.read_only, Required.true] = None
     """A Boolean value indicating the attribute's plurality."""
 
-    description: Annotated[Optional[str], Mutability.read_only, Required.true] = None
+    description: Annotated[
+        Optional[str], Mutability.read_only, Required.true, CaseExact.true
+    ] = None
     """The attribute's human-readable description."""
 
     required: Annotated[Optional[bool], Mutability.read_only, Required.true] = None
     """A Boolean value that specifies whether or not the attribute is
     required."""
 
-    canonical_values: Annotated[Optional[List[str]], Mutability.read_only] = None
+    canonical_values: Annotated[
+        Optional[List[str]], Mutability.read_only, CaseExact.true
+    ] = None
     """A collection of suggested canonical values that MAY be used (e.g.,
     "work" and "home")."""
 
@@ -53,15 +54,15 @@ class Attribute(ComplexAttribute):
     """A Boolean value that specifies whether or not a string attribute is case
     sensitive."""
 
-    mutability: Annotated[Mutability, Mutability.read_only, Required.true] = (
-        Mutability.read_write
-    )
+    mutability: Annotated[
+        Mutability, Mutability.read_only, Required.true, CaseExact.true
+    ] = Mutability.read_write
     """A single keyword indicating the circumstances under which the value of
     the attribute can be (re)defined."""
 
-    returned: Annotated[Returned, Mutability.read_only, Required.true] = (
-        Returned.default
-    )
+    returned: Annotated[
+        Returned, Mutability.read_only, Required.true, CaseExact.true
+    ] = Returned.default
     """A single keyword that indicates when an attribute and associated values
     are returned in response to a GET request or in response to a PUT, POST, or
     PATCH request."""
@@ -73,10 +74,14 @@ class Attribute(ComplexAttribute):
     uniqueness of attribute values."""
 
     reference_types: Annotated[
-        Optional[List[str]], Mutability.read_only, Required.true
+        Optional[List[str]], Mutability.read_only, Required.true, CaseExact.true
     ] = None
     """A multi-valued array of JSON strings that indicate the SCIM resource
     types that may be referenced."""
+
+    sub_attributes: Annotated[Optional[List["Attribute"]], Mutability.read_only] = None
+    """When an attribute is of type "complex", "subAttributes" defines a set of
+    sub-attributes."""
 
 
 class Schema(Resource):

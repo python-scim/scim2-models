@@ -244,6 +244,19 @@ class Uniqueness(str, Enum):
 
 
 class Required(Enum):
+    """A Boolean value that specifies whether or not the attribute is
+    required."""
+
+    true = True
+    false = False
+
+    _default = false
+
+
+class CaseExact(Enum):
+    """A Boolean value that specifies whether or not a string attribute is case
+    sensitive."""
+
     true = True
     false = False
 
