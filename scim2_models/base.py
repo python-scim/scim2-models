@@ -188,6 +188,8 @@ class Mutability(str, Enum):
     usually also has a returned setting of "never".
     """
 
+    _default = read_write
+
 
 class Returned(str, Enum):
     """A single keyword that indicates when an attribute and associated values
@@ -213,6 +215,8 @@ class Returned(str, Enum):
     """The attribute is returned in response to any PUT, POST, or PATCH
     operations if specified in the "attributes" parameter."""
 
+    _default = default
+
 
 class Uniqueness(str, Enum):
     """A single keyword value that specifies how the service provider enforces
@@ -236,10 +240,14 @@ class Uniqueness(str, Enum):
     No two resources on any server SHOULD possess the same value.
     """
 
+    _default = none
+
 
 class Required(Enum):
     true = True
     false = False
+
+    _default = false
 
 
 class BaseModel(BaseModel):
@@ -248,29 +256,20 @@ class BaseModel(BaseModel):
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 
     @classmethod
-    def get_field_mutability(cls, field_name: str) -> Mutability:
+    def get_field_annotation(cls, field_name: str, annotation_type: Type) -> Any:
+        """Return the annotation of type 'annotation_type' of the field
+        'field_name'."""
         field_metadata = cls.model_fields[field_name].metadata
 
-        default_mutability = Mutability.read_write
+        default_value = getattr(annotation_type, "_default", None)
 
-        def mutability_filter(item):
-            return isinstance(item, Mutability)
+        def annotation_type_filter(item):
+            return isinstance(item, annotation_type)
 
-        field_mutability = next(
-            filter(mutability_filter, field_metadata), default_mutability
+        field_annotation = next(
+            filter(annotation_type_filter, field_metadata), default_value
         )
-        return field_mutability
-
-    @classmethod
-    def get_field_returnability(cls, field_name: str) -> Returned:
-        field_metadata = cls.model_fields[field_name].metadata
-        default_returned = Returned.default
-
-        def returned_filter(item):
-            return isinstance(item, Returned)
-
-        field_returned = next(filter(returned_filter, field_metadata), default_returned)
-        return field_returned
+        return field_annotation
 
     @classmethod
     def get_field_root_type(cls, attribute_name: str) -> Type:
@@ -308,7 +307,7 @@ class BaseModel(BaseModel):
             return value
 
         context = info.context.get("scim")
-        mutability = cls.get_field_mutability(info.field_name)
+        mutability = cls.get_field_annotation(info.field_name, Mutability)
         exc = PydanticCustomError(
             "mutability_error",
             "Field '{field_name}' has mutability '{field_mutability}' but this in not valid in {context} context",
@@ -361,7 +360,7 @@ class BaseModel(BaseModel):
             return handler(value)
 
         for field_name, field in cls.model_fields.items():
-            returnability = cls.get_field_returnability(field_name)
+            returnability = cls.get_field_annotation(field_name, Returned)
             alias = field.alias or field_name
 
             if returnability == Returned.always and value.get(alias) is None:
@@ -408,7 +407,7 @@ class BaseModel(BaseModel):
         """Serialize the fields according to mutability indications passed in
         the serialization context."""
 
-        mutability = self.get_field_mutability(info.field_name)
+        mutability = self.get_field_annotation(info.field_name, Mutability)
         context = info.context.get("scim")
 
         if (
@@ -439,7 +438,7 @@ class BaseModel(BaseModel):
         """Serialize the fields according to returability indications passed in
         the serialization context."""
 
-        returnability = self.get_field_returnability(info.field_name)
+        returnability = self.get_field_annotation(info.field_name, Returned)
         attribute_urn = self.get_attribute_urn(info.field_name)
         included_urns = info.context.get("scim_attributes", [])
         excluded_urns = info.context.get("scim_excluded_attributes", [])
