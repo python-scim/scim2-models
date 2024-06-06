@@ -1,6 +1,8 @@
 Changelog
 =========
 
+[0.1.6] - 2024-06-06
+--------------------
 Added
 ^^^^^
 - Implement :class:`~scim2_models.CaseExact` attributes annotations.
