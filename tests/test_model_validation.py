@@ -91,13 +91,14 @@ def test_validate_creation_request_mutability():
     """Test query validation for resource creation request:
 
     Attributes marked as:
-    - Mutability.read_only raise a ValidationError
+    - Mutability.read_only are ignored
     """
     assert MutResource.model_validate(
         {
             "readWrite": "x",
             "immutable": "x",
             "writeOnly": "x",
+            "readOnly": "x",
         },
         scim_ctx=Context.RESOURCE_CREATION_REQUEST,
     ) == MutResource(
@@ -106,17 +107,6 @@ def test_validate_creation_request_mutability():
         immutable="x",
         writeOnly="x",
     )
-
-    with pytest.raises(
-        ValidationError,
-        match="Field 'read_only' has mutability 'readOnly' but this in not valid in resource creation request context",
-    ):
-        MutResource.model_validate(
-            {
-                "readOnly": "x",
-            },
-            scim_ctx=Context.RESOURCE_CREATION_REQUEST,
-        )
 
 
 def test_validate_query_request_mutability():

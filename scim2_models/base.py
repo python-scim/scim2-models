@@ -340,12 +340,6 @@ class BaseModel(BaseModel):
         )
 
         if (
-            context == Context.RESOURCE_CREATION_REQUEST
-            and mutability == Mutability.read_only
-        ):
-            raise exc
-
-        if (
             context in (Context.RESOURCE_QUERY_REQUEST, Context.SEARCH_REQUEST)
             and mutability == Mutability.write_only
         ):
@@ -358,7 +352,8 @@ class BaseModel(BaseModel):
             raise exc
 
         if (
-            context == Context.RESOURCE_REPLACEMENT_REQUEST
+            context
+            in (Context.RESOURCE_CREATION_REQUEST, Context.RESOURCE_REPLACEMENT_REQUEST)
             and mutability == Mutability.read_only
         ):
             return None
