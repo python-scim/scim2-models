@@ -5,6 +5,7 @@ from pydantic import AnyUrl
 from pydantic import Field
 
 from ..base import ComplexAttribute
+from .resource import Resource
 
 
 class Manager(ComplexAttribute):
@@ -25,7 +26,7 @@ class Manager(ComplexAttribute):
     """The displayName of the User's manager."""
 
 
-class EnterpriseUser(ComplexAttribute):
+class EnterpriseUser(Resource):
     schemas: List[str] = ["urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"]
 
     employee_number: Optional[str] = None

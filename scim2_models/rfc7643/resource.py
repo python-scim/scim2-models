@@ -113,14 +113,14 @@ class Resource(BaseModel, Generic[AnyModel]):
     """A complex attribute containing resource metadata."""
 
     def __getitem__(self, item: Any):
-        if not isinstance(item, type) or not issubclass(item, ComplexAttribute):
+        if not isinstance(item, type) or not issubclass(item, Resource):
             raise KeyError(f"{item} is not a valid extension type")
 
         schema = item.model_fields["schemas"].default[0]
         return getattr(self, schema)
 
     def __setitem__(self, item: Any, value: "Resource"):
-        if not isinstance(item, type) or not issubclass(item, ComplexAttribute):
+        if not isinstance(item, type) or not issubclass(item, Resource):
             raise KeyError(f"{item} is not a valid extension type")
 
         schema = item.model_fields["schemas"].default[0]
