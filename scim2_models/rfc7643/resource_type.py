@@ -15,10 +15,6 @@ from .resource import Resource
 
 
 class SchemaExtension(ComplexAttribute):
-    _attribute_urn: str = (
-        "urn:ietf:params:scim:schemas:core:2.0:ResourceType.schemaExtensions"
-    )
-
     schema_: Annotated[AnyUrl, Mutability.read_only, Required.true, CaseExact.true] = (
         Field(..., alias="schema")
     )

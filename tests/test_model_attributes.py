@@ -14,7 +14,6 @@ from scim2_models.rfc7643.user import User
 
 def test_get_attribute_urn():
     class Sub(ComplexAttribute):
-        _attribute_urn = "urn:example:2.0:Sup:sub"
         dummy: str
 
     class Sup(Resource):
@@ -28,14 +27,11 @@ def test_get_attribute_urn():
     assert sup.get_attribute_urn("dummy") == "urn:example:2.0:Sup:dummy"
     assert sup.get_attribute_urn("sub") == "urn:example:2.0:Sup:sub"
     assert sup.sub.get_attribute_urn("dummy") == "urn:example:2.0:Sup:sub.dummy"
-
-    # TODO: fix this by dynamically guess attribute urns
-    # assert sup.subs[0].get_attribute_urn("dummy") == "urn:example:2.0:Bar:subs.dummy"
+    assert sup.subs[0].get_attribute_urn("dummy") == "urn:example:2.0:Sup:subs.dummy"
 
 
 def test_guess_root_type():
     class Sub(ComplexAttribute):
-        _attribute_urn = "urn:example:2.0:Sup:sub"
         dummy: str
 
     class Sup(Resource):

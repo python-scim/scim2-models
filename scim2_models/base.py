@@ -1,5 +1,6 @@
 from enum import Enum
 from enum import auto
+from inspect import isclass
 from typing import Any
 from typing import Dict
 from typing import List
@@ -432,6 +433,35 @@ class BaseModel(BaseModel):
 
         return handler(value)
 
+    def mark_with_schema(self):
+        """Navigate through attributes and subattributes of type
+        ComplexAttribute, and mark them with a '_schema' attribute.
+
+        '_schema' will later be used by 'get_attribute_urn'.
+        """
+
+        from scim2_models.rfc7643.resource import Resource
+
+        for field_name, field in self.model_fields.items():
+            attr_type = self.get_field_root_type(field_name)
+            if not isclass(attr_type) or not issubclass(attr_type, ComplexAttribute):
+                continue
+
+            if isinstance(self, ComplexAttribute):
+                main_schema = self._schema
+            else:
+                main_schema = self.model_fields["schemas"].default[0]
+
+            separator = ":" if isinstance(self, Resource) else "."
+            schema = f"{main_schema}{separator}{field_name}"
+
+            if attr_value := getattr(self, field_name):
+                if isinstance(attr_value, list):
+                    for item in attr_value:
+                        item._schema = schema
+                else:
+                    attr_value._schema = schema
+
     @field_serializer("*", mode="wrap")
     def scim_serializer(
         self,
@@ -568,8 +598,6 @@ class BaseModel(BaseModel):
         """Build the full URN of the attribute.
 
         See :rfc:`RFC7644 §3.12 <7644#section-3.12>`.
-
-        .. todo:: Actually *guess* the URN instead of using the hacky `_schema` attribute.
         """
         main_schema = self.model_fields["schemas"].default[0]
         alias = self.model_fields[field_name].alias or field_name
@@ -580,15 +608,15 @@ class ComplexAttribute(BaseModel):
     """A complex attribute as defined in :rfc:`RFC7643 §2.3.8
     <7643#section-2.3.8>`."""
 
+    _schema: str
+
     def get_attribute_urn(self, field_name: str) -> Returned:
         """Build the full URN of the attribute.
 
         See :rfc:`RFC7644 §3.12 <7644#section-3.12>`.
-
-        .. todo:: Actually *guess* the URN instead of using the hacky `_attribute_urn` attribute.
         """
         alias = self.model_fields[field_name].alias or field_name
-        return f"{self._attribute_urn}.{alias}"
+        return f"{self._schema}.{alias}"
 
 
 AnyModel = TypeVar("AnyModel", bound=BaseModel)
