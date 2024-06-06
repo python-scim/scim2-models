@@ -53,7 +53,9 @@ class Context(Enum):
     and servers validating resource creation request payloads.
 
     - When used for serialization, it will not dump attributes annotated with :attr:`~scim2_models.Mutability.read_only`.
-    - When used for validation, it will raise a :class:`~pydantic.ValidationError` when finding attributes annotated with :attr:`~scim2_models.Mutability.read_only`.
+    - When used for validation, it will raise a :class:`~pydantic.ValidationError`:
+        - when finding attributes annotated with :attr:`~scim2_models.Mutability.read_only`,
+        - when attributes annotated with :attr:`Required.true <scim2_models.Required.true>` are missing on null.
     """
 
     RESOURCE_CREATION_RESPONSE = auto()
@@ -102,7 +104,9 @@ class Context(Enum):
     and servers validating resource replacement request payloads.
 
     - When used for serialization, it will not dump attributes annotated with :attr:`~scim2_models.Mutability.read_only` and :attr:`~scim2_models.Mutability.immutable`.
-    - When used for validation, it will ignore attributes annotated with :attr:`scim2_models.Mutability.read_only` and raise a :class:`~pydantic.ValidationError` when finding attributes annotated with :attr:`~scim2_models.Mutability.immutable`.
+    - When used for validation, it will ignore attributes annotated with :attr:`scim2_models.Mutability.read_only` and raise a :class:`~pydantic.ValidationError`:
+        - when finding attributes annotated with :attr:`~scim2_models.Mutability.immutable`,
+        - when attributes annotated with :attr:`Required.true <scim2_models.Required.true>` are missing on null.
     """
 
     RESOURCE_REPLACEMENT_RESPONSE = auto()
@@ -244,8 +248,10 @@ class Uniqueness(str, Enum):
 
 
 class Required(Enum):
-    """A Boolean value that specifies whether or not the attribute is
-    required."""
+    """A Boolean value that specifies whether or not the attribute is required.
+
+    Missing required attributes raise a :class:`~pydantic.ValidationError` on :attr:`~scim2_models.Context.RESOURCE_CREATION_REQUEST` and :attr:`~scim2_models.Context.RESOURCE_REPLACEMENT_REQUEST` validations.
+    """
 
     true = True
     false = False
@@ -308,7 +314,9 @@ class BaseModel(BaseModel):
 
     @field_validator("*")
     @classmethod
-    def check_request_mutability(cls, value: Any, info: ValidationInfo) -> Any:
+    def check_request_attributes_mutability(
+        cls, value: Any, info: ValidationInfo
+    ) -> Any:
         """Check that the field mutability is expected according to the
         requests validation context, as defined in :rfc:`RFC7643 §7
         <7653#section-7>`."""
@@ -359,7 +367,7 @@ class BaseModel(BaseModel):
 
     @model_validator(mode="wrap")
     @classmethod
-    def check_response_returnability(
+    def check_response_attributes_returnability(
         cls, value: Any, handler: ValidatorFunctionWrapHandler, info: ValidationInfo
     ) -> Self:
         """Check that the fields returnability is expected according to the
@@ -389,6 +397,39 @@ class BaseModel(BaseModel):
                 raise PydanticCustomError(
                     "returned_error",
                     "Field '{field_name}' has returnability 'never' but value is set",
+                    {
+                        "field_name": field_name,
+                    },
+                )
+
+        return handler(value)
+
+    @model_validator(mode="wrap")
+    @classmethod
+    def check_response_attributes_necessity(
+        cls, value: Any, handler: ValidatorFunctionWrapHandler, info: ValidationInfo
+    ) -> Self:
+        """Check that the required attributes are present in creations and
+        replacement requests."""
+        if (
+            not info.context
+            or not info.context.get("scim")
+            or info.context["scim"]
+            not in (
+                Context.RESOURCE_CREATION_REQUEST,
+                Context.RESOURCE_REPLACEMENT_REQUEST,
+            )
+        ):
+            return handler(value)
+
+        for field_name, field in cls.model_fields.items():
+            necessity = cls.get_field_annotation(field_name, Required)
+            alias = field.alias or field_name
+
+            if necessity == Required.true and value.get(alias) is None:
+                raise PydanticCustomError(
+                    "required_error",
+                    "Field '{field_name}' is required but value is missing or null",
                     {
                         "field_name": field_name,
                     },
@@ -507,8 +548,8 @@ class BaseModel(BaseModel):
         by using Pydantic :code:`BaseModel.model_dump`.
 
         :param scim_ctx: If a SCIM context is passed, some default values of
-        Pydantic :code:`BaseModel.model_dump` are tuned to generate valid SCIM
-        messages. Pass :data:`None` to get the default Pydantic behavior.
+            Pydantic :code:`BaseModel.model_dump` are tuned to generate valid SCIM
+            messages. Pass :data:`None` to get the default Pydantic behavior.
         """
 
         kwargs.setdefault("context", {}).setdefault("scim", scim_ctx)

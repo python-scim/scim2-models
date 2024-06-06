@@ -7,6 +7,7 @@ from pydantic import ValidationError
 
 from scim2_models.base import Context
 from scim2_models.base import Mutability
+from scim2_models.base import Required
 from scim2_models.base import Returned
 from scim2_models.rfc7643.resource import Resource
 
@@ -29,7 +30,14 @@ class MutResource(Resource):
     write_only: Annotated[Optional[str], Mutability.write_only] = None
 
 
-def test_validate_default():
+class ReqResource(Resource):
+    schemas: List[str] = ["org:example:ReqResource"]
+
+    required: Annotated[Optional[str], Required.true] = None
+    optional: Annotated[Optional[str], Required.false] = None
+
+
+def test_validate_default_mutability():
     """Test query validation for resource creation request."""
     assert MutResource.model_validate(
         {
@@ -79,7 +87,7 @@ def test_validate_default():
     )
 
 
-def test_validate_creation_request():
+def test_validate_creation_request_mutability():
     """Test query validation for resource creation request:
 
     Attributes marked as:
@@ -111,7 +119,7 @@ def test_validate_creation_request():
         )
 
 
-def test_validate_query_request():
+def test_validate_query_request_mutability():
     """Test query validation for resource query request:
 
     Attributes marked as:
@@ -144,7 +152,7 @@ def test_validate_query_request():
         )
 
 
-def test_validate_replacement_request():
+def test_validate_replacement_request_mutability():
     """Test query validation for resource model replacement requests:
 
     Attributes marked as:
@@ -176,7 +184,7 @@ def test_validate_replacement_request():
         )
 
 
-def test_validate_search_request():
+def test_validate_search_request_mutability():
     """Test query validation for resource query request:
 
     Attributes marked as:
@@ -209,7 +217,7 @@ def test_validate_search_request():
         )
 
 
-def test_validate_default_response():
+def test_validate_default_response_returnability():
     """When no scim context is passed, every attributes are dumped."""
 
     assert RetResource.model_validate(
@@ -278,7 +286,7 @@ def test_validate_default_response():
         Context.SEARCH_RESPONSE,
     ],
 )
-def test_validate_response(context):
+def test_validate_response_returnability(context):
     """Test context for responses.
 
     Attributes marked as:
@@ -332,3 +340,141 @@ def test_validate_response(context):
             },
             scim_ctx=context,
         )
+
+
+def test_validate_default_necessity():
+    """Test query validation for resource creation request."""
+
+    assert ReqResource.model_validate(
+        {
+            "required": "x",
+            "optional": "x",
+        },
+    ) == ReqResource(
+        schemas=["org:example:ReqResource"],
+        required="x",
+        optional="x",
+    )
+
+    assert ReqResource.model_validate(
+        {
+            "required": "x",
+            "optional": "x",
+        },
+        scim_ctx=None,
+    ) == ReqResource(
+        schemas=["org:example:ReqResource"],
+        required="x",
+        optional="x",
+    )
+
+    assert ReqResource.model_validate(
+        {
+            "required": "x",
+            "optional": "x",
+        },
+        scim_ctx=Context.DEFAULT,
+    ) == ReqResource(
+        schemas=["org:example:ReqResource"],
+        required="x",
+        optional="x",
+    )
+
+
+@pytest.mark.parametrize(
+    "context",
+    [
+        Context.RESOURCE_CREATION_REQUEST,
+        Context.RESOURCE_REPLACEMENT_REQUEST,
+    ],
+)
+def test_validate_creation_and_replacement_request_necessity(context):
+    """Test query validation for resource creation and requests:
+
+    Attributes marked as:
+    - Required.true and missing raise a ValidationError
+    """
+    assert ReqResource.model_validate(
+        {
+            "required": "x",
+            "optional": "x",
+        },
+        scim_ctx=context,
+    ) == ReqResource(
+        schemas=["org:example:ReqResource"],
+        required="x",
+        optional="x",
+    )
+
+    assert ReqResource.model_validate(
+        {
+            "required": "x",
+        },
+        scim_ctx=context,
+    ) == ReqResource(
+        schemas=["org:example:ReqResource"],
+        required="x",
+    )
+
+    with pytest.raises(
+        ValidationError,
+        match="Field 'required' is required but value is missing or null",
+    ):
+        ReqResource.model_validate(
+            {
+                "optional": "x",
+            },
+            scim_ctx=context,
+        )
+
+
+@pytest.mark.parametrize(
+    "context",
+    [
+        Context.RESOURCE_QUERY_RESPONSE,
+        Context.SEARCH_RESPONSE,
+    ],
+)
+def test_validate_query_and_search_request_necessity(context):
+    """Test query validation for resource query request:
+
+    Attributes marked as:
+    - Required.true and missing raise a ValidationError
+    """
+    assert ReqResource.model_validate(
+        {
+            "id": "x",
+            "required": "x",
+            "optional": "x",
+        },
+        scim_ctx=context,
+    ) == ReqResource(
+        schemas=["org:example:ReqResource"],
+        id="x",
+        required="x",
+        optional="x",
+    )
+
+    assert ReqResource.model_validate(
+        {
+            "id": "x",
+            "required": "x",
+        },
+        scim_ctx=context,
+    ) == ReqResource(
+        schemas=["org:example:ReqResource"],
+        id="x",
+        required="x",
+    )
+
+    assert ReqResource.model_validate(
+        {
+            "id": "x",
+            "optional": "x",
+        },
+        scim_ctx=context,
+    ) == ReqResource(
+        schemas=["org:example:ReqResource"],
+        id="x",
+        optional="x",
+    )

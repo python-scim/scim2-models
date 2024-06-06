@@ -3,7 +3,8 @@ Changelog
 
 Added
 ^^^^^
-- Implement :class:`~scim2_models.CaseExact` model annotations.
+- Implement :class:`~scim2_models.CaseExact` attributes annotations.
+- Implement :class:`~scim2_models.Required` attributes annotations validation.
 
 Changed
 ^^^^^^^
