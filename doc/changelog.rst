@@ -1,6 +1,11 @@
 Changelog
 =========
 
+Added
+^^^^^
+- :attr:`~scim2_models.SearchRequest.count` value is floored to 1
+- :attr:`~scim2_models.SearchRequest.start_index` value is floored to 0
+
 [0.1.6] - 2024-06-06
 --------------------
 Added
