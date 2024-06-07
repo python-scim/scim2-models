@@ -5,6 +5,7 @@ Added
 ^^^^^
 - :attr:`~scim2_models.SearchRequest.count` value is floored to 1
 - :attr:`~scim2_models.SearchRequest.start_index` value is floored to 0
+- :attr:`~scim2_models.ListResponse.resources` must be set when :attr:`~scim2_models.ListResponse.totalResults` is non-null.
 
 [0.1.6] - 2024-06-06
 --------------------

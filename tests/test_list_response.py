@@ -4,6 +4,7 @@ from typing import Union
 import pytest
 from pydantic import ValidationError
 
+from scim2_models import Context
 from scim2_models import EnterpriseUser
 from scim2_models import Group
 from scim2_models import ListResponse
@@ -147,3 +148,40 @@ def test_missing_resource_schema(load_sample):
 
     # TODO: This should raise a ValidationError
     ListResponse.of(User).model_validate(payload, strict=True)
+
+
+def test_zero_results():
+    """:rfc:`RFC7644 §3.4.2 <7644#section-3.4.2>` indicates that
+    ListResponse.Resources is required when ListResponse.totalResults is non-
+    zero.
+
+    This MAY be a subset of the full set of resources if pagination
+    (Section 3.4.2.4) is requested. REQUIRED if "totalResults" is non-
+    zero.
+    """
+
+    payload = {
+        "totalResults": 1,
+        "Resources": [
+            {
+                "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+                "userName": "foobar",
+                "id": "foobar",
+            }
+        ],
+    }
+    ListResponse.of(User).model_validate(
+        payload, scim_ctx=Context.RESOURCE_QUERY_RESPONSE
+    )
+
+    payload = {"totalResults": 1, "Resources": []}
+    with pytest.raises(ValidationError):
+        ListResponse.of(User).model_validate(
+            payload, scim_ctx=Context.RESOURCE_QUERY_RESPONSE
+        )
+
+    payload = {"totalResults": 1}
+    with pytest.raises(ValidationError):
+        ListResponse.of(User).model_validate(
+            payload, scim_ctx=Context.RESOURCE_QUERY_RESPONSE
+        )
