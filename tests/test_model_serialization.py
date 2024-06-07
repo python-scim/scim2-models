@@ -12,8 +12,6 @@ from scim2_models.rfc7643.resource import Resource
 
 
 class SubRetModel(ComplexAttribute):
-    _attribute_urn: str = "org:example:SupRetResource:sub"
-
     always_returned: Annotated[Optional[str], Returned.always] = None
     never_returned: Annotated[Optional[str], Returned.never] = None
     default_returned: Annotated[Optional[str], Returned.default] = None

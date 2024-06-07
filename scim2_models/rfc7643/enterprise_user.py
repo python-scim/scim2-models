@@ -9,10 +9,6 @@ from .resource import Resource
 
 
 class Manager(ComplexAttribute):
-    _attribute_urn: str = (
-        "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:manager"
-    )
-
     value: Optional[str] = None
     """The id of the SCIM resource representingthe User's manager."""
 

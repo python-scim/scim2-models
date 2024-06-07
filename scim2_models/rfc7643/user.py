@@ -15,8 +15,6 @@ from .resource import Resource
 
 
 class Name(ComplexAttribute):
-    _attribute_urn: str = "urn:ietf:params:scim:schemas:core:2.0:User.name"
-
     formatted: Optional[str] = None
     """The full name, including all middle names, titles, and suffixes as
     appropriate, formatted for display (e.g., 'Ms. Barbara J Jensen, III')."""
@@ -43,8 +41,6 @@ class Name(ComplexAttribute):
 
 
 class Email(ComplexAttribute):
-    _attribute_urn: str = "urn:ietf:params:scim:schemas:core:2.0:User.emails"
-
     class Type(str, Enum):
         work = "work"
         home = "home"
@@ -66,8 +62,6 @@ class Email(ComplexAttribute):
 
 
 class PhoneNumber(ComplexAttribute):
-    _attribute_urn: str = "urn:ietf:params:scim:schemas:core:2.0:User.phoneNumbers"
-
     class Type(str, Enum):
         work = "work"
         home = "home"
@@ -93,8 +87,6 @@ class PhoneNumber(ComplexAttribute):
 
 
 class Im(ComplexAttribute):
-    _attribute_urn: str = "urn:ietf:params:scim:schemas:core:2.0:User.ims"
-
     class Type(str, Enum):
         aim = "aim"
         gtalk = "gtalk"
@@ -121,8 +113,6 @@ class Im(ComplexAttribute):
 
 
 class Photo(ComplexAttribute):
-    _attribute_urn: str = "urn:ietf:params:scim:schemas:core:2.0:User.photos"
-
     class Type(str, Enum):
         photo = "photo"
         thumbnail = "thumbnail"
@@ -143,8 +133,6 @@ class Photo(ComplexAttribute):
 
 
 class Address(ComplexAttribute):
-    _attribute_urn: str = "urn:ietf:params:scim:schemas:core:2.0:User.addresses"
-
     class Type(str, Enum):
         work = "work"
         home = "home"
@@ -182,8 +170,6 @@ class Address(ComplexAttribute):
 
 
 class Entitlement(ComplexAttribute):
-    _attribute_urn: str = "urn:ietf:params:scim:schemas:core:2.0:User.entitlements"
-
     value: Optional[str] = None
     """The value of an entitlement."""
 
@@ -199,8 +185,6 @@ class Entitlement(ComplexAttribute):
 
 
 class Role(ComplexAttribute):
-    _attribute_urn: str = "urn:ietf:params:scim:schemas:core:2.0:User.roles"
-
     value: Optional[str] = None
     """The value of a role."""
 
@@ -216,8 +200,6 @@ class Role(ComplexAttribute):
 
 
 class X509Certificate(ComplexAttribute):
-    _attribute_urn: str = "urn:ietf:params:scim:schemas:core:2.0:User.x509Certificates"
-
     value: Optional[str] = None
     """The value of an X.509 certificate."""
 

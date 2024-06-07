@@ -14,6 +14,8 @@ from typing import get_origin
 from pydantic import ConfigDict
 from pydantic import Discriminator
 from pydantic import Tag
+from pydantic import ValidationInfo
+from pydantic import ValidatorFunctionWrapHandler
 from pydantic import field_serializer
 from pydantic import model_validator
 from typing_extensions import Self
@@ -196,6 +198,22 @@ class Resource(BaseModel, Generic[AnyModel]):
             schema for schema in extension_schemas if schema not in self.schemas
         ]
         return schemas
+
+    @model_validator(mode="wrap")
+    @classmethod
+    def attribute_urn_marker(
+        cls, value: Any, handler: ValidatorFunctionWrapHandler, info: ValidationInfo
+    ) -> Self:
+        """Navigate through attributes and subattributes of type
+        ComplexAttribute, and mark them with a '_schema' attribute.
+
+        '_schema' will later be used by 'get_attribute_urn'.
+        """
+
+        obj = handler(value)
+        obj.mark_with_schema()
+
+        return obj
 
 
 AnyResource = TypeVar("AnyResource", bound="Resource")

@@ -11,8 +11,6 @@ from .resource import Resource
 
 
 class GroupMember(ComplexAttribute):
-    _attribute_urn: str = "urn:ietf:params:scim:schemas:core:2.0:Group.members"
-
     value: Annotated[Optional[str], Mutability.immutable] = None
     """Identifier of the member of this Group."""
 
