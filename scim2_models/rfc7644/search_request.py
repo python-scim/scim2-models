@@ -2,6 +2,8 @@ from enum import Enum
 from typing import List
 from typing import Optional
 
+from pydantic import field_validator
+
 from .message import Message
 
 
@@ -41,3 +43,14 @@ class SearchRequest(Message):
     count: Optional[int] = None
     """An integer indicating the desired maximum number of query results per
     page."""
+
+    @field_validator("count")
+    @classmethod
+    def count_floor(cls, value: int) -> int:
+        """According to :rfc:`RFC7644 §3.4.2 <7644#section-3.4.2.4>, count
+        values less than 1 are interpreted as 1.
+
+        A value less than 1 SHALL be interpreted as 1.
+        """
+
+        return max(1, value)
