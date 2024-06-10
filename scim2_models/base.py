@@ -447,10 +447,7 @@ class BaseModel(BaseModel):
             if not isclass(attr_type) or not issubclass(attr_type, ComplexAttribute):
                 continue
 
-            if isinstance(self, ComplexAttribute):
-                main_schema = self._schema
-            else:
-                main_schema = self.model_fields["schemas"].default[0]
+            main_schema = self.model_fields["schemas"].default[0]
 
             separator = ":" if isinstance(self, Resource) else "."
             schema = f"{main_schema}{separator}{field_name}"
