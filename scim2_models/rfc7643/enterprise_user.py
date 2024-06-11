@@ -4,11 +4,11 @@ from typing import Optional
 from pydantic import AnyUrl
 from pydantic import Field
 
-from ..base import ComplexAttribute
+from ..base import MultiValuedComplexAttribute
 from .resource import Resource
 
 
-class Manager(ComplexAttribute):
+class Manager(MultiValuedComplexAttribute):
     value: Optional[str] = None
     """The id of the SCIM resource representingthe User's manager."""
 

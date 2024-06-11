@@ -5,12 +5,12 @@ from typing import Optional
 from pydantic import AnyUrl
 from pydantic import Field
 
-from ..base import ComplexAttribute
+from ..base import MultiValuedComplexAttribute
 from ..base import Mutability
 from .resource import Resource
 
 
-class GroupMember(ComplexAttribute):
+class GroupMember(MultiValuedComplexAttribute):
     value: Annotated[Optional[str], Mutability.immutable] = None
     """Identifier of the member of this Group."""
 
