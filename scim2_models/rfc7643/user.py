@@ -201,7 +201,7 @@ class Role(MultiValuedComplexAttribute):
 
 
 class X509Certificate(MultiValuedComplexAttribute):
-    value: Optional[str] = None
+    value: Optional[bytes] = None
     """The value of an X.509 certificate."""
 
     display: Optional[str] = None
