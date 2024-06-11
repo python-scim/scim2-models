@@ -2,6 +2,7 @@ from .base import BaseModel
 from .base import CaseExact
 from .base import ComplexAttribute
 from .base import Context
+from .base import MultiValuedComplexAttribute
 from .base import Mutability
 from .base import Required
 from .base import Returned
@@ -75,6 +76,7 @@ __all__ = [
     "Message",
     "Meta",
     "Mutability",
+    "MultiValuedComplexAttribute",
     "Name",
     "Op",
     "Patch",

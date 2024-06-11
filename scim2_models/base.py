@@ -1,6 +1,7 @@
 from enum import Enum
 from enum import auto
 from inspect import isclass
+from typing import Annotated
 from typing import Any
 from typing import Dict
 from typing import List
@@ -11,8 +12,10 @@ from typing import Union
 from typing import get_args
 from typing import get_origin
 
+from pydantic import AnyUrl
 from pydantic import BaseModel
 from pydantic import ConfigDict
+from pydantic import Field
 from pydantic import SerializationInfo
 from pydantic import SerializerFunctionWrapHandler
 from pydantic import ValidationInfo
@@ -614,6 +617,25 @@ class ComplexAttribute(BaseModel):
         """
         alias = self.model_fields[field_name].alias or field_name
         return f"{self._schema}.{alias}"
+
+
+class MultiValuedComplexAttribute(ComplexAttribute):
+    type: Optional[str] = None
+    """A label indicating the attribute's function."""
+
+    primary: Optional[bool] = None
+    """A Boolean value indicating the 'primary' or preferred attribute value
+    for this attribute."""
+
+    display: Annotated[Optional[str], Mutability.immutable] = None
+    """A human-readable name, primarily used for display purposes."""
+
+    value: Optional[str] = None
+    """The value of an entitlement."""
+
+    ref: Optional[AnyUrl] = Field(None, alias="$ref")
+    """The reference URI of a target resource, if the attribute is a
+    reference."""
 
 
 AnyModel = TypeVar("AnyModel", bound=BaseModel)

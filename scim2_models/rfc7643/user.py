@@ -7,6 +7,7 @@ from pydantic import AnyUrl
 from pydantic import EmailStr
 
 from ..base import ComplexAttribute
+from ..base import MultiValuedComplexAttribute
 from ..base import Mutability
 from ..base import Required
 from ..base import Uniqueness
@@ -40,7 +41,7 @@ class Name(ComplexAttribute):
     languages (e.g., 'III' given the full name 'Ms. Barbara J Jensen, III')."""
 
 
-class Email(ComplexAttribute):
+class Email(MultiValuedComplexAttribute):
     class Type(str, Enum):
         work = "work"
         home = "home"
@@ -61,7 +62,7 @@ class Email(ComplexAttribute):
     address."""
 
 
-class PhoneNumber(ComplexAttribute):
+class PhoneNumber(MultiValuedComplexAttribute):
     class Type(str, Enum):
         work = "work"
         home = "home"
@@ -86,7 +87,7 @@ class PhoneNumber(ComplexAttribute):
     number."""
 
 
-class Im(ComplexAttribute):
+class Im(MultiValuedComplexAttribute):
     class Type(str, Enum):
         aim = "aim"
         gtalk = "gtalk"
@@ -112,7 +113,7 @@ class Im(ComplexAttribute):
     for this attribute, e.g., the preferred messenger or primary messenger."""
 
 
-class Photo(ComplexAttribute):
+class Photo(MultiValuedComplexAttribute):
     class Type(str, Enum):
         photo = "photo"
         thumbnail = "thumbnail"
@@ -132,7 +133,7 @@ class Photo(ComplexAttribute):
     for this attribute, e.g., the preferred photo or thumbnail."""
 
 
-class Address(ComplexAttribute):
+class Address(MultiValuedComplexAttribute):
     class Type(str, Enum):
         work = "work"
         home = "home"
@@ -169,7 +170,7 @@ class Address(ComplexAttribute):
     for this attribute, e.g., the preferred photo or thumbnail."""
 
 
-class Entitlement(ComplexAttribute):
+class Entitlement(MultiValuedComplexAttribute):
     value: Optional[str] = None
     """The value of an entitlement."""
 
@@ -184,7 +185,7 @@ class Entitlement(ComplexAttribute):
     for this attribute."""
 
 
-class Role(ComplexAttribute):
+class Role(MultiValuedComplexAttribute):
     value: Optional[str] = None
     """The value of a role."""
 
@@ -199,7 +200,7 @@ class Role(ComplexAttribute):
     for this attribute."""
 
 
-class X509Certificate(ComplexAttribute):
+class X509Certificate(MultiValuedComplexAttribute):
     value: Optional[str] = None
     """The value of an X.509 certificate."""
 
