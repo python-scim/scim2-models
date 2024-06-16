@@ -69,7 +69,7 @@ class AuthenticationScheme(ComplexAttribute):
     description: Annotated[str, Mutability.read_only, Required.true]
     """A description of the authentication scheme."""
 
-    spec_uri: Annotated[Optional[AnyUrl], Mutability.read_only]
+    spec_uri: Annotated[Optional[AnyUrl], Mutability.read_only] = None
     """An HTTP-addressable URL pointing to the authentication scheme's
     specification."""
 
