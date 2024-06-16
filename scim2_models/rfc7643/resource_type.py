@@ -16,11 +16,11 @@ from .resource import Resource
 
 class SchemaExtension(ComplexAttribute):
     schema_: Annotated[AnyUrl, Mutability.read_only, Required.true, CaseExact.true] = (
-        Field(..., alias="schema")
+        Field(None, alias="schema")
     )
     """The URI of a schema extension."""
 
-    required: Annotated[bool, Mutability.read_only, Required.true]
+    required: Annotated[bool, Mutability.read_only, Required.true] = None
     """A Boolean value that specifies whether or not the schema extension is
     required for the resource type.
 
@@ -42,7 +42,7 @@ class ResourceType(Resource):
     This is often the same value as the "name" attribute.
     """
 
-    name: Annotated[str, Mutability.read_only, Required.true]
+    name: Annotated[str, Mutability.read_only, Required.true] = None
     """The resource type name.
 
     When applicable, service providers MUST specify the name, e.g.,
@@ -55,12 +55,12 @@ class ResourceType(Resource):
     When applicable, service providers MUST specify the description.
     """
 
-    endpoint: Annotated[str, Mutability.read_only, Required.true]
+    endpoint: Annotated[str, Mutability.read_only, Required.true] = None
     """The resource type's HTTP-addressable endpoint relative to the Base URL,
     e.g., '/Users'."""
 
     schema_: Annotated[AnyUrl, Mutability.read_only, Required.true, CaseExact.true] = (
-        Field(..., alias="schema")
+        Field(None, alias="schema")
     )
     """The resource type's primary/base schema URI."""
 

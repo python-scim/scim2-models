@@ -7,6 +7,10 @@ Added
 - :attr:`~scim2_models.SearchRequest.start_index` value is floored to 0
 - :attr:`~scim2_models.ListResponse.resources` must be set when :attr:`~scim2_models.ListResponse.totalResults` is non-null.
 
+Fix
+^^^
+- Add missing default values. #33
+
 [0.1.6] - 2024-06-06
 --------------------
 Added

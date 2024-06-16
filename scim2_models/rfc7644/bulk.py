@@ -19,7 +19,7 @@ class BulkOperation(ComplexAttribute):
         patch = "PATCH"
         delete = "DELETE"
 
-    method: Method
+    method: Method = None
     """The HTTP method of the current operation."""
 
     bulk_id: Optional[str] = None
@@ -54,12 +54,12 @@ class BulkRequest(BaseModel):
     will accept before the operation is terminated and an error response is
     returned."""
 
-    operations: List[BulkOperation] = Field(..., alias="Operations")
+    operations: List[BulkOperation] = Field(None, alias="Operations")
     """Defines operations within a bulk job."""
 
 
 class BulkResponse(BaseModel):
     schemas: List[str] = ["urn:ietf:params:scim:api:messages:2.0:BulkResponse"]
 
-    operations: List[BulkOperation] = Field(..., alias="Operations")
+    operations: List[BulkOperation] = Field(None, alias="Operations")
     """Defines operations within a bulk job."""

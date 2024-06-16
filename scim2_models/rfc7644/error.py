@@ -103,7 +103,7 @@ class Error(Message):
 
     schemas: List[str] = ["urn:ietf:params:scim:api:messages:2.0:Error"]
 
-    status: Annotated[int, PlainSerializer(int_to_str)]
+    status: Annotated[Optional[int], PlainSerializer(int_to_str)] = None
     """The HTTP status code (see Section 6 of [RFC7231]) expressed as a JSON
     string."""
 

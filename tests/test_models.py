@@ -113,3 +113,23 @@ def test_get_resource_by_payload():
         Resource.get_by_payload([ListResponse[User]], payload, with_extensions=False)
         == ListResponse[User]
     )
+
+
+def test_everything_is_optional():
+    """Test that every field is optional."""
+    models = [
+        User,
+        EnterpriseUser,
+        Group,
+        Schema,
+        ResourceType,
+        ServiceProviderConfig,
+        ListResponse[User],
+        PatchOp,
+        BulkRequest,
+        BulkResponse,
+        SearchRequest,
+        Error,
+    ]
+    for model in models:
+        model()

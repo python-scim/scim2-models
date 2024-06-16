@@ -24,7 +24,7 @@ class Attribute(ComplexAttribute):
         binary = "binary"
         complex = "complex"
 
-    name: Annotated[str, Mutability.read_only, Required.true, CaseExact.true]
+    name: Annotated[str, Mutability.read_only, Required.true, CaseExact.true] = None
     """The attribute's name."""
 
     type: Annotated[Type, Mutability.read_only, Required.true]

@@ -26,7 +26,7 @@ class ListResponse(Message, Generic[AnyResource]):
 
     schemas: List[str] = ["urn:ietf:params:scim:api:messages:2.0:ListResponse"]
 
-    total_results: int
+    total_results: int = None
     """The total number of results returned by the list or query operation."""
 
     start_index: Optional[int] = None
