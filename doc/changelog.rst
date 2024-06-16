@@ -1,6 +1,8 @@
 Changelog
 =========
 
+[0.1.7] - 2024-06-16
+--------------------
 Added
 ^^^^^
 - :attr:`~scim2_models.SearchRequest.count` value is floored to 1
