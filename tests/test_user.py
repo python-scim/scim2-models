@@ -1,12 +1,11 @@
 import datetime
 
-from pydantic import AnyUrl
-
 from scim2_models import Address
 from scim2_models import Email
 from scim2_models import Im
 from scim2_models import PhoneNumber
 from scim2_models import Photo
+from scim2_models import Reference
 from scim2_models import User
 
 
@@ -48,7 +47,7 @@ def test_full_user(load_sample):
     assert obj.name.honorific_suffix == "III"
     assert obj.display_name == "Babs Jensen"
     assert obj.nick_name == "Babs"
-    assert obj.profile_url == AnyUrl("https://login.example.com/bjensen")
+    assert obj.profile_url == Reference("https://login.example.com/bjensen")
     assert obj.emails[0].value == "bjensen@example.com"
     assert obj.emails[0].type == Email.Type.work
     assert obj.emails[0].primary is True
@@ -78,11 +77,11 @@ def test_full_user(load_sample):
     assert obj.phone_numbers[1].type == PhoneNumber.Type.mobile
     assert obj.ims[0].value == "someaimhandle"
     assert obj.ims[0].type == Im.Type.aim
-    assert obj.photos[0].value == AnyUrl(
+    assert obj.photos[0].value == Reference(
         "https://photos.example.com/profilephoto/72930000000Ccne/F"
     )
     assert obj.photos[0].type == Photo.Type.photo
-    assert obj.photos[1].value == AnyUrl(
+    assert obj.photos[1].value == Reference(
         "https://photos.example.com/profilephoto/72930000000Ccne/T"
     )
     assert obj.photos[1].type == Photo.Type.thumbnail
@@ -94,17 +93,17 @@ def test_full_user(load_sample):
     assert obj.active is True
     assert obj.password == "t1meMa$heen"
     assert obj.groups[0].value == "e9e30dba-f08f-4109-8486-d5c6a331660a"
-    assert obj.groups[0].ref == AnyUrl(
+    assert obj.groups[0].ref == Reference(
         "https://example.com/v2/Groups/e9e30dba-f08f-4109-8486-d5c6a331660a"
     )
     assert obj.groups[0].display == "Tour Guides"
     assert obj.groups[1].value == "fc348aa8-3835-40eb-a20b-c726e15c55b5"
-    assert obj.groups[1].ref == AnyUrl(
+    assert obj.groups[1].ref == Reference(
         "https://example.com/v2/Groups/fc348aa8-3835-40eb-a20b-c726e15c55b5"
     )
     assert obj.groups[1].display == "Employees"
     assert obj.groups[2].value == "71ddacd2-a8e7-49b8-a5db-ae50d0a5bfd7"
-    assert obj.groups[2].ref == AnyUrl(
+    assert obj.groups[2].ref == Reference(
         "https://example.com/v2/Groups/71ddacd2-a8e7-49b8-a5db-ae50d0a5bfd7"
     )
     assert obj.groups[2].display == "US Employees"

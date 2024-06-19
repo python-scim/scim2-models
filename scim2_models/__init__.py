@@ -4,6 +4,7 @@ from .base import ComplexAttribute
 from .base import Context
 from .base import MultiValuedComplexAttribute
 from .base import Mutability
+from .base import Reference
 from .base import Required
 from .base import Returned
 from .base import Uniqueness
@@ -84,6 +85,7 @@ __all__ = [
     "PatchOperation",
     "PhoneNumber",
     "Photo",
+    "Reference",
     "Required",
     "Resource",
     "ResourceType",

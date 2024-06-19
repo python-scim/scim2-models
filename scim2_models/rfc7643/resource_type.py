@@ -2,12 +2,12 @@ from typing import Annotated
 from typing import List
 from typing import Optional
 
-from pydantic import AnyUrl
 from pydantic import Field
 
 from ..base import CaseExact
 from ..base import ComplexAttribute
 from ..base import Mutability
+from ..base import Reference
 from ..base import Required
 from ..base import Returned
 from ..base import Uniqueness
@@ -15,9 +15,9 @@ from .resource import Resource
 
 
 class SchemaExtension(ComplexAttribute):
-    schema_: Annotated[AnyUrl, Mutability.read_only, Required.true, CaseExact.true] = (
-        Field(None, alias="schema")
-    )
+    schema_: Annotated[
+        Reference, Mutability.read_only, Required.true, CaseExact.true
+    ] = Field(None, alias="schema")
     """The URI of a schema extension."""
 
     required: Annotated[bool, Mutability.read_only, Required.true] = None
@@ -59,9 +59,9 @@ class ResourceType(Resource):
     """The resource type's HTTP-addressable endpoint relative to the Base URL,
     e.g., '/Users'."""
 
-    schema_: Annotated[AnyUrl, Mutability.read_only, Required.true, CaseExact.true] = (
-        Field(None, alias="schema")
-    )
+    schema_: Annotated[
+        Reference, Mutability.read_only, Required.true, CaseExact.true
+    ] = Field(None, alias="schema")
     """The resource type's primary/base schema URI."""
 
     schema_extensions: Annotated[

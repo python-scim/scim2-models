@@ -1,8 +1,7 @@
 import datetime
 
-from pydantic import AnyUrl
-
 from scim2_models import AuthenticationScheme
+from scim2_models import Reference
 from scim2_models import ServiceProviderConfig
 
 
@@ -13,7 +12,7 @@ def test_service_provider_configuration(load_sample):
     assert obj.schemas == [
         "urn:ietf:params:scim:schemas:core:2.0:ServiceProviderConfig"
     ]
-    assert obj.documentation_uri == AnyUrl("http://example.com/help/scim.html")
+    assert obj.documentation_uri == Reference("http://example.com/help/scim.html")
     assert obj.patch.supported is True
     assert obj.bulk.supported is True
     assert obj.bulk.max_operations == 1000
@@ -28,10 +27,10 @@ def test_service_provider_configuration(load_sample):
         obj.authentication_schemes[0].description
         == "Authentication scheme using the OAuth Bearer Token Standard"
     )
-    assert obj.authentication_schemes[0].spec_uri == AnyUrl(
+    assert obj.authentication_schemes[0].spec_uri == Reference(
         "http://www.rfc-editor.org/info/rfc6750"
     )
-    assert obj.authentication_schemes[0].documentation_uri == AnyUrl(
+    assert obj.authentication_schemes[0].documentation_uri == Reference(
         "http://example.com/help/oauth.html"
     )
     assert (
@@ -44,10 +43,10 @@ def test_service_provider_configuration(load_sample):
         obj.authentication_schemes[1].description
         == "Authentication scheme using the HTTP Basic Standard"
     )
-    assert obj.authentication_schemes[1].spec_uri == AnyUrl(
+    assert obj.authentication_schemes[1].spec_uri == Reference(
         "http://www.rfc-editor.org/info/rfc2617"
     )
-    assert obj.authentication_schemes[1].documentation_uri == AnyUrl(
+    assert obj.authentication_schemes[1].documentation_uri == Reference(
         "http://example.com/help/httpBasic.html"
     )
     assert obj.authentication_schemes[1].type == AuthenticationScheme.Type.httpbasic

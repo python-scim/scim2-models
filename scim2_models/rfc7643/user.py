@@ -3,12 +3,12 @@ from typing import Annotated
 from typing import List
 from typing import Optional
 
-from pydantic import AnyUrl
 from pydantic import EmailStr
 
 from ..base import ComplexAttribute
 from ..base import MultiValuedComplexAttribute
 from ..base import Mutability
+from ..base import Reference
 from ..base import Required
 from ..base import Uniqueness
 from .group import GroupMember
@@ -118,7 +118,7 @@ class Photo(MultiValuedComplexAttribute):
         photo = "photo"
         thumbnail = "thumbnail"
 
-    value: Optional[AnyUrl] = None
+    value: Optional[Reference] = None
     """URL of a photo of the User."""
 
     display: Optional[str] = None
@@ -232,7 +232,7 @@ class User(Resource):
     """The casual way to address the user in real life, e.g., 'Bob' or 'Bobby'
     instead of 'Robert'."""
 
-    profile_url: Optional[AnyUrl] = None
+    profile_url: Optional[Reference] = None
     """A fully qualified URL pointing to a page representing the User's online
     profile."""
 

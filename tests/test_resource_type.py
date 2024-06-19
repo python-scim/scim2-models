@@ -1,5 +1,4 @@
-from pydantic import AnyUrl
-
+from scim2_models import Reference
 from scim2_models import ResourceType
 
 
@@ -12,8 +11,8 @@ def test_user_resource_type(load_sample):
     assert obj.name == "User"
     assert obj.endpoint == "/Users"
     assert obj.description == "User Account"
-    assert obj.schema_ == AnyUrl("urn:ietf:params:scim:schemas:core:2.0:User")
-    assert obj.schema_extensions[0].schema_ == AnyUrl(
+    assert obj.schema_ == Reference("urn:ietf:params:scim:schemas:core:2.0:User")
+    assert obj.schema_extensions[0].schema_ == Reference(
         "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"
     )
     assert obj.schema_extensions[0].required is True
@@ -31,7 +30,7 @@ def test_group_resource_type(load_sample):
     assert obj.name == "Group"
     assert obj.endpoint == "/Groups"
     assert obj.description == "Group"
-    assert obj.schema_ == AnyUrl("urn:ietf:params:scim:schemas:core:2.0:Group")
+    assert obj.schema_ == Reference("urn:ietf:params:scim:schemas:core:2.0:Group")
     assert obj.meta.location == "https://example.com/v2/ResourceTypes/Group"
     assert obj.meta.resource_type == "ResourceType"
 

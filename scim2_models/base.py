@@ -27,9 +27,12 @@ from pydantic import model_validator
 from pydantic.alias_generators import to_camel
 from pydantic_core import PydanticCustomError
 from typing_extensions import Self
+from typing_extensions import TypeAlias
 
 from scim2_models.attributes import contains_attribute_or_subattributes
 from scim2_models.attributes import validate_attribute_urn
+
+Reference: TypeAlias = AnyUrl
 
 
 class Context(Enum):
@@ -633,7 +636,7 @@ class MultiValuedComplexAttribute(ComplexAttribute):
     value: Optional[str] = None
     """The value of an entitlement."""
 
-    ref: Optional[AnyUrl] = Field(None, alias="$ref")
+    ref: Optional[Reference] = Field(None, alias="$ref")
     """The reference URI of a target resource, if the attribute is a
     reference."""
 

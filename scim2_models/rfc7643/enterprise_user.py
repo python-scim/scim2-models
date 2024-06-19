@@ -1,10 +1,10 @@
 from typing import List
 from typing import Optional
 
-from pydantic import AnyUrl
 from pydantic import Field
 
 from ..base import MultiValuedComplexAttribute
+from ..base import Reference
 from .resource import Resource
 
 
@@ -12,7 +12,7 @@ class Manager(MultiValuedComplexAttribute):
     value: Optional[str] = None
     """The id of the SCIM resource representingthe User's manager."""
 
-    ref: Optional[AnyUrl] = Field(
+    ref: Optional[Reference] = Field(
         None,
         alias="$ref",
     )

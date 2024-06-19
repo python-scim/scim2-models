@@ -3,10 +3,9 @@ from typing import Annotated
 from typing import List
 from typing import Optional
 
-from pydantic import AnyUrl
-
 from ..base import ComplexAttribute
 from ..base import Mutability
+from ..base import Reference
 from ..base import Required
 from ..base import Returned
 from ..base import Uniqueness
@@ -69,11 +68,11 @@ class AuthenticationScheme(ComplexAttribute):
     description: Annotated[str, Mutability.read_only, Required.true] = None
     """A description of the authentication scheme."""
 
-    spec_uri: Annotated[Optional[AnyUrl], Mutability.read_only] = None
+    spec_uri: Annotated[Optional[Reference], Mutability.read_only] = None
     """An HTTP-addressable URL pointing to the authentication scheme's
     specification."""
 
-    documentation_uri: Annotated[Optional[AnyUrl], Mutability.read_only] = None
+    documentation_uri: Annotated[Optional[Reference], Mutability.read_only] = None
     """An HTTP-addressable URL pointing to the authentication scheme's usage
     documentation."""
 
@@ -92,7 +91,7 @@ class ServiceProviderConfig(Resource):
     """A unique identifier for a SCIM resource as defined by the service
     provider."""
 
-    documentation_uri: Annotated[Optional[AnyUrl], Mutability.read_only] = None
+    documentation_uri: Annotated[Optional[Reference], Mutability.read_only] = None
     """An HTTP-addressable URL pointing to the service provider's human-
     consumable help documentation."""
 
