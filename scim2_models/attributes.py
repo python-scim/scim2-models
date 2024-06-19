@@ -32,8 +32,8 @@ def validate_model_attribute(model: Type, attribute_base: str) -> None:
 
 
 def extract_schema_and_attribut_base(attribute_urn: str) -> Tuple[str, str]:
-    """Extract the schema urn part and the attribute name part from attribute
-    name, as defined in :rfc:`RFC7644 §3.10 <7644#section-3.10>`."""
+    # Extract the schema urn part and the attribute name part from attribute
+    # name, as defined in :rfc:`RFC7644 §3.10 <7644#section-3.10>`.
 
     *urn_blocks, attribute_base = attribute_urn.split(":")
     schema = ":".join(urn_blocks)
