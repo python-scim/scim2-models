@@ -22,7 +22,6 @@ from ..base import Required
 from ..base import Returned
 from ..base import Uniqueness
 from ..constants import RESERVED_WORDS
-from .resource import Meta
 from .resource import Resource
 
 
@@ -186,9 +185,6 @@ class Attribute(ComplexAttribute):
 
 class Schema(Resource):
     schemas: List[str] = ["urn:ietf:params:scim:schemas:core:2.0:Schema"]
-
-    meta: Annotated[Optional[Meta], Mutability.read_only] = None
-    """A complex attribute containing resource metadata."""
 
     id: Annotated[Optional[str], Mutability.read_only, Required.true] = None
     """The unique URI of the schema."""
