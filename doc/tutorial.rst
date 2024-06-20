@@ -279,7 +279,7 @@ and from :class:`~scim2_models.ComplexAttribute` for the complex attributes:
 
 .. code-block:: python
 
-    >>> from typing import Annotated, Optional
+    >>> from typing import Annotated, Optional, List
     >>> from scim2_models import Resource, Returned, Mutability, ComplexAttribute
     >>> from enum import Enum
 
@@ -291,6 +291,8 @@ and from :class:`~scim2_models.ComplexAttribute` for the complex attributes:
     ...     """The pet color."""
 
     >>> class Pet(Resource):
+    ...     schemas: List[str] = ["example:schemas:Pet"]
+    ...
     ...     name: Annotated[Optional[str], Mutability.immutable, Returned.always]
     ...     """The name of the pet."""
     ...
@@ -313,11 +315,47 @@ that can take type parameters to represent :rfc:`RFC7643 §7 'referenceTypes'<7
 
 :class:`~scim2_models.Reference` has two special type parameters :data:`~scim2_models.ExternalReference` and :data:`~scim2_models.URIReference` that matches :rfc:`RFC7643 §7 <7643#section-7>` external and URI reference types.
 
-Dynamic model from schemas
-==========================
+Dynamic schemas from models
+===========================
+
+With :meth:`~scim2_models.Resource.to_schema` any model can be exported as a :class:`~scim2_models.Schema` object.
+This is useful for server implementations, so custom models or models provided by scim2-models can easily be exported on the ``/Schemas`` endpoint.
+
+
+.. code-block:: python
+
+    >>> class MyCustomResource(Resource):
+    ...     """My awesome custom schema."""
+    ...
+    ...     schemas: List[str] = ["example:schemas:MyCustomResource"]
+    ...
+    ...     foobar: Optional[str]
+    ...
+    >>> schema = MyCustomResource.to_schema()
+    >>> dump = schema.model_dump()
+    >>> assert dump == {
+    ...     "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Schema"],
+    ...     "id": "example:schemas:MyCustomResource",
+    ...     "name": "MyCustomResource",
+    ...     "description": "My awesome custom schema.",
+    ...     "attributes": [
+    ...         {
+    ...             "caseExact": False,
+    ...              "multiValued": False,
+    ...              "mutability": "readWrite",
+    ...              "name": "foobar",
+    ...              "required": False,
+    ...              "returned": "default",
+    ...              "type": "string",
+    ...              "uniqueness": "none",
+    ...         },
+    ...     ],
+    ... }
+
+Dynamic models from schemas
+===========================
 
 Given a :class:`~scim2_models.Schema` object, scim2-models can dynamically generate a pythonic model to be used in your code with the :meth:`~scim2_models.Schema.make_model` method.
-
 
 .. code-block:: python
    :class: dropdown
