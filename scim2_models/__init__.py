@@ -43,11 +43,9 @@ from .rfc7644.bulk import BulkResponse
 from .rfc7644.error import Error
 from .rfc7644.list_response import ListResponse
 from .rfc7644.message import Message
-from .rfc7644.patch_op import Op
 from .rfc7644.patch_op import PatchOp
 from .rfc7644.patch_op import PatchOperation
 from .rfc7644.search_request import SearchRequest
-from .rfc7644.search_request import SortOrder
 
 __all__ = [
     "Address",
@@ -79,7 +77,6 @@ __all__ = [
     "Mutability",
     "MultiValuedComplexAttribute",
     "Name",
-    "Op",
     "Patch",
     "PatchOp",
     "PatchOperation",
@@ -94,7 +91,6 @@ __all__ = [
     "Schema",
     "SchemaExtension",
     "SearchRequest",
-    "SortOrder",
     "ServiceProviderConfig",
     "Sort",
     "Uniqueness",

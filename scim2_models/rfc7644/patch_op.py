@@ -9,13 +9,12 @@ from ..base import ComplexAttribute
 from .message import Message
 
 
-class Op(str, Enum):
-    replace = "replace"
-    remove = "remove"
-    add = "add"
-
-
 class PatchOperation(ComplexAttribute):
+    class Op(str, Enum):
+        replace = "replace"
+        remove = "remove"
+        add = "add"
+
     op: Op
     """Each PATCH operation object MUST have exactly one "op" member, whose
     value indicates the operation to perform and MAY be one of "add", "remove",

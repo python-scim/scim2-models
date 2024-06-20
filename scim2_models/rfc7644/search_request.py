@@ -7,11 +7,6 @@ from pydantic import field_validator
 from .message import Message
 
 
-class SortOrder(str, Enum):
-    ascending = "ascending"
-    descending = "descending"
-
-
 class SearchRequest(Message):
     """SearchRequest object defined at https://datatracker.ietf.org/doc/html/rfc7644#section-3.4.3"""
 
@@ -32,6 +27,10 @@ class SearchRequest(Message):
     sort_by: Optional[str] = None
     """A string indicating the attribute whose value SHALL be used to order the
     returned responses."""
+
+    class SortOrder(str, Enum):
+        ascending = "ascending"
+        descending = "descending"
 
     sort_order: Optional[SortOrder] = None
     """A string indicating the order in which the "sortBy" parameter is
