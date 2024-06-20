@@ -265,6 +265,9 @@ class Required(Enum):
 
     _default = false
 
+    def __bool__(self):
+        return self.value
+
 
 class CaseExact(Enum):
     """A Boolean value that specifies whether or not a string attribute is case
@@ -274,6 +277,9 @@ class CaseExact(Enum):
     false = False
 
     _default = false
+
+    def __bool__(self):
+        return self.value
 
 
 class BaseModel(BaseModel):
@@ -327,6 +333,7 @@ class BaseModel(BaseModel):
         """Check that the field mutability is expected according to the
         requests validation context, as defined in :rfc:`RFC7643 §7
         <7653#section-7>`."""
+
         if (
             not info.context
             or not info.context.get("scim")

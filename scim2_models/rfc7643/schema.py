@@ -38,7 +38,7 @@ class Attribute(ComplexAttribute):
     ] = None
     """The attribute's human-readable description."""
 
-    required: Annotated[Optional[bool], Mutability.read_only, Required.true] = None
+    required: Annotated[Required, Mutability.read_only, Required.true] = Required.false
     """A Boolean value that specifies whether or not the attribute is
     required."""
 
@@ -48,7 +48,9 @@ class Attribute(ComplexAttribute):
     """A collection of suggested canonical values that MAY be used (e.g.,
     "work" and "home")."""
 
-    case_exact: Annotated[Optional[bool], Mutability.read_only, Required.true] = True
+    case_exact: Annotated[CaseExact, Mutability.read_only, Required.true] = (
+        CaseExact.false
+    )
     """A Boolean value that specifies whether or not a string attribute is case
     sensitive."""
 
