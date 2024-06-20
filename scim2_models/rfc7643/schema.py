@@ -1,16 +1,73 @@
+import re
+from datetime import datetime
 from enum import Enum
 from typing import Annotated
 from typing import List
 from typing import Optional
+from typing import Tuple
+from typing import Type
+from typing import Union
+
+from pydantic import Field
+from pydantic import create_model
+from pydantic.alias_generators import to_pascal
+from pydantic.alias_generators import to_snake
 
 from ..base import CaseExact
 from ..base import ComplexAttribute
+from ..base import MultiValuedComplexAttribute
 from ..base import Mutability
+from ..base import Reference
 from ..base import Required
 from ..base import Returned
 from ..base import Uniqueness
+from ..constants import RESERVED_WORDS
 from .resource import Meta
 from .resource import Resource
+
+
+def make_python_identifier(identifier: str) -> str:
+    """Sanitize string to be a suitable Python/Pydantic class attribute
+    name."""
+
+    sanitized = re.sub(r"\W|^(?=\d)", "", identifier)
+    if sanitized in RESERVED_WORDS:
+        sanitized = f"{sanitized}_"
+
+    return sanitized
+
+
+def make_python_model(obj: Union["Schema", "Attribute"], multiple=False) -> "Resource":
+    """Build a Python model from a Schema or an Attribute object."""
+
+    from scim2_models.rfc7643.resource import Resource
+
+    if isinstance(obj, Attribute):
+        pydantic_attributes = {
+            to_snake(make_python_identifier(attr.name)): attr.to_python()
+            for attr in obj.sub_attributes
+        }
+        base = MultiValuedComplexAttribute if multiple else ComplexAttribute
+
+    else:
+        pydantic_attributes = {
+            to_snake(make_python_identifier(attr.name)): attr.to_python()
+            for attr in obj.attributes
+        }
+        pydantic_attributes["schemas"] = (Optional[List[str]], Field(default=[obj.id]))
+        base = Resource
+
+    model_name = to_pascal(to_snake(obj.name))
+    model = create_model(model_name, __base__=base, **pydantic_attributes)
+
+    # Set the ComplexType class as a member of the model
+    # e.g. make Member an attribute of Group
+    for attr_name in model.model_fields:
+        attr_type = model.get_field_root_type(attr_name)
+        if issubclass(attr_type, (ComplexAttribute, MultiValuedComplexAttribute)):
+            setattr(model, attr_type.__name__, attr_type)
+
+    return model
 
 
 class Attribute(ComplexAttribute):
@@ -23,6 +80,21 @@ class Attribute(ComplexAttribute):
         reference = "reference"
         binary = "binary"
         complex = "complex"
+
+        def to_python(self, multiple=False) -> Type:
+            attr_types = {
+                self.string: str,
+                self.boolean: bool,
+                self.decimal: float,
+                self.integer: int,
+                self.date_time: datetime,
+                self.reference: Reference,
+                self.binary: bytes,
+                self.complex: MultiValuedComplexAttribute
+                if multiple
+                else ComplexAttribute,
+            }
+            return attr_types[self.value]
 
     name: Annotated[str, Mutability.read_only, Required.true, CaseExact.true] = None
     """The attribute's name."""
@@ -83,6 +155,34 @@ class Attribute(ComplexAttribute):
     """When an attribute is of type "complex", "subAttributes" defines a set of
     sub-attributes."""
 
+    def to_python(self) -> Tuple[Type, Field]:
+        """Build tuple suited to be passed to pydantic 'create_model'."""
+
+        attr_type = self.type.to_python(self.multi_valued)
+
+        if attr_type in (ComplexAttribute, MultiValuedComplexAttribute):
+            attr_type = make_python_model(self, self.multi_valued)
+
+        if self.multi_valued:
+            attr_type = List[attr_type]
+
+        return (
+            Annotated[
+                Optional[attr_type],
+                self.required,
+                self.case_exact,
+                self.mutability,
+                self.returned,
+                self.uniqueness,
+            ],
+            Field(
+                description=self.description,
+                examples=self.canonical_values,
+                alias=self.name,
+                default=None,
+            ),
+        )
+
 
 class Schema(Resource):
     schemas: List[str] = ["urn:ietf:params:scim:schemas:core:2.0:Schema"]
@@ -104,3 +204,8 @@ class Schema(Resource):
     ] = None
     """A complex type that defines service provider attributes and their
     qualities via the following set of sub-attributes."""
+
+    def make_model(self) -> "Resource":
+        """Build a Python model from the schema definition."""
+
+        return make_python_model(self)
