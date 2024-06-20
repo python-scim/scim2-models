@@ -61,6 +61,17 @@
                     "mutability": "immutable",
                     "returned": "default",
                     "uniqueness": "none"
+                },
+                {
+                    "name": "display",
+                    "type": "string",
+                    "multiValued": false,
+                    "description": "A human-readable name for the group member, primarily used for display purposes.",
+                    "required": false,
+                    "caseExact": false,
+                    "mutability": "readOnly",
+                    "returned": "default",
+                    "uniqueness": "none"
                 }
             ],
             "mutability": "readWrite",

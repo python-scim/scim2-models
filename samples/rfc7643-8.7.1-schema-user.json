@@ -402,7 +402,7 @@
                     "multiValued": false,
                     "description": "URL of a photo of the User.",
                     "required": false,
-                    "caseExact": false,
+                    "caseExact": true,
                     "mutability": "readWrite",
                     "returned": "default",
                     "uniqueness": "none"
@@ -534,6 +534,15 @@
                     "mutability": "readWrite",
                     "returned": "default",
                     "uniqueness": "none"
+                },
+                {
+                    "name": "primary",
+                    "type": "boolean",
+                    "multiValued": false,
+                    "description": "A Boolean value indicating the 'primary' or preferred attribute value for this attribute, e.g., the preferred mailing address or primary email address.  The primary attribute value 'True' MUST appear no more than once.",
+                    "required": false,
+                    "mutability": "readWrite",
+                    "returned": "default"
                 }
             ],
             "mutability": "readWrite",
@@ -724,7 +733,7 @@
                     "multiValued": false,
                     "description": "The value of an X.509 certificate.",
                     "required": false,
-                    "caseExact": false,
+                    "caseExact": true,
                     "mutability": "readWrite",
                     "returned": "default",
                     "uniqueness": "none"

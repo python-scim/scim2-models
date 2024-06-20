@@ -29,7 +29,7 @@
             "name": "description",
             "type": "string",
             "multiValued": false,
-            "description": "The schema's human-readable name.  When applicable, service providers MUST specify the name, e.g., 'User'.",
+            "description": "The schema's human-readable description.  When applicable, service providers MUST specify the description.",
             "required": false,
             "caseExact": false,
             "mutability": "readOnly",
@@ -69,7 +69,8 @@
                         "decimal",
                         "integer",
                         "dateTime",
-                        "reference"
+                        "reference",
+                        "binary"
                     ],
                     "caseExact": false,
                     "mutability": "readOnly",
@@ -223,7 +224,8 @@
                                 "decimal",
                                 "integer",
                                 "dateTime",
-                                "reference"
+                                "reference",
+                                "binary"
                             ]
                         },
                         {
@@ -328,7 +330,7 @@
                         {
                             "name": "referenceTypes",
                             "type": "string",
-                            "multiValued": false,
+                            "multiValued": true,
                             "description": "Used only with an attribute of type 'reference'.  Specifies a SCIM resourceType that a reference attribute MAY refer to, e.g., 'User'.",
                             "required": false,
                             "caseExact": true,

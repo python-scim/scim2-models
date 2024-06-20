@@ -148,6 +148,26 @@
             ]
         },
         {
+            "name": "etag",
+            "type": "complex",
+            "multiValued": false,
+            "description": "A complex type that specifies ETag result options.",
+            "required": true,
+            "returned": "default",
+            "mutability": "readOnly",
+            "subAttributes": [
+                {
+                    "name": "supported",
+                    "type": "boolean",
+                    "multiValued": false,
+                    "description": "A Boolean value specifying whether or not the operation is supported.",
+                    "required": true,
+                    "mutability": "readOnly",
+                    "returned": "default"
+                }
+            ]
+        },
+        {
             "name": "authenticationSchemes",
             "type": "complex",
             "multiValued": true,
