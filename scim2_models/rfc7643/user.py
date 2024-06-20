@@ -5,6 +5,7 @@ from typing import Optional
 
 from pydantic import EmailStr
 
+from ..base import CaseExact
 from ..base import ComplexAttribute
 from ..base import MultiValuedComplexAttribute
 from ..base import Mutability
@@ -118,7 +119,7 @@ class Photo(MultiValuedComplexAttribute):
         photo = "photo"
         thumbnail = "thumbnail"
 
-    value: Optional[Reference] = None
+    value: Annotated[Optional[Reference], CaseExact.true] = None
     """URL of a photo of the User."""
 
     display: Optional[str] = None
@@ -201,7 +202,7 @@ class Role(MultiValuedComplexAttribute):
 
 
 class X509Certificate(MultiValuedComplexAttribute):
-    value: Optional[bytes] = None
+    value: Annotated[Optional[bytes], CaseExact.true] = None
     """The value of an X.509 certificate."""
 
     display: Optional[str] = None

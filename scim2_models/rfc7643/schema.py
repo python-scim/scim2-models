@@ -67,9 +67,9 @@ class Attribute(ComplexAttribute):
     are returned in response to a GET request or in response to a PUT, POST, or
     PATCH request."""
 
-    uniqueness: Annotated[Uniqueness, Mutability.read_only, Required.true] = (
-        Uniqueness.none
-    )
+    uniqueness: Annotated[
+        Uniqueness, Mutability.read_only, Required.true, CaseExact.true
+    ] = Uniqueness.none
     """A single keyword value that specifies how the service provider enforces
     uniqueness of attribute values."""
 
