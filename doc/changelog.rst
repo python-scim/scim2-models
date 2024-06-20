@@ -5,6 +5,9 @@ Changed
 ^^^^^^^
 - Use a custom :data:`~scim2_models.Reference` type instead of :class:`~pydantic.AnyUrl` as RFC7643 reference type.
 
+Fix
+^^^
+- Allow relative URLs in :data:`~scim2_models.Reference`.
 
 [0.1.7] - 2024-06-16
 --------------------

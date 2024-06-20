@@ -12,7 +12,6 @@ from typing import Union
 from typing import get_args
 from typing import get_origin
 
-from pydantic import AnyUrl
 from pydantic import BaseModel
 from pydantic import ConfigDict
 from pydantic import Field
@@ -32,7 +31,7 @@ from typing_extensions import TypeAlias
 from scim2_models.attributes import contains_attribute_or_subattributes
 from scim2_models.attributes import validate_attribute_urn
 
-Reference: TypeAlias = AnyUrl
+Reference: TypeAlias = str
 
 
 class Context(Enum):
