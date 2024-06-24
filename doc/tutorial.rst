@@ -345,8 +345,8 @@ This can be used by client applications that intends to dynamically discover ser
    Sub-Attribute models are automatically created and set as members of their parent model classes.
    For instance the RFC7643 Group members sub-attribute can be accessed with ``Group.Members``.
 
-    .. toggle::
+   .. toggle::
 
-        .. literalinclude :: ../samples/rfc7643-8.7.1-schema-group.json
-           :language: json
-           :caption: schema-group.json
+       .. literalinclude :: ../samples/rfc7643-8.7.1-schema-group.json
+          :language: json
+          :caption: schema-group.json
