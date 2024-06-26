@@ -134,6 +134,9 @@ class Resource(BaseModel, Generic[AnyModel]):
         schemas."""
 
         extension_models = cls.__pydantic_generic_metadata__.get("args", [])
+        if len(extension_models) == 1 and get_origin(extension_models[0]) == Union:
+            extension_models = get_args(extension_models[0])
+
         by_schema = {
             ext.model_fields["schemas"].default[0]: ext for ext in extension_models
         }

@@ -1,10 +1,14 @@
 import datetime
+from typing import List
+from typing import Optional
+from typing import Union
 
 import pytest
 
 from scim2_models import EnterpriseUser
 from scim2_models import Manager
 from scim2_models import Meta
+from scim2_models import Resource
 from scim2_models import User
 
 
@@ -180,3 +184,19 @@ def test_invalid_setitem():
 
     with pytest.raises(KeyError):
         user[object] = "foobar"
+
+
+class SuperHero(Resource):
+    schemas: List[str] = ["urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"]
+
+    superpower: Optional[str] = None
+    """The superhero superpower."""
+
+
+def test_multiple_extensions_union():
+    """Test that multiple extensions can be used by using Union."""
+
+    user_model = User[Union[EnterpriseUser, SuperHero]]
+    instance = user_model()
+    instance[SuperHero] = SuperHero(superpower="flight")
+    assert instance[SuperHero].superpower == "flight"
