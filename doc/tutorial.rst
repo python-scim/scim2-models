@@ -206,7 +206,7 @@ Schema extensions
 =================
 
 :rfc:`RFC7643 §3.3 <7643#section-3.3>` extensions are supported.
-Extensions must be passed as resource type parameter, e.g. ``user = User[EnterpriseUser]`` or ``user = User[EnterpriseUser, SuperHero]``.
+Extensions must be passed as resource type parameter, e.g. ``user = User[EnterpriseUser]`` or ``user = User[Union[EnterpriseUser, SuperHero]]``.
 Extensions attributes are accessed with brackets, e.g. ``user[EnterpriseUser].employee_number``.
 
 .. code-block:: python

@@ -12,6 +12,7 @@ Changed
 Fix
 ^^^
 - Allow relative URLs in :data:`~scim2_models.Reference`.
+- Models with multiples extensions could not be initialized. #37
 
 [0.1.7] - 2024-06-16
 --------------------
