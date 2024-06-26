@@ -1,6 +1,8 @@
 Changelog
 =========
 
+[0.1.8] - 2024-06-26
+--------------------
 Added
 ^^^^^
 - Dynamic pydantic model creation from SCIM schemas. #6
