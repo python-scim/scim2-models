@@ -1,6 +1,10 @@
 Changelog
 =========
 
+Added
+^^^^^
+- :data:`~scim2_models.Reference` type parameters represent SCIM ReferenceType
+
 [0.1.8] - 2024-06-26
 --------------------
 Added

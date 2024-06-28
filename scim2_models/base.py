@@ -1,9 +1,11 @@
+from collections import UserString
 from enum import Enum
 from enum import auto
 from inspect import isclass
 from typing import Annotated
 from typing import Any
 from typing import Dict
+from typing import Generic
 from typing import List
 from typing import Optional
 from typing import Type
@@ -15,6 +17,7 @@ from typing import get_origin
 from pydantic import BaseModel
 from pydantic import ConfigDict
 from pydantic import Field
+from pydantic import GetCoreSchemaHandler
 from pydantic import SerializationInfo
 from pydantic import SerializerFunctionWrapHandler
 from pydantic import ValidationInfo
@@ -25,13 +28,51 @@ from pydantic import model_serializer
 from pydantic import model_validator
 from pydantic.alias_generators import to_camel
 from pydantic_core import PydanticCustomError
+from pydantic_core import core_schema
+from typing_extensions import NewType
 from typing_extensions import Self
-from typing_extensions import TypeAlias
 
 from scim2_models.attributes import contains_attribute_or_subattributes
 from scim2_models.attributes import validate_attribute_urn
 
-Reference: TypeAlias = str
+ReferenceTypes = TypeVar("ReferenceTypes")
+URIReference = NewType("URIReference", str)
+ExternalReference = NewType("ExternalReference", str)
+
+
+class Reference(UserString, Generic[ReferenceTypes]):
+    """Reference type as defined in :rfc:`RFC7643 §2.3.7 <7643#section-2.3.7>`.
+
+    References can take different type parameters:
+
+        - Any :class:`~scim2_models.Resource` subtype, or :class:`~typing.ForwardRef` of a Resource subtype, or :data:`~typing.Union` of those,
+        - :data:`~scim2_models.ExternalReference`
+        - :data:`~scim2_models.URIReference`
+
+    Examples
+
+    .. code-block:: python
+
+        class Foobar(Resource):
+            bff: Reference[User]
+            managers: Reference[Union["User", "Group"]]
+            photo: Reference[ExternalReference]
+            website: Reference[URIReference]
+    """
+
+    @classmethod
+    def __get_pydantic_core_schema__(
+        cls,
+        _source: type[Any],
+        _handler: GetCoreSchemaHandler,
+    ) -> core_schema.CoreSchema:
+        return core_schema.no_info_after_validator_function(
+            cls._validate, core_schema.str_schema()
+        )
+
+    @classmethod
+    def _validate(cls, input_value: str, /) -> str:
+        return input_value
 
 
 class Context(Enum):
@@ -456,7 +497,7 @@ class BaseModel(BaseModel):
 
         for field_name, field in self.model_fields.items():
             attr_type = self.get_field_root_type(field_name)
-            if not isclass(attr_type) or not issubclass(attr_type, ComplexAttribute):
+            if not is_complex_attribute(attr_type):
                 continue
 
             main_schema = self.model_fields["schemas"].default[0]
@@ -645,6 +686,15 @@ class MultiValuedComplexAttribute(ComplexAttribute):
     ref: Optional[Reference] = Field(None, alias="$ref")
     """The reference URI of a target resource, if the attribute is a
     reference."""
+
+
+def is_complex_attribute(type):
+    # issubclass raise a TypeError with 'Reference' on python < 3.11
+    return (
+        get_origin(type) != Reference
+        and isclass(type)
+        and issubclass(type, (ComplexAttribute, MultiValuedComplexAttribute))
+    )
 
 
 AnyModel = TypeVar("AnyModel", bound=BaseModel)

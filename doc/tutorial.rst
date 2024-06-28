@@ -107,9 +107,9 @@ Attributes inclusions and exclusions
 
 In some situations it might be needed to exclude, or only include a given set of attributes when serializing a model.
 This happens for instance when servers build response payloads for clients requesting only a sub-set the model attributes.
-As defined in :rfc:`RFC7644 §3.9 <7644#section-3.9>`, :code:`attributes` and :code:`excluded_attributes` parameters can
+As defined in :rfc:`RFC7644 §3.9 <7644#section-3.9>`, :code:`attributes` and :code:`excluded_attributes` parameters can
 be passed to :meth:`~scim2_models.BaseModel.model_dump`.
-The expected attribute notation is the one detailed on :rfc:`RFC7644 §3.10 <7644#section-3.10>`,
+The expected attribute notation is the one detailed on :rfc:`RFC7644 §3.10 <7644#section-3.10>`,
 like :code:`urn:ietf:params:scim:schemas:core:2.0:User:userName`, or :code:`userName` for short.
 
 .. code-block:: python
@@ -205,7 +205,7 @@ If a response resource type cannot be found, a ``pydantic.ValidationError`` will
 Schema extensions
 =================
 
-:rfc:`RFC7643 §3.3 <7643#section-3.3>` extensions are supported.
+:rfc:`RFC7643 §3.3 <7643#section-3.3>` extensions are supported.
 Extensions must be passed as resource type parameter, e.g. ``user = User[EnterpriseUser]`` or ``user = User[Union[EnterpriseUser, SuperHero]]``.
 Extensions attributes are accessed with brackets, e.g. ``user[EnterpriseUser].employee_number``.
 
@@ -252,7 +252,7 @@ Extensions attributes are accessed with brackets, e.g. ``user[EnterpriseUser].em
 Pre-defined Error objects
 =========================
 
-:rfc:`RFC7643 §3.12 <7643#section-3.12>` pre-defined errors are usable.
+:rfc:`RFC7643 §3.12 <7643#section-3.12>` pre-defined errors are usable.
 
 .. code-block:: python
 
@@ -291,7 +291,7 @@ and from :class:`~scim2_models.ComplexAttribute` for the complex attributes:
     ...     """The pet color."""
 
     >>> class Pet(Resource):
-    ...     name : Annotated[Optional[str], Mutability.immutable, Returned.always]
+    ...     name: Annotated[Optional[str], Mutability.immutable, Returned.always]
     ...     """The name of the pet."""
     ...
     ...     pet_type: Optional[PetType]
@@ -304,6 +304,14 @@ If unset the default values will be :attr:`~scim2_models.Mutability.read_write` 
 
     Be sure to make all the fields of your model :data:`~typing.Optional`.
     There will always be a :class:`~scim2_models.Context` in which this will be true.
+
+There is a dedicated type for :rfc:`RFC7643 §2.3.7 <7643#section-2.3.7>` :class:`~scim2_models.Reference`
+that can take type parameters to represent :rfc:`RFC7643 §7 'referenceTypes'<7643#section-7>`:
+
+    >>> class PetOwner(Resource):
+    ...    pet: Reference["Pet"]
+
+:class:`~scim2_models.Reference` has two special type parameters :data:`~scim2_models.ExternalReference` and :data:`~scim2_models.URIReference` that matches :rfc:`RFC7643 §7 <7643#section-7>` external and URI reference types.
 
 Dynamic model from schemas
 ==========================

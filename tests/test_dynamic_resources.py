@@ -1,13 +1,17 @@
 import datetime
+from typing import ForwardRef
+from typing import Union
 
 from scim2_models.base import CaseExact
 from scim2_models.base import ComplexAttribute
+from scim2_models.base import ExternalReference
 from scim2_models.base import MultiValuedComplexAttribute
 from scim2_models.base import Mutability
 from scim2_models.base import Reference
 from scim2_models.base import Required
 from scim2_models.base import Returned
 from scim2_models.base import Uniqueness
+from scim2_models.base import URIReference
 from scim2_models.rfc7643.schema import Schema
 
 
@@ -67,8 +71,10 @@ def test_make_group_model_from_schema(load_sample):
     assert Members.get_field_annotation("value", Uniqueness) == Uniqueness.none
 
     # Members.ref
-    assert Members.get_field_root_type("ref") == Reference
-    # assert Members.get_field_annotation("ref", ReferenceType) == ["User", "Group"]
+    assert (
+        Members.get_field_root_type("ref")
+        == Reference[Union[ForwardRef("User"), ForwardRef("Group")]]
+    )
     assert not is_multiple(Members.model_fields["ref"])
     assert (
         Members.model_fields["ref"].description
@@ -292,7 +298,7 @@ def test_make_user_model_from_schema(load_sample):
     assert User.get_field_annotation("nick_name", Uniqueness) == Uniqueness.none
 
     # profile_url
-    assert User.get_field_root_type("profile_url") == Reference
+    assert User.get_field_root_type("profile_url") == Reference[ExternalReference]
     assert not is_multiple(User.model_fields["profile_url"])
     assert (
         User.model_fields["profile_url"].description
@@ -642,7 +648,7 @@ def test_make_user_model_from_schema(load_sample):
     assert User.get_field_annotation("photos", Uniqueness) == Uniqueness.none
 
     # photo.value
-    assert Photos.get_field_root_type("value") == Reference
+    assert Photos.get_field_root_type("value") == Reference[ExternalReference]
     assert not is_multiple(Photos.model_fields["value"])
     assert Photos.model_fields["value"].description == "URL of a photo of the User."
     assert Photos.get_field_annotation("value", Required) == Required.false
@@ -858,7 +864,10 @@ def test_make_user_model_from_schema(load_sample):
     assert Groups.get_field_annotation("value", Uniqueness) == Uniqueness.none
 
     # group.ref
-    assert Groups.get_field_root_type("ref") == Reference
+    assert (
+        Groups.get_field_root_type("ref")
+        == Reference[Union[ForwardRef("User"), ForwardRef("Group")]]
+    )
     assert not is_multiple(Groups.model_fields["ref"])
     assert (
         Groups.model_fields["ref"].description
@@ -1409,7 +1418,7 @@ def test_make_enterprise_user_model_from_schema(load_sample):
     assert Manager.get_field_annotation("value", Uniqueness) == Uniqueness.none
 
     # Manager.ref
-    assert Manager.get_field_root_type("ref") == str
+    assert Manager.get_field_root_type("ref") == Reference[ForwardRef("User")]
     assert not is_multiple(Manager.model_fields["ref"])
     assert (
         Manager.model_fields["ref"].description
@@ -1495,7 +1504,7 @@ def test_make_resource_type_model_from_schema(load_sample):
     )
 
     # endpoint
-    assert ResourceType.get_field_root_type("endpoint") == Reference
+    assert ResourceType.get_field_root_type("endpoint") == Reference[URIReference]
     assert not is_multiple(ResourceType.model_fields["endpoint"])
     assert (
         ResourceType.model_fields["endpoint"].description
@@ -1511,7 +1520,7 @@ def test_make_resource_type_model_from_schema(load_sample):
     assert ResourceType.get_field_annotation("endpoint", Uniqueness) == Uniqueness.none
 
     # schema
-    assert ResourceType.get_field_root_type("schema_") == Reference
+    assert ResourceType.get_field_root_type("schema_") == Reference[URIReference]
     assert not is_multiple(ResourceType.model_fields["schema_"])
     assert (
         ResourceType.model_fields["schema_"].description
@@ -1556,7 +1565,7 @@ def test_make_resource_type_model_from_schema(load_sample):
     )
 
     # SchemaExtensions.schema
-    assert SchemaExtensions.get_field_root_type("schema_") == Reference
+    assert SchemaExtensions.get_field_root_type("schema_") == Reference[URIReference]
     assert not is_multiple(SchemaExtensions.model_fields["schema_"])
     assert (
         SchemaExtensions.model_fields["schema_"].description
@@ -1640,7 +1649,10 @@ def test_make_service_provider_config_model_from_schema(load_sample):
     ]
 
     # documentation_uri
-    assert ServiceProviderConfig.get_field_root_type("documentation_uri") == str
+    assert (
+        ServiceProviderConfig.get_field_root_type("documentation_uri")
+        == Reference[ExternalReference]
+    )
     assert not is_multiple(ServiceProviderConfig.model_fields["documentation_uri"])
     assert (
         ServiceProviderConfig.model_fields["documentation_uri"].description
@@ -2047,7 +2059,10 @@ def test_make_service_provider_config_model_from_schema(load_sample):
     )
 
     # authentication_schemes.spec_uri
-    assert AuthenticationSchemes.get_field_root_type("spec_uri") == Reference
+    assert (
+        AuthenticationSchemes.get_field_root_type("spec_uri")
+        == Reference[ExternalReference]
+    )
     assert not is_multiple(AuthenticationSchemes.model_fields["spec_uri"])
     assert (
         AuthenticationSchemes.model_fields["spec_uri"].description
@@ -2075,7 +2090,10 @@ def test_make_service_provider_config_model_from_schema(load_sample):
     )
 
     # authentication_schemes.documentation_uri
-    assert AuthenticationSchemes.get_field_root_type("documentation_uri") == str
+    assert (
+        AuthenticationSchemes.get_field_root_type("documentation_uri")
+        == Reference[ExternalReference]
+    )
     assert not is_multiple(AuthenticationSchemes.model_fields["documentation_uri"])
     assert (
         AuthenticationSchemes.model_fields["documentation_uri"].description

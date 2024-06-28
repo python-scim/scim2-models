@@ -2,12 +2,14 @@ from .base import BaseModel
 from .base import CaseExact
 from .base import ComplexAttribute
 from .base import Context
+from .base import ExternalReference
 from .base import MultiValuedComplexAttribute
 from .base import Mutability
 from .base import Reference
 from .base import Required
 from .base import Returned
 from .base import Uniqueness
+from .base import URIReference
 from .rfc7643.enterprise_user import EnterpriseUser
 from .rfc7643.enterprise_user import Manager
 from .rfc7643.group import Group
@@ -66,6 +68,7 @@ __all__ = [
     "EnterpriseUser",
     "Entitlement",
     "Error",
+    "ExternalReference",
     "Filter",
     "Group",
     "GroupMember",
@@ -94,6 +97,7 @@ __all__ = [
     "ServiceProviderConfig",
     "Sort",
     "Uniqueness",
+    "URIReference",
     "User",
     "X509Certificate",
 ]

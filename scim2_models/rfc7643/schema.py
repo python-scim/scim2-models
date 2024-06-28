@@ -15,12 +15,15 @@ from pydantic.alias_generators import to_snake
 
 from ..base import CaseExact
 from ..base import ComplexAttribute
+from ..base import ExternalReference
 from ..base import MultiValuedComplexAttribute
 from ..base import Mutability
 from ..base import Reference
 from ..base import Required
 from ..base import Returned
 from ..base import Uniqueness
+from ..base import URIReference
+from ..base import is_complex_attribute
 from ..constants import RESERVED_WORDS
 from .resource import Resource
 
@@ -63,7 +66,7 @@ def make_python_model(obj: Union["Schema", "Attribute"], multiple=False) -> "Res
     # e.g. make Member an attribute of Group
     for attr_name in model.model_fields:
         attr_type = model.get_field_root_type(attr_name)
-        if issubclass(attr_type, (ComplexAttribute, MultiValuedComplexAttribute)):
+        if is_complex_attribute(attr_type):
             setattr(model, attr_type.__name__, attr_type)
 
     return model
@@ -80,14 +83,22 @@ class Attribute(ComplexAttribute):
         binary = "binary"
         complex = "complex"
 
-        def to_python(self, multiple=False) -> Type:
+        def to_python(self, multiple=False, reference_types=None) -> Type:
+            if self.value == self.reference:
+                if reference_types == ["external"]:
+                    return Reference[ExternalReference]
+
+                if reference_types == ["uri"]:
+                    return Reference[URIReference]
+
+                return Reference[Union[tuple(reference_types)]]
+
             attr_types = {
                 self.string: str,
                 self.boolean: bool,
                 self.decimal: float,
                 self.integer: int,
                 self.date_time: datetime,
-                self.reference: Reference,
                 self.binary: bytes,
                 self.complex: MultiValuedComplexAttribute
                 if multiple
@@ -157,7 +168,7 @@ class Attribute(ComplexAttribute):
     def to_python(self) -> Tuple[Type, Field]:
         """Build tuple suited to be passed to pydantic 'create_model'."""
 
-        attr_type = self.type.to_python(self.multi_valued)
+        attr_type = self.type.to_python(self.multi_valued, self.reference_types)
 
         if attr_type in (ComplexAttribute, MultiValuedComplexAttribute):
             attr_type = make_python_model(self, self.multi_valued)
