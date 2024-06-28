@@ -75,13 +75,13 @@ def make_python_model(obj: Union["Schema", "Attribute"], multiple=False) -> "Res
 class Attribute(ComplexAttribute):
     class Type(str, Enum):
         string = "string"
+        complex = "complex"
         boolean = "boolean"
         decimal = "decimal"
         integer = "integer"
         date_time = "dateTime"
         reference = "reference"
         binary = "binary"
-        complex = "complex"
 
         def to_python(self, multiple=False, reference_types=None) -> Type:
             if self.value == self.reference:
@@ -109,18 +109,20 @@ class Attribute(ComplexAttribute):
     name: Annotated[str, Mutability.read_only, Required.true, CaseExact.true] = None
     """The attribute's name."""
 
-    type: Annotated[Type, Mutability.read_only, Required.true]
+    type: Annotated[Type, Mutability.read_only, Required.true] = Field(
+        None, examples=[item.value for item in Type]
+    )
     """The attribute's data type."""
 
     multi_valued: Annotated[Optional[bool], Mutability.read_only, Required.true] = None
     """A Boolean value indicating the attribute's plurality."""
 
     description: Annotated[
-        Optional[str], Mutability.read_only, Required.true, CaseExact.true
+        Optional[str], Mutability.read_only, Required.false, CaseExact.true
     ] = None
     """The attribute's human-readable description."""
 
-    required: Annotated[Required, Mutability.read_only, Required.true] = Required.false
+    required: Annotated[Required, Mutability.read_only, Required.false] = Required.false
     """A Boolean value that specifies whether or not the attribute is
     required."""
 
@@ -130,33 +132,33 @@ class Attribute(ComplexAttribute):
     """A collection of suggested canonical values that MAY be used (e.g.,
     "work" and "home")."""
 
-    case_exact: Annotated[CaseExact, Mutability.read_only, Required.true] = (
+    case_exact: Annotated[CaseExact, Mutability.read_only, Required.false] = (
         CaseExact.false
     )
     """A Boolean value that specifies whether or not a string attribute is case
     sensitive."""
 
     mutability: Annotated[
-        Mutability, Mutability.read_only, Required.true, CaseExact.true
-    ] = Mutability.read_write
+        Mutability, Mutability.read_only, Required.false, CaseExact.true
+    ] = Field(Mutability.read_write, examples=[item.value for item in Mutability])
     """A single keyword indicating the circumstances under which the value of
     the attribute can be (re)defined."""
 
     returned: Annotated[
-        Returned, Mutability.read_only, Required.true, CaseExact.true
-    ] = Returned.default
+        Returned, Mutability.read_only, Required.false, CaseExact.true
+    ] = Field(Returned.default, examples=[item.value for item in Returned])
     """A single keyword that indicates when an attribute and associated values
     are returned in response to a GET request or in response to a PUT, POST, or
     PATCH request."""
 
     uniqueness: Annotated[
-        Uniqueness, Mutability.read_only, Required.true, CaseExact.true
-    ] = Uniqueness.none
+        Uniqueness, Mutability.read_only, Required.false, CaseExact.true
+    ] = Field(Uniqueness.none, examples=[item.value for item in Uniqueness])
     """A single keyword value that specifies how the service provider enforces
     uniqueness of attribute values."""
 
     reference_types: Annotated[
-        Optional[List[str]], Mutability.read_only, Required.true, CaseExact.true
+        Optional[List[str]], Mutability.read_only, Required.false, CaseExact.true
     ] = None
     """A multi-valued array of JSON strings that indicate the SCIM resource
     types that may be referenced."""
@@ -200,7 +202,9 @@ class Schema(Resource):
     id: Annotated[Optional[str], Mutability.read_only, Required.true] = None
     """The unique URI of the schema."""
 
-    name: Annotated[Optional[str], Mutability.read_only, Returned.default] = None
+    name: Annotated[
+        Optional[str], Mutability.read_only, Returned.default, Required.true
+    ] = None
     """The schema's human-readable name."""
 
     description: Annotated[Optional[str], Mutability.read_only, Returned.default] = None

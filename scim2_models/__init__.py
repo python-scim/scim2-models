@@ -32,6 +32,7 @@ from .rfc7643.service_provider_config import Sort
 from .rfc7643.user import Address
 from .rfc7643.user import Email
 from .rfc7643.user import Entitlement
+from .rfc7643.user import GroupMembership
 from .rfc7643.user import Im
 from .rfc7643.user import Name
 from .rfc7643.user import PhoneNumber
@@ -72,6 +73,7 @@ __all__ = [
     "Filter",
     "Group",
     "GroupMember",
+    "GroupMembership",
     "Im",
     "ListResponse",
     "Manager",

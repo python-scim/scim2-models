@@ -1,18 +1,22 @@
 from enum import Enum
 from typing import Annotated
+from typing import ForwardRef
 from typing import List
 from typing import Optional
+from typing import Union
 
 from pydantic import EmailStr
+from pydantic import Field
 
 from ..base import CaseExact
 from ..base import ComplexAttribute
+from ..base import ExternalReference
 from ..base import MultiValuedComplexAttribute
 from ..base import Mutability
 from ..base import Reference
 from ..base import Required
+from ..base import Returned
 from ..base import Uniqueness
-from .group import GroupMember
 from .resource import Resource
 
 
@@ -54,7 +58,7 @@ class Email(MultiValuedComplexAttribute):
     display: Optional[str] = None
     """A human-readable name, primarily used for display purposes."""
 
-    type: Optional[Type] = None
+    type: Optional[Type] = Field(None, examples=["work", "home", "other"])
     """A label indicating the attribute's function, e.g., 'work' or 'home'."""
 
     primary: Optional[bool] = None
@@ -78,7 +82,9 @@ class PhoneNumber(MultiValuedComplexAttribute):
     display: Optional[str] = None
     """A human-readable name, primarily used for display purposes."""
 
-    type: Optional[Type] = None
+    type: Optional[Type] = Field(
+        None, examples=["work", "home", "mobile", "fax", "pager", "other"]
+    )
     """A label indicating the attribute's function, e.g., 'work', 'home',
     'mobile'."""
 
@@ -105,7 +111,9 @@ class Im(MultiValuedComplexAttribute):
     display: Optional[str] = None
     """A human-readable name, primarily used for display purposes."""
 
-    type: Optional[Type] = None
+    type: Optional[Type] = Field(
+        None, examples=["aim", "gtalk", "icq", "xmpp", "msn", "skype", "qq", "yahoo"]
+    )
     """A label indicating the attribute's function, e.g., 'aim', 'gtalk',
     'xmpp'."""
 
@@ -119,13 +127,13 @@ class Photo(MultiValuedComplexAttribute):
         photo = "photo"
         thumbnail = "thumbnail"
 
-    value: Annotated[Optional[Reference], CaseExact.true] = None
+    value: Annotated[Optional[Reference[ExternalReference]], CaseExact.true] = None
     """URL of a photo of the User."""
 
     display: Optional[str] = None
     """A human-readable name, primarily used for display purposes."""
 
-    type: Optional[Type] = None
+    type: Optional[Type] = Field(None, examples=["photo", "thumbnail"])
     """A label indicating the attribute's function, i.e., 'photo' or
     'thumbnail'."""
 
@@ -163,7 +171,7 @@ class Address(MultiValuedComplexAttribute):
     country: Optional[str] = None
     """The country name component."""
 
-    type: Optional[Type] = None
+    type: Optional[Type] = Field(None, examples=["work", "home", "other"])
     """A label indicating the attribute's function, e.g., 'work' or 'home'."""
 
     primary: Optional[bool] = None
@@ -184,6 +192,27 @@ class Entitlement(MultiValuedComplexAttribute):
     primary: Optional[bool] = None
     """A Boolean value indicating the 'primary' or preferred attribute value
     for this attribute."""
+
+
+class GroupMembership(MultiValuedComplexAttribute):
+    value: Annotated[Optional[str], Mutability.read_only] = None
+    """The identifier of the User's group."""
+
+    ref: Annotated[
+        Optional[Reference[Union[ForwardRef("User"), ForwardRef("Group")]]],
+        Mutability.read_only,
+    ] = Field(None, alias="$ref")
+    """The reference URI of a target resource, if the attribute is a
+    reference."""
+
+    display: Annotated[Optional[str], Mutability.read_only] = None
+    """A human-readable name, primarily used for display purposes."""
+
+    type: Annotated[Optional[str], Mutability.read_only] = Field(
+        None, examples=["direct", "indirect"]
+    )
+    """A label indicating the attribute's function, e.g., 'direct' or
+    'indirect'."""
 
 
 class Role(MultiValuedComplexAttribute):
@@ -233,7 +262,7 @@ class User(Resource):
     """The casual way to address the user in real life, e.g., 'Bob' or 'Bobby'
     instead of 'Robert'."""
 
-    profile_url: Optional[Reference] = None
+    profile_url: Optional[Reference[ExternalReference]] = None
     """A fully qualified URL pointing to a page representing the User's online
     profile."""
 
@@ -265,7 +294,7 @@ class User(Resource):
     active: Optional[bool] = None
     """A Boolean value indicating the User's administrative status."""
 
-    password: Annotated[Optional[str], Mutability.write_only] = None
+    password: Annotated[Optional[str], Mutability.write_only, Returned.never] = None
     """The User's cleartext password."""
 
     emails: Optional[List[Email]] = None
@@ -283,7 +312,7 @@ class User(Resource):
     addresses: Optional[List[Address]] = None
     """A physical mailing address for this User."""
 
-    groups: Optional[List[GroupMember]] = None
+    groups: Optional[List[GroupMembership]] = None
     """A list of groups to which the user belongs, either through direct
     membership, through nested groups, or dynamically calculated."""
 

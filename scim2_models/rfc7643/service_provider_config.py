@@ -4,11 +4,13 @@ from typing import List
 from typing import Optional
 
 from ..base import ComplexAttribute
+from ..base import ExternalReference
 from ..base import Mutability
 from ..base import Reference
 from ..base import Required
 from ..base import Returned
 from ..base import Uniqueness
+from ..base import URIReference
 from .resource import Resource
 
 
@@ -47,7 +49,7 @@ class Sort(ComplexAttribute):
 
 
 class ETag(ComplexAttribute):
-    supported: Annotated[bool, Mutability.read_only] = None
+    supported: Annotated[bool, Mutability.read_only, Required.true] = None
     """A Boolean value specifying whether or not the operation is supported."""
 
 
@@ -68,11 +70,13 @@ class AuthenticationScheme(ComplexAttribute):
     description: Annotated[str, Mutability.read_only, Required.true] = None
     """A description of the authentication scheme."""
 
-    spec_uri: Annotated[Optional[Reference], Mutability.read_only] = None
+    spec_uri: Annotated[Optional[Reference[URIReference]], Mutability.read_only] = None
     """An HTTP-addressable URL pointing to the authentication scheme's
     specification."""
 
-    documentation_uri: Annotated[Optional[Reference], Mutability.read_only] = None
+    documentation_uri: Annotated[
+        Optional[Reference[ExternalReference]], Mutability.read_only
+    ] = None
     """An HTTP-addressable URL pointing to the authentication scheme's usage
     documentation."""
 
@@ -91,7 +95,9 @@ class ServiceProviderConfig(Resource):
     """A unique identifier for a SCIM resource as defined by the service
     provider."""
 
-    documentation_uri: Annotated[Optional[Reference], Mutability.read_only] = None
+    documentation_uri: Annotated[
+        Optional[Reference[ExternalReference]], Mutability.read_only
+    ] = None
     """An HTTP-addressable URL pointing to the service provider's human-
     consumable help documentation."""
 
@@ -113,7 +119,7 @@ class ServiceProviderConfig(Resource):
     sort: Annotated[Sort, Mutability.read_only, Required.true] = None
     """A complex type that specifies sort result options."""
 
-    etag: Annotated[ETag, Mutability.read_only] = None
+    etag: Annotated[ETag, Mutability.read_only, Required.true] = None
     """A complex type that specifies ETag configuration options."""
 
     authentication_schemes: Annotated[

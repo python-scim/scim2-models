@@ -1,24 +1,28 @@
+from typing import Annotated
+from typing import ForwardRef
 from typing import List
 from typing import Optional
 
 from pydantic import Field
 
 from ..base import MultiValuedComplexAttribute
+from ..base import Mutability
 from ..base import Reference
+from ..base import Required
 from .resource import Resource
 
 
 class Manager(MultiValuedComplexAttribute):
-    value: Optional[str] = None
+    value: Annotated[Optional[str], Required.true] = None
     """The id of the SCIM resource representingthe User's manager."""
 
-    ref: Optional[Reference] = Field(
+    ref: Annotated[Optional[Reference[ForwardRef("User")]], Required.true] = Field(
         None,
         alias="$ref",
     )
     """The URI of the SCIM resource representing the User's manager."""
 
-    display_name: Optional[str] = None
+    display_name: Annotated[Optional[str], Mutability.read_only] = None
     """The displayName of the User's manager."""
 
 

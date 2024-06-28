@@ -1,6 +1,8 @@
 from typing import Annotated
+from typing import ForwardRef
 from typing import List
 from typing import Optional
+from typing import Union
 
 from pydantic import Field
 
@@ -14,16 +16,18 @@ class GroupMember(MultiValuedComplexAttribute):
     value: Annotated[Optional[str], Mutability.immutable] = None
     """Identifier of the member of this Group."""
 
-    display: Annotated[Optional[str], Mutability.immutable] = None
-
-    type: Annotated[Optional[str], Mutability.immutable] = None
-    """A label indicating the attribute's function, e.g., "work" or "home"."""
-
-    ref: Annotated[Optional[Reference], Mutability.immutable] = Field(
-        None, alias="$ref"
-    )
+    ref: Annotated[
+        Optional[Reference[Union[ForwardRef("User"), "Group"]]], Mutability.immutable
+    ] = Field(None, alias="$ref")
     """The reference URI of a target resource, if the attribute is a
     reference."""
+
+    type: Annotated[Optional[str], Mutability.immutable] = Field(
+        None, examples=["User", "Group"]
+    )
+    """A label indicating the attribute's function, e.g., "work" or "home"."""
+
+    display: Annotated[Optional[str], Mutability.read_only] = None
 
 
 class Group(Resource):

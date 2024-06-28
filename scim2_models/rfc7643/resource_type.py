@@ -11,12 +11,13 @@ from ..base import Reference
 from ..base import Required
 from ..base import Returned
 from ..base import Uniqueness
+from ..base import URIReference
 from .resource import Resource
 
 
 class SchemaExtension(ComplexAttribute):
     schema_: Annotated[
-        Reference, Mutability.read_only, Required.true, CaseExact.true
+        Reference[URIReference], Mutability.read_only, Required.true, CaseExact.true
     ] = Field(None, alias="schema")
     """The URI of a schema extension."""
 
@@ -34,14 +35,6 @@ class SchemaExtension(ComplexAttribute):
 class ResourceType(Resource):
     schemas: List[str] = ["urn:ietf:params:scim:schemas:core:2.0:ResourceType"]
 
-    id: Annotated[
-        Optional[str], Mutability.read_only, Returned.default, Uniqueness.global_
-    ] = None
-    """The resource type's server unique id.
-
-    This is often the same value as the "name" attribute.
-    """
-
     name: Annotated[str, Mutability.read_only, Required.true] = None
     """The resource type name.
 
@@ -55,12 +48,22 @@ class ResourceType(Resource):
     When applicable, service providers MUST specify the description.
     """
 
-    endpoint: Annotated[str, Mutability.read_only, Required.true] = None
+    id: Annotated[
+        Optional[str], Mutability.read_only, Returned.default, Uniqueness.global_
+    ] = None
+    """The resource type's server unique id.
+
+    This is often the same value as the "name" attribute.
+    """
+
+    endpoint: Annotated[
+        Reference[URIReference], Mutability.read_only, Required.true
+    ] = None
     """The resource type's HTTP-addressable endpoint relative to the Base URL,
     e.g., '/Users'."""
 
     schema_: Annotated[
-        Reference, Mutability.read_only, Required.true, CaseExact.true
+        Reference[URIReference], Mutability.read_only, Required.true, CaseExact.true
     ] = Field(None, alias="schema")
     """The resource type's primary/base schema URI."""
 
