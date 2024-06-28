@@ -325,7 +325,9 @@ class CaseExact(Enum):
 class BaseModel(BaseModel):
     """Base Model for everything."""
 
-    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+    model_config = ConfigDict(
+        alias_generator=to_camel, populate_by_name=True, use_attribute_docstrings=True
+    )
 
     @classmethod
     def get_field_annotation(cls, field_name: str, annotation_type: Type) -> Any:
