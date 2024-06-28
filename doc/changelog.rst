@@ -1,6 +1,8 @@
 Changelog
 =========
 
+[0.1.9] - 2024-06-29
+--------------------
 
 Added
 ^^^^^
@@ -13,6 +15,7 @@ Fixed
 
 [0.1.8] - 2024-06-26
 --------------------
+
 Added
 ^^^^^
 - Dynamic pydantic model creation from SCIM schemas. #6
@@ -28,6 +31,7 @@ Fix
 
 [0.1.7] - 2024-06-16
 --------------------
+
 Added
 ^^^^^
 - :attr:`~scim2_models.SearchRequest.count` value is floored to 1
@@ -40,6 +44,7 @@ Fix
 
 [0.1.6] - 2024-06-06
 --------------------
+
 Added
 ^^^^^
 - Implement :class:`~scim2_models.CaseExact` attributes annotations.
