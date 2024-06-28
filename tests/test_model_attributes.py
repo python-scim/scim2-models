@@ -40,7 +40,7 @@ def test_guess_root_type():
         sub: Sub
         subs: List[Sub]
 
-    assert Sup.get_field_root_type("dummy") == str
+    assert Sup.get_field_root_type("dummy") is str
     assert Sup.get_field_root_type("sub") == Sub
     assert Sup.get_field_root_type("subs") == Sub
 

@@ -26,7 +26,7 @@ def test_make_group_model_from_schema(load_sample):
     ]
 
     # displayName
-    assert Group.get_field_root_type("display_name") == str
+    assert Group.get_field_root_type("display_name") is str
     assert not is_multiple(Group.model_fields["display_name"])
     assert (
         Group.model_fields["display_name"].description
@@ -55,7 +55,7 @@ def test_make_group_model_from_schema(load_sample):
     assert Group.get_field_annotation("members", Uniqueness) == Uniqueness.none
 
     # members.value
-    assert Members.get_field_root_type("value") == str
+    assert Members.get_field_root_type("value") is str
     assert not is_multiple(Members.model_fields["value"])
     assert (
         Members.model_fields["value"].description
@@ -85,7 +85,7 @@ def test_make_group_model_from_schema(load_sample):
     assert Members.get_field_annotation("ref", Uniqueness) == Uniqueness.none
 
     # Members.type
-    assert Members.get_field_root_type("type") == str
+    assert Members.get_field_root_type("type") is str
     assert not is_multiple(Members.model_fields["type"])
     assert (
         Members.model_fields["type"].description
@@ -99,7 +99,7 @@ def test_make_group_model_from_schema(load_sample):
     assert Members.get_field_annotation("type", Uniqueness) == Uniqueness.none
 
     # Members.display
-    assert Members.get_field_root_type("display") == str
+    assert Members.get_field_root_type("display") is str
     assert not is_multiple(Members.model_fields["display"])
     assert (
         Members.model_fields["display"].description
@@ -155,7 +155,7 @@ def test_make_user_model_from_schema(load_sample):
     ]
 
     # user_name
-    assert User.get_field_root_type("user_name") == str
+    assert User.get_field_root_type("user_name") is str
     assert not is_multiple(User.model_fields["user_name"])
     assert (
         User.model_fields["user_name"].description
@@ -183,7 +183,7 @@ def test_make_user_model_from_schema(load_sample):
     assert User.get_field_annotation("name", Uniqueness) == Uniqueness.none
 
     # name.formatted
-    assert Name.get_field_root_type("formatted") == str
+    assert Name.get_field_root_type("formatted") is str
     assert not is_multiple(Name.model_fields["formatted"])
     assert (
         Name.model_fields["formatted"].description
@@ -196,7 +196,7 @@ def test_make_user_model_from_schema(load_sample):
     assert Name.get_field_annotation("formatted", Uniqueness) == Uniqueness.none
 
     # name.family_name
-    assert Name.get_field_root_type("family_name") == str
+    assert Name.get_field_root_type("family_name") is str
     assert not is_multiple(Name.model_fields["family_name"])
     assert (
         Name.model_fields["family_name"].description
@@ -209,7 +209,7 @@ def test_make_user_model_from_schema(load_sample):
     assert Name.get_field_annotation("family_name", Uniqueness) == Uniqueness.none
 
     # name.given_name
-    assert Name.get_field_root_type("given_name") == str
+    assert Name.get_field_root_type("given_name") is str
     assert not is_multiple(Name.model_fields["given_name"])
     assert (
         Name.model_fields["given_name"].description
@@ -222,7 +222,7 @@ def test_make_user_model_from_schema(load_sample):
     assert Name.get_field_annotation("given_name", Uniqueness) == Uniqueness.none
 
     # name.middle_name
-    assert Name.get_field_root_type("middle_name") == str
+    assert Name.get_field_root_type("middle_name") is str
     assert not is_multiple(Name.model_fields["middle_name"])
     assert (
         Name.model_fields["middle_name"].description
@@ -235,7 +235,7 @@ def test_make_user_model_from_schema(load_sample):
     assert Name.get_field_annotation("middle_name", Uniqueness) == Uniqueness.none
 
     # name.honorific_prefix
-    assert Name.get_field_root_type("honorific_prefix") == str
+    assert Name.get_field_root_type("honorific_prefix") is str
     assert not is_multiple(Name.model_fields["honorific_prefix"])
     assert (
         Name.model_fields["honorific_prefix"].description
@@ -251,7 +251,7 @@ def test_make_user_model_from_schema(load_sample):
     assert Name.get_field_annotation("honorific_prefix", Uniqueness) == Uniqueness.none
 
     # name.honorific_suffix
-    assert Name.get_field_root_type("honorific_suffix") == str
+    assert Name.get_field_root_type("honorific_suffix") is str
     assert not is_multiple(Name.model_fields["honorific_suffix"])
     assert (
         Name.model_fields["honorific_suffix"].description
@@ -267,7 +267,7 @@ def test_make_user_model_from_schema(load_sample):
     assert Name.get_field_annotation("honorific_suffix", Uniqueness) == Uniqueness.none
 
     # display_name
-    assert User.get_field_root_type("display_name") == str
+    assert User.get_field_root_type("display_name") is str
     assert not is_multiple(User.model_fields["display_name"])
     assert (
         User.model_fields["display_name"].description
@@ -282,7 +282,7 @@ def test_make_user_model_from_schema(load_sample):
     assert User.get_field_annotation("display_name", Uniqueness) == Uniqueness.none
 
     # nick_name
-    assert User.get_field_root_type("nick_name") == str
+    assert User.get_field_root_type("nick_name") is str
     assert not is_multiple(User.model_fields["nick_name"])
     assert (
         User.model_fields["nick_name"].description
@@ -308,7 +308,7 @@ def test_make_user_model_from_schema(load_sample):
     assert User.get_field_annotation("profile_url", Uniqueness) == Uniqueness.none
 
     # title
-    assert User.get_field_root_type("title") == str
+    assert User.get_field_root_type("title") is str
     assert not is_multiple(User.model_fields["title"])
     assert (
         User.model_fields["title"].description
@@ -321,7 +321,7 @@ def test_make_user_model_from_schema(load_sample):
     assert User.get_field_annotation("title", Uniqueness) == Uniqueness.none
 
     # user_type
-    assert User.get_field_root_type("user_type") == str
+    assert User.get_field_root_type("user_type") is str
     assert not is_multiple(User.model_fields["user_type"])
     assert (
         User.model_fields["user_type"].description
@@ -334,7 +334,7 @@ def test_make_user_model_from_schema(load_sample):
     assert User.get_field_annotation("user_type", Uniqueness) == Uniqueness.none
 
     # preferred_language
-    assert User.get_field_root_type("preferred_language") == str
+    assert User.get_field_root_type("preferred_language") is str
     assert not is_multiple(User.model_fields["preferred_language"])
     assert (
         User.model_fields["preferred_language"].description
@@ -352,7 +352,7 @@ def test_make_user_model_from_schema(load_sample):
     )
 
     # locale
-    assert User.get_field_root_type("locale") == str
+    assert User.get_field_root_type("locale") is str
     assert not is_multiple(User.model_fields["locale"])
     assert (
         User.model_fields["locale"].description
@@ -365,7 +365,7 @@ def test_make_user_model_from_schema(load_sample):
     assert User.get_field_annotation("locale", Uniqueness) == Uniqueness.none
 
     # timezone
-    assert User.get_field_root_type("timezone") == str
+    assert User.get_field_root_type("timezone") is str
     assert not is_multiple(User.model_fields["timezone"])
     assert (
         User.model_fields["timezone"].description
@@ -378,7 +378,7 @@ def test_make_user_model_from_schema(load_sample):
     assert User.get_field_annotation("timezone", Uniqueness) == Uniqueness.none
 
     # active
-    assert User.get_field_root_type("active") == bool
+    assert User.get_field_root_type("active") is bool
     assert not is_multiple(User.model_fields["active"])
     assert (
         User.model_fields["active"].description
@@ -391,7 +391,7 @@ def test_make_user_model_from_schema(load_sample):
     assert User.get_field_annotation("active", Uniqueness) == Uniqueness.none
 
     # password
-    assert User.get_field_root_type("password") == str
+    assert User.get_field_root_type("password") is str
     assert not is_multiple(User.model_fields["password"])
     assert (
         User.model_fields["password"].description
@@ -419,7 +419,7 @@ def test_make_user_model_from_schema(load_sample):
     assert User.get_field_annotation("emails", Uniqueness) == Uniqueness.none
 
     # email.value
-    assert Emails.get_field_root_type("value") == str
+    assert Emails.get_field_root_type("value") is str
     assert not is_multiple(Emails.model_fields["value"])
     assert (
         Emails.model_fields["value"].description
@@ -432,7 +432,7 @@ def test_make_user_model_from_schema(load_sample):
     assert Emails.get_field_annotation("value", Uniqueness) == Uniqueness.none
 
     # email.display
-    assert Emails.get_field_root_type("display") == str
+    assert Emails.get_field_root_type("display") is str
     assert not is_multiple(Emails.model_fields["display"])
     assert (
         Emails.model_fields["display"].description
@@ -445,7 +445,7 @@ def test_make_user_model_from_schema(load_sample):
     assert Emails.get_field_annotation("display", Uniqueness) == Uniqueness.none
 
     # email.type
-    assert Emails.get_field_root_type("type") == str
+    assert Emails.get_field_root_type("type") is str
     assert not is_multiple(Emails.model_fields["type"])
     assert (
         Emails.model_fields["type"].description
@@ -459,7 +459,7 @@ def test_make_user_model_from_schema(load_sample):
     assert Emails.get_field_annotation("type", Uniqueness) == Uniqueness.none
 
     # email.primary
-    assert Emails.get_field_root_type("primary") == bool
+    assert Emails.get_field_root_type("primary") is bool
     assert not is_multiple(Emails.model_fields["primary"])
     assert (
         Emails.model_fields["primary"].description
@@ -489,7 +489,7 @@ def test_make_user_model_from_schema(load_sample):
     assert User.get_field_annotation("phone_numbers", Uniqueness) == Uniqueness.none
 
     # phone_number.value
-    assert PhoneNumbers.get_field_root_type("value") == str
+    assert PhoneNumbers.get_field_root_type("value") is str
     assert not is_multiple(PhoneNumbers.model_fields["value"])
     assert PhoneNumbers.model_fields["value"].description == "Phone number of the User."
     assert PhoneNumbers.get_field_annotation("value", Required) == Required.false
@@ -501,7 +501,7 @@ def test_make_user_model_from_schema(load_sample):
     assert PhoneNumbers.get_field_annotation("value", Uniqueness) == Uniqueness.none
 
     # phone_number.display
-    assert PhoneNumbers.get_field_root_type("display") == str
+    assert PhoneNumbers.get_field_root_type("display") is str
     assert not is_multiple(PhoneNumbers.model_fields["display"])
     assert (
         PhoneNumbers.model_fields["display"].description
@@ -517,7 +517,7 @@ def test_make_user_model_from_schema(load_sample):
     assert PhoneNumbers.get_field_annotation("display", Uniqueness) == Uniqueness.none
 
     # phone_number.type
-    assert PhoneNumbers.get_field_root_type("type") == str
+    assert PhoneNumbers.get_field_root_type("type") is str
     assert not is_multiple(PhoneNumbers.model_fields["type"])
     assert (
         PhoneNumbers.model_fields["type"].description
@@ -540,7 +540,7 @@ def test_make_user_model_from_schema(load_sample):
     assert PhoneNumbers.get_field_annotation("type", Uniqueness) == Uniqueness.none
 
     # phone_number.primary
-    assert PhoneNumbers.get_field_root_type("primary") == bool
+    assert PhoneNumbers.get_field_root_type("primary") is bool
     assert not is_multiple(PhoneNumbers.model_fields["primary"])
     assert (
         PhoneNumbers.model_fields["primary"].description
@@ -571,7 +571,7 @@ def test_make_user_model_from_schema(load_sample):
     assert User.get_field_annotation("ims", Uniqueness) == Uniqueness.none
 
     # im.value
-    assert Ims.get_field_root_type("value") == str
+    assert Ims.get_field_root_type("value") is str
     assert not is_multiple(Ims.model_fields["value"])
     assert (
         Ims.model_fields["value"].description
@@ -584,7 +584,7 @@ def test_make_user_model_from_schema(load_sample):
     assert Ims.get_field_annotation("value", Uniqueness) == Uniqueness.none
 
     # im.display
-    assert Ims.get_field_root_type("display") == str
+    assert Ims.get_field_root_type("display") is str
     assert not is_multiple(Ims.model_fields["display"])
     assert (
         Ims.model_fields["display"].description
@@ -597,7 +597,7 @@ def test_make_user_model_from_schema(load_sample):
     assert Ims.get_field_annotation("display", Uniqueness) == Uniqueness.none
 
     # im.type
-    assert Ims.get_field_root_type("type") == str
+    assert Ims.get_field_root_type("type") is str
     assert not is_multiple(Ims.model_fields["type"])
     assert (
         Ims.model_fields["type"].description
@@ -620,7 +620,7 @@ def test_make_user_model_from_schema(load_sample):
     assert Ims.get_field_annotation("type", Uniqueness) == Uniqueness.none
 
     # im.primary
-    assert Ims.get_field_root_type("primary") == bool
+    assert Ims.get_field_root_type("primary") is bool
     assert not is_multiple(Ims.model_fields["primary"])
     assert (
         Ims.model_fields["primary"].description
@@ -655,7 +655,7 @@ def test_make_user_model_from_schema(load_sample):
     assert Photos.get_field_annotation("value", Uniqueness) == Uniqueness.none
 
     # photo.display
-    assert Photos.get_field_root_type("display") == str
+    assert Photos.get_field_root_type("display") is str
     assert not is_multiple(Photos.model_fields["display"])
     assert (
         Photos.model_fields["display"].description
@@ -668,7 +668,7 @@ def test_make_user_model_from_schema(load_sample):
     assert Photos.get_field_annotation("display", Uniqueness) == Uniqueness.none
 
     # photo.type
-    assert Photos.get_field_root_type("type") == str
+    assert Photos.get_field_root_type("type") is str
     assert not is_multiple(Photos.model_fields["type"])
     assert (
         Photos.model_fields["type"].description
@@ -682,7 +682,7 @@ def test_make_user_model_from_schema(load_sample):
     assert Photos.get_field_annotation("type", Uniqueness) == Uniqueness.none
 
     # photo.primary
-    assert Photos.get_field_root_type("primary") == bool
+    assert Photos.get_field_root_type("primary") is bool
     assert not is_multiple(Photos.model_fields["primary"])
     assert (
         Photos.model_fields["primary"].description
@@ -710,7 +710,7 @@ def test_make_user_model_from_schema(load_sample):
     assert User.get_field_annotation("addresses", Uniqueness) == Uniqueness.none
 
     # address.formatted
-    assert Addresses.get_field_root_type("formatted") == str
+    assert Addresses.get_field_root_type("formatted") is str
     assert not is_multiple(Addresses.model_fields["formatted"])
     assert (
         Addresses.model_fields["formatted"].description
@@ -725,7 +725,7 @@ def test_make_user_model_from_schema(load_sample):
     assert Addresses.get_field_annotation("formatted", Uniqueness) == Uniqueness.none
 
     # address.street_address
-    assert Addresses.get_field_root_type("street_address") == str
+    assert Addresses.get_field_root_type("street_address") is str
     assert not is_multiple(Addresses.model_fields["street_address"])
     assert (
         Addresses.model_fields["street_address"].description
@@ -747,7 +747,7 @@ def test_make_user_model_from_schema(load_sample):
     )
 
     # address.locality
-    assert Addresses.get_field_root_type("locality") == str
+    assert Addresses.get_field_root_type("locality") is str
     assert not is_multiple(Addresses.model_fields["locality"])
     assert (
         Addresses.model_fields["locality"].description
@@ -762,7 +762,7 @@ def test_make_user_model_from_schema(load_sample):
     assert Addresses.get_field_annotation("locality", Uniqueness) == Uniqueness.none
 
     # address.region
-    assert Addresses.get_field_root_type("region") == str
+    assert Addresses.get_field_root_type("region") is str
     assert not is_multiple(Addresses.model_fields["region"])
     assert (
         Addresses.model_fields["region"].description == "The state or region component."
@@ -774,7 +774,7 @@ def test_make_user_model_from_schema(load_sample):
     assert Addresses.get_field_annotation("region", Uniqueness) == Uniqueness.none
 
     # address.postal_code
-    assert Addresses.get_field_root_type("postal_code") == str
+    assert Addresses.get_field_root_type("postal_code") is str
     assert not is_multiple(Addresses.model_fields["postal_code"])
     assert (
         Addresses.model_fields["postal_code"].description
@@ -790,7 +790,7 @@ def test_make_user_model_from_schema(load_sample):
     assert Addresses.get_field_annotation("postal_code", Uniqueness) == Uniqueness.none
 
     # address.country
-    assert Addresses.get_field_root_type("country") == str
+    assert Addresses.get_field_root_type("country") is str
     assert not is_multiple(Addresses.model_fields["country"])
     assert (
         Addresses.model_fields["country"].description == "The country name component."
@@ -804,7 +804,7 @@ def test_make_user_model_from_schema(load_sample):
     assert Addresses.get_field_annotation("country", Uniqueness) == Uniqueness.none
 
     # address.type
-    assert Addresses.get_field_root_type("type") == str
+    assert Addresses.get_field_root_type("type") is str
     assert not is_multiple(Addresses.model_fields["type"])
     assert (
         Addresses.model_fields["type"].description
@@ -818,7 +818,7 @@ def test_make_user_model_from_schema(load_sample):
     assert Addresses.get_field_annotation("type", Uniqueness) == Uniqueness.none
 
     # address.primary
-    assert Addresses.get_field_root_type("primary") == bool
+    assert Addresses.get_field_root_type("primary") is bool
     assert not is_multiple(Addresses.model_fields["primary"])
     assert (
         Addresses.model_fields["primary"].description
@@ -848,7 +848,7 @@ def test_make_user_model_from_schema(load_sample):
     assert User.get_field_annotation("groups", Uniqueness) == Uniqueness.none
 
     # group.value
-    assert Groups.get_field_root_type("value") == str
+    assert Groups.get_field_root_type("value") is str
     assert not is_multiple(Groups.model_fields["value"])
     assert (
         Groups.model_fields["value"].description
@@ -877,7 +877,7 @@ def test_make_user_model_from_schema(load_sample):
     assert Groups.get_field_annotation("ref", Uniqueness) == Uniqueness.none
 
     # group.display
-    assert Groups.get_field_root_type("display") == str
+    assert Groups.get_field_root_type("display") is str
     assert not is_multiple(Groups.model_fields["display"])
     assert (
         Groups.model_fields["display"].description
@@ -890,7 +890,7 @@ def test_make_user_model_from_schema(load_sample):
     assert Groups.get_field_annotation("display", Uniqueness) == Uniqueness.none
 
     # group.type
-    assert Groups.get_field_root_type("type") == str
+    assert Groups.get_field_root_type("type") is str
     assert not is_multiple(Groups.model_fields["type"])
     assert (
         Groups.model_fields["type"].description
@@ -924,7 +924,7 @@ def test_make_user_model_from_schema(load_sample):
     assert User.get_field_annotation("entitlements", Uniqueness) == Uniqueness.none
 
     # entitlement.value
-    assert Entitlements.get_field_root_type("value") == str
+    assert Entitlements.get_field_root_type("value") is str
     assert not is_multiple(Entitlements.model_fields["value"])
     assert (
         Entitlements.model_fields["value"].description == "The value of an entitlement."
@@ -938,7 +938,7 @@ def test_make_user_model_from_schema(load_sample):
     assert Entitlements.get_field_annotation("value", Uniqueness) == Uniqueness.none
 
     # entitlement.display
-    assert Entitlements.get_field_root_type("display") == str
+    assert Entitlements.get_field_root_type("display") is str
     assert not is_multiple(Entitlements.model_fields["display"])
     assert (
         Entitlements.model_fields["display"].description
@@ -954,7 +954,7 @@ def test_make_user_model_from_schema(load_sample):
     assert Entitlements.get_field_annotation("display", Uniqueness) == Uniqueness.none
 
     # entitlement.type
-    assert Entitlements.get_field_root_type("type") == str
+    assert Entitlements.get_field_root_type("type") is str
     assert not is_multiple(Entitlements.model_fields["type"])
     assert (
         Entitlements.model_fields["type"].description
@@ -969,7 +969,7 @@ def test_make_user_model_from_schema(load_sample):
     assert Entitlements.get_field_annotation("type", Uniqueness) == Uniqueness.none
 
     # entitlement.primary
-    assert Entitlements.get_field_root_type("primary") == bool
+    assert Entitlements.get_field_root_type("primary") is bool
     assert not is_multiple(Entitlements.model_fields["primary"])
     assert (
         Entitlements.model_fields["primary"].description
@@ -1000,7 +1000,7 @@ def test_make_user_model_from_schema(load_sample):
     assert User.get_field_annotation("roles", Uniqueness) == Uniqueness.none
 
     # role.value
-    assert Roles.get_field_root_type("value") == str
+    assert Roles.get_field_root_type("value") is str
     assert not is_multiple(Roles.model_fields["value"])
     assert Roles.model_fields["value"].description == "The value of a role."
     assert Roles.get_field_annotation("value", Required) == Required.false
@@ -1010,7 +1010,7 @@ def test_make_user_model_from_schema(load_sample):
     assert Roles.get_field_annotation("value", Uniqueness) == Uniqueness.none
 
     # role.display
-    assert Roles.get_field_root_type("display") == str
+    assert Roles.get_field_root_type("display") is str
     assert not is_multiple(Roles.model_fields["display"])
     assert (
         Roles.model_fields["display"].description
@@ -1023,7 +1023,7 @@ def test_make_user_model_from_schema(load_sample):
     assert Roles.get_field_annotation("display", Uniqueness) == Uniqueness.none
 
     # role.type
-    assert Roles.get_field_root_type("type") == str
+    assert Roles.get_field_root_type("type") is str
     assert not is_multiple(Roles.model_fields["type"])
     assert (
         Roles.model_fields["type"].description
@@ -1036,7 +1036,7 @@ def test_make_user_model_from_schema(load_sample):
     assert Roles.get_field_annotation("type", Uniqueness) == Uniqueness.none
 
     # role.primary
-    assert Roles.get_field_root_type("primary") == bool
+    assert Roles.get_field_root_type("primary") is bool
     assert not is_multiple(Roles.model_fields["primary"])
     assert (
         Roles.model_fields["primary"].description
@@ -1069,7 +1069,7 @@ def test_make_user_model_from_schema(load_sample):
     )
 
     # x_509_certificate.value
-    assert X509Certificates.get_field_root_type("value") == bytes
+    assert X509Certificates.get_field_root_type("value") is bytes
     assert not is_multiple(X509Certificates.model_fields["value"])
     assert (
         X509Certificates.model_fields["value"].description
@@ -1085,7 +1085,7 @@ def test_make_user_model_from_schema(load_sample):
     assert X509Certificates.get_field_annotation("value", Uniqueness) == Uniqueness.none
 
     # x_509_certificate.display
-    assert X509Certificates.get_field_root_type("display") == str
+    assert X509Certificates.get_field_root_type("display") is str
     assert not is_multiple(X509Certificates.model_fields["display"])
     assert (
         X509Certificates.model_fields["display"].description
@@ -1107,7 +1107,7 @@ def test_make_user_model_from_schema(load_sample):
     )
 
     # x_509_certificate.type
-    assert X509Certificates.get_field_root_type("type") == str
+    assert X509Certificates.get_field_root_type("type") is str
     assert not is_multiple(X509Certificates.model_fields["type"])
     assert (
         X509Certificates.model_fields["type"].description
@@ -1123,7 +1123,7 @@ def test_make_user_model_from_schema(load_sample):
     assert X509Certificates.get_field_annotation("type", Uniqueness) == Uniqueness.none
 
     # x_509_certificate.primary
-    assert X509Certificates.get_field_root_type("primary") == bool
+    assert X509Certificates.get_field_root_type("primary") is bool
     assert not is_multiple(X509Certificates.model_fields["primary"])
     assert (
         X509Certificates.model_fields["primary"].description
@@ -1264,7 +1264,7 @@ def test_make_enterprise_user_model_from_schema(load_sample):
     ]
 
     # employee_number
-    assert EnterpriseUser.get_field_root_type("employee_number") == str
+    assert EnterpriseUser.get_field_root_type("employee_number") is str
     assert not is_multiple(EnterpriseUser.model_fields["employee_number"])
     assert (
         EnterpriseUser.model_fields["employee_number"].description
@@ -1292,7 +1292,7 @@ def test_make_enterprise_user_model_from_schema(load_sample):
     )
 
     # cost_center
-    assert EnterpriseUser.get_field_root_type("cost_center") == str
+    assert EnterpriseUser.get_field_root_type("cost_center") is str
     assert not is_multiple(EnterpriseUser.model_fields["cost_center"])
     assert (
         EnterpriseUser.model_fields["cost_center"].description
@@ -1317,7 +1317,7 @@ def test_make_enterprise_user_model_from_schema(load_sample):
     )
 
     # organization
-    assert EnterpriseUser.get_field_root_type("organization") == str
+    assert EnterpriseUser.get_field_root_type("organization") is str
     assert not is_multiple(EnterpriseUser.model_fields["organization"])
     assert (
         EnterpriseUser.model_fields["organization"].description
@@ -1344,7 +1344,7 @@ def test_make_enterprise_user_model_from_schema(load_sample):
     )
 
     # division
-    assert EnterpriseUser.get_field_root_type("division") == str
+    assert EnterpriseUser.get_field_root_type("division") is str
     assert not is_multiple(EnterpriseUser.model_fields["division"])
     assert (
         EnterpriseUser.model_fields["division"].description
@@ -1362,7 +1362,7 @@ def test_make_enterprise_user_model_from_schema(load_sample):
     )
 
     # department
-    assert EnterpriseUser.get_field_root_type("department") == str
+    assert EnterpriseUser.get_field_root_type("department") is str
     assert not is_multiple(EnterpriseUser.model_fields["department"])
     assert (
         EnterpriseUser.model_fields["department"].description
@@ -1402,7 +1402,7 @@ def test_make_enterprise_user_model_from_schema(load_sample):
     assert EnterpriseUser.get_field_annotation("manager", Uniqueness) == Uniqueness.none
 
     # Manager.value
-    assert Manager.get_field_root_type("value") == str
+    assert Manager.get_field_root_type("value") is str
     assert not is_multiple(Manager.model_fields["value"])
     assert (
         Manager.model_fields["value"].description
@@ -1428,7 +1428,7 @@ def test_make_enterprise_user_model_from_schema(load_sample):
     assert Manager.get_field_annotation("ref", Uniqueness) == Uniqueness.none
 
     # Manager.display_name
-    assert Manager.get_field_root_type("display_name") == str
+    assert Manager.get_field_root_type("display_name") is str
     assert not is_multiple(Manager.model_fields["display_name"])
     assert (
         Manager.model_fields["display_name"].description
@@ -1453,7 +1453,7 @@ def test_make_resource_type_model_from_schema(load_sample):
     ]
 
     # id
-    assert ResourceType.get_field_root_type("id") == str
+    assert ResourceType.get_field_root_type("id") is str
     assert not is_multiple(ResourceType.model_fields["id"])
     assert (
         ResourceType.model_fields["id"].description
@@ -1466,7 +1466,7 @@ def test_make_resource_type_model_from_schema(load_sample):
     assert ResourceType.get_field_annotation("id", Uniqueness) == Uniqueness.none
 
     # name
-    assert ResourceType.get_field_root_type("name") == str
+    assert ResourceType.get_field_root_type("name") is str
     assert not is_multiple(ResourceType.model_fields["name"])
     assert (
         ResourceType.model_fields["name"].description
@@ -1479,7 +1479,7 @@ def test_make_resource_type_model_from_schema(load_sample):
     assert ResourceType.get_field_annotation("name", Uniqueness) == Uniqueness.none
 
     # description
-    assert ResourceType.get_field_root_type("description") == str
+    assert ResourceType.get_field_root_type("description") is str
     assert not is_multiple(ResourceType.model_fields["description"])
     assert (
         ResourceType.model_fields["description"].description
@@ -1582,7 +1582,7 @@ def test_make_resource_type_model_from_schema(load_sample):
     )
 
     # SchemaExtensions.required
-    assert SchemaExtensions.get_field_root_type("required") == bool
+    assert SchemaExtensions.get_field_root_type("required") is bool
     assert not is_multiple(SchemaExtensions.model_fields["required"])
     assert (
         SchemaExtensions.model_fields["required"].description
@@ -1706,7 +1706,7 @@ def test_make_service_provider_config_model_from_schema(load_sample):
     )
 
     # patch.supported
-    assert Patch.get_field_root_type("supported") == bool
+    assert Patch.get_field_root_type("supported") is bool
     assert not is_multiple(Patch.model_fields["supported"])
     assert (
         Patch.model_fields["supported"].description
@@ -1744,7 +1744,7 @@ def test_make_service_provider_config_model_from_schema(load_sample):
     )
 
     # bulk.supported
-    assert Bulk.get_field_root_type("supported") == bool
+    assert Bulk.get_field_root_type("supported") is bool
     assert not is_multiple(Bulk.model_fields["supported"])
     assert (
         Bulk.model_fields["supported"].description
@@ -1757,7 +1757,7 @@ def test_make_service_provider_config_model_from_schema(load_sample):
     assert Bulk.get_field_annotation("supported", Uniqueness) == Uniqueness.none
 
     # bulk.max_operations
-    assert Bulk.get_field_root_type("max_operations") == int
+    assert Bulk.get_field_root_type("max_operations") is int
     assert not is_multiple(Bulk.model_fields["max_operations"])
     assert (
         Bulk.model_fields["max_operations"].description
@@ -1772,7 +1772,7 @@ def test_make_service_provider_config_model_from_schema(load_sample):
     assert Bulk.get_field_annotation("max_operations", Uniqueness) == Uniqueness.none
 
     # bulk.max_payload_size
-    assert Bulk.get_field_root_type("max_payload_size") == int
+    assert Bulk.get_field_root_type("max_payload_size") is int
     assert not is_multiple(Bulk.model_fields["max_payload_size"])
     assert (
         Bulk.model_fields["max_payload_size"].description
@@ -1817,7 +1817,7 @@ def test_make_service_provider_config_model_from_schema(load_sample):
     )
 
     # filter.supported
-    assert Filter.get_field_root_type("supported") == bool
+    assert Filter.get_field_root_type("supported") is bool
     assert not is_multiple(Filter.model_fields["supported"])
     assert (
         Filter.model_fields["supported"].description
@@ -1830,7 +1830,7 @@ def test_make_service_provider_config_model_from_schema(load_sample):
     assert Filter.get_field_annotation("supported", Uniqueness) == Uniqueness.none
 
     # filter.max_results
-    assert Filter.get_field_root_type("max_results") == int
+    assert Filter.get_field_root_type("max_results") is int
     assert not is_multiple(Filter.model_fields["max_results"])
     assert (
         Filter.model_fields["max_results"].description
@@ -1875,7 +1875,7 @@ def test_make_service_provider_config_model_from_schema(load_sample):
     )
 
     # change_password.supported
-    assert ChangePassword.get_field_root_type("supported") == bool
+    assert ChangePassword.get_field_root_type("supported") is bool
     assert not is_multiple(ChangePassword.model_fields["supported"])
     assert (
         ChangePassword.model_fields["supported"].description
@@ -1922,7 +1922,7 @@ def test_make_service_provider_config_model_from_schema(load_sample):
     )
 
     # sort.supported
-    assert Sort.get_field_root_type("supported") == bool
+    assert Sort.get_field_root_type("supported") is bool
     assert not is_multiple(Sort.model_fields["supported"])
     assert (
         Sort.model_fields["supported"].description
@@ -1960,7 +1960,7 @@ def test_make_service_provider_config_model_from_schema(load_sample):
     )
 
     # etag.supported
-    assert Etag.get_field_root_type("supported") == bool
+    assert Etag.get_field_root_type("supported") is bool
     assert not is_multiple(Etag.model_fields["supported"])
     assert (
         Etag.model_fields["supported"].description
@@ -2005,7 +2005,7 @@ def test_make_service_provider_config_model_from_schema(load_sample):
     )
 
     # authentication_schemes.name
-    assert AuthenticationSchemes.get_field_root_type("name") == str
+    assert AuthenticationSchemes.get_field_root_type("name") is str
     assert not is_multiple(AuthenticationSchemes.model_fields["name"])
     assert (
         AuthenticationSchemes.model_fields["name"].description
@@ -2028,7 +2028,7 @@ def test_make_service_provider_config_model_from_schema(load_sample):
     )
 
     # authentication_schemes.description
-    assert AuthenticationSchemes.get_field_root_type("description") == str
+    assert AuthenticationSchemes.get_field_root_type("description") is str
     assert not is_multiple(AuthenticationSchemes.model_fields["description"])
     assert (
         AuthenticationSchemes.model_fields["description"].description
@@ -2182,7 +2182,7 @@ def test_make_schema_model_from_schema(load_sample):
     ]
 
     # id
-    assert Schema_.get_field_root_type("id") == str
+    assert Schema_.get_field_root_type("id") is str
     assert not is_multiple(Schema_.model_fields["id"])
     assert (
         Schema_.model_fields["id"].description
@@ -2195,7 +2195,7 @@ def test_make_schema_model_from_schema(load_sample):
     assert Schema_.get_field_annotation("id", Uniqueness) == Uniqueness.none
 
     # name
-    assert Schema_.get_field_root_type("name") == str
+    assert Schema_.get_field_root_type("name") is str
     assert not is_multiple(Schema_.model_fields["name"])
     assert (
         Schema_.model_fields["name"].description
@@ -2208,7 +2208,7 @@ def test_make_schema_model_from_schema(load_sample):
     assert Schema_.get_field_annotation("name", Uniqueness) == Uniqueness.none
 
     # description
-    assert Schema_.get_field_root_type("description") == str
+    assert Schema_.get_field_root_type("description") is str
     assert not is_multiple(Schema_.model_fields["description"])
     assert (
         Schema_.model_fields["description"].description
@@ -2240,7 +2240,7 @@ def test_make_schema_model_from_schema(load_sample):
     assert Schema_.get_field_annotation("attributes", Uniqueness) == Uniqueness.none
 
     # attributes.name
-    assert Attributes.get_field_root_type("name") == str
+    assert Attributes.get_field_root_type("name") is str
     assert not is_multiple(Attributes.model_fields["name"])
     assert Attributes.model_fields["name"].description == "The attribute's name."
     assert Attributes.get_field_annotation("name", Required) == Required.true
@@ -2250,7 +2250,7 @@ def test_make_schema_model_from_schema(load_sample):
     assert Attributes.get_field_annotation("name", Uniqueness) == Uniqueness.none
 
     # attributes.type
-    assert Attributes.get_field_root_type("type") == str
+    assert Attributes.get_field_root_type("type") is str
     assert not is_multiple(Attributes.model_fields["type"])
     assert (
         Attributes.model_fields["type"].description
@@ -2273,7 +2273,7 @@ def test_make_schema_model_from_schema(load_sample):
     assert Attributes.get_field_annotation("type", Uniqueness) == Uniqueness.none
 
     # attributes.multi_valued
-    assert Attributes.get_field_root_type("multi_valued") == bool
+    assert Attributes.get_field_root_type("multi_valued") is bool
     assert not is_multiple(Attributes.model_fields["multi_valued"])
     assert (
         Attributes.model_fields["multi_valued"].description
@@ -2291,7 +2291,7 @@ def test_make_schema_model_from_schema(load_sample):
     )
 
     # attributes.description
-    assert Attributes.get_field_root_type("description") == str
+    assert Attributes.get_field_root_type("description") is str
     assert not is_multiple(Attributes.model_fields["description"])
     assert (
         Attributes.model_fields["description"].description
@@ -2307,7 +2307,7 @@ def test_make_schema_model_from_schema(load_sample):
     assert Attributes.get_field_annotation("description", Uniqueness) == Uniqueness.none
 
     # attributes.required
-    assert Attributes.get_field_root_type("required") == bool
+    assert Attributes.get_field_root_type("required") is bool
     assert not is_multiple(Attributes.model_fields["required"])
     assert (
         Attributes.model_fields["required"].description
@@ -2322,7 +2322,7 @@ def test_make_schema_model_from_schema(load_sample):
     assert Attributes.get_field_annotation("required", Uniqueness) == Uniqueness.none
 
     # attributes.canonical_values
-    assert Attributes.get_field_root_type("canonical_values") == str
+    assert Attributes.get_field_root_type("canonical_values") is str
     assert is_multiple(Attributes.model_fields["canonical_values"])
     assert (
         Attributes.model_fields["canonical_values"].description
@@ -2348,7 +2348,7 @@ def test_make_schema_model_from_schema(load_sample):
     )
 
     # attributes.case_exact
-    assert Attributes.get_field_root_type("case_exact") == bool
+    assert Attributes.get_field_root_type("case_exact") is bool
     assert not is_multiple(Attributes.model_fields["case_exact"])
     assert (
         Attributes.model_fields["case_exact"].description
@@ -2364,7 +2364,7 @@ def test_make_schema_model_from_schema(load_sample):
     assert Attributes.get_field_annotation("case_exact", Uniqueness) == Uniqueness.none
 
     # attributes.mutability
-    assert Attributes.get_field_root_type("mutability") == str
+    assert Attributes.get_field_root_type("mutability") is str
     assert not is_multiple(Attributes.model_fields["mutability"])
     assert (
         Attributes.model_fields["mutability"].description
@@ -2386,7 +2386,7 @@ def test_make_schema_model_from_schema(load_sample):
     assert Attributes.get_field_annotation("mutability", Uniqueness) == Uniqueness.none
 
     # attributes.returned
-    assert Attributes.get_field_root_type("returned") == str
+    assert Attributes.get_field_root_type("returned") is str
     assert not is_multiple(Attributes.model_fields["returned"])
     assert (
         Attributes.model_fields["returned"].description
@@ -2407,7 +2407,7 @@ def test_make_schema_model_from_schema(load_sample):
     assert Attributes.get_field_annotation("returned", Uniqueness) == Uniqueness.none
 
     # attributes.uniqueness
-    assert Attributes.get_field_root_type("uniqueness") == str
+    assert Attributes.get_field_root_type("uniqueness") is str
     assert not is_multiple(Attributes.model_fields["uniqueness"])
     assert (
         Attributes.model_fields["uniqueness"].description
@@ -2428,7 +2428,7 @@ def test_make_schema_model_from_schema(load_sample):
     assert Attributes.get_field_annotation("uniqueness", Uniqueness) == Uniqueness.none
 
     # attributes.reference_types
-    assert Attributes.get_field_root_type("reference_types") == str
+    assert Attributes.get_field_root_type("reference_types") is str
     assert is_multiple(Attributes.model_fields["reference_types"])
     assert (
         Attributes.model_fields["reference_types"].description
@@ -2477,7 +2477,7 @@ def test_make_schema_model_from_schema(load_sample):
     )
 
     # sub_attributes.name
-    assert SubAttributes.get_field_root_type("name") == str
+    assert SubAttributes.get_field_root_type("name") is str
     assert not is_multiple(SubAttributes.model_fields["name"])
     assert SubAttributes.model_fields["name"].description == "The attribute's name."
     assert SubAttributes.get_field_annotation("name", Required) == Required.true
@@ -2489,7 +2489,7 @@ def test_make_schema_model_from_schema(load_sample):
     assert SubAttributes.get_field_annotation("name", Uniqueness) == Uniqueness.none
 
     # sub_attributes.type
-    assert SubAttributes.get_field_root_type("type") == str
+    assert SubAttributes.get_field_root_type("type") is str
     assert not is_multiple(SubAttributes.model_fields["type"])
     assert (
         SubAttributes.model_fields["type"].description
@@ -2514,7 +2514,7 @@ def test_make_schema_model_from_schema(load_sample):
     assert SubAttributes.get_field_annotation("type", Uniqueness) == Uniqueness.none
 
     # sub_attributes.multi_valued
-    assert SubAttributes.get_field_root_type("multi_valued") == bool
+    assert SubAttributes.get_field_root_type("multi_valued") is bool
     assert not is_multiple(SubAttributes.model_fields["multi_valued"])
     assert (
         SubAttributes.model_fields["multi_valued"].description
@@ -2537,7 +2537,7 @@ def test_make_schema_model_from_schema(load_sample):
     )
 
     # sub_attributes.description
-    assert SubAttributes.get_field_root_type("description") == str
+    assert SubAttributes.get_field_root_type("description") is str
     assert not is_multiple(SubAttributes.model_fields["description"])
     assert (
         SubAttributes.model_fields["description"].description
@@ -2559,7 +2559,7 @@ def test_make_schema_model_from_schema(load_sample):
     )
 
     # sub_attributes.required
-    assert SubAttributes.get_field_root_type("required") == bool
+    assert SubAttributes.get_field_root_type("required") is bool
     assert not is_multiple(SubAttributes.model_fields["required"])
     assert (
         SubAttributes.model_fields["required"].description
@@ -2575,7 +2575,7 @@ def test_make_schema_model_from_schema(load_sample):
     assert SubAttributes.get_field_annotation("required", Uniqueness) == Uniqueness.none
 
     # sub_attributes.canonical_values
-    assert SubAttributes.get_field_root_type("canonical_values") == str
+    assert SubAttributes.get_field_root_type("canonical_values") is str
     assert is_multiple(SubAttributes.model_fields["canonical_values"])
     assert (
         SubAttributes.model_fields["canonical_values"].description
@@ -2603,7 +2603,7 @@ def test_make_schema_model_from_schema(load_sample):
     )
 
     # sub_attributes.case_exact
-    assert SubAttributes.get_field_root_type("case_exact") == bool
+    assert SubAttributes.get_field_root_type("case_exact") is bool
     assert not is_multiple(SubAttributes.model_fields["case_exact"])
     assert (
         SubAttributes.model_fields["case_exact"].description
@@ -2625,7 +2625,7 @@ def test_make_schema_model_from_schema(load_sample):
     )
 
     # sub_attributes.mutability
-    assert SubAttributes.get_field_root_type("mutability") == str
+    assert SubAttributes.get_field_root_type("mutability") is str
     assert not is_multiple(SubAttributes.model_fields["mutability"])
     assert (
         SubAttributes.model_fields["mutability"].description
@@ -2651,7 +2651,7 @@ def test_make_schema_model_from_schema(load_sample):
     )
 
     # sub_attributes.returned
-    assert SubAttributes.get_field_root_type("returned") == str
+    assert SubAttributes.get_field_root_type("returned") is str
     assert not is_multiple(SubAttributes.model_fields["returned"])
     assert (
         SubAttributes.model_fields["returned"].description
@@ -2673,7 +2673,7 @@ def test_make_schema_model_from_schema(load_sample):
     assert SubAttributes.get_field_annotation("returned", Uniqueness) == Uniqueness.none
 
     # sub_attributes.uniqueness
-    assert SubAttributes.get_field_root_type("uniqueness") == str
+    assert SubAttributes.get_field_root_type("uniqueness") is str
     assert not is_multiple(SubAttributes.model_fields["uniqueness"])
     assert (
         SubAttributes.model_fields["uniqueness"].description
@@ -2698,7 +2698,7 @@ def test_make_schema_model_from_schema(load_sample):
     )
 
     # sub_attributes.reference_types
-    assert SubAttributes.get_field_root_type("reference_types") == str
+    assert SubAttributes.get_field_root_type("reference_types") is str
     assert is_multiple(SubAttributes.model_fields["reference_types"])
     assert (
         SubAttributes.model_fields["reference_types"].description
