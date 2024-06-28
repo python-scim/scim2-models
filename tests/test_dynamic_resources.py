@@ -12,11 +12,8 @@ from scim2_models.base import Required
 from scim2_models.base import Returned
 from scim2_models.base import Uniqueness
 from scim2_models.base import URIReference
+from scim2_models.rfc7643.resource import is_multiple
 from scim2_models.rfc7643.schema import Schema
-
-
-def is_multiple(field):
-    return "list" in str(field.annotation).lower()
 
 
 def test_make_group_model_from_schema(load_sample):

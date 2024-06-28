@@ -222,6 +222,10 @@ class Resource(BaseModel, Generic[AnyModel]):
 AnyResource = TypeVar("AnyResource", bound="Resource")
 
 
+def is_multiple(field):
+    return "list" in str(field.annotation).lower()
+
+
 def tagged_resource_union(resource_types: Resource):
     """Build Discriminated Unions, so pydantic can get which class are needed
     to instantiate by inspecting a payload.
