@@ -48,7 +48,7 @@ class SearchRequest(Message):
         A value less than 1 SHALL be interpreted as 1.
         """
 
-        return max(0, value)
+        return None if value is None else max(0, value)
 
     count: Optional[int] = None
     """An integer indicating the desired maximum number of query results per
@@ -63,4 +63,4 @@ class SearchRequest(Message):
         A value less than 1 SHALL be interpreted as 1.
         """
 
-        return max(1, value)
+        return None if value is None else max(1, value)

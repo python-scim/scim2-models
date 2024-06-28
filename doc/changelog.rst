@@ -1,9 +1,15 @@
 Changelog
 =========
 
+
 Added
 ^^^^^
 - :data:`~scim2_models.Reference` type parameters represent SCIM ReferenceType
+
+Fixed
+^^^^^
+- :attr:`~scim2_models.SearchRequest.count` and :attr:`~scim2_models.SearchRequest.start_index` validators
+  supports :data:`None` values.
 
 [0.1.8] - 2024-06-26
 --------------------
