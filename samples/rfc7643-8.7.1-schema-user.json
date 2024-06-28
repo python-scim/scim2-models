@@ -701,7 +701,6 @@
                     "description": "A label indicating the attribute's function.",
                     "required": false,
                     "caseExact": false,
-                    "canonicalValues": [],
                     "mutability": "readWrite",
                     "returned": "default",
                     "uniqueness": "none"
@@ -756,7 +755,6 @@
                     "description": "A label indicating the attribute's function.",
                     "required": false,
                     "caseExact": false,
-                    "canonicalValues": [],
                     "mutability": "readWrite",
                     "returned": "default",
                     "uniqueness": "none"
