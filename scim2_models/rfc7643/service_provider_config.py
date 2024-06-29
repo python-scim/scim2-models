@@ -10,7 +10,6 @@ from ..base import Reference
 from ..base import Required
 from ..base import Returned
 from ..base import Uniqueness
-from ..base import URIReference
 from .resource import Resource
 
 
@@ -70,7 +69,9 @@ class AuthenticationScheme(ComplexAttribute):
     description: Annotated[str, Mutability.read_only, Required.true] = None
     """A description of the authentication scheme."""
 
-    spec_uri: Annotated[Optional[Reference[URIReference]], Mutability.read_only] = None
+    spec_uri: Annotated[
+        Optional[Reference[ExternalReference]], Mutability.read_only
+    ] = None
     """An HTTP-addressable URL pointing to the authentication scheme's
     specification."""
 

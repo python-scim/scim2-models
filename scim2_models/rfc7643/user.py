@@ -312,7 +312,7 @@ class User(Resource):
     addresses: Optional[List[Address]] = None
     """A physical mailing address for this User."""
 
-    groups: Optional[List[GroupMembership]] = None
+    groups: Annotated[Optional[List[GroupMembership]], Mutability.read_only] = None
     """A list of groups to which the user belongs, either through direct
     membership, through nested groups, or dynamically calculated."""
 
