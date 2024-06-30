@@ -1,4 +1,5 @@
 {
+    "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Schema"],
     "id": "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User",
     "name": "EnterpriseUser",
     "description": "Enterprise User",
