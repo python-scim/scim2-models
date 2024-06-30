@@ -95,6 +95,10 @@ class ServiceProviderConfig(Resource):
     ] = None
     """A unique identifier for a SCIM resource as defined by the service
     provider."""
+    # RFC7643 §5
+    #     Unlike other core
+    #     resources, the "id" attribute is not required for the service
+    #     provider configuration resource
 
     documentation_uri: Annotated[
         Optional[Reference[ExternalReference]], Mutability.read_only
