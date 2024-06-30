@@ -180,18 +180,7 @@ class Address(MultiValuedComplexAttribute):
 
 
 class Entitlement(MultiValuedComplexAttribute):
-    value: Optional[str] = None
-    """The value of an entitlement."""
-
-    display: Optional[str] = None
-    """A human-readable name, primarily used for display purposes."""
-
-    type: Optional[str] = None
-    """A label indicating the attribute's function."""
-
-    primary: Optional[bool] = None
-    """A Boolean value indicating the 'primary' or preferred attribute value
-    for this attribute."""
+    pass
 
 
 class GroupMembership(MultiValuedComplexAttribute):
@@ -216,33 +205,12 @@ class GroupMembership(MultiValuedComplexAttribute):
 
 
 class Role(MultiValuedComplexAttribute):
-    value: Optional[str] = None
-    """The value of a role."""
-
-    display: Optional[str] = None
-    """A human-readable name, primarily used for display purposes."""
-
-    type: Optional[str] = None
-    """A label indicating the attribute's function."""
-
-    primary: Optional[bool] = None
-    """A Boolean value indicating the 'primary' or preferred attribute value
-    for this attribute."""
+    pass
 
 
 class X509Certificate(MultiValuedComplexAttribute):
     value: Annotated[Optional[bytes], CaseExact.true] = None
     """The value of an X.509 certificate."""
-
-    display: Optional[str] = None
-    """A human-readable name, primarily used for display purposes."""
-
-    type: Optional[str] = None
-    """A label indicating the attribute's function."""
-
-    primary: Optional[bool] = None
-    """A Boolean value indicating the 'primary' or preferred attribute value
-    for this attribute."""
 
 
 class User(Resource):
