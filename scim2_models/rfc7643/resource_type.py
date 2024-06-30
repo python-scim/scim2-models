@@ -10,7 +10,6 @@ from ..base import Mutability
 from ..base import Reference
 from ..base import Required
 from ..base import Returned
-from ..base import Uniqueness
 from ..base import URIReference
 from .resource import Resource
 
@@ -48,9 +47,7 @@ class ResourceType(Resource):
     When applicable, service providers MUST specify the description.
     """
 
-    id: Annotated[
-        Optional[str], Mutability.read_only, Returned.default, Uniqueness.global_
-    ] = None
+    id: Annotated[Optional[str], Mutability.read_only, Returned.default] = None
     """The resource type's server unique id.
 
     This is often the same value as the "name" attribute.
