@@ -1,6 +1,9 @@
 Changelog
 =========
 
+[0.1.10] - 2024-06-30
+---------------------
+
 Added
 ^^^^^
 - Export resource models with :data:`~scim2_models.Resource.to_schema` #7
