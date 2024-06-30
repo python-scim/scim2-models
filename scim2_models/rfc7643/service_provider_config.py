@@ -3,6 +3,8 @@ from typing import Annotated
 from typing import List
 from typing import Optional
 
+from pydantic import Field
+
 from ..base import ComplexAttribute
 from ..base import ExternalReference
 from ..base import Mutability
@@ -60,7 +62,10 @@ class AuthenticationScheme(ComplexAttribute):
         httpbasic = "httpbasic"
         httpdigest = "httpdigest"
 
-    type: Annotated[Type, Mutability.read_only, Required.true] = None
+    type: Annotated[Type, Mutability.read_only, Required.true] = Field(
+        None,
+        examples=["oauth", "oauth2", "oauthbreakertoken", "httpbasic", "httpdigest"],
+    )
     """The authentication scheme."""
 
     name: Annotated[str, Mutability.read_only, Required.true] = None
