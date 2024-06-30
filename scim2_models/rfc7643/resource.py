@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Annotated
 from typing import Any
 from typing import Dict
+from typing import ForwardRef
 from typing import Generic
 from typing import List
 from typing import Optional
@@ -22,10 +23,15 @@ from typing_extensions import Self
 
 from ..base import AnyModel
 from ..base import BaseModel
+from ..base import CaseExact
 from ..base import ComplexAttribute
+from ..base import ExternalReference
 from ..base import Mutability
+from ..base import Required
 from ..base import Returned
 from ..base import Uniqueness
+from ..base import URIReference
+from ..base import is_complex_attribute
 
 
 class Meta(ComplexAttribute):
@@ -218,12 +224,114 @@ class Resource(BaseModel, Generic[AnyModel]):
 
         return obj
 
+    @classmethod
+    def to_schema(cls):
+        return model_to_schema(cls)
+
 
 AnyResource = TypeVar("AnyResource", bound="Resource")
 
 
 def is_multiple(field):
     return "list" in str(field.annotation).lower()
+
+
+def dedicated_attributes(model):
+    """Return attributes that are not members of parent classes."""
+
+    def compare_field_infos(fi1, fi2):
+        return (
+            fi1
+            and fi2
+            and fi1.__slotnames__ == fi2.__slotnames__
+            and all(
+                getattr(fi1, attr) == getattr(fi2, attr) for attr in fi1.__slotnames__
+            )
+        )
+
+    parent_field_infos = {
+        field_name: field_info
+        for parent in model.__bases__
+        for field_name, field_info in parent.model_fields.items()
+    }
+    field_infos = {
+        field_name: field_info
+        for field_name, field_info in model.model_fields.items()
+        if not compare_field_infos(field_info, parent_field_infos.get(field_name))
+    }
+    return field_infos
+
+
+def model_to_schema(model: Type):
+    from scim2_models.rfc7643.schema import Schema
+
+    schema_urn = model.model_fields["schemas"].default[0]
+    field_infos = dedicated_attributes(model)
+    attributes = [
+        model_attribute_to_attribute(model, attribute_name)
+        for attribute_name in field_infos
+        if attribute_name != "schemas"
+    ]
+    schema = Schema(
+        name=model.__name__,
+        id=schema_urn,
+        description=model.__doc__ or model.__name__,
+        attributes=attributes,
+    )
+    return schema
+
+
+def get_reference_types(type):
+    first_arg = get_args(type)[0]
+    types = get_args(first_arg) if get_origin(first_arg) == Union else [first_arg]
+    formatted_types = [
+        t.__forward_arg__ if isinstance(t, ForwardRef) else t for t in types
+    ]
+    scim_reference_types = [
+        "uri" if ref_type == URIReference else ref_type for ref_type in formatted_types
+    ]
+    scim_reference_types = [
+        "external" if ref_type == ExternalReference else ref_type
+        for ref_type in scim_reference_types
+    ]
+    return scim_reference_types
+
+
+def model_attribute_to_attribute(model, attribute_name):
+    from scim2_models.rfc7643.schema import Attribute
+
+    field_info = model.model_fields[attribute_name]
+    root_type = model.get_field_root_type(attribute_name)
+    attribute_type = Attribute.Type.from_python(root_type)
+    sub_attributes = (
+        [
+            model_attribute_to_attribute(root_type, sub_attribute_name)
+            for sub_attribute_name in dedicated_attributes(root_type)
+            if (
+                attribute_name != "sub_attributes"
+                or sub_attribute_name != "sub_attributes"
+            )
+        ]
+        if is_complex_attribute(root_type)
+        else None
+    )
+
+    return Attribute(
+        name=field_info.alias or attribute_name,
+        type=attribute_type,
+        multi_valued=is_multiple(field_info),
+        description=field_info.description,
+        canonical_values=field_info.examples,
+        required=model.get_field_annotation(attribute_name, Required),
+        case_exact=model.get_field_annotation(attribute_name, CaseExact),
+        mutability=model.get_field_annotation(attribute_name, Mutability),
+        returned=model.get_field_annotation(attribute_name, Returned),
+        uniqueness=model.get_field_annotation(attribute_name, Uniqueness),
+        sub_attributes=sub_attributes,
+        reference_types=get_reference_types(root_type)
+        if attribute_type == Attribute.Type.reference
+        else None,
+    )
 
 
 def tagged_resource_union(resource_types: Resource):

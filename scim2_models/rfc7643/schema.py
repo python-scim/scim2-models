@@ -7,6 +7,7 @@ from typing import Optional
 from typing import Tuple
 from typing import Type
 from typing import Union
+from typing import get_origin
 
 from pydantic import Field
 from pydantic import create_model
@@ -105,6 +106,27 @@ class Attribute(ComplexAttribute):
                 else ComplexAttribute,
             }
             return attr_types[self.value]
+
+        @classmethod
+        def from_python(cls, pytype) -> Type:
+            if get_origin(pytype) == Reference:
+                return cls.reference.value
+
+            if is_complex_attribute(pytype):
+                return cls.complex.value
+
+            if pytype in (Required, CaseExact):
+                return cls.boolean.value
+
+            attr_types = {
+                str: cls.string.value,
+                bool: cls.boolean.value,
+                float: cls.decimal.value,
+                int: cls.integer.value,
+                datetime: cls.date_time.value,
+                bytes: cls.binary.value,
+            }
+            return attr_types.get(pytype, cls.string.value)
 
     name: Annotated[str, Mutability.read_only, Required.true, CaseExact.true] = None
     """The attribute's name."""
