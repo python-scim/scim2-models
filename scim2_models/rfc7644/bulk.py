@@ -7,9 +7,9 @@ from typing import Optional
 from pydantic import Field
 from pydantic import PlainSerializer
 
-from ..base import BaseModel
 from ..base import ComplexAttribute
 from ..utils import int_to_str
+from .message import Message
 
 
 class BulkOperation(ComplexAttribute):
@@ -46,7 +46,7 @@ class BulkOperation(ComplexAttribute):
     """The HTTP response status code for the requested operation."""
 
 
-class BulkRequest(BaseModel):
+class BulkRequest(Message):
     schemas: List[str] = ["urn:ietf:params:scim:api:messages:2.0:BulkRequest"]
 
     fail_on_errors: Optional[int] = None
@@ -58,7 +58,7 @@ class BulkRequest(BaseModel):
     """Defines operations within a bulk job."""
 
 
-class BulkResponse(BaseModel):
+class BulkResponse(Message):
     schemas: List[str] = ["urn:ietf:params:scim:api:messages:2.0:BulkResponse"]
 
     operations: List[BulkOperation] = Field(None, alias="Operations")
