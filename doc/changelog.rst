@@ -1,9 +1,11 @@
 Changelog
 =========
 
+[0.1.11] - 2024-07-02
+---------------------
+
 Fixed
 ^^^^^
-
 - Attributes are case insensitive #39
 
 [0.1.10] - 2024-06-30
