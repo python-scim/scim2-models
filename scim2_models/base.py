@@ -26,7 +26,6 @@ from pydantic import field_serializer
 from pydantic import field_validator
 from pydantic import model_serializer
 from pydantic import model_validator
-from pydantic.alias_generators import to_camel
 from pydantic_core import PydanticCustomError
 from pydantic_core import core_schema
 from typing_extensions import NewType
@@ -34,6 +33,7 @@ from typing_extensions import Self
 
 from scim2_models.attributes import contains_attribute_or_subattributes
 from scim2_models.attributes import validate_attribute_urn
+from scim2_models.utils import to_camel
 
 ReferenceTypes = TypeVar("ReferenceTypes")
 URIReference = NewType("URIReference", str)
@@ -415,6 +415,33 @@ class BaseModel(BaseModel):
             return None
 
         return value
+
+    @model_validator(mode="wrap")
+    @classmethod
+    def normalize_attribute_names(
+        cls, value: Any, handler: ValidatorFunctionWrapHandler, info: ValidationInfo
+    ) -> Self:
+        """Normalize payload attribute names.
+
+        :rfc:`RFC7643 §2.1 <7653#section-2.1>` indicate that attribute
+        names should be case insensitive. Any attribute name is
+        camelized so any case is handled the same way.
+        """
+
+        def camelize_attribute_name(attr_name: str) -> str:
+            is_extension_attribute = ":" in attr_name
+            return to_camel(attr_name) if not is_extension_attribute else attr_name
+
+        def camelize_value(value: Any) -> Any:
+            if isinstance(value, dict):
+                return {
+                    camelize_attribute_name(k): camelize_value(v)
+                    for k, v in value.items()
+                }
+            return value
+
+        camelized_value = camelize_value(value)
+        return handler(camelized_value)
 
     @model_validator(mode="wrap")
     @classmethod
