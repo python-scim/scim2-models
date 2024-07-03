@@ -326,7 +326,10 @@ class BaseModel(BaseModel):
     """Base Model for everything."""
 
     model_config = ConfigDict(
-        alias_generator=to_camel, populate_by_name=True, use_attribute_docstrings=True
+        alias_generator=to_camel,
+        populate_by_name=True,
+        use_attribute_docstrings=True,
+        extra="forbid",
     )
 
     @classmethod
