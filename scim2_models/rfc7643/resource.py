@@ -12,8 +12,8 @@ from typing import Union
 from typing import get_args
 from typing import get_origin
 
-from pydantic import ConfigDict
 from pydantic import Discriminator
+from pydantic import Field
 from pydantic import Tag
 from pydantic import ValidationInfo
 from pydantic import ValidatorFunctionWrapHandler
@@ -89,9 +89,29 @@ class Meta(ComplexAttribute):
     """
 
 
-class Resource(BaseModel, Generic[AnyModel]):
-    model_config = ConfigDict(extra="allow")
+class ResourceMetaclass(type(BaseModel)):
+    def __new__(cls, name, bases, attrs, **kwargs):
+        """Add a dynamic field for each extensions."""
 
+        if "__pydantic_generic_metadata__" in kwargs:
+            extensions = kwargs["__pydantic_generic_metadata__"]["args"][0]
+            extensions = (
+                get_args(extensions)
+                if get_origin(extensions) == Union
+                else [extensions]
+            )
+            for extension in extensions:
+                schema = extension.model_fields["schemas"].default[0]
+                attrs.setdefault("__annotations__", {})[extension.__name__] = Optional[
+                    extension
+                ]
+                attrs[extension.__name__] = Field(None, alias=schema)
+
+        klass = super().__new__(cls, name, bases, attrs, **kwargs)
+        return klass
+
+
+class Resource(BaseModel, Generic[AnyModel], metaclass=ResourceMetaclass):
     schemas: List[str]
     """The "schemas" attribute is a REQUIRED attribute and is an array of
     Strings containing URIs that are used to indicate the namespaces of the
@@ -124,15 +144,13 @@ class Resource(BaseModel, Generic[AnyModel]):
         if not isinstance(item, type) or not issubclass(item, Resource):
             raise KeyError(f"{item} is not a valid extension type")
 
-        schema = item.model_fields["schemas"].default[0]
-        return getattr(self, schema)
+        return getattr(self, item.__name__)
 
     def __setitem__(self, item: Any, value: "Resource"):
         if not isinstance(item, type) or not issubclass(item, Resource):
             raise KeyError(f"{item} is not a valid extension type")
 
-        schema = item.model_fields["schemas"].default[0]
-        setattr(self, schema, value)
+        setattr(self, item.__name__, value)
 
     @classmethod
     def get_extension_models(cls) -> Dict[str, Type]:
@@ -140,8 +158,11 @@ class Resource(BaseModel, Generic[AnyModel]):
         schemas."""
 
         extension_models = cls.__pydantic_generic_metadata__.get("args", [])
-        if len(extension_models) == 1 and get_origin(extension_models[0]) == Union:
-            extension_models = get_args(extension_models[0])
+        extension_models = (
+            get_args(extension_models[0])
+            if len(extension_models) == 1 and get_origin(extension_models[0]) == Union
+            else extension_models
+        )
 
         by_schema = {
             ext.model_fields["schemas"].default[0]: ext for ext in extension_models
@@ -172,28 +193,6 @@ class Resource(BaseModel, Generic[AnyModel]):
 
         schema = payload["schemas"][0] if payload and payload.get("schemas") else None
         return Resource.get_by_schema(resource_types, schema, **kwargs)
-
-    @model_validator(mode="after")
-    def load_model_extensions(self) -> Self:
-        """Instanciate schema objects if found in the payload."""
-
-        main_schema = self.model_fields["schemas"].default[0]
-        extension_models = self.get_extension_models()
-        for schema in self.schemas:
-            if schema == main_schema:
-                continue
-
-            try:
-                model = extension_models[schema]
-            except KeyError as exc:
-                raise ValueError(
-                    f"No extension model found for schema '{schema}'"
-                ) from exc
-
-            if payload := getattr(self, schema, None):
-                setattr(self, schema, model.model_validate(payload))
-
-        return self
 
     @field_serializer("schemas")
     def set_extension_schemas(self, schemas: List[str]):
