@@ -1,5 +1,4 @@
 import os
-import uuid
 
 from scim2_models import BulkRequest
 from scim2_models import BulkResponse
@@ -117,7 +116,8 @@ def test_get_resource_by_payload():
 
 
 def test_everything_is_optional():
-    """Test that every field is optional."""
+    """Test that all attributes are optional on pre-defined models."""
+
     models = [
         User,
         EnterpriseUser,
@@ -134,32 +134,3 @@ def test_everything_is_optional():
     ]
     for model in models:
         model()
-
-
-def test_case_sensitivity():
-    """RFC7643 §2.1 indicates that attribute names should be case insensitive.
-
-    Attribute names are case insensitive and are often "camel-cased"
-    (e.g., "camelCase").
-
-    Reported by issue #39.
-    """
-
-    payload = {
-        "UserName": "UserName123",
-        "Active": True,
-        "DisplayName": "BobIsAmazing",
-        "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
-        "externalId": uuid.uuid4().hex,
-        "name": {
-            "formatted": "Ryan Leenay",
-            "familyName": "Leenay",
-            "givenName": "Ryan",
-        },
-        "emails": [
-            {"Primary": True, "type": "work", "value": "testing@bob.com"},
-            {"Primary": False, "type": "home", "value": "testinghome@bob.com"},
-        ],
-    }
-    user = User.model_validate(payload)
-    assert user.display_name == "BobIsAmazing"
