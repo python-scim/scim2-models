@@ -241,7 +241,7 @@ def test_attribute_inclusion_case_sensitivity():
     }
     assert user.model_dump(
         scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
-        attributes=["urn:ietf:params:scim:schemas:core:2.0:User:USERNAME"],
+        attributes=["URN:IETF:PARAMS:SCIM:SCHEMAS:CORE:2.0:USER:USERNAME"],
     ) == {
         "userName": "foobar",
         "schemas": [

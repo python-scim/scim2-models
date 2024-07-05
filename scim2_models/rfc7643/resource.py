@@ -182,14 +182,19 @@ class Resource(BaseModel, Generic[AnyModel], metaclass=ResourceMetaclass):
         type."""
 
         by_schema = {
-            resource_type.model_fields["schemas"].default[0]: resource_type
+            resource_type.model_fields["schemas"].default[0].lower(): resource_type
             for resource_type in (resource_types or [])
         }
         if with_extensions:
             for resource_type in list(by_schema.values()):
-                by_schema.update(**resource_type.get_extension_models())
+                by_schema.update(
+                    {
+                        schema.lower(): extension
+                        for schema, extension in resource_type.get_extension_models().items()
+                    }
+                )
 
-        return by_schema.get(schema)
+        return by_schema.get(schema.lower())
 
     @staticmethod
     def get_by_payload(resource_types: List[Type], payload: Dict, **kwargs):
