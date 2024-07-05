@@ -37,7 +37,9 @@ class ListResponse(Message, Generic[AnyResource]):
     items_per_page: Optional[int] = None
     """The number of resources returned in a list response page."""
 
-    resources: Optional[List[AnyResource]] = Field(None, alias="Resources")
+    resources: Optional[List[AnyResource]] = Field(
+        None, serialization_alias="Resources"
+    )
     """A multi-valued list of complex objects containing the requested
     resources."""
 

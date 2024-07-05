@@ -167,7 +167,7 @@ def test_payload_attribute_case_sensitivity():
     payload = {
         "UserName": "UserName123",
         "Active": True,
-        "DisplayName": "BobIsAmazing",
+        "displayname": "BobIsAmazing",
         "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
         "externalId": uuid.uuid4().hex,
         "name": {
@@ -181,4 +181,5 @@ def test_payload_attribute_case_sensitivity():
         ],
     }
     user = User.model_validate(payload)
+    assert user.user_name == "UserName123"
     assert user.display_name == "BobIsAmazing"

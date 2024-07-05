@@ -54,12 +54,12 @@ class BulkRequest(Message):
     will accept before the operation is terminated and an error response is
     returned."""
 
-    operations: List[BulkOperation] = Field(None, alias="Operations")
+    operations: List[BulkOperation] = Field(None, serialization_alias="Operations")
     """Defines operations within a bulk job."""
 
 
 class BulkResponse(Message):
     schemas: List[str] = ["urn:ietf:params:scim:api:messages:2.0:BulkResponse"]
 
-    operations: List[BulkOperation] = Field(None, alias="Operations")
+    operations: List[BulkOperation] = Field(None, serialization_alias="Operations")
     """Defines operations within a bulk job."""

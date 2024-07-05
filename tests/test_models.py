@@ -38,11 +38,31 @@ def test_parse_and_serialize_examples(load_sample):
         model_name = sample.replace(".json", "").split("-")[2]
         model = models[model_name]
 
-        # resources without schemas are not yet supported
-        # https://github.com/yaal-coop/scim2-models/issues/20
         skipped = [
+            # resources without schemas are not yet supported
+            # https://github.com/yaal-coop/scim2-models/issues/20
             "rfc7644-3.4.2-list_response-partial_attributes.json",
             "rfc7644-3.4.3-list_response-post_query.json",
+            # BulkOperation.data PatchOperation.value should be of type resource
+            # instead of Any, so serialization case would be respected.
+            "rfc7644-3.7.1-bulk_request-circular_conflict.json",
+            "rfc7644-3.7.2-bulk_request-enterprise_user.json",
+            "rfc7644-3.7.2-bulk_request-temporary_identifier.json",
+            "rfc7644-3.7.2-bulk_response-temporary_identifier.json",
+            "rfc7644-3.7.3-bulk_request-multiple_operations.json",
+            "rfc7644-3.7.3-bulk_response-error_invalid_syntax.json",
+            "rfc7644-3.7.3-bulk_response-multiple_errors.json",
+            "rfc7644-3.7.3-bulk_response-multiple_operations.json",
+            "rfc7644-3.5.2.1-patch_op-add_emails.json",
+            "rfc7644-3.5.2.1-patch_op-add_members.json",
+            "rfc7644-3.5.2.2-patch_op-remove_all_members.json",
+            "rfc7644-3.5.2.2-patch_op-remove_and_add_one_member.json",
+            "rfc7644-3.5.2.2-patch_op-remove_multi_complex_value.json",
+            "rfc7644-3.5.2.2-patch_op-remove_one_member.json",
+            "rfc7644-3.5.2.3-patch_op-replace_all_email_values.json",
+            "rfc7644-3.5.2.3-patch_op-replace_all_members.json",
+            "rfc7644-3.5.2.3-patch_op-replace_street_address.json",
+            "rfc7644-3.5.2.3-patch_op-replace_user_work_address.json",
         ]
         if sample in skipped:
             continue

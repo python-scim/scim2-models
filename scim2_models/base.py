@@ -14,6 +14,7 @@ from typing import Union
 from typing import get_args
 from typing import get_origin
 
+from pydantic import AliasGenerator
 from pydantic import BaseModel
 from pydantic import ConfigDict
 from pydantic import Field
@@ -33,6 +34,7 @@ from typing_extensions import Self
 
 from scim2_models.attributes import contains_attribute_or_subattributes
 from scim2_models.attributes import validate_attribute_urn
+from scim2_models.utils import normalize_attribute_name
 from scim2_models.utils import to_camel
 
 ReferenceTypes = TypeVar("ReferenceTypes")
@@ -326,7 +328,10 @@ class BaseModel(BaseModel):
     """Base Model for everything."""
 
     model_config = ConfigDict(
-        alias_generator=to_camel,
+        alias_generator=AliasGenerator(
+            validation_alias=normalize_attribute_name,
+            serialization_alias=to_camel,
+        ),
         populate_by_name=True,
         use_attribute_docstrings=True,
         extra="forbid",
@@ -375,7 +380,7 @@ class BaseModel(BaseModel):
     def check_request_attributes_mutability(
         cls, value: Any, info: ValidationInfo
     ) -> Any:
-        """Check that the field mutability is expected according to the
+        """Check and fix that the field mutability is expected according to the
         requests validation context, as defined in :rfc:`RFC7643 §7
         <7653#section-7>`."""
 
@@ -428,23 +433,19 @@ class BaseModel(BaseModel):
 
         :rfc:`RFC7643 §2.1 <7653#section-2.1>` indicate that attribute
         names should be case-insensitive. Any attribute name is
-        camelized so any case is handled the same way.
+        transformed in lowercase so any case is handled the same way.
         """
 
-        def camelize_attribute_name(attr_name: str) -> str:
-            is_extension_attribute = ":" in attr_name
-            return to_camel(attr_name) if not is_extension_attribute else attr_name
-
-        def camelize_value(value: Any) -> Any:
+        def lowerize_value(value: Any) -> Any:
             if isinstance(value, dict):
                 return {
-                    camelize_attribute_name(k): camelize_value(v)
+                    normalize_attribute_name(k): lowerize_value(v)
                     for k, v in value.items()
                 }
             return value
 
-        camelized_value = camelize_value(value)
-        return handler(camelized_value)
+        lowerized_value = lowerize_value(value)
+        return handler(lowerized_value)
 
     @model_validator(mode="wrap")
     @classmethod
@@ -454,18 +455,20 @@ class BaseModel(BaseModel):
         """Check that the fields returnability is expected according to the
         responses validation context, as defined in :rfc:`RFC7643 §7
         <7653#section-7>`."""
+
+        value = handler(value)
+
         if (
             not info.context
             or not info.context.get("scim")
             or not Context.is_response(info.context["scim"])
         ):
-            return handler(value)
+            return value
 
-        for field_name, field in cls.model_fields.items():
+        for field_name in cls.model_fields:
             returnability = cls.get_field_annotation(field_name, Returned)
-            alias = field.alias or field_name
 
-            if returnability == Returned.always and value.get(alias) is None:
+            if returnability == Returned.always and getattr(value, field_name) is None:
                 raise PydanticCustomError(
                     "returned_error",
                     "Field '{field_name}' has returnability 'always' but value is missing or null",
@@ -474,7 +477,10 @@ class BaseModel(BaseModel):
                     },
                 )
 
-            if returnability == Returned.never and value.get(alias) is not None:
+            if (
+                returnability == Returned.never
+                and getattr(value, field_name) is not None
+            ):
                 raise PydanticCustomError(
                     "returned_error",
                     "Field '{field_name}' has returnability 'never' but value is set",
@@ -483,7 +489,7 @@ class BaseModel(BaseModel):
                     },
                 )
 
-        return handler(value)
+        return value
 
     @model_validator(mode="wrap")
     @classmethod
@@ -492,6 +498,9 @@ class BaseModel(BaseModel):
     ) -> Self:
         """Check that the required attributes are present in creations and
         replacement requests."""
+
+        value = handler(value)
+
         if (
             not info.context
             or not info.context.get("scim")
@@ -501,13 +510,12 @@ class BaseModel(BaseModel):
                 Context.RESOURCE_REPLACEMENT_REQUEST,
             )
         ):
-            return handler(value)
+            return value
 
-        for field_name, field in cls.model_fields.items():
+        for field_name in cls.model_fields:
             necessity = cls.get_field_annotation(field_name, Required)
-            alias = field.alias or field_name
 
-            if necessity == Required.true and value.get(alias) is None:
+            if necessity == Required.true and getattr(value, field_name) is None:
                 raise PydanticCustomError(
                     "required_error",
                     "Field '{field_name}' is required but value is missing or null",
@@ -516,7 +524,7 @@ class BaseModel(BaseModel):
                     },
                 )
 
-        return handler(value)
+        return value
 
     def mark_with_schema(self):
         """Navigate through attributes and sub-attributes of type
@@ -682,7 +690,7 @@ class BaseModel(BaseModel):
         See :rfc:`RFC7644 §3.10 <7644#section-3.10>`.
         """
         main_schema = self.model_fields["schemas"].default[0]
-        alias = self.model_fields[field_name].alias or field_name
+        alias = self.model_fields[field_name].serialization_alias or field_name
         return f"{main_schema}:{alias}"
 
 
@@ -697,7 +705,7 @@ class ComplexAttribute(BaseModel):
 
         See :rfc:`RFC7644 §3.10 <7644#section-3.10>`.
         """
-        alias = self.model_fields[field_name].alias or field_name
+        alias = self.model_fields[field_name].serialization_alias or field_name
         return f"{self._schema}.{alias}"
 
 
@@ -715,7 +723,7 @@ class MultiValuedComplexAttribute(ComplexAttribute):
     value: Optional[str] = None
     """The value of an entitlement."""
 
-    ref: Optional[Reference] = Field(None, alias="$ref")
+    ref: Optional[Reference] = Field(None, serialization_alias="$ref")
     """The reference URI of a target resource, if the attribute is a
     reference."""
 

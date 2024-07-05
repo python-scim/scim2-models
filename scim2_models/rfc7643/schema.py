@@ -26,6 +26,7 @@ from ..base import Uniqueness
 from ..base import URIReference
 from ..base import is_complex_attribute
 from ..constants import RESERVED_WORDS
+from ..utils import normalize_attribute_name
 from .resource import Resource
 
 
@@ -212,7 +213,8 @@ class Attribute(ComplexAttribute):
             Field(
                 description=self.description,
                 examples=self.canonical_values,
-                alias=self.name,
+                serialization_alias=self.name,
+                validation_alias=normalize_attribute_name(self.name),
                 default=None,
             ),
         )

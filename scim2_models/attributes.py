@@ -3,6 +3,8 @@ from typing import Optional
 from typing import Tuple
 from typing import Type
 
+from scim2_models.utils import normalize_attribute_name
+
 
 def validate_model_attribute(model: Type, attribute_base: str) -> None:
     """Validate that an attribute name or a sub-attribute path exist for a
@@ -13,9 +15,9 @@ def validate_model_attribute(model: Type, attribute_base: str) -> None:
     attribute_name, *sub_attribute_blocks = attribute_base.split(".")
     sub_attribute_base = ".".join(sub_attribute_blocks)
 
-    aliases = {field.alias for field in model.model_fields.values()}
+    aliases = {field.validation_alias for field in model.model_fields.values()}
 
-    if attribute_name not in aliases:
+    if normalize_attribute_name(attribute_name) not in aliases:
         raise ValueError(
             f"Model '{model.__name__}' has no attribute named '{attribute_name}'"
         )
