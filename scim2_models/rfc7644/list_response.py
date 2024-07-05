@@ -2,6 +2,7 @@ from typing import Any
 from typing import Generic
 from typing import List
 from typing import Optional
+from typing import Type
 from typing import Union
 
 from pydantic import Field
@@ -19,7 +20,7 @@ from .message import Message
 
 class ListResponse(Message, Generic[AnyResource]):
     @classmethod
-    def of(cls, *resource_types: AnyResource):
+    def of(cls, *resource_types: Type[AnyResource]):
         """Build a ListResponse instance that can handle resource_types."""
 
         return cls[tagged_resource_union(Union[resource_types])]

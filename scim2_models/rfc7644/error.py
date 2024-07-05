@@ -146,7 +146,7 @@ class Error(Message):
         )
 
     @classmethod
-    def make_invalid_syntaxError(cls):
+    def make_invalid_syntax_error(cls):
         return Error(
             status=400,
             scim_type="invalidSyntax",

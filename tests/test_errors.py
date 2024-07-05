@@ -7,7 +7,7 @@ def test_predefined_errors():
         Error.make_too_many_error,
         Error.make_uniqueness_error,
         Error.make_mutability_error,
-        Error.make_invalid_syntaxError,
+        Error.make_invalid_syntax_error,
         Error.make_invalid_path_error,
         Error.make_no_target_error,
         Error.make_invalid_value_error,
