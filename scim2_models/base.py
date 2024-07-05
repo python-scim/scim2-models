@@ -41,7 +41,7 @@ ExternalReference = NewType("ExternalReference", str)
 
 
 class Reference(UserString, Generic[ReferenceTypes]):
-    """Reference type as defined in :rfc:`RFC7643 §2.3.7 <7643#section-2.3.7>`.
+    """Reference type as defined in :rfc:`RFC7643 §2.3.7 <7643#section-2.3.7>`.
 
     References can take different type parameters:
 
@@ -79,7 +79,7 @@ class Context(Enum):
     """Represent the different HTTP contexts detailed in :rfc:`RFC7644 §3.2
     <7644#section-3.2>`
 
-    Contexts are intented to be used during model validation and serialization.
+    Contexts are intended to be used during model validation and serialization.
     For instance a client preparing a resource creation POST request can use
     :code:`resource.model_dump(Context.RESOURCE_CREATION_REQUEST)` and
     the server can then validate it with
@@ -295,7 +295,7 @@ class Uniqueness(str, Enum):
 
 
 class Required(Enum):
-    """A Boolean value that specifies whether or not the attribute is required.
+    """A Boolean value that specifies whether the attribute is required or not.
 
     Missing required attributes raise a :class:`~pydantic.ValidationError` on :attr:`~scim2_models.Context.RESOURCE_CREATION_REQUEST` and :attr:`~scim2_models.Context.RESOURCE_REPLACEMENT_REQUEST` validations.
     """
@@ -310,8 +310,8 @@ class Required(Enum):
 
 
 class CaseExact(Enum):
-    """A Boolean value that specifies whether or not a string attribute is case
-    sensitive."""
+    """A Boolean value that specifies whether a string attribute is case-
+    sensitive or not."""
 
     true = True
     false = False
@@ -427,7 +427,7 @@ class BaseModel(BaseModel):
         """Normalize payload attribute names.
 
         :rfc:`RFC7643 §2.1 <7653#section-2.1>` indicate that attribute
-        names should be case insensitive. Any attribute name is
+        names should be case-insensitive. Any attribute name is
         camelized so any case is handled the same way.
         """
 
@@ -519,7 +519,7 @@ class BaseModel(BaseModel):
         return handler(value)
 
     def mark_with_schema(self):
-        """Navigate through attributes and subattributes of type
+        """Navigate through attributes and sub-attributes of type
         ComplexAttribute, and mark them with a '_schema' attribute.
 
         '_schema' will later be used by 'get_attribute_urn'.
@@ -676,10 +676,10 @@ class BaseModel(BaseModel):
 
         return super().model_dump(*args, **kwargs)
 
-    def get_attribute_urn(self, field_name: str) -> Returned:
+    def get_attribute_urn(self, field_name: str) -> str:
         """Build the full URN of the attribute.
 
-        See :rfc:`RFC7644 §3.12 <7644#section-3.12>`.
+        See :rfc:`RFC7644 §3.10 <7644#section-3.10>`.
         """
         main_schema = self.model_fields["schemas"].default[0]
         alias = self.model_fields[field_name].alias or field_name
@@ -692,10 +692,10 @@ class ComplexAttribute(BaseModel):
 
     _schema: str
 
-    def get_attribute_urn(self, field_name: str) -> Returned:
+    def get_attribute_urn(self, field_name: str) -> str:
         """Build the full URN of the attribute.
 
-        See :rfc:`RFC7644 §3.12 <7644#section-3.12>`.
+        See :rfc:`RFC7644 §3.10 <7644#section-3.10>`.
         """
         alias = self.model_fields[field_name].alias or field_name
         return f"{self._schema}.{alias}"

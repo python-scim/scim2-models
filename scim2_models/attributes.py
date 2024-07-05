@@ -31,7 +31,7 @@ def validate_model_attribute(model: Type, attribute_base: str) -> None:
         validate_model_attribute(attribute_type, sub_attribute_base)
 
 
-def extract_schema_and_attribut_base(attribute_urn: str) -> Tuple[str, str]:
+def extract_schema_and_attribute_base(attribute_urn: str) -> Tuple[str, str]:
     # Extract the schema urn part and the attribute name part from attribute
     # name, as defined in :rfc:`RFC7644 §3.10 <7644#section-3.10>`.
 
@@ -67,7 +67,7 @@ def validate_attribute_urn(
         else None
     )
 
-    schema, attribute_base = extract_schema_and_attribut_base(attribute_name)
+    schema, attribute_base = extract_schema_and_attribute_base(attribute_name)
     if not schema:
         schema = default_schema
 

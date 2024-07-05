@@ -14,7 +14,7 @@ from .resource import Resource
 
 class Manager(MultiValuedComplexAttribute):
     value: Annotated[Optional[str], Required.true] = None
-    """The id of the SCIM resource representingthe User's manager."""
+    """The id of the SCIM resource representing the User's manager."""
 
     ref: Annotated[Optional[Reference[ForwardRef("User")]], Required.true] = Field(
         None,
@@ -31,7 +31,7 @@ class EnterpriseUser(Resource):
 
     employee_number: Optional[str] = None
     """Numeric or alphanumeric identifier assigned to a person, typically based
-    on order of hire or association with anorganization."""
+    on order of hire or association with an organization."""
 
     cost_center: Optional[str] = None
     """"Identifies the name of a cost center."""
@@ -44,7 +44,7 @@ class EnterpriseUser(Resource):
 
     department: Optional[str] = None
     """Numeric or alphanumeric identifier assigned to a person, typically based
-    on order of hire or association with anorganization."""
+    on order of hire or association with an organization."""
 
     manager: Optional[Manager] = None
     """The User's manager.

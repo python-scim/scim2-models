@@ -91,7 +91,7 @@ class Meta(ComplexAttribute):
 
 class ResourceMetaclass(type(BaseModel)):
     def __new__(cls, name, bases, attrs, **kwargs):
-        """Add a dynamic field for each extensions."""
+        """Add a dynamic field for each extension."""
 
         if "__pydantic_generic_metadata__" in kwargs:
             extensions = kwargs["__pydantic_generic_metadata__"]["args"][0]
@@ -212,7 +212,7 @@ class Resource(BaseModel, Generic[AnyModel], metaclass=ResourceMetaclass):
     def attribute_urn_marker(
         cls, value: Any, handler: ValidatorFunctionWrapHandler, info: ValidationInfo
     ) -> Self:
-        """Navigate through attributes and subattributes of type
+        """Navigate through attributes and sub-attributes of type
         ComplexAttribute, and mark them with a '_schema' attribute.
 
         '_schema' will later be used by 'get_attribute_urn'.
