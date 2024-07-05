@@ -8,6 +8,7 @@ import pytest
 from scim2_models.attributes import validate_attribute_urn
 from scim2_models.base import BaseModel
 from scim2_models.base import ComplexAttribute
+from scim2_models.base import Context
 from scim2_models.base import Returned
 from scim2_models.rfc7643.resource import Resource
 from scim2_models.rfc7643.user import User
@@ -183,3 +184,67 @@ def test_payload_attribute_case_sensitivity():
     user = User.model_validate(payload)
     assert user.user_name == "UserName123"
     assert user.display_name == "BobIsAmazing"
+
+
+def test_attribute_inclusion_case_sensitivity():
+    """Test that attribute inclusion supports any attribute case.
+
+    Reported by #45.
+    """
+
+    user = User.model_validate({"userName": "foobar"})
+    assert user.model_dump(
+        scim_ctx=Context.RESOURCE_QUERY_RESPONSE, attributes=["userName"]
+    ) == {
+        "userName": "foobar",
+        "schemas": [
+            "urn:ietf:params:scim:schemas:core:2.0:User",
+        ],
+    }
+
+    assert user.model_dump(
+        scim_ctx=Context.RESOURCE_QUERY_RESPONSE, attributes=["username"]
+    ) == {
+        "userName": "foobar",
+        "schemas": [
+            "urn:ietf:params:scim:schemas:core:2.0:User",
+        ],
+    }
+
+    assert user.model_dump(
+        scim_ctx=Context.RESOURCE_QUERY_RESPONSE, attributes=["USERNAME"]
+    ) == {
+        "userName": "foobar",
+        "schemas": [
+            "urn:ietf:params:scim:schemas:core:2.0:User",
+        ],
+    }
+
+    assert user.model_dump(
+        scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
+        attributes=["urn:ietf:params:scim:schemas:core:2.0:User:userName"],
+    ) == {
+        "userName": "foobar",
+        "schemas": [
+            "urn:ietf:params:scim:schemas:core:2.0:User",
+        ],
+    }
+
+    assert user.model_dump(
+        scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
+        attributes=["urn:ietf:params:scim:schemas:core:2.0:User:username"],
+    ) == {
+        "userName": "foobar",
+        "schemas": [
+            "urn:ietf:params:scim:schemas:core:2.0:User",
+        ],
+    }
+    assert user.model_dump(
+        scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
+        attributes=["urn:ietf:params:scim:schemas:core:2.0:User:USERNAME"],
+    ) == {
+        "userName": "foobar",
+        "schemas": [
+            "urn:ietf:params:scim:schemas:core:2.0:User",
+        ],
+    }

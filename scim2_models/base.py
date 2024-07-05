@@ -612,6 +612,10 @@ class BaseModel(BaseModel):
         included_urns = info.context.get("scim_attributes", [])
         excluded_urns = info.context.get("scim_excluded_attributes", [])
 
+        attribute_urn = normalize_attribute_name(attribute_urn)
+        included_urns = [normalize_attribute_name(urn) for urn in included_urns]
+        excluded_urns = [normalize_attribute_name(urn) for urn in excluded_urns]
+
         if returnability == Returned.never:
             return None
 
