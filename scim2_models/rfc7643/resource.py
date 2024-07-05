@@ -32,6 +32,7 @@ from ..base import Returned
 from ..base import Uniqueness
 from ..base import URIReference
 from ..base import is_complex_attribute
+from ..utils import normalize_attribute_name
 
 
 class Meta(ComplexAttribute):
@@ -105,7 +106,11 @@ class ResourceMetaclass(type(BaseModel)):
                 attrs.setdefault("__annotations__", {})[extension.__name__] = Optional[
                     extension
                 ]
-                attrs[extension.__name__] = Field(None, alias=schema)
+                attrs[extension.__name__] = Field(
+                    None,
+                    serialization_alias=schema,
+                    validation_alias=normalize_attribute_name(schema),
+                )
 
         klass = super().__new__(cls, name, bases, attrs, **kwargs)
         return klass
@@ -316,7 +321,7 @@ def model_attribute_to_attribute(model, attribute_name):
     )
 
     return Attribute(
-        name=field_info.alias or attribute_name,
+        name=field_info.serialization_alias or attribute_name,
         type=attribute_type,
         multi_valued=is_multiple(field_info),
         description=field_info.description,

@@ -1,6 +1,10 @@
 Changelog
 =========
 
+Fixed
+^^^^^
+- Additional bugfixes about attribute case sensitivity #45
+
 [0.1.11] - 2024-07-02
 ---------------------
 

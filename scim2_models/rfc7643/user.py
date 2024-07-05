@@ -190,7 +190,7 @@ class GroupMembership(MultiValuedComplexAttribute):
     ref: Annotated[
         Optional[Reference[Union[ForwardRef("User"), ForwardRef("Group")]]],
         Mutability.read_only,
-    ] = Field(None, alias="$ref")
+    ] = Field(None, serialization_alias="$ref")
     """The reference URI of a target resource, if the attribute is a
     reference."""
 

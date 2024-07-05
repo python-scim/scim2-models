@@ -77,7 +77,7 @@ def test_make_group_model_from_schema(load_sample):
         Members.model_fields["ref"].description
         == "The URI corresponding to a SCIM resource that is a member of this Group."
     )
-    assert Members.model_fields["ref"].alias == "$ref"
+    assert Members.model_fields["ref"].serialization_alias == "$ref"
     assert Members.get_field_annotation("ref", Required) == Required.false
     assert Members.get_field_annotation("ref", CaseExact) == CaseExact.false
     assert Members.get_field_annotation("ref", Mutability) == Mutability.immutable
@@ -105,7 +105,6 @@ def test_make_group_model_from_schema(load_sample):
         Members.model_fields["display"].description
         == "A human-readable name for the group member, primarily used for display purposes."
     )
-    assert Members.model_fields["display"].alias == "display"
     assert Members.get_field_annotation("display", Required) == Required.false
     assert Members.get_field_annotation("display", CaseExact) == CaseExact.false
     assert Members.get_field_annotation("display", Mutability) == Mutability.read_only

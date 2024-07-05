@@ -1,3 +1,4 @@
+import uuid
 from typing import Annotated
 from typing import List
 from typing import Optional
@@ -7,6 +8,7 @@ import pytest
 from scim2_models.attributes import validate_attribute_urn
 from scim2_models.base import BaseModel
 from scim2_models.base import ComplexAttribute
+from scim2_models.base import Context
 from scim2_models.base import Returned
 from scim2_models.rfc7643.resource import Resource
 from scim2_models.rfc7643.user import User
@@ -152,3 +154,97 @@ def test_validate_attribute_urn():
         match="Attribute 'bar' is not a complex attribute, and cannot have a 'invalid' sub-attribute",
     ):
         validate_attribute_urn("bar.invalid", Foo)
+
+
+def test_payload_attribute_case_sensitivity():
+    """RFC7643 §2.1 indicates that attribute names should be case insensitive.
+
+    Attribute names are case insensitive and are often "camel-cased"
+    (e.g., "camelCase").
+
+    Reported by issue #39.
+    """
+
+    payload = {
+        "UserName": "UserName123",
+        "Active": True,
+        "displayname": "BobIsAmazing",
+        "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+        "externalId": uuid.uuid4().hex,
+        "name": {
+            "formatted": "Ryan Leenay",
+            "familyName": "Leenay",
+            "givenName": "Ryan",
+        },
+        "emails": [
+            {"Primary": True, "type": "work", "value": "testing@bob.com"},
+            {"Primary": False, "type": "home", "value": "testinghome@bob.com"},
+        ],
+    }
+    user = User.model_validate(payload)
+    assert user.user_name == "UserName123"
+    assert user.display_name == "BobIsAmazing"
+
+
+def test_attribute_inclusion_case_sensitivity():
+    """Test that attribute inclusion supports any attribute case.
+
+    Reported by #45.
+    """
+
+    user = User.model_validate({"userName": "foobar"})
+    assert user.model_dump(
+        scim_ctx=Context.RESOURCE_QUERY_RESPONSE, attributes=["userName"]
+    ) == {
+        "userName": "foobar",
+        "schemas": [
+            "urn:ietf:params:scim:schemas:core:2.0:User",
+        ],
+    }
+
+    assert user.model_dump(
+        scim_ctx=Context.RESOURCE_QUERY_RESPONSE, attributes=["username"]
+    ) == {
+        "userName": "foobar",
+        "schemas": [
+            "urn:ietf:params:scim:schemas:core:2.0:User",
+        ],
+    }
+
+    assert user.model_dump(
+        scim_ctx=Context.RESOURCE_QUERY_RESPONSE, attributes=["USERNAME"]
+    ) == {
+        "userName": "foobar",
+        "schemas": [
+            "urn:ietf:params:scim:schemas:core:2.0:User",
+        ],
+    }
+
+    assert user.model_dump(
+        scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
+        attributes=["urn:ietf:params:scim:schemas:core:2.0:User:userName"],
+    ) == {
+        "userName": "foobar",
+        "schemas": [
+            "urn:ietf:params:scim:schemas:core:2.0:User",
+        ],
+    }
+
+    assert user.model_dump(
+        scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
+        attributes=["urn:ietf:params:scim:schemas:core:2.0:User:username"],
+    ) == {
+        "userName": "foobar",
+        "schemas": [
+            "urn:ietf:params:scim:schemas:core:2.0:User",
+        ],
+    }
+    assert user.model_dump(
+        scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
+        attributes=["urn:ietf:params:scim:schemas:core:2.0:User:USERNAME"],
+    ) == {
+        "userName": "foobar",
+        "schemas": [
+            "urn:ietf:params:scim:schemas:core:2.0:User",
+        ],
+    }

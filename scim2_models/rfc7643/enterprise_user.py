@@ -18,7 +18,7 @@ class Manager(MultiValuedComplexAttribute):
 
     ref: Annotated[Optional[Reference[ForwardRef("User")]], Required.true] = Field(
         None,
-        alias="$ref",
+        serialization_alias="$ref",
     )
     """The URI of the SCIM resource representing the User's manager."""
 
