@@ -17,6 +17,7 @@ from pydantic import Field
 from pydantic import Tag
 from pydantic import ValidationInfo
 from pydantic import ValidatorFunctionWrapHandler
+from pydantic import WrapSerializer
 from pydantic import field_serializer
 from pydantic import model_validator
 from typing_extensions import Self
@@ -90,9 +91,19 @@ class Meta(ComplexAttribute):
     """
 
 
+def extension_serializer(value: Any, handler, info) -> Dict[str, Any]:
+    partial_result = handler(value, info)
+    result = {
+        attr_name: value
+        for attr_name, value in partial_result.items()
+        if attr_name not in Resource.model_fields
+    }
+    return result or None
+
+
 class ResourceMetaclass(type(BaseModel)):
     def __new__(cls, name, bases, attrs, **kwargs):
-        """Add a dynamic field for each extension."""
+        """Dynamically add a field for each extension."""
 
         if "__pydantic_generic_metadata__" in kwargs:
             extensions = kwargs["__pydantic_generic_metadata__"]["args"][0]
@@ -103,8 +114,10 @@ class ResourceMetaclass(type(BaseModel)):
             )
             for extension in extensions:
                 schema = extension.model_fields["schemas"].default[0]
-                attrs.setdefault("__annotations__", {})[extension.__name__] = Optional[
-                    extension
+                attrs.setdefault("__annotations__", {})[extension.__name__] = Annotated[
+                    Optional[extension],
+                    Returned.always,
+                    WrapSerializer(extension_serializer),
                 ]
                 attrs[extension.__name__] = Field(
                     None,

@@ -240,9 +240,6 @@ Extensions attributes are accessed with brackets, e.g. ``user[EnterpriseUser].em
     ...     },
     ...     "userName": "bjensen@example.com",
     ...     "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User": {
-    ...         "schemas": [
-    ...             "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"
-    ...         ],
     ...         "employeeNumber": "701984",
     ...         "division": "Theme Park",
     ...     }
