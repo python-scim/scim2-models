@@ -47,6 +47,13 @@ class BulkOperation(ComplexAttribute):
 
 
 class BulkRequest(Message):
+    """Bulk request as defined in :rfc:`RFC7644 §3.7 <7644#section-3.7>`.
+
+    .. todo::
+
+        The models for Bulk operations are defined, but their behavior is not implemented nor tested yet.
+    """
+
     schemas: List[str] = ["urn:ietf:params:scim:api:messages:2.0:BulkRequest"]
 
     fail_on_errors: Optional[int] = None
@@ -59,6 +66,13 @@ class BulkRequest(Message):
 
 
 class BulkResponse(Message):
+    """Bulk response as defined in :rfc:`RFC7644 §3.7 <7644#section-3.7>`.
+
+    .. todo::
+
+        The models for Bulk operations are defined, but their behavior is not implemented nor tested yet.
+    """
+
     schemas: List[str] = ["urn:ietf:params:scim:api:messages:2.0:BulkResponse"]
 
     operations: List[BulkOperation] = Field(None, serialization_alias="Operations")

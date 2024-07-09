@@ -396,3 +396,10 @@ This can be used by client applications that intends to dynamically discover ser
        .. literalinclude :: ../samples/rfc7643-8.7.1-schema-group.json
           :language: json
           :caption: schema-group.json
+
+Bulk and Patch operations
+=========================
+
+.. todo::
+
+   Bulk and Patch operations are not implemented yet, but any help is welcome!

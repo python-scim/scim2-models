@@ -28,6 +28,14 @@ class PatchOperation(ComplexAttribute):
 
 
 class PatchOp(Message):
+    """Patch Operation as defined in :rfc:`RFC7644 §3.5.2
+    <7644#section-3.5.2>`.
+
+    .. todo::
+
+        The models for Patch operations are defined, but their behavior is not implemented nor tested yet.
+    """
+
     schemas: List[str] = ["urn:ietf:params:scim:api:messages:2.0:PatchOp"]
 
     operations: List[PatchOperation] = Field(None, serialization_alias="Operations")
