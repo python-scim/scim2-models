@@ -604,8 +604,8 @@ class BaseModel(BaseModel):
         return value
 
     def scim_response_serializer(self, value: Any, info: SerializationInfo) -> Any:
-        """Serialize the fields according to returability indications passed in
-        the serialization context."""
+        """Serialize the fields according to returnability indications passed
+        in the serialization context."""
 
         returnability = self.get_field_annotation(info.field_name, Returned)
         attribute_urn = self.get_attribute_urn(info.field_name)

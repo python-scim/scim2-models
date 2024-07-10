@@ -71,7 +71,7 @@ Added
 
 Changed
 ^^^^^^^
-- Refactor :code:`get_field_mutability` and :code:`get_field_returability` in :code:`get_field_annotation`.
+- Refactor :code:`get_field_mutability` and :code:`get_field_returnability` in :code:`get_field_annotation`.
 
 [0.1.5] - 2024-06-04
 --------------------
