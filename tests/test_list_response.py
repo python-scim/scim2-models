@@ -185,3 +185,22 @@ def test_zero_results():
         ListResponse.of(User).model_validate(
             payload, scim_ctx=Context.RESOURCE_QUERY_RESPONSE
         )
+
+
+def test_list_response_schema_ordering():
+    """Test that the "schemas" attribute order does not impact behavior
+    https://datatracker.ietf.org/doc/html/rfc7643#section-3"""
+
+    payload = {
+        "totalResults": 1,
+        "Resources": [
+            {
+                "schemas": [
+                    "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User",
+                    "urn:ietf:params:scim:schemas:core:2.0:User",
+                ],
+                "userName": "bjensen@example.com",
+            }
+        ],
+    }
+    ListResponse.of(User[EnterpriseUser], Group).model_validate(payload)
