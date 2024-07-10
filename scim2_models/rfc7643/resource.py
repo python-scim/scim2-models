@@ -353,10 +353,19 @@ def tagged_resource_union(resource_types: Resource):
         return resource_types
 
     def get_schema_from_payload(payload: Any):
-        try:
-            return payload["schemas"][0]
-        except KeyError:
+        if not payload:
             return None
+
+        resource_types_schemas = [
+            resource_type.model_fields["schemas"].default[0]
+            for resource_type in resource_types
+        ]
+        common_schemas = [
+            schema
+            for schema in payload.get("schemas")
+            if schema in resource_types_schemas
+        ]
+        return common_schemas[0] if common_schemas else None
 
     def get_tag(resource_type: Type):
         return Tag(resource_type.model_fields["schemas"].default[0])
