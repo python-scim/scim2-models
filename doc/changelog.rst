@@ -1,6 +1,9 @@
 Changelog
 =========
 
+[0.1.12] - Unreleased
+---------------------
+
 Fixed
 ^^^^^
 - Additional bugfixes about attribute case sensitivity #45
