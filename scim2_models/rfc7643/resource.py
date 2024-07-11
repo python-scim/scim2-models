@@ -92,6 +92,12 @@ class Meta(ComplexAttribute):
 
 
 def extension_serializer(value: Any, handler, info) -> Dict[str, Any]:
+    """Exclude the Resource attributes from the extension dump.
+
+    For instance, attributes 'meta', 'id' or 'schemas' should not be
+    dumped when the model is used as an extension for another model.
+    """
+
     partial_result = handler(value, info)
     result = {
         attr_name: value
