@@ -5,6 +5,7 @@ from typing import Union
 
 import pytest
 
+from scim2_models import Context
 from scim2_models import EnterpriseUser
 from scim2_models import Manager
 from scim2_models import Meta
@@ -67,9 +68,6 @@ def test_extension_getitem():
                 "$ref": "https://example.com/v2/Users/26118915-6090-4610-87e4-49d8ca9f808d",
                 "displayName": "John Smith",
             },
-            "schemas": [
-                "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User",
-            ],
         },
         "userName": "bjensen@example.com",
     }
@@ -131,9 +129,6 @@ def test_extension_setitem():
                 "$ref": "https://example.com/v2/Users/26118915-6090-4610-87e4-49d8ca9f808d",
                 "displayName": "John Smith",
             },
-            "schemas": [
-                "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User",
-            ],
         },
         "userName": "bjensen@example.com",
     }
@@ -200,3 +195,28 @@ def test_multiple_extensions_union():
     instance = user_model()
     instance[SuperHero] = SuperHero(superpower="flight")
     assert instance[SuperHero].superpower == "flight"
+
+
+def test_extensions_schemas():
+    """Verifies that attributes from schema extensions work."""
+
+    user = User[EnterpriseUser].model_validate(
+        {
+            "userName": "foobar",
+            "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User": {
+                "employeeNumber": "12345"
+            },
+        }
+    )
+    assert user.model_dump(
+        scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
+        attributes=[
+            "urn:ietf:params:scim:schemas:core:2.0:User:userName",
+        ],
+    ) == {
+        "schemas": [
+            "urn:ietf:params:scim:schemas:core:2.0:User",
+            "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User",
+        ],
+        "userName": "foobar",
+    }

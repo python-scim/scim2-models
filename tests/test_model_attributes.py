@@ -10,6 +10,7 @@ from scim2_models.base import BaseModel
 from scim2_models.base import ComplexAttribute
 from scim2_models.base import Context
 from scim2_models.base import Returned
+from scim2_models.rfc7643.enterprise_user import EnterpriseUser
 from scim2_models.rfc7643.resource import Resource
 from scim2_models.rfc7643.user import User
 
@@ -248,3 +249,48 @@ def test_attribute_inclusion_case_sensitivity():
             "urn:ietf:params:scim:schemas:core:2.0:User",
         ],
     }
+
+
+def test_attribute_inclusion_schema_extensions():
+    """Verifies that attributes from schema extensions work."""
+    user = User[EnterpriseUser].model_validate(
+        {
+            "userName": "foobar",
+            "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User": {
+                "employeeNumber": "12345"
+            },
+        }
+    )
+
+    expected = {
+        "schemas": [
+            "urn:ietf:params:scim:schemas:core:2.0:User",
+            "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User",
+        ],
+        "userName": "foobar",
+        "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User": {
+            "employeeNumber": "12345",
+        },
+    }
+
+    assert (
+        user.model_dump(
+            scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
+            attributes=[
+                "urn:ietf:params:scim:schemas:core:2.0:User:userName",
+                "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:employeeNumber",
+            ],
+        )
+        == expected
+    )
+
+    assert (
+        user.model_dump(
+            scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
+            attributes=[
+                "urn:ietf:params:scim:schemas:core:2.0:User:userName",
+                "URN:IETF:PARAMS:SCIM:SCHEMAS:EXTENSION:ENTERPRISE:2.0:USER:EMPLOYEENUMBER",
+            ],
+        )
+        == expected
+    )

@@ -7,6 +7,7 @@ Changelog
 Fixed
 ^^^^^
 - Additional bugfixes about attribute case sensitivity #45
+- Extension attributes dump were ignored #49
 - :class:`~scim2_models.ListResponse` tolerate any schema order #50
 
 [0.1.11] - 2024-07-02
