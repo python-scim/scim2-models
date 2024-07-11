@@ -436,16 +436,16 @@ class BaseModel(BaseModel):
         transformed in lowercase so any case is handled the same way.
         """
 
-        def lowerize_value(value: Any) -> Any:
+        def normalize_value(value: Any) -> Any:
             if isinstance(value, dict):
                 return {
-                    normalize_attribute_name(k): lowerize_value(v)
+                    normalize_attribute_name(k): normalize_value(v)
                     for k, v in value.items()
                 }
             return value
 
-        lowerized_value = lowerize_value(value)
-        return handler(lowerized_value)
+        normalized_value = normalize_value(value)
+        return handler(normalized_value)
 
     @model_validator(mode="wrap")
     @classmethod
