@@ -540,6 +540,9 @@ class BaseModel(BaseModel):
             if not is_complex_attribute(attr_type):
                 continue
 
+            if "schemas" not in self.model_fields:
+                continue
+
             main_schema = self.model_fields["schemas"].default[0]
 
             separator = ":" if isinstance(self, Resource) else "."
@@ -642,6 +645,7 @@ class BaseModel(BaseModel):
         """Remove `None` values inserted by the
         :meth:`~scim2_models.base.BaseModel.scim_serializer`."""
 
+        self.mark_with_schema()
         result = handler(self)
         return {key: value for key, value in result.items() if value is not None}
 
