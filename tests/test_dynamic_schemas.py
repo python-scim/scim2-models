@@ -1,5 +1,6 @@
 import operator
 
+from scim2_models.base import Context
 from scim2_models.rfc7643.enterprise_user import EnterpriseUser
 from scim2_models.rfc7643.group import Group
 from scim2_models.rfc7643.resource_type import ResourceType
@@ -122,3 +123,9 @@ def test_dynamic_schema_schema(load_sample):
     canonic_schema(schema)
     canonic_schema(sample)
     assert sample == schema
+
+
+def test_dump_with_context():
+    models = [User, EnterpriseUser, Group, ResourceType, Schema, ServiceProviderConfig]
+    for model in models:
+        model.to_schema().model_dump(scim_ctx=Context.RESOURCE_QUERY_RESPONSE)

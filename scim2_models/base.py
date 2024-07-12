@@ -540,10 +540,10 @@ class BaseModel(BaseModel):
             if not is_complex_attribute(attr_type):
                 continue
 
-            if "schemas" not in self.model_fields:
-                continue
-
-            main_schema = self.model_fields["schemas"].default[0]
+            main_schema = (
+                getattr(self, "_schema", None)
+                or self.model_fields["schemas"].default[0]
+            )
 
             separator = ":" if isinstance(self, Resource) else "."
             schema = f"{main_schema}{separator}{field_name}"

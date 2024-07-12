@@ -1,6 +1,13 @@
 Changelog
 =========
 
+[0.1.13] - Unreleased
+---------------------
+
+Fixed
+^^^^^
+- Schema dump with context was broken.
+
 [0.1.12] - 2024-07-11
 ---------------------
 
