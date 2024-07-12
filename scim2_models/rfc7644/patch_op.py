@@ -4,6 +4,7 @@ from typing import List
 from typing import Optional
 
 from pydantic import Field
+from pydantic import field_validator
 
 from ..base import ComplexAttribute
 from .message import Message
@@ -25,6 +26,13 @@ class PatchOperation(ComplexAttribute):
     describing the target of the operation."""
 
     value: Optional[Any] = None
+
+    @field_validator("op", mode="before")
+    @classmethod
+    def normalize_op(cls, v):
+        if isinstance(v, str):
+            return v.lower()
+        return v
 
 
 class PatchOp(Message):
