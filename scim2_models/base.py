@@ -706,8 +706,6 @@ class ComplexAttribute(BaseModel):
     """A complex attribute as defined in :rfc:`RFC7643 §2.3.8
     <7643#section-2.3.8>`."""
 
-    _schema: str
-
     def get_attribute_urn(self, field_name: str) -> str:
         """Build the full URN of the attribute.
 
