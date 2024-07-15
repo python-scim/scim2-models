@@ -19,7 +19,13 @@ class PatchOperation(ComplexAttribute):
     op: Op
     """Each PATCH operation object MUST have exactly one "op" member, whose
     value indicates the operation to perform and MAY be one of "add", "remove",
-    or "replace"."""
+    or "replace".
+
+    .. note::
+
+        For the sake of compatibility with Microsoft Entra,
+        despite :rfc:`RFC7644 §3.5.2 <7644#section-3.5.2>`, op is case-insensitive.
+    """
 
     path: Optional[str] = None
     """The "path" attribute value is a String containing an attribute path
@@ -30,6 +36,16 @@ class PatchOperation(ComplexAttribute):
     @field_validator("op", mode="before")
     @classmethod
     def normalize_op(cls, v):
+        """Ignorecase for op.
+
+        This brings
+        `compatibility with Microsoft Entra <https://learn.microsoft.com/en-us/entra/identity/app-provisioning/use-scim-to-provision-users-and-groups#general>`_:
+
+        Don't require a case-sensitive match on structural elements in SCIM,
+        in particular PATCH op operation values, as defined in section 3.5.2.
+        Microsoft Entra ID emits the values of op as Add, Replace, and Remove.
+        """
+
         if isinstance(v, str):
             return v.lower()
         return v

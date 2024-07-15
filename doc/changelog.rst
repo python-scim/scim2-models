@@ -7,6 +7,7 @@ Changelog
 Fixed
 ^^^^^
 - Schema dump with context was broken.
+- :attr:`scim2_models.PatchOperation.op` attribute is case insensitive to be compatible with Microsoft Entra. #55
 
 [0.1.12] - 2024-07-11
 ---------------------
