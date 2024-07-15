@@ -1,6 +1,13 @@
 Changelog
 =========
 
+[0.1.14] - Unreleased
+---------------------
+
+Fixed
+^^^^^
+- `get_by_payload` return :data:`None` on invalid payloads
+
 [0.1.13] - 2024-07-15
 ---------------------
 

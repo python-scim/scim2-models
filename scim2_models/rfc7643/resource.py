@@ -216,7 +216,10 @@ class Resource(BaseModel, Generic[AnyModel], metaclass=ResourceMetaclass):
         """Given a resource type list and a payload, find the matching resource
         type."""
 
-        schema = payload["schemas"][0] if payload and payload.get("schemas") else None
+        if not payload or not payload.get("schemas"):
+            return None
+
+        schema = payload["schemas"][0]
         return Resource.get_by_schema(resource_types, schema, **kwargs)
 
     @field_serializer("schemas")

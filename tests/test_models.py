@@ -134,6 +134,9 @@ def test_get_resource_by_payload():
         == ListResponse[User]
     )
 
+    payload = {"foo": "bar"}
+    assert Resource.get_by_payload(resource_types, payload) is None
+
 
 def test_everything_is_optional():
     """Test that all attributes are optional on pre-defined models."""
