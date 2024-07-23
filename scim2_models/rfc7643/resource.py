@@ -226,10 +226,7 @@ class Resource(BaseModel, Generic[AnyModel], metaclass=ResourceMetaclass):
     def set_extension_schemas(self, schemas: List[str]):
         """Add model extension ids to the 'schemas' attribute."""
 
-        extension_models = self.__pydantic_generic_metadata__.get("args")
-        extension_schemas = [
-            ext.model_fields["schemas"].default[0] for ext in extension_models
-        ]
+        extension_schemas = self.get_extension_models().keys()
         schemas = self.schemas + [
             schema for schema in extension_schemas if schema not in self.schemas
         ]

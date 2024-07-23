@@ -195,6 +195,15 @@ def test_multiple_extensions_union():
     instance = user_model()
     instance[SuperHero] = SuperHero(superpower="flight")
     assert instance[SuperHero].superpower == "flight"
+    assert instance.model_dump() == {
+        "schemas": [
+            "urn:ietf:params:scim:schemas:core:2.0:User",
+            "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User",
+        ],
+        "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User": {
+            "superpower": "flight",
+        },
+    }
 
 
 def test_extensions_schemas():

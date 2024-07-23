@@ -7,6 +7,7 @@ Changelog
 Fixed
 ^^^^^
 - `get_by_payload` return :data:`None` on invalid payloads
+- instance :meth:`~scim2_models.Resource.model_dump` with multiple extensions #57
 
 [0.1.13] - 2024-07-15
 ---------------------
