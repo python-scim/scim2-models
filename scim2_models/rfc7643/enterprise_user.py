@@ -5,14 +5,14 @@ from typing import Optional
 
 from pydantic import Field
 
-from ..base import MultiValuedComplexAttribute
+from ..base import ComplexAttribute
 from ..base import Mutability
 from ..base import Reference
 from ..base import Required
 from .resource import Resource
 
 
-class Manager(MultiValuedComplexAttribute):
+class Manager(ComplexAttribute):
     value: Annotated[Optional[str], Required.true] = None
     """The id of the SCIM resource representing the User's manager."""
 
