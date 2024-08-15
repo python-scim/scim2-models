@@ -1,6 +1,13 @@
 Changelog
 =========
 
+[0.1.15] - Unreleased
+---------------------
+
+Fixed
+^^^^^
+- :class:`scim2_models.Manager` is a :class:`~scim2_models.MultiValuedComplexAttribute`. #62
+
 [0.1.14] - 2024-07-23
 ---------------------
 
