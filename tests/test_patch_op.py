@@ -21,7 +21,7 @@ def test_validate_patchop_case_insensitivith():
     ) == PatchOp(
         operations=[
             PatchOperation(
-                op=PatchOperation.Op.replace, path="userName", value="Rivard"
+                op=PatchOperation.Op.replace_, path="userName", value="Rivard"
             ),
             PatchOperation(op=PatchOperation.Op.add, path="userName", value="Rivard"),
             PatchOperation(

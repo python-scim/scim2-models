@@ -12,7 +12,7 @@ from .message import Message
 
 class PatchOperation(ComplexAttribute):
     class Op(str, Enum):
-        replace = "replace"
+        replace_ = "replace"
         remove = "remove"
         add = "add"
 
