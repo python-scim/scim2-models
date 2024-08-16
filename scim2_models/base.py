@@ -15,7 +15,7 @@ from typing import get_args
 from typing import get_origin
 
 from pydantic import AliasGenerator
-from pydantic import BaseModel
+from pydantic import BaseModel as PydanticBaseModel
 from pydantic import ConfigDict
 from pydantic import Field
 from pydantic import GetCoreSchemaHandler
@@ -324,7 +324,7 @@ class CaseExact(Enum):
         return self.value
 
 
-class BaseModel(BaseModel):
+class BaseModel(PydanticBaseModel):
     """Base Model for everything."""
 
     model_config = ConfigDict(
@@ -368,7 +368,7 @@ class BaseModel(BaseModel):
             attribute_type = get_args(attribute_type)[0]
 
         # extract 'x' from 'List[x]'
-        if isinstance(get_origin(attribute_type), Type) and issubclass(
+        if isclass(get_origin(attribute_type)) and issubclass(
             get_origin(attribute_type), List
         ):
             attribute_type = get_args(attribute_type)[0]
@@ -734,7 +734,7 @@ class MultiValuedComplexAttribute(ComplexAttribute):
     reference."""
 
 
-def is_complex_attribute(type):
+def is_complex_attribute(type) -> bool:
     # issubclass raise a TypeError with 'Reference' on python < 3.11
     return (
         get_origin(type) != Reference

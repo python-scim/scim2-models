@@ -2,6 +2,7 @@ import re
 from datetime import datetime
 from enum import Enum
 from typing import Annotated
+from typing import Any
 from typing import List
 from typing import Optional
 from typing import Tuple
@@ -49,14 +50,16 @@ def make_python_model(obj: Union["Schema", "Attribute"], multiple=False) -> "Res
     if isinstance(obj, Attribute):
         pydantic_attributes = {
             to_snake(make_python_identifier(attr.name)): attr.to_python()
-            for attr in obj.sub_attributes
+            for attr in (obj.sub_attributes or [])
+            if attr.name
         }
         base = MultiValuedComplexAttribute if multiple else ComplexAttribute
 
     else:
         pydantic_attributes = {
             to_snake(make_python_identifier(attr.name)): attr.to_python()
-            for attr in obj.attributes
+            for attr in (obj.attributes or [])
+            if attr.name
         }
         pydantic_attributes["schemas"] = (Optional[List[str]], Field(default=[obj.id]))
         base = Resource
@@ -109,7 +112,7 @@ class Attribute(ComplexAttribute):
             return attr_types[self.value]
 
         @classmethod
-        def from_python(cls, pytype) -> Type:
+        def from_python(cls, pytype) -> str:
             if get_origin(pytype) == Reference:
                 return cls.reference.value
 
@@ -129,7 +132,9 @@ class Attribute(ComplexAttribute):
             }
             return attr_types.get(pytype, cls.string.value)
 
-    name: Annotated[str, Mutability.read_only, Required.true, CaseExact.true] = None
+    name: Annotated[
+        Optional[str], Mutability.read_only, Required.true, CaseExact.true
+    ] = None
     """The attribute's name."""
 
     type: Annotated[Type, Mutability.read_only, Required.true] = Field(
@@ -190,7 +195,7 @@ class Attribute(ComplexAttribute):
     """When an attribute is of type "complex", "subAttributes" defines a set of
     sub-attributes."""
 
-    def to_python(self) -> Tuple[Type, Field]:
+    def to_python(self) -> Tuple[Any, Field]:
         """Build tuple suited to be passed to pydantic 'create_model'."""
 
         attr_type = self.type.to_python(self.multi_valued, self.reference_types)
@@ -201,23 +206,24 @@ class Attribute(ComplexAttribute):
         if self.multi_valued:
             attr_type = List[attr_type]
 
-        return (
-            Annotated[
-                Optional[attr_type],
-                self.required,
-                self.case_exact,
-                self.mutability,
-                self.returned,
-                self.uniqueness,
-            ],
-            Field(
-                description=self.description,
-                examples=self.canonical_values,
-                serialization_alias=self.name,
-                validation_alias=normalize_attribute_name(self.name),
-                default=None,
-            ),
+        annotation = Annotated[
+            Optional[attr_type],
+            self.required,
+            self.case_exact,
+            self.mutability,
+            self.returned,
+            self.uniqueness,
+        ]
+
+        field = Field(
+            description=self.description,
+            examples=self.canonical_values,
+            serialization_alias=self.name,
+            validation_alias=normalize_attribute_name(self.name),
+            default=None,
         )
+
+        return annotation, field
 
 
 class Schema(Resource):

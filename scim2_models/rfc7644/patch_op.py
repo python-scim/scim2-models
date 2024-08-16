@@ -16,7 +16,7 @@ class PatchOperation(ComplexAttribute):
         remove = "remove"
         add = "add"
 
-    op: Op
+    op: Optional[Op] = None
     """Each PATCH operation object MUST have exactly one "op" member, whose
     value indicates the operation to perform and MAY be one of "add", "remove",
     or "replace".

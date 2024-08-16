@@ -19,7 +19,7 @@ class BulkOperation(ComplexAttribute):
         patch = "PATCH"
         delete = "DELETE"
 
-    method: Method = None
+    method: Optional[Method] = None
     """The HTTP method of the current operation."""
 
     bulk_id: Optional[str] = None

@@ -107,6 +107,10 @@ def test_mixed_types(load_sample):
     assert response.model_dump() == payload
 
 
+class Foobar(Resource):
+    schemas: List[str] = ["foobarschema"]
+
+
 def test_mixed_types_type_missing(load_sample):
     """Check that ValidationError are raised when unknown schemas are met."""
 
@@ -119,9 +123,6 @@ def test_mixed_types_type_missing(load_sample):
         "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
         "Resources": [user_payload, group_payload],
     }
-
-    class Foobar(Resource):
-        schemas: List[str] = ["foobarschema"]
 
     ListResponse.of(User, Group).model_validate(payload)
 

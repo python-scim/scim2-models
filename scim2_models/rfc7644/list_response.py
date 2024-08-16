@@ -23,11 +23,12 @@ class ListResponse(Message, Generic[AnyResource]):
     def of(cls, *resource_types: Type[AnyResource]):
         """Build a ListResponse instance that can handle resource_types."""
 
-        return cls[tagged_resource_union(Union[resource_types])]
+        annotated_type = tagged_resource_union(Union[resource_types])
+        return cls[annotated_type]
 
     schemas: List[str] = ["urn:ietf:params:scim:api:messages:2.0:ListResponse"]
 
-    total_results: int = None
+    total_results: Optional[int] = None
     """The total number of results returned by the list or query operation."""
 
     start_index: Optional[int] = None
