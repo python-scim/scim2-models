@@ -1,5 +1,5 @@
 import datetime
-from typing import ForwardRef
+from typing import Literal
 from typing import Union
 
 from scim2_models.base import CaseExact
@@ -71,7 +71,7 @@ def test_make_group_model_from_schema(load_sample):
     # Members.ref
     assert (
         Members.get_field_root_type("ref")
-        == Reference[Union[ForwardRef("User"), ForwardRef("Group")]]
+        == Reference[Union[Literal["User"], Literal["Group"]]]
     )
     assert not is_multiple(Members.model_fields["ref"])
     assert (
@@ -863,7 +863,7 @@ def test_make_user_model_from_schema(load_sample):
     # group.ref
     assert (
         Groups.get_field_root_type("ref")
-        == Reference[Union[ForwardRef("User"), ForwardRef("Group")]]
+        == Reference[Union[Literal["User"], Literal["Group"]]]
     )
     assert not is_multiple(Groups.model_fields["ref"])
     assert (
@@ -1415,7 +1415,7 @@ def test_make_enterprise_user_model_from_schema(load_sample):
     assert Manager.get_field_annotation("value", Uniqueness) == Uniqueness.none
 
     # Manager.ref
-    assert Manager.get_field_root_type("ref") == Reference[ForwardRef("User")]
+    assert Manager.get_field_root_type("ref") == Reference[Literal["User"]]
     assert not is_multiple(Manager.model_fields["ref"])
     assert (
         Manager.model_fields["ref"].description

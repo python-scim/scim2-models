@@ -4,6 +4,7 @@ from enum import Enum
 from typing import Annotated
 from typing import Any
 from typing import List
+from typing import Literal
 from typing import Optional
 from typing import Tuple
 from typing import Type
@@ -96,7 +97,8 @@ class Attribute(ComplexAttribute):
                 if reference_types == ["uri"]:
                     return Reference[URIReference]
 
-                return Reference[Union[tuple(reference_types)]]
+                types = tuple(Literal[t] for t in reference_types)
+                return Reference[Union[types]]
 
             attr_types = {
                 self.string: str,

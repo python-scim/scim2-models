@@ -19,6 +19,11 @@ Changed
 
   ``ListResponse.of(User)`` becomes ``ListResponse[User]`` and ListResponse.of(User, Group)`` becomes ``ListResponse[Union[User, Group]]``.
 
+- :data:`~scim2_models.Reference` use :data:`~typing.Literal` instead of :class:`typing.ForwardRef`.
+.. note::
+
+  ``pet: Reference["Pet"]`` becomes ``pet: Reference[Literal["Pet"]]``
+
 [0.1.14] - 2024-07-23
 ---------------------
 
