@@ -13,6 +13,7 @@ from scim2_models.base import Returned
 from scim2_models.base import Uniqueness
 from scim2_models.base import URIReference
 from scim2_models.rfc7643.resource import is_multiple
+from scim2_models.rfc7643.schema import Attribute
 from scim2_models.rfc7643.schema import Schema
 
 
@@ -2790,3 +2791,9 @@ def test_make_schema_model_from_schema(load_sample):
     )
 
     assert obj.model_dump(exclude_unset=True) == payload
+
+
+def test_empty_attribute():
+    """Attributes must at least have a name to be pythonizable."""
+
+    assert Attribute().to_python() is None

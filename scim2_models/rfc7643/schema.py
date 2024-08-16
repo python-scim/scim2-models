@@ -195,8 +195,11 @@ class Attribute(ComplexAttribute):
     """When an attribute is of type "complex", "subAttributes" defines a set of
     sub-attributes."""
 
-    def to_python(self) -> Tuple[Any, Field]:
+    def to_python(self) -> Optional[Tuple[Any, Field]]:
         """Build tuple suited to be passed to pydantic 'create_model'."""
+
+        if not self.name:
+            return None
 
         attr_type = self.type.to_python(self.multi_valued, self.reference_types)
 
