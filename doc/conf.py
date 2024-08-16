@@ -34,7 +34,6 @@ source_suffix = {
 
 version = metadata.version("scim2-models")
 language = "en"
-exclude_patterns = []
 pygments_style = "sphinx"
 todo_include_todos = True
 toctree_collapse = False

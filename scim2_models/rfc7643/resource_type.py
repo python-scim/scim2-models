@@ -16,11 +16,14 @@ from .resource import Resource
 
 class SchemaExtension(ComplexAttribute):
     schema_: Annotated[
-        Reference[URIReference], Mutability.read_only, Required.true, CaseExact.true
+        Optional[Reference[URIReference]],
+        Mutability.read_only,
+        Required.true,
+        CaseExact.true,
     ] = Field(None, alias="schema")
     """The URI of a schema extension."""
 
-    required: Annotated[bool, Mutability.read_only, Required.true] = None
+    required: Annotated[Optional[bool], Mutability.read_only, Required.true] = None
     """A Boolean value that specifies whether or not the schema extension is
     required for the resource type.
 
@@ -34,7 +37,7 @@ class SchemaExtension(ComplexAttribute):
 class ResourceType(Resource):
     schemas: List[str] = ["urn:ietf:params:scim:schemas:core:2.0:ResourceType"]
 
-    name: Annotated[str, Mutability.read_only, Required.true] = None
+    name: Annotated[Optional[str], Mutability.read_only, Required.true] = None
     """The resource type name.
 
     When applicable, service providers MUST specify the name, e.g.,
@@ -54,13 +57,16 @@ class ResourceType(Resource):
     """
 
     endpoint: Annotated[
-        Reference[URIReference], Mutability.read_only, Required.true
+        Optional[Reference[URIReference]], Mutability.read_only, Required.true
     ] = None
     """The resource type's HTTP-addressable endpoint relative to the Base URL,
     e.g., '/Users'."""
 
     schema_: Annotated[
-        Reference[URIReference], Mutability.read_only, Required.true, CaseExact.true
+        Optional[Reference[URIReference]],
+        Mutability.read_only,
+        Required.true,
+        CaseExact.true,
     ] = Field(None, alias="schema")
     """The resource type's primary/base schema URI."""
 

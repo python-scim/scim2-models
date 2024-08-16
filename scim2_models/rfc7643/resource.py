@@ -87,7 +87,7 @@ class Meta(ComplexAttribute):
     """
 
 
-def extension_serializer(value: Any, handler, info) -> Dict[str, Any]:
+def extension_serializer(value: Any, handler, info) -> Optional[Dict[str, Any]]:
     """Exclude the Resource attributes from the extension dump.
 
     For instance, attributes 'meta', 'id' or 'schemas' should not be
@@ -103,7 +103,10 @@ def extension_serializer(value: Any, handler, info) -> Dict[str, Any]:
     return result or None
 
 
-class ResourceMetaclass(type(BaseModel)):
+BaseModelType: Type = type(BaseModel)
+
+
+class ResourceMetaclass(BaseModelType):
     def __new__(cls, name, bases, attrs, **kwargs):
         """Dynamically add a field for each extension."""
 
@@ -342,7 +345,9 @@ def model_attribute_to_attribute(model, attribute_name):
     )
 
 
-def tagged_resource_union(resource_types: Resource):
+def tagged_resource_union(
+    resource_types: Union[Resource, Union[Any]],
+) -> Union[Resource, Union[Any]]:
     """Build Discriminated Unions, so pydantic can get which class are needed
     to instantiate by inspecting a payload.
 
@@ -351,7 +356,7 @@ def tagged_resource_union(resource_types: Resource):
     if not get_origin(resource_types) == Union:
         return resource_types
 
-    def get_schema_from_payload(payload: Any):
+    def get_schema_from_payload(payload: Any) -> Optional[str]:
         if not payload:
             return None
 
@@ -366,7 +371,7 @@ def tagged_resource_union(resource_types: Resource):
         ]
         return common_schemas[0] if common_schemas else None
 
-    def get_tag(resource_type: Type):
+    def get_tag(resource_type: Type) -> Tag:
         return Tag(resource_type.model_fields["schemas"].default[0])
 
     resource_types = get_args(resource_types)

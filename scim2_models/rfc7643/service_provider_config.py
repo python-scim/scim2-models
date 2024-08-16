@@ -16,23 +16,25 @@ from .resource import Resource
 
 
 class Patch(ComplexAttribute):
-    supported: Annotated[bool, Mutability.read_only, Required.true] = None
+    supported: Annotated[Optional[bool], Mutability.read_only, Required.true] = None
     """A Boolean value specifying whether or not the operation is supported."""
 
 
 class Bulk(ComplexAttribute):
-    supported: Annotated[bool, Mutability.read_only, Required.true] = None
+    supported: Annotated[Optional[bool], Mutability.read_only, Required.true] = None
     """A Boolean value specifying whether or not the operation is supported."""
 
-    max_operations: Annotated[int, Mutability.read_only, Required.true] = None
+    max_operations: Annotated[Optional[int], Mutability.read_only, Required.true] = None
     """An integer value specifying the maximum number of operations."""
 
-    max_payload_size: Annotated[int, Mutability.read_only, Required.true] = None
+    max_payload_size: Annotated[Optional[int], Mutability.read_only, Required.true] = (
+        None
+    )
     """An integer value specifying the maximum payload size in bytes."""
 
 
 class Filter(ComplexAttribute):
-    supported: Annotated[bool, Mutability.read_only, Required.true] = None
+    supported: Annotated[Optional[bool], Mutability.read_only, Required.true] = None
     """A Boolean value specifying whether or not the operation is supported."""
 
     max_results: Annotated[Optional[int], Mutability.read_only, Required.true] = None
@@ -40,17 +42,17 @@ class Filter(ComplexAttribute):
 
 
 class ChangePassword(ComplexAttribute):
-    supported: Annotated[bool, Mutability.read_only, Required.true] = None
+    supported: Annotated[Optional[bool], Mutability.read_only, Required.true] = None
     """A Boolean value specifying whether or not the operation is supported."""
 
 
 class Sort(ComplexAttribute):
-    supported: Annotated[bool, Mutability.read_only, Required.true] = None
+    supported: Annotated[Optional[bool], Mutability.read_only, Required.true] = None
     """A Boolean value specifying whether or not the operation is supported."""
 
 
 class ETag(ComplexAttribute):
-    supported: Annotated[bool, Mutability.read_only, Required.true] = None
+    supported: Annotated[Optional[bool], Mutability.read_only, Required.true] = None
     """A Boolean value specifying whether or not the operation is supported."""
 
 
@@ -68,10 +70,10 @@ class AuthenticationScheme(ComplexAttribute):
     )
     """The authentication scheme."""
 
-    name: Annotated[str, Mutability.read_only, Required.true] = None
+    name: Annotated[Optional[str], Mutability.read_only, Required.true] = None
     """The common authentication scheme name, e.g., HTTP Basic."""
 
-    description: Annotated[str, Mutability.read_only, Required.true] = None
+    description: Annotated[Optional[str], Mutability.read_only, Required.true] = None
     """A description of the authentication scheme."""
 
     spec_uri: Annotated[
@@ -111,29 +113,29 @@ class ServiceProviderConfig(Resource):
     """An HTTP-addressable URL pointing to the service provider's human-
     consumable help documentation."""
 
-    patch: Annotated[Patch, Mutability.read_only, Required.true] = None
+    patch: Annotated[Optional[Patch], Mutability.read_only, Required.true] = None
     """A complex type that specifies PATCH configuration options."""
 
-    bulk: Annotated[Bulk, Mutability.read_only, Required.true] = None
+    bulk: Annotated[Optional[Bulk], Mutability.read_only, Required.true] = None
     """A complex type that specifies bulk configuration options."""
 
-    filter: Annotated[Filter, Mutability.read_only, Required.true] = None
+    filter: Annotated[Optional[Filter], Mutability.read_only, Required.true] = None
     """A complex type that specifies FILTER options."""
 
-    change_password: Annotated[ChangePassword, Mutability.read_only, Required.true] = (
-        None
-    )
+    change_password: Annotated[
+        Optional[ChangePassword], Mutability.read_only, Required.true
+    ] = None
     """A complex type that specifies configuration options related to changing
     a password."""
 
-    sort: Annotated[Sort, Mutability.read_only, Required.true] = None
+    sort: Annotated[Optional[Sort], Mutability.read_only, Required.true] = None
     """A complex type that specifies sort result options."""
 
-    etag: Annotated[ETag, Mutability.read_only, Required.true] = None
+    etag: Annotated[Optional[ETag], Mutability.read_only, Required.true] = None
     """A complex type that specifies ETag configuration options."""
 
     authentication_schemes: Annotated[
-        List[AuthenticationScheme], Mutability.read_only, Required.true
+        Optional[List[AuthenticationScheme]], Mutability.read_only, Required.true
     ] = None
     """A complex type that specifies supported authentication scheme
     properties."""
