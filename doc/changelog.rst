@@ -4,6 +4,10 @@ Changelog
 [0.1.15] - Unreleased
 ---------------------
 
+Added
+^^^^^
+- Add a PEP561 ``py.typed`` file to mark the package as typed.
+
 Fixed
 ^^^^^
 - :class:`scim2_models.Manager` is a :class:`~scim2_models.MultiValuedComplexAttribute`. #62
