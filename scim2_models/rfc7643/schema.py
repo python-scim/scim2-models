@@ -89,8 +89,12 @@ class Attribute(ComplexAttribute):
         reference = "reference"
         binary = "binary"
 
-        def to_python(self, multiple=False, reference_types=None) -> Type:
-            if self.value == self.reference:
+        def to_python(
+            self,
+            multiple=False,
+            reference_types: Optional[List[str]] = None,
+        ) -> Type:
+            if self.value == self.reference and reference_types is not None:
                 if reference_types == ["external"]:
                     return Reference[ExternalReference]
 
@@ -98,7 +102,7 @@ class Attribute(ComplexAttribute):
                     return Reference[URIReference]
 
                 types = tuple(Literal[t] for t in reference_types)
-                return Reference[Union[types]]
+                return Reference[Union[types]]  # type: ignore
 
             attr_types = {
                 self.string: str,
@@ -209,10 +213,10 @@ class Attribute(ComplexAttribute):
             attr_type = make_python_model(self, self.multi_valued)
 
         if self.multi_valued:
-            attr_type = List[attr_type]
+            attr_type = List[attr_type]  # type: ignore
 
         annotation = Annotated[
-            Optional[attr_type],
+            Optional[attr_type],  # type: ignore
             self.required,
             self.case_exact,
             self.mutability,
