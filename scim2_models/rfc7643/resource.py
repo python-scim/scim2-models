@@ -12,14 +12,13 @@ from typing import Union
 from typing import get_args
 from typing import get_origin
 
-from pydantic import Discriminator
 from pydantic import Field
-from pydantic import Tag
 from pydantic import WrapSerializer
 from pydantic import field_serializer
 
 from ..base import AnyModel
 from ..base import BaseModel
+from ..base import BaseModelType
 from ..base import CaseExact
 from ..base import ComplexAttribute
 from ..base import ExternalReference
@@ -101,9 +100,6 @@ def extension_serializer(value: Any, handler, info) -> Optional[Dict[str, Any]]:
         if attr_name not in Resource.model_fields
     }
     return result or None
-
-
-BaseModelType: Type = type(BaseModel)
 
 
 class ResourceMetaclass(BaseModelType):
@@ -343,42 +339,3 @@ def model_attribute_to_attribute(model, attribute_name):
         if attribute_type == Attribute.Type.reference
         else None,
     )
-
-
-def tagged_resource_union(
-    resource_types: Union[Resource, Union[Any]],
-) -> Union[Resource, Union[Any]]:
-    """Build Discriminated Unions, so pydantic can get which class are needed
-    to instantiate by inspecting a payload.
-
-    https://docs.pydantic.dev/latest/concepts/unions/#discriminated-unions
-    """
-    if not get_origin(resource_types) == Union:
-        return resource_types
-
-    def get_schema_from_payload(payload: Any) -> Optional[str]:
-        if not payload:
-            return None
-
-        resource_types_schemas = [
-            resource_type.model_fields["schemas"].default[0]
-            for resource_type in resource_types
-        ]
-        common_schemas = [
-            schema
-            for schema in payload.get("schemas")
-            if schema in resource_types_schemas
-        ]
-        return common_schemas[0] if common_schemas else None
-
-    def get_tag(resource_type: Type) -> Tag:
-        return Tag(resource_type.model_fields["schemas"].default[0])
-
-    resource_types = get_args(resource_types)
-    tagged_resources = [
-        Annotated[resource_type, get_tag(resource_type)]
-        for resource_type in resource_types
-    ]
-    return Annotated[
-        Union[tuple(tagged_resources)], Discriminator(get_schema_from_payload)
-    ]
