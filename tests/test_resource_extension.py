@@ -7,9 +7,9 @@ import pytest
 
 from scim2_models import Context
 from scim2_models import EnterpriseUser
+from scim2_models import Extension
 from scim2_models import Manager
 from scim2_models import Meta
-from scim2_models import Resource
 from scim2_models import User
 
 
@@ -157,6 +157,34 @@ def test_extension_no_payload():
     User[EnterpriseUser].model_validate(payload)
 
 
+def test_extension_validate_with_context():
+    """Test the use of scim_ctx when validating resources with extensions."""
+
+    payload = {
+        "id": "3b0bc21d-1a10-4678-9e52-2f354c0c7544",
+        "meta": {
+            "created": "2010-01-23T04:56:22Z",
+            "lastModified": "2011-05-13T04:42:34Z",
+            "location": "https://example.com/v2/Users/3b0bc21d-1a10-4678-9e52-2f354c0c7544",
+            "resourceType": "User",
+            "version": 'W\\/"3694e05e9dff590"',
+        },
+        "schemas": [
+            "urn:ietf:params:scim:schemas:core:2.0:User",
+            "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User",
+        ],
+        "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User": {
+            "division": "Theme Park",
+            "employeeNumber": "701984",
+        },
+        "userName": "bjensen@example.com",
+    }
+    user = User[EnterpriseUser].model_validate(
+        payload, scim_ctx=Context.RESOURCE_QUERY_RESPONSE
+    )
+    assert type(user[EnterpriseUser]) is EnterpriseUser
+
+
 def test_invalid_getitem():
     """Test that an non Resource subclass __getitem__ attribute raise a
     KeyError."""
@@ -181,7 +209,7 @@ def test_invalid_setitem():
         user[object] = "foobar"
 
 
-class SuperHero(Resource):
+class SuperHero(Extension):
     schemas: List[str] = ["urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"]
 
     superpower: Optional[str] = None

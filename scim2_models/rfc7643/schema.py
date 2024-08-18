@@ -43,10 +43,10 @@ def make_python_identifier(identifier: str) -> str:
     return sanitized
 
 
-def make_python_model(obj: Union["Schema", "Attribute"], multiple=False) -> "Resource":
+def make_python_model(
+    obj: Union["Schema", "Attribute"], base: Optional[Type] = None, multiple=False
+) -> "Resource":
     """Build a Python model from a Schema or an Attribute object."""
-
-    from scim2_models.rfc7643.resource import Resource
 
     if isinstance(obj, Attribute):
         pydantic_attributes = {
@@ -63,7 +63,6 @@ def make_python_model(obj: Union["Schema", "Attribute"], multiple=False) -> "Res
             if attr.name
         }
         pydantic_attributes["schemas"] = (Optional[List[str]], Field(default=[obj.id]))
-        base = Resource
 
     model_name = to_pascal(to_snake(obj.name))
     model = create_model(model_name, __base__=base, **pydantic_attributes)
@@ -210,7 +209,7 @@ class Attribute(ComplexAttribute):
         attr_type = self.type.to_python(self.multi_valued, self.reference_types)
 
         if attr_type in (ComplexAttribute, MultiValuedComplexAttribute):
-            attr_type = make_python_model(self, self.multi_valued)
+            attr_type = make_python_model(obj=self, multiple=self.multi_valued)
 
         if self.multi_valued:
             attr_type = List[attr_type]  # type: ignore
@@ -254,8 +253,3 @@ class Schema(Resource):
     ] = None
     """A complex type that defines service provider attributes and their
     qualities via the following set of sub-attributes."""
-
-    def make_model(self) -> "Resource":
-        """Build a Python model from the schema definition."""
-
-        return make_python_model(self)

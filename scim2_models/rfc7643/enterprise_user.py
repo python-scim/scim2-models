@@ -9,7 +9,7 @@ from ..base import ComplexAttribute
 from ..base import Mutability
 from ..base import Reference
 from ..base import Required
-from .resource import Resource
+from .resource import Extension
 
 
 class Manager(ComplexAttribute):
@@ -26,7 +26,7 @@ class Manager(ComplexAttribute):
     """The displayName of the User's manager."""
 
 
-class EnterpriseUser(Resource):
+class EnterpriseUser(Extension):
     schemas: List[str] = ["urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"]
 
     employee_number: Optional[str] = None

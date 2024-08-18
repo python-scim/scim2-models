@@ -14,7 +14,9 @@ from .rfc7643.enterprise_user import EnterpriseUser
 from .rfc7643.enterprise_user import Manager
 from .rfc7643.group import Group
 from .rfc7643.group import GroupMember
+from .rfc7643.resource import AnyExtension
 from .rfc7643.resource import AnyResource
+from .rfc7643.resource import Extension
 from .rfc7643.resource import Meta
 from .rfc7643.resource import Resource
 from .rfc7643.resource_type import ResourceType
@@ -53,6 +55,7 @@ from .rfc7644.search_request import SearchRequest
 __all__ = [
     "Address",
     "AnyResource",
+    "AnyExtension",
     "Attribute",
     "AuthenticationScheme",
     "BaseModel",
@@ -70,6 +73,7 @@ __all__ = [
     "Entitlement",
     "Error",
     "ExternalReference",
+    "Extension",
     "Filter",
     "Group",
     "GroupMember",

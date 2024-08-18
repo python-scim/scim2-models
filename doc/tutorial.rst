@@ -206,7 +206,7 @@ Schema extensions
 =================
 
 :rfc:`RFC7643 §3.3 <7643#section-3.3>` extensions are supported.
-Extensions must be passed as resource type parameter, e.g. ``user = User[EnterpriseUser]`` or ``user = User[Union[EnterpriseUser, SuperHero]]``.
+Any class inheriting from :class:`~scim2_models.Extension` can be passed as a :class:`~scim2_models.Resource` type parameter, e.g. ``user = User[EnterpriseUser]`` or ``user = User[Union[EnterpriseUser, SuperHero]]``.
 Extensions attributes are accessed with brackets, e.g. ``user[EnterpriseUser].employee_number``.
 
 .. code-block:: python
@@ -271,8 +271,8 @@ Custom models
 =============
 
 You can write your own model and use it the same way than the other scim2-models models.
-Just inherit from :class:`~scim2_models.Resource` for your main resource,
-and from :class:`~scim2_models.ComplexAttribute` for the complex attributes:
+Just inherit from :class:`~scim2_models.Resource` for your main resource, or :class:`~scim2_models.Extension` for extensions.
+Use :class:`~scim2_models.ComplexAttribute` as base class for complex attributes:
 
 .. code-block:: python
 

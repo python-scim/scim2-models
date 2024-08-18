@@ -12,6 +12,8 @@ from scim2_models.base import Required
 from scim2_models.base import Returned
 from scim2_models.base import Uniqueness
 from scim2_models.base import URIReference
+from scim2_models.rfc7643.resource import Extension
+from scim2_models.rfc7643.resource import Resource
 from scim2_models.rfc7643.resource import is_multiple
 from scim2_models.rfc7643.schema import Attribute
 from scim2_models.rfc7643.schema import Schema
@@ -20,7 +22,7 @@ from scim2_models.rfc7643.schema import Schema
 def test_make_group_model_from_schema(load_sample):
     payload = load_sample("rfc7643-8.7.1-schema-group.json")
     schema = Schema.model_validate(payload)
-    Group = schema.make_model()
+    Group = Resource.from_schema(schema)
 
     assert Group.model_fields["schemas"].default == [
         "urn:ietf:params:scim:schemas:core:2.0:Group"
@@ -148,7 +150,7 @@ def test_make_group_model_from_schema(load_sample):
 def test_make_user_model_from_schema(load_sample):
     payload = load_sample("rfc7643-8.7.1-schema-user.json")
     schema = Schema.model_validate(payload)
-    User = schema.make_model()
+    User = Resource.from_schema(schema)
 
     assert User.model_fields["schemas"].default == [
         "urn:ietf:params:scim:schemas:core:2.0:User"
@@ -1257,7 +1259,7 @@ def test_make_user_model_from_schema(load_sample):
 def test_make_enterprise_user_model_from_schema(load_sample):
     payload = load_sample("rfc7643-8.7.1-schema-enterprise_user.json")
     schema = Schema.model_validate(payload)
-    EnterpriseUser = schema.make_model()
+    EnterpriseUser = Extension.from_schema(schema)
 
     assert EnterpriseUser.model_fields["schemas"].default == [
         "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"
@@ -1446,7 +1448,7 @@ def test_make_enterprise_user_model_from_schema(load_sample):
 def test_make_resource_type_model_from_schema(load_sample):
     payload = load_sample("rfc7643-8.7.2-schema-resource_type.json")
     schema = Schema.model_validate(payload)
-    ResourceType = schema.make_model()
+    ResourceType = Resource.from_schema(schema)
 
     assert ResourceType.model_fields["schemas"].default == [
         "urn:ietf:params:scim:schemas:core:2.0:ResourceType"
@@ -1639,7 +1641,7 @@ def test_make_resource_type_model_from_schema(load_sample):
 def test_make_service_provider_config_model_from_schema(load_sample):
     payload = load_sample("rfc7643-8.7.2-schema-service_provider_configuration.json")
     schema = Schema.model_validate(payload)
-    ServiceProviderConfig = schema.make_model()
+    ServiceProviderConfig = Resource.from_schema(schema)
 
     assert ServiceProviderConfig.model_fields["schemas"].default == [
         "urn:ietf:params:scim:schemas:core:2.0:ServiceProviderConfig"
@@ -2175,7 +2177,7 @@ def test_make_service_provider_config_model_from_schema(load_sample):
 def test_make_schema_model_from_schema(load_sample):
     payload = load_sample("rfc7643-8.7.2-schema-schema.json")
     schema = Schema.model_validate(payload)
-    Schema_ = schema.make_model()
+    Schema_ = Resource.from_schema(schema)
 
     assert Schema_.model_fields["schemas"].default == [
         "urn:ietf:params:scim:schemas:core:2.0:Schema"

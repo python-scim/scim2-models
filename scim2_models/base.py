@@ -745,6 +745,4 @@ def is_complex_attribute(type) -> bool:
     )
 
 
-AnyModel = TypeVar("AnyModel", bound=BaseModel)
-
 BaseModelType: Type = type(BaseModel)
