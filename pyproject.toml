@@ -81,10 +81,10 @@ docstring-code-format = true
 addopts = "--doctest-modules --doctest-glob='*.rst'"
 doctest_optionflags= "ALLOW_UNICODE IGNORE_EXCEPTION_DETAIL ELLIPSIS"
 
-[tool.mypy]
-plugins = [
-  "pydantic.mypy"
-]
+# [tool.mypy]
+# plugins = [
+#   "pydantic.mypy"
+# ]
 
 [tool.tox]
 legacy_tox_ini = """
