@@ -1,7 +1,7 @@
 Changelog
 =========
 
-[0.1.15] - Unreleased
+[0.1.15] - 2024-08-18
 ---------------------
 
 Added
@@ -14,7 +14,7 @@ Fixed
 
 Changed
 ^^^^^^^
-- Removed :class:`~scim2_models.ListResponse` ``of`` method in favor of regular type parameters.
+- Remove :class:`~scim2_models.ListResponse` ``of`` method in favor of regular type parameters.
 .. note::
 
   ``ListResponse.of(User)`` becomes ``ListResponse[User]`` and ListResponse.of(User, Group)`` becomes ``ListResponse[Union[User, Group]]``.
