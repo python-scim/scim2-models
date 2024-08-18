@@ -64,7 +64,7 @@ class AuthenticationScheme(ComplexAttribute):
         httpbasic = "httpbasic"
         httpdigest = "httpdigest"
 
-    type: Annotated[Type, Mutability.read_only, Required.true] = Field(
+    type: Annotated[Optional[Type], Mutability.read_only, Required.true] = Field(
         None,
         examples=["oauth", "oauth2", "oauthbreakertoken", "httpbasic", "httpdigest"],
     )

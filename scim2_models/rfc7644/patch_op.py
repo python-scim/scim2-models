@@ -16,7 +16,7 @@ class PatchOperation(ComplexAttribute):
         remove = "remove"
         add = "add"
 
-    op: Optional[Op] = None
+    op: Optional[Optional[Op]] = None
     """Each PATCH operation object MUST have exactly one "op" member, whose
     value indicates the operation to perform and MAY be one of "add", "remove",
     or "replace".
@@ -62,6 +62,8 @@ class PatchOp(Message):
 
     schemas: List[str] = ["urn:ietf:params:scim:api:messages:2.0:PatchOp"]
 
-    operations: List[PatchOperation] = Field(None, serialization_alias="Operations")
+    operations: Optional[List[PatchOperation]] = Field(
+        None, serialization_alias="Operations"
+    )
     """The body of an HTTP PATCH request MUST contain the attribute
     "Operations", whose value is an array of one or more PATCH operations."""
