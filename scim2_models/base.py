@@ -332,6 +332,7 @@ class BaseModel(PydanticBaseModel):
             validation_alias=normalize_attribute_name,
             serialization_alias=to_camel,
         ),
+        validate_assignment=True,
         populate_by_name=True,
         use_attribute_docstrings=True,
         extra="forbid",

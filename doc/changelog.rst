@@ -6,8 +6,15 @@ Changelog
 
 Fixed
 ^^^^^
-
 - Fix the extension mechanism by introducing the :class:`~scim2_models.Extension` class. #60, #63
+
+.. note::
+
+    ``schema.make_model()`` becomes ``Resource.from_schema(schema)`` or ``Extension.from_schema(schema)``.
+
+Changed
+^^^^^^^
+- Enable pydantic :attr:`~pydantic.config.ConfigDict.validate_assignment` option. #54
 
 [0.1.15] - 2024-08-18
 ---------------------
