@@ -46,7 +46,7 @@ class ListResponse(Message, Generic[AnyResource]):
 
     @model_validator(mode="wrap")
     @classmethod
-    def check_response_attributes_returnability(
+    def check_results_number(
         cls, value: Any, handler: ValidatorFunctionWrapHandler, info: ValidationInfo
     ) -> Self:
         """:rfc:`RFC7644 §3.4.2 <7644#section-3.4.2.4>` indicates that
