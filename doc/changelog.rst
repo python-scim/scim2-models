@@ -4,6 +4,10 @@ Changelog
 [0.1.15] - Unreleased
 ---------------------
 
+Added
+^^^^^
+- Add a PEP561 ``py.typed`` file to mark the package as typed.
+
 Fixed
 ^^^^^
 - :class:`scim2_models.Manager` is a :class:`~scim2_models.MultiValuedComplexAttribute`. #62
@@ -14,6 +18,11 @@ Changed
 .. note::
 
   ``ListResponse.of(User)`` becomes ``ListResponse[User]`` and ListResponse.of(User, Group)`` becomes ``ListResponse[Union[User, Group]]``.
+
+- :data:`~scim2_models.Reference` use :data:`~typing.Literal` instead of :class:`typing.ForwardRef`.
+.. note::
+
+  ``pet: Reference["Pet"]`` becomes ``pet: Reference[Literal["Pet"]]``
 
 [0.1.14] - 2024-07-23
 ---------------------

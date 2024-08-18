@@ -2,7 +2,6 @@ from datetime import datetime
 from typing import Annotated
 from typing import Any
 from typing import Dict
-from typing import ForwardRef
 from typing import Generic
 from typing import List
 from typing import Optional
@@ -288,20 +287,20 @@ def model_to_schema(model: Type):
     return schema
 
 
-def get_reference_types(type):
+def get_reference_types(type) -> List[str]:
     first_arg = get_args(type)[0]
     types = get_args(first_arg) if get_origin(first_arg) == Union else [first_arg]
-    formatted_types = [
-        t.__forward_arg__ if isinstance(t, ForwardRef) else t for t in types
-    ]
-    scim_reference_types = [
-        "uri" if ref_type == URIReference else ref_type for ref_type in formatted_types
-    ]
-    scim_reference_types = [
-        "external" if ref_type == ExternalReference else ref_type
-        for ref_type in scim_reference_types
-    ]
-    return scim_reference_types
+
+    def serialize_ref_type(ref_type):
+        if ref_type == URIReference:
+            return "uri"
+
+        elif ref_type == ExternalReference:
+            return "external"
+
+        return get_args(ref_type)[0]
+
+    return list(map(serialize_ref_type, types))
 
 
 def model_attribute_to_attribute(model, attribute_name):

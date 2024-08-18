@@ -307,8 +307,9 @@ If unset the default values will be :attr:`~scim2_models.Mutability.read_write` 
 There is a dedicated type for :rfc:`RFC7643 §2.3.7 <7643#section-2.3.7>` :class:`~scim2_models.Reference`
 that can take type parameters to represent :rfc:`RFC7643 §7 'referenceTypes'<7643#section-7>`:
 
+    >>> from typing import Literal
     >>> class PetOwner(Resource):
-    ...    pet: Reference["Pet"]
+    ...    pet: Reference[Literal["Pet"]]
 
 :class:`~scim2_models.Reference` has two special type parameters :data:`~scim2_models.ExternalReference` and :data:`~scim2_models.URIReference` that matches :rfc:`RFC7643 §7 <7643#section-7>` external and URI reference types.
 

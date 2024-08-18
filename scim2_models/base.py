@@ -726,7 +726,7 @@ class MultiValuedComplexAttribute(ComplexAttribute):
     display: Annotated[Optional[str], Mutability.immutable] = None
     """A human-readable name, primarily used for display purposes."""
 
-    value: Optional[str] = None
+    value: Optional[Any] = None
     """The value of an entitlement."""
 
     ref: Optional[Reference] = Field(None, serialization_alias="$ref")

@@ -4,6 +4,7 @@ from enum import Enum
 from typing import Annotated
 from typing import Any
 from typing import List
+from typing import Literal
 from typing import Optional
 from typing import Tuple
 from typing import Type
@@ -88,15 +89,20 @@ class Attribute(ComplexAttribute):
         reference = "reference"
         binary = "binary"
 
-        def to_python(self, multiple=False, reference_types=None) -> Type:
-            if self.value == self.reference:
+        def to_python(
+            self,
+            multiple=False,
+            reference_types: Optional[List[str]] = None,
+        ) -> Type:
+            if self.value == self.reference and reference_types is not None:
                 if reference_types == ["external"]:
                     return Reference[ExternalReference]
 
                 if reference_types == ["uri"]:
                     return Reference[URIReference]
 
-                return Reference[Union[tuple(reference_types)]]
+                types = tuple(Literal[t] for t in reference_types)
+                return Reference[Union[types]]  # type: ignore
 
             attr_types = {
                 self.string: str,
@@ -195,8 +201,11 @@ class Attribute(ComplexAttribute):
     """When an attribute is of type "complex", "subAttributes" defines a set of
     sub-attributes."""
 
-    def to_python(self) -> Tuple[Any, Field]:
+    def to_python(self) -> Optional[Tuple[Any, Field]]:
         """Build tuple suited to be passed to pydantic 'create_model'."""
+
+        if not self.name:
+            return None
 
         attr_type = self.type.to_python(self.multi_valued, self.reference_types)
 
@@ -204,10 +213,10 @@ class Attribute(ComplexAttribute):
             attr_type = make_python_model(self, self.multi_valued)
 
         if self.multi_valued:
-            attr_type = List[attr_type]
+            attr_type = List[attr_type]  # type: ignore
 
         annotation = Annotated[
-            Optional[attr_type],
+            Optional[attr_type],  # type: ignore
             self.required,
             self.case_exact,
             self.mutability,

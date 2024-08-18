@@ -1,6 +1,6 @@
 from typing import Annotated
-from typing import ForwardRef
 from typing import List
+from typing import Literal
 from typing import Optional
 from typing import Union
 
@@ -17,7 +17,8 @@ class GroupMember(MultiValuedComplexAttribute):
     """Identifier of the member of this Group."""
 
     ref: Annotated[
-        Optional[Reference[Union[ForwardRef("User"), "Group"]]], Mutability.immutable
+        Optional[Reference[Union[Literal["User"], Literal["Group"]]]],
+        Mutability.immutable,
     ] = Field(None, serialization_alias="$ref")
     """The reference URI of a target resource, if the attribute is a
     reference."""

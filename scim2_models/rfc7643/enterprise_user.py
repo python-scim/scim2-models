@@ -1,6 +1,6 @@
 from typing import Annotated
-from typing import ForwardRef
 from typing import List
+from typing import Literal
 from typing import Optional
 
 from pydantic import Field
@@ -16,7 +16,7 @@ class Manager(ComplexAttribute):
     value: Annotated[Optional[str], Required.true] = None
     """The id of the SCIM resource representing the User's manager."""
 
-    ref: Annotated[Optional[Reference[ForwardRef("User")]], Required.true] = Field(
+    ref: Annotated[Optional[Reference[Literal["User"]]], Required.true] = Field(
         None,
         serialization_alias="$ref",
     )
