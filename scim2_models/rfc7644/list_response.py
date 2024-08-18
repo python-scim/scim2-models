@@ -1,31 +1,81 @@
+from typing import Annotated
 from typing import Any
 from typing import Generic
 from typing import List
 from typing import Optional
 from typing import Type
 from typing import Union
+from typing import get_args
+from typing import get_origin
 
+from pydantic import Discriminator
 from pydantic import Field
+from pydantic import Tag
 from pydantic import ValidationInfo
 from pydantic import ValidatorFunctionWrapHandler
 from pydantic import model_validator
 from pydantic_core import PydanticCustomError
 from typing_extensions import Self
 
+from ..base import BaseModelType
 from ..base import Context
 from ..rfc7643.resource import AnyResource
-from ..rfc7643.resource import tagged_resource_union
 from .message import Message
 
 
-class ListResponse(Message, Generic[AnyResource]):
-    @classmethod
-    def of(cls, *resource_types: Type[AnyResource]):
-        """Build a ListResponse instance that can handle resource_types."""
+class ListResponseMetaclass(BaseModelType):
+    def tagged_resource_union(resource_union):
+        """Build Discriminated Unions, so pydantic can guess which class are
+        needed to instantiate by inspecting a payload.
 
-        annotated_type = tagged_resource_union(Union[resource_types])
-        return cls[annotated_type]
+        https://docs.pydantic.dev/latest/concepts/unions/#discriminated-unions
+        """
+        if not get_origin(resource_union) == Union:
+            return resource_union
 
+        resource_types = get_args(resource_union)
+
+        def get_schema_from_payload(payload: Any) -> Optional[str]:
+            if not payload:
+                return None
+
+            resource_types_schemas = [
+                resource_type.model_fields["schemas"].default[0]
+                for resource_type in resource_types
+            ]
+            common_schemas = [
+                schema
+                for schema in payload.get("schemas", [])
+                if schema in resource_types_schemas
+            ]
+            return common_schemas[0] if common_schemas else None
+
+        discriminator = Discriminator(get_schema_from_payload)
+
+        def get_tag(resource_type: Type) -> Tag:
+            return Tag(resource_type.model_fields["schemas"].default[0])
+
+        tagged_resources = [
+            Annotated[resource_type, get_tag(resource_type)]
+            for resource_type in resource_types
+        ]
+        union = Union[tuple(tagged_resources)]
+        return Annotated[union, discriminator]
+
+    def __new__(cls, name, bases, attrs, **kwargs):
+        if kwargs.get("__pydantic_generic_metadata__") and kwargs[
+            "__pydantic_generic_metadata__"
+        ].get("args"):
+            tagged_union = cls.tagged_resource_union(
+                kwargs["__pydantic_generic_metadata__"]["args"][0]
+            )
+            kwargs["__pydantic_generic_metadata__"]["args"] = (tagged_union,)
+
+        klass = super().__new__(cls, name, bases, attrs, **kwargs)
+        return klass
+
+
+class ListResponse(Message, Generic[AnyResource], metaclass=ListResponseMetaclass):
     schemas: List[str] = ["urn:ietf:params:scim:api:messages:2.0:ListResponse"]
 
     total_results: Optional[int] = None

@@ -8,6 +8,13 @@ Fixed
 ^^^^^
 - :class:`scim2_models.Manager` is a :class:`~scim2_models.MultiValuedComplexAttribute`. #62
 
+Changed
+^^^^^^^
+- Removed :class:`~scim2_models.ListResponse` ``of`` method in favor of regular type parameters.
+.. note::
+
+  ``ListResponse.of(User)`` becomes ``ListResponse[User]`` and ListResponse.of(User, Group)`` becomes ``ListResponse[Union[User, Group]]``.
+
 [0.1.14] - 2024-07-23
 ---------------------
 
