@@ -7,7 +7,6 @@ on:
 
 jobs:
   release:
-    needs: bundle
     runs-on: ubuntu-latest
     steps:
       - uses: softprops/action-gh-release@v2
