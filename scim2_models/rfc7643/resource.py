@@ -15,7 +15,6 @@ from pydantic import Field
 from pydantic import WrapSerializer
 from pydantic import field_serializer
 
-from ..base import AnyModel
 from ..base import BaseModel
 from ..base import BaseModelType
 from ..base import CaseExact
@@ -85,6 +84,27 @@ class Meta(ComplexAttribute):
     """
 
 
+class Extension(BaseModel):
+    @classmethod
+    def to_schema(cls):
+        """Build a :class:`~scim2_models.Schema` from the current extension
+        class."""
+
+        return model_to_schema(cls)
+
+    @classmethod
+    def from_schema(cls, schema) -> "Extension":
+        """Build a :class:`~scim2_models.Extension` subclass from the schema
+        definition."""
+
+        from .schema import make_python_model
+
+        return make_python_model(schema, cls)
+
+
+AnyExtension = TypeVar("AnyExtension", bound="Extension")
+
+
 def extension_serializer(value: Any, handler, info) -> Optional[Dict[str, Any]]:
     """Exclude the Resource attributes from the extension dump.
 
@@ -129,7 +149,7 @@ class ResourceMetaclass(BaseModelType):
         return klass
 
 
-class Resource(BaseModel, Generic[AnyModel], metaclass=ResourceMetaclass):
+class Resource(BaseModel, Generic[AnyExtension], metaclass=ResourceMetaclass):
     schemas: List[str]
     """The "schemas" attribute is a REQUIRED attribute and is an array of
     Strings containing URIs that are used to indicate the namespaces of the
@@ -159,13 +179,13 @@ class Resource(BaseModel, Generic[AnyModel], metaclass=ResourceMetaclass):
     """A complex attribute containing resource metadata."""
 
     def __getitem__(self, item: Any):
-        if not isinstance(item, type) or not issubclass(item, Resource):
+        if not isinstance(item, type) or not issubclass(item, Extension):
             raise KeyError(f"{item} is not a valid extension type")
 
         return getattr(self, item.__name__)
 
     def __setitem__(self, item: Any, value: "Resource"):
-        if not isinstance(item, type) or not issubclass(item, Resource):
+        if not isinstance(item, type) or not issubclass(item, Extension):
             raise KeyError(f"{item} is not a valid extension type")
 
         setattr(self, item.__name__, value)
@@ -232,7 +252,19 @@ class Resource(BaseModel, Generic[AnyModel], metaclass=ResourceMetaclass):
 
     @classmethod
     def to_schema(cls):
+        """Build a :class:`~scim2_models.Schema` from the current resource
+        class."""
+
         return model_to_schema(cls)
+
+    @classmethod
+    def from_schema(cls, schema) -> "Resource":
+        """Build a :class:`scim2_models.Resource` subclass from the schema
+        definition."""
+
+        from .schema import make_python_model
+
+        return make_python_model(schema, cls)
 
 
 AnyResource = TypeVar("AnyResource", bound="Resource")

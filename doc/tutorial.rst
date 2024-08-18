@@ -206,7 +206,7 @@ Schema extensions
 =================
 
 :rfc:`RFC7643 §3.3 <7643#section-3.3>` extensions are supported.
-Extensions must be passed as resource type parameter, e.g. ``user = User[EnterpriseUser]`` or ``user = User[Union[EnterpriseUser, SuperHero]]``.
+Any class inheriting from :class:`~scim2_models.Extension` can be passed as a :class:`~scim2_models.Resource` type parameter, e.g. ``user = User[EnterpriseUser]`` or ``user = User[Union[EnterpriseUser, SuperHero]]``.
 Extensions attributes are accessed with brackets, e.g. ``user[EnterpriseUser].employee_number``.
 
 .. code-block:: python
@@ -271,8 +271,8 @@ Custom models
 =============
 
 You can write your own model and use it the same way than the other scim2-models models.
-Just inherit from :class:`~scim2_models.Resource` for your main resource,
-and from :class:`~scim2_models.ComplexAttribute` for the complex attributes:
+Just inherit from :class:`~scim2_models.Resource` for your main resource, or :class:`~scim2_models.Extension` for extensions.
+Use :class:`~scim2_models.ComplexAttribute` as base class for complex attributes:
 
 .. code-block:: python
 
@@ -316,7 +316,7 @@ that can take type parameters to represent :rfc:`RFC7643 §7 'referenceTypes'<7
 Dynamic schemas from models
 ===========================
 
-With :meth:`~scim2_models.Resource.to_schema` any model can be exported as a :class:`~scim2_models.Schema` object.
+With :meth:`Resource.to_schema <scim2_models.Resource.to_schema>` and :meth:`Extension.to_schema <scim2_models.Extension.to_schema>`, any model can be exported as a :class:`~scim2_models.Schema` object.
 This is useful for server implementations, so custom models or models provided by scim2-models can easily be exported on the ``/Schemas`` endpoint.
 
 
@@ -353,7 +353,8 @@ This is useful for server implementations, so custom models or models provided b
 Dynamic models from schemas
 ===========================
 
-Given a :class:`~scim2_models.Schema` object, scim2-models can dynamically generate a pythonic model to be used in your code with the :meth:`~scim2_models.Schema.make_model` method.
+Given a :class:`~scim2_models.Schema` object, scim2-models can dynamically generate a pythonic model to be used in your code
+with the :meth:`Resource.from_schema <scim2_models.Resource.from_schema>` and :meth:`Extension.from_schema <scim2_models.Extension.from_schema>` methods.
 
 .. code-block:: python
    :class: dropdown
@@ -379,7 +380,7 @@ Given a :class:`~scim2_models.Schema` object, scim2-models can dynamically gener
         ],
     }
     schema = Schema.model_validate(payload)
-    Group = schema.make_model()
+    Group = Resource.from_schema(schema)
     my_group = Group(display_name="This is my group")
 
 This can be used by client applications that intends to dynamically discover server resources by browsing the `/Schemas` endpoint.

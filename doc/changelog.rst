@@ -1,6 +1,21 @@
 Changelog
 =========
 
+[0.1.16] - Unreleased
+---------------------
+
+Fixed
+^^^^^
+- Fix the extension mechanism by introducing the :class:`~scim2_models.Extension` class. #60, #63
+
+.. note::
+
+    ``schema.make_model()`` becomes ``Resource.from_schema(schema)`` or ``Extension.from_schema(schema)``.
+
+Changed
+^^^^^^^
+- Enable pydantic :attr:`~pydantic.config.ConfigDict.validate_assignment` option. #54
+
 [0.1.15] - 2024-08-18
 ---------------------
 
@@ -15,11 +30,13 @@ Fixed
 Changed
 ^^^^^^^
 - Remove :class:`~scim2_models.ListResponse` ``of`` method in favor of regular type parameters.
+
 .. note::
 
   ``ListResponse.of(User)`` becomes ``ListResponse[User]`` and ListResponse.of(User, Group)`` becomes ``ListResponse[Union[User, Group]]``.
 
 - :data:`~scim2_models.Reference` use :data:`~typing.Literal` instead of :class:`typing.ForwardRef`.
+
 .. note::
 
   ``pet: Reference["Pet"]`` becomes ``pet: Reference[Literal["Pet"]]``
