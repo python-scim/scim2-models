@@ -74,7 +74,7 @@ ignore = [
 [tool.ruff.lint.isort]
 force-single-line = true
 
-[too.ruff.format]
+[tool.ruff.format]
 docstring-code-format = true
 
 [tool.pytest.ini_options]
