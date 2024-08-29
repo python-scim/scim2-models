@@ -12,7 +12,7 @@ on:
 
 jobs:
   tests:
-    name: ${{ matrix.python }}
+    name: py${{ matrix.python }} unit tests
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -34,6 +34,46 @@ jobs:
         run: |
           poetry --version
           poetry install
+          poetry run pytest --showlocals
+
+  downstream-tests:
+    name: py${{ matrix.python }} ${{ matrix.downstream }} downstream unit tests
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python:
+          - '3.12'
+          - '3.11'
+        downstream:
+          - scim2-client
+          - scim2-server
+          - scim2-cli
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: 'poetry'
+      - name: Install dependencies
+        run: |
+          poetry --version
+          poetry install
+      - name: Checkout downstream pyproject
+        uses: actions/checkout@v4
+        with:
+          repository: yaal-coop/${{ matrix.downstream }}
+          path: ${{ matrix.downstream }}
+      - name: Run downstream tests
+        run: |
+          cd ${{ matrix.downstream }}
+          poetry install --with dev
+          poetry run pip install --upgrade --force ..
+      - name: Run downstream tests
+        run: |
+          cd ${{ matrix.downstream }}
           poetry run pytest --showlocals
 
   minversions:
