@@ -9,7 +9,7 @@ description = "SCIM2 models serialization and validation with pydantic"
 authors = ["Yaal Coop <contact@yaal.coop>"]
 license = "Apache"
 readme = "README.md"
-keywords = ["scim", "scim2", "provisioning", "pydantic"]
+keywords = ["scim", "scim2", "provisioning", "pydantic", "rfc7643", "rfc7644"]
 documentation = "https://scim2-models.readthedocs.io"
 repository = "https://github.com/yaal-coop/scim2-models"
 classifiers = [
@@ -25,6 +25,10 @@ classifiers = [
     "Programming Language :: Python",
     "Operating System :: OS Independent",
 ]
+
+[tool.poetry.urls]
+changelog = "https://scim2-models.readthedocs.io/en/latest/changelog.html"
+funding = "https://github.com/sponsors/yaal-coop"
 
 [tool.poetry.dependencies]
 python = "^3.9"
