@@ -6,7 +6,48 @@ on:
       - '*'
 
 jobs:
+  build:
+    name: build dist files
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: 3.12
+          cache: 'poetry'
+      - name: build dist
+        run: poetry build
+      - uses: actions/upload-artifact@v3
+        with:
+          name: artifacts
+          path: dist/*
+          if-no-files-found: error
+
   release:
+    name: create Github release
     runs-on: ubuntu-latest
     steps:
       - uses: softprops/action-gh-release@v2
+
+  publish:
+    name: release to pypi
+    needs: build
+    runs-on: ubuntu-latest
+
+    environment:
+      name: pypi-release
+      url: https://pypi.org/project/scim2-models/
+    permissions:
+      id-token: write
+
+    steps:
+      - uses: actions/download-artifact@v3
+        with:
+          name: artifacts
+          path: dist
+
+      - name: Push build artifacts to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
