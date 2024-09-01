@@ -49,6 +49,7 @@ jobs:
           - scim2-client
           - scim2-server
           - scim2-cli
+          - scim2-tester
     steps:
       - uses: actions/checkout@v4
       - name: Install Poetry
