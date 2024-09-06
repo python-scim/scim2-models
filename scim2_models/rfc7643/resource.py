@@ -169,9 +169,9 @@ class Resource(BaseModel, Generic[AnyExtension], metaclass=ResourceMetaclass):
     resource creation or replacement requests.
     """
 
-    external_id: Annotated[Optional[str], Mutability.read_write, Returned.default] = (
-        None
-    )
+    external_id: Annotated[
+        Optional[str], Mutability.read_write, Returned.default, CaseExact.true
+    ] = None
     """A String that is an identifier for the resource as defined by the
     provisioning client."""
 
