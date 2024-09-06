@@ -1,8 +1,16 @@
 Changelog
 =========
 
+[0.2.1] - Unreleased
+--------------------
+
+Fixed
+^^^^^
+- :attr:`~scim2_models.Resource.external_id` is :data:`scim2_models.CaseExact.true`. #74
+
+
 [0.2.0] - 2024-08-18
----------------------
+--------------------
 
 Fixed
 ^^^^^
