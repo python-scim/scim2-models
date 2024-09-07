@@ -49,7 +49,7 @@ def validate_attribute_urn(
 ) -> str:
     """Validate that an attribute urn is valid or not.
 
-    :parm attribute_name: The attribute urn to check.
+    :param attribute_name: The attribute urn to check.
     :default_resource: The default resource if `attribute_name` is not an absolute urn.
     :resource_types: The available resources in which to look for the attribute.
     :return: The normalized attribute URN.

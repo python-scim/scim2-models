@@ -25,7 +25,7 @@ Code style
 ----------
 
 We use `ruff <https://docs.astral.sh/ruff/>`_ along with other tools to format our code.
-Please run ``tox -e style`` on your patches before submiting them.
+Please run ``tox -e style`` on your patches before submitting them.
 In order to perform a style check and correction at each commit you can use our
 `pre-commit <https://pre-commit.com/>`_ configuration with ``pre-commit install``.
 

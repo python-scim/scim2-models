@@ -264,7 +264,7 @@ Pre-defined Error objects
     ...     'status': '400'
     ... }
 
-The exhaustive list is availaible in the :class:`reference <scim2_models.Error>`.
+The exhaustive list is available in the :class:`reference <scim2_models.Error>`.
 
 
 Custom models
