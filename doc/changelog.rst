@@ -1,6 +1,13 @@
 Changelog
 =========
 
+[0.2.2] - Unreleased
+--------------------
+
+Fixed
+^^^^^
+- :class:`~scim2_models.ListResponse` pydantic discriminator issue introduced with pydantic 2.9.0. #75
+
 [0.2.1] - 2024-09-06
 --------------------
 

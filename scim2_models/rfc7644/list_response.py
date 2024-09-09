@@ -39,14 +39,18 @@ class ListResponseMetaclass(BaseModelType):
             if not payload:
                 return None
 
+            payload_schemas = (
+                payload.get("schemas", [])
+                if isinstance(payload, dict)
+                else getattr(payload, "schemas")
+            )
+
             resource_types_schemas = [
                 resource_type.model_fields["schemas"].default[0]
                 for resource_type in resource_types
             ]
             common_schemas = [
-                schema
-                for schema in payload.get("schemas", [])
-                if schema in resource_types_schemas
+                schema for schema in payload_schemas if schema in resource_types_schemas
             ]
             return common_schemas[0] if common_schemas else None
 
