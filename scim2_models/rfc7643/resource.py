@@ -136,7 +136,6 @@ class ResourceMetaclass(BaseModelType):
                 schema = extension.model_fields["schemas"].default[0]
                 attrs.setdefault("__annotations__", {})[extension.__name__] = Annotated[
                     Optional[extension],
-                    Returned.always,
                     WrapSerializer(extension_serializer),
                 ]
                 attrs[extension.__name__] = Field(

@@ -257,3 +257,27 @@ def test_extensions_schemas():
         ],
         "userName": "foobar",
     }
+
+
+def test_validate_items_without_extension():
+    """A model with an optional extension should be able to validate a payload
+    without an extension payload.
+
+    https://github.com/yaal-coop/scim2-models/issues/77
+    """
+
+    payload = {
+        "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+        "id": "new-user",
+        "userName": "new-user@example.com",
+        "meta": {
+            "resourceType": "User",
+            "created": "2010-01-23T04:56:22Z",
+            "lastModified": "2011-05-13T04:42:34Z",
+            "version": 'W\\/"3694e05e9dff590"',
+            "location": "http://localhost:46459/Users/new-user",
+        },
+    }
+    User[EnterpriseUser].model_validate(
+        payload, scim_ctx=Context.RESOURCE_CREATION_RESPONSE
+    )

@@ -85,7 +85,8 @@ def validate_attribute_urn(
     return f"{schema}:{attribute_base}"
 
 
-def contains_attribute_or_subattributes(attribute_urns: List[str], attribute_urn):
+def contains_attribute_or_subattributes(attribute_urns: List[str], attribute_urn: str):
     return attribute_urn in attribute_urns or any(
-        item.startswith(f"{attribute_urn}.") for item in attribute_urns
+        item.startswith(f"{attribute_urn}.") or item.startswith(f"{attribute_urn}:")
+        for item in attribute_urns
     )

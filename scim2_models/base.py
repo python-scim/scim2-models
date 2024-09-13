@@ -700,7 +700,10 @@ class BaseModel(PydanticBaseModel):
         """
         main_schema = self.model_fields["schemas"].default[0]
         alias = self.model_fields[field_name].serialization_alias or field_name
-        return f"{main_schema}:{alias}"
+
+        # if alias contains a ':' this is an extension urn
+        full_urn = alias if ":" in alias else f"{main_schema}:{alias}"
+        return full_urn
 
 
 class ComplexAttribute(BaseModel):
