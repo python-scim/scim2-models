@@ -7,6 +7,7 @@ Changelog
 Fixed
 ^^^^^
 - :class:`~scim2_models.ListResponse` pydantic discriminator issue introduced with pydantic 2.9.0. #75
+- Extension payloads are not required on response contexts. #77
 
 [0.2.1] - 2024-09-06
 --------------------
