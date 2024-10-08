@@ -1,6 +1,13 @@
 Changelog
 =========
 
+[0.2.3] - Unreleased
+--------------------
+
+Changed
+^^^^^^^
+- :attr:`SearchRequest.attributes <scim2_models.SearchRequest.attributes>` and :attr:`SearchRequest.attributes <scim2_models.SearchRequest.excluded_attributes>` are mutually exclusive. #19
+
 [0.2.2] - 2024-09-20
 --------------------
 
@@ -15,7 +22,6 @@ Fixed
 Fixed
 ^^^^^
 - :attr:`~scim2_models.Resource.external_id` is :data:`scim2_models.CaseExact.true`. #74
-
 
 [0.2.0] - 2024-08-18
 --------------------
