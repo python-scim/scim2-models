@@ -3,6 +3,7 @@ from typing import List
 from typing import Optional
 
 from pydantic import field_validator
+from pydantic import model_validator
 
 from .message import Message
 
@@ -64,3 +65,12 @@ class SearchRequest(Message):
         """
 
         return None if value is None else max(1, value)
+
+    @model_validator(mode="after")
+    def attributes_validator(self):
+        if self.attributes and self.excluded_attributes:
+            raise ValueError(
+                "'attributes' and 'excluded_attributes' are mutually exclusive"
+            )
+
+        return self
