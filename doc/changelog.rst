@@ -4,6 +4,10 @@ Changelog
 [0.2.3] - Unreleased
 --------------------
 
+Added
+^^^^^
+- Python 3.13 support.
+
 Changed
 ^^^^^^^
 - :attr:`SearchRequest.attributes <scim2_models.SearchRequest.attributes>` and :attr:`SearchRequest.attributes <scim2_models.SearchRequest.excluded_attributes>` are mutually exclusive. #19
