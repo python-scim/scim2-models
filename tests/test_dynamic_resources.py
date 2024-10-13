@@ -2,6 +2,8 @@ import datetime
 from typing import Literal
 from typing import Union
 
+from pydantic import Base64Bytes
+
 from scim2_models.base import CaseExact
 from scim2_models.base import ComplexAttribute
 from scim2_models.base import ExternalReference
@@ -1071,7 +1073,7 @@ def test_make_user_model_from_schema(load_sample):
     )
 
     # x_509_certificate.value
-    assert X509Certificates.get_field_root_type("value") is bytes
+    assert X509Certificates.get_field_root_type("value") is Base64Bytes
     assert not is_multiple(X509Certificates.model_fields["value"])
     assert (
         X509Certificates.model_fields["value"].description
@@ -1223,24 +1225,7 @@ def test_make_user_model_from_schema(load_sample):
     )
     assert obj.groups[2].display == "US Employees"
     assert obj.x_509_certificates[0].value == (
-        b"MIIDQzCCAqygAwIBAgICEAAwDQYJKoZIhvcNAQEFBQAwTjELMAkGA1UEBhMCVVMx"
-        b"EzARBgNVBAgMCkNhbGlmb3JuaWExFDASBgNVBAoMC2V4YW1wbGUuY29tMRQwEgYD"
-        b"VQQDDAtleGFtcGxlLmNvbTAeFw0xMTEwMjIwNjI0MzFaFw0xMjEwMDQwNjI0MzFa"
-        b"MH8xCzAJBgNVBAYTAlVTMRMwEQYDVQQIDApDYWxpZm9ybmlhMRQwEgYDVQQKDAtl"
-        b"eGFtcGxlLmNvbTEhMB8GA1UEAwwYTXMuIEJhcmJhcmEgSiBKZW5zZW4gSUlJMSIw"
-        b"IAYJKoZIhvcNAQkBFhNiamVuc2VuQGV4YW1wbGUuY29tMIIBIjANBgkqhkiG9w0B"
-        b"AQEFAAOCAQ8AMIIBCgKCAQEA7Kr+Dcds/JQ5GwejJFcBIP682X3xpjis56AK02bc"
-        b"1FLgzdLI8auoR+cC9/Vrh5t66HkQIOdA4unHh0AaZ4xL5PhVbXIPMB5vAPKpzz5i"
-        b"PSi8xO8SL7I7SDhcBVJhqVqr3HgllEG6UClDdHO7nkLuwXq8HcISKkbT5WFTVfFZ"
-        b"zidPl8HZ7DhXkZIRtJwBweq4bvm3hM1Os7UQH05ZS6cVDgweKNwdLLrT51ikSQG3"
-        b"DYrl+ft781UQRIqxgwqCfXEuDiinPh0kkvIi5jivVu1Z9QiwlYEdRbLJ4zJQBmDr"
-        b"SGTMYn4lRc2HgHO4DqB/bnMVorHB0CC6AV1QoFK4GPe1LwIDAQABo3sweTAJBgNV"
-        b"HRMEAjAAMCwGCWCGSAGG+EIBDQQfFh1PcGVuU1NMIEdlbmVyYXRlZCBDZXJ0aWZp"
-        b"Y2F0ZTAdBgNVHQ4EFgQU8pD0U0vsZIsaA16lL8En8bx0F/gwHwYDVR0jBBgwFoAU"
-        b"dGeKitcaF7gnzsNwDx708kqaVt0wDQYJKoZIhvcNAQEFBQADgYEAA81SsFnOdYJt"
-        b"Ng5Tcq+/ByEDrBgnusx0jloUhByPMEVkoMZ3J7j1ZgI8rAbOkNngX8+pKfTiDz1R"
-        b"C4+dx8oU6Za+4NJXUjlL5CvV6BEYb1+QAEJwitTVvxB/A67g42/vzgAtoRUeDov1"
-        b"+GFiBZ+GNF/cAYKcMtGcrs2i97ZkJMo="
+        b"0\x82\x03C0\x82\x02\xac\xa0\x03\x02\x01\x02\x02\x02\x10\x000\r\x06\t*\x86H\x86\xf7\r\x01\x01\x05\x05\x000N1\x0b0\t\x06\x03U\x04\x06\x13\x02US1\x130\x11\x06\x03U\x04\x08\x0c\nCalifornia1\x140\x12\x06\x03U\x04\n\x0c\x0bexample.com1\x140\x12\x06\x03U\x04\x03\x0c\x0bexample.com0\x1e\x17\r111022062431Z\x17\r121004062431Z0\x7f1\x0b0\t\x06\x03U\x04\x06\x13\x02US1\x130\x11\x06\x03U\x04\x08\x0c\nCalifornia1\x140\x12\x06\x03U\x04\n\x0c\x0bexample.com1!0\x1f\x06\x03U\x04\x03\x0c\x18Ms. Barbara J Jensen III1\"0 \x06\t*\x86H\x86\xf7\r\x01\t\x01\x16\x13bjensen@example.com0\x82\x01\"0\r\x06\t*\x86H\x86\xf7\r\x01\x01\x01\x05\x00\x03\x82\x01\x0f\x000\x82\x01\n\x02\x82\x01\x01\x00\xec\xaa\xfe\r\xc7l\xfc\x949\x1b\x07\xa3$W\x01 \xfe\xbc\xd9}\xf1\xa68\xac\xe7\xa0\n\xd3f\xdc\xd4R\xe0\xcd\xd2\xc8\xf1\xab\xa8G\xe7\x02\xf7\xf5k\x87\x9bz\xe8y\x10 \xe7@\xe2\xe9\xc7\x87@\x1ag\x8cK\xe4\xf8Umr\x0f0\x1eo\x00\xf2\xa9\xcf>b=(\xbc\xc4\xef\x12/\xb2;H8\\\x05Ra\xa9Z\xab\xdcx%\x94A\xbaP)Cts\xbb\x9eB\xee\xc1z\xbc\x1d\xc2\x12*F\xd3\xe5aSU\xf1Y\xce'O\x97\xc1\xd9\xec8W\x91\x92\x11\xb4\x9c\x01\xc1\xea\xb8n\xf9\xb7\x84\xcdN\xb3\xb5\x10\x1fNYK\xa7\x15\x0e\x0c\x1e(\xdc\x1d,\xba\xd3\xe7X\xa4I\x01\xb7\r\x8a\xe5\xf9\xfb{\xf3U\x10D\x8a\xb1\x83\n\x82}q.\x0e(\xa7>\x1d$\x92\xf2\"\xe68\xafV\xedY\xf5\x08\xb0\x95\x81\x1dE\xb2\xc9\xe32P\x06`\xebHd\xccb~%E\xcd\x87\x80s\xb8\x0e\xa0\x7fns\x15\xa2\xb1\xc1\xd0 \xba\x01]P\xa0R\xb8\x18\xf7\xb5/\x02\x03\x01\x00\x01\xa3{0y0\t\x06\x03U\x1d\x13\x04\x020\x000,\x06\t`\x86H\x01\x86\xf8B\x01\r\x04\x1f\x16\x1dOpenSSL Generated Certificate0\x1d\x06\x03U\x1d\x0e\x04\x16\x04\x14\xf2\x90\xf4SK\xecd\x8b\x1a\x03^\xa5/\xc1'\xf1\xbct\x17\xf80\x1f\x06\x03U\x1d#\x04\x180\x16\x80\x14tg\x8a\x8a\xd7\x1a\x17\xb8'\xce\xc3p\x0f\x1e\xf4\xf2J\x9aV\xdd0\r\x06\t*\x86H\x86\xf7\r\x01\x01\x05\x05\x00\x03\x81\x81\x00\x03\xcdR\xb0Y\xceu\x82m6\x0eSr\xaf\xbf\x07!\x03\xac\x18'\xba\xcct\x8eZ\x14\x84\x1c\x8f0Ed\xa0\xc6w'\xb8\xf5f\x02<\xac\x06\xce\x90\xd9\xe0_\xcf\xa9)\xf4\xe2\x0f=Q\x0b\x8f\x9d\xc7\xca\x14\xe9\x96\xbe\xe0\xd2WR9K\xe4+\xd5\xe8\x11\x18o_\x90\x00Bp\x8a\xd4\xd5\xbf\x10\x7f\x03\xae\xe0\xe3o\xef\xce\x00-\xa1\x15\x1e\x0e\x8b\xf5\xf8ab\x05\x9f\x864_\xdc\x01\x82\x9c2\xd1\x9c\xae\xcd\xa2\xf7\xb6d$\xca"
     )
     assert obj.meta.resource_type == "User"
     assert obj.meta.created == datetime.datetime(

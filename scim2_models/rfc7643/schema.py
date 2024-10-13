@@ -11,6 +11,7 @@ from typing import Type
 from typing import Union
 from typing import get_origin
 
+from pydantic import Base64Bytes
 from pydantic import Field
 from pydantic import create_model
 from pydantic.alias_generators import to_pascal
@@ -109,7 +110,7 @@ class Attribute(ComplexAttribute):
                 self.decimal: float,
                 self.integer: int,
                 self.date_time: datetime,
-                self.binary: bytes,
+                self.binary: Base64Bytes,
                 self.complex: MultiValuedComplexAttribute
                 if multiple
                 else ComplexAttribute,
@@ -133,7 +134,7 @@ class Attribute(ComplexAttribute):
                 float: cls.decimal.value,
                 int: cls.integer.value,
                 datetime: cls.date_time.value,
-                bytes: cls.binary.value,
+                Base64Bytes: cls.binary.value,
             }
             return attr_types.get(pytype, cls.string.value)
 

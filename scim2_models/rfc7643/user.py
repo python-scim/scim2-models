@@ -5,6 +5,7 @@ from typing import Literal
 from typing import Optional
 from typing import Union
 
+from pydantic import Base64Bytes
 from pydantic import EmailStr
 from pydantic import Field
 
@@ -209,7 +210,7 @@ class Role(MultiValuedComplexAttribute):
 
 
 class X509Certificate(MultiValuedComplexAttribute):
-    value: Annotated[Optional[bytes], CaseExact.true] = None
+    value: Annotated[Optional[Base64Bytes], CaseExact.true] = None
     """The value of an X.509 certificate."""
 
 
