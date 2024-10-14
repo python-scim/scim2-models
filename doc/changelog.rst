@@ -7,6 +7,7 @@ Changelog
 Added
 ^^^^^
 - Python 3.13 support.
+- Proper Base64 serialization. #31
 
 Changed
 ^^^^^^^
