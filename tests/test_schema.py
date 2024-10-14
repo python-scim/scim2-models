@@ -1,3 +1,6 @@
+import pytest
+from pydantic import ValidationError
+
 from scim2_models import Attribute
 from scim2_models import Mutability
 from scim2_models import Returned
@@ -72,3 +75,14 @@ def test_group_schema(load_sample):
     )
 
     assert obj.model_dump(exclude_unset=True) == payload
+
+
+def test_uri_ids():
+    """Test that schema ids are URI, as defined in RFC7643 §7.
+
+    https://datatracker.ietf.org/doc/html/rfc7643#section-7
+    """
+
+    Schema(id="urn:ietf:params:scim:schemas:extension:enterprise:2.0:User")
+    with pytest.raises(ValidationError):
+        Schema(id="invalid\nuri")

@@ -12,6 +12,7 @@ Added
 Changed
 ^^^^^^^
 - :attr:`SearchRequest.attributes <scim2_models.SearchRequest.attributes>` and :attr:`SearchRequest.attributes <scim2_models.SearchRequest.excluded_attributes>` are mutually exclusive. #19
+- :class:`~scim2_models.Schema` ids must be valid URIs. #26
 
 [0.2.2] - 2024-09-20
 --------------------

@@ -14,8 +14,10 @@ from typing import get_origin
 from pydantic import Base64Bytes
 from pydantic import Field
 from pydantic import create_model
+from pydantic import field_validator
 from pydantic.alias_generators import to_pascal
 from pydantic.alias_generators import to_snake
+from pydantic_core import Url
 
 from ..base import CaseExact
 from ..base import ComplexAttribute
@@ -63,7 +65,10 @@ def make_python_model(
             for attr in (obj.attributes or [])
             if attr.name
         }
-        pydantic_attributes["schemas"] = (Optional[List[str]], Field(default=[obj.id]))
+        pydantic_attributes["schemas"] = (
+            Optional[List[str]],
+            Field(default=[obj.id]),
+        )
 
     model_name = to_pascal(to_snake(obj.name))
     model = create_model(model_name, __base__=base, **pydantic_attributes)
@@ -254,3 +259,10 @@ class Schema(Resource):
     ] = None
     """A complex type that defines service provider attributes and their
     qualities via the following set of sub-attributes."""
+
+    @field_validator("id")
+    @classmethod
+    def urn_id(cls, value: str) -> str:
+        """Schema ids are URI, as defined in RFC7643 §7."""
+
+        return str(Url(value))
