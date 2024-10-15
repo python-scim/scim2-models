@@ -41,6 +41,7 @@ dev-dependencies = [
 # development
     "pytest>=8.2.1",
     "pytest-coverage>=0.0",
+    "tox-uv>=1.15.0",
 # documentation
     "autodoc-pydantic>=2.2.0",
     "myst-parser>=3.0.1",
@@ -92,35 +93,45 @@ doctest_optionflags= "ALLOW_UNICODE IGNORE_EXCEPTION_DETAIL ELLIPSIS"
 # ]
 
 [tool.tox]
-legacy_tox_ini = """
-[tox]
-isolated_build = true
-skipsdist = true
-envlist =
-    style
-    py39
-    py310
-    py311
-    py312
-    py313
-    doc
-    coverage
+requires = ["tox>=4.19"]
+env_list = [
+    "style",
+    "py39",
+    "py310",
+    "py311",
+    "py312",
+    "py313",
+    "minversions",
+    "doc",
+    "coverage",
+]
 
-[testenv]
-commands =
-    pytest --showlocals --full-trace {posargs}
+[tool.tox.env_run_base]
+commands = [
+    ["pytest", "--showlocals", "--full-trace", "{posargs}"],
+]
 
-[testenv:style]
-commands =
-    pip install pre-commit
-    pre-commit run --all-files
+[tool.tox.env.style]
+skip_install = true
+deps = "pre-commit-uv"
+commands = [
+    ["pre-commit", "run", "--all-files", "--show-diff-on-failure"],
+]
 
-[testenv:doc]
-commands =
-    sphinx-build --builder html doc build/sphinx/html
+[tool.tox.env.minversions]
+uv_resolution = "lowest-direct"
+commands = [
+    ["pytest", "--showlocals", "--full-trace", "{posargs}"],
+]
 
-[testenv:coverage]
-commands =
-    pytest --cov --cov-fail-under=100 --cov-report term:skip-covered {posargs}
-    coverage html
-"""
+[tool.tox.env.doc]
+commands = [
+    ["sphinx-build", "--builder", "html", "doc", "build/sphinx/html"],
+    ["sphinx-build", "--builder", "man", "doc", "build/sphinx/html"],
+]
+
+[tool.tox.env.coverage]
+commands = [
+    ["pytest", "--cov", "--cov-fail-under=100", "--cov-report", "term:skip-covered", "{posargs}"],
+    ["coverage", "html"],
+]
