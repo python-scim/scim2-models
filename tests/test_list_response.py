@@ -1,4 +1,3 @@
-from typing import List
 from typing import Union
 
 import pytest
@@ -108,7 +107,7 @@ def test_mixed_types(load_sample):
 
 
 class Foobar(Resource):
-    schemas: List[str] = ["foobarschema"]
+    schemas: list[str] = ["foobarschema"]
 
 
 def test_mixed_types_type_missing(load_sample):

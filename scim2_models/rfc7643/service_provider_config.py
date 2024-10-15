@@ -1,6 +1,5 @@
 from enum import Enum
 from typing import Annotated
-from typing import List
 from typing import Optional
 
 from pydantic import Field
@@ -95,7 +94,7 @@ class AuthenticationScheme(ComplexAttribute):
 
 
 class ServiceProviderConfig(Resource):
-    schemas: List[str] = ["urn:ietf:params:scim:schemas:core:2.0:ServiceProviderConfig"]
+    schemas: list[str] = ["urn:ietf:params:scim:schemas:core:2.0:ServiceProviderConfig"]
 
     id: Annotated[
         Optional[str], Mutability.read_only, Returned.default, Uniqueness.global_
@@ -135,7 +134,7 @@ class ServiceProviderConfig(Resource):
     """A complex type that specifies ETag configuration options."""
 
     authentication_schemes: Annotated[
-        Optional[List[AuthenticationScheme]], Mutability.read_only, Required.true
+        Optional[list[AuthenticationScheme]], Mutability.read_only, Required.true
     ] = None
     """A complex type that specifies supported authentication scheme
     properties."""

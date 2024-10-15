@@ -1,5 +1,4 @@
 from enum import Enum
-from typing import List
 from typing import Optional
 
 from pydantic import field_validator
@@ -11,14 +10,14 @@ from .message import Message
 class SearchRequest(Message):
     """SearchRequest object defined at https://datatracker.ietf.org/doc/html/rfc7644#section-3.4.3"""
 
-    schemas: List[str] = ["urn:ietf:params:scim:api:messages:2.0:SearchRequest"]
+    schemas: list[str] = ["urn:ietf:params:scim:api:messages:2.0:SearchRequest"]
 
-    attributes: Optional[List[str]] = None
+    attributes: Optional[list[str]] = None
     """A multi-valued list of strings indicating the names of resource
     attributes to return in the response, overriding the set of attributes that
     would be returned by default."""
 
-    excluded_attributes: Optional[List[str]] = None
+    excluded_attributes: Optional[list[str]] = None
     """A multi-valued list of strings indicating the names of resource
     attributes to be removed from the default set of attributes to return."""
 

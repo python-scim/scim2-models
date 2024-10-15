@@ -1,5 +1,4 @@
 from typing import Annotated
-from typing import List
 from typing import Optional
 
 from pydantic import Field
@@ -35,7 +34,7 @@ class SchemaExtension(ComplexAttribute):
 
 
 class ResourceType(Resource):
-    schemas: List[str] = ["urn:ietf:params:scim:schemas:core:2.0:ResourceType"]
+    schemas: list[str] = ["urn:ietf:params:scim:schemas:core:2.0:ResourceType"]
 
     name: Annotated[Optional[str], Mutability.read_only, Required.true] = None
     """The resource type name.
@@ -71,6 +70,6 @@ class ResourceType(Resource):
     """The resource type's primary/base schema URI."""
 
     schema_extensions: Annotated[
-        Optional[List[SchemaExtension]], Mutability.read_only, Required.true
+        Optional[list[SchemaExtension]], Mutability.read_only, Required.true
     ] = None
     """A list of URIs of the resource type's schema extensions."""

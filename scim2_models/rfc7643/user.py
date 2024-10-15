@@ -1,6 +1,5 @@
 from enum import Enum
 from typing import Annotated
-from typing import List
 from typing import Literal
 from typing import Optional
 from typing import Union
@@ -215,7 +214,7 @@ class X509Certificate(MultiValuedComplexAttribute):
 
 
 class User(Resource):
-    schemas: List[str] = ["urn:ietf:params:scim:schemas:core:2.0:User"]
+    schemas: list[str] = ["urn:ietf:params:scim:schemas:core:2.0:User"]
 
     user_name: Annotated[Optional[str], Uniqueness.server, Required.true] = None
     """Unique identifier for the User, typically used by the user to directly
@@ -266,32 +265,32 @@ class User(Resource):
     password: Annotated[Optional[str], Mutability.write_only, Returned.never] = None
     """The User's cleartext password."""
 
-    emails: Optional[List[Email]] = None
+    emails: Optional[list[Email]] = None
     """Email addresses for the user."""
 
-    phone_numbers: Optional[List[PhoneNumber]] = None
+    phone_numbers: Optional[list[PhoneNumber]] = None
     """Phone numbers for the User."""
 
-    ims: Optional[List[Im]] = None
+    ims: Optional[list[Im]] = None
     """Instant messaging addresses for the User."""
 
-    photos: Optional[List[Photo]] = None
+    photos: Optional[list[Photo]] = None
     """URLs of photos of the User."""
 
-    addresses: Optional[List[Address]] = None
+    addresses: Optional[list[Address]] = None
     """A physical mailing address for this User."""
 
-    groups: Annotated[Optional[List[GroupMembership]], Mutability.read_only] = None
+    groups: Annotated[Optional[list[GroupMembership]], Mutability.read_only] = None
     """A list of groups to which the user belongs, either through direct
     membership, through nested groups, or dynamically calculated."""
 
-    entitlements: Optional[List[Entitlement]] = None
+    entitlements: Optional[list[Entitlement]] = None
     """A list of entitlements for the User that represent a thing the User
     has."""
 
-    roles: Optional[List[Role]] = None
+    roles: Optional[list[Role]] = None
     """A list of roles for the User that collectively represent who the User
     is, e.g., 'Student', 'Faculty'."""
 
-    x509_certificates: Optional[List[X509Certificate]] = None
+    x509_certificates: Optional[list[X509Certificate]] = None
     """A list of certificates issued to the User."""

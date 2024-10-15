@@ -4,12 +4,8 @@ from enum import auto
 from inspect import isclass
 from typing import Annotated
 from typing import Any
-from typing import Dict
 from typing import Generic
-from typing import List
 from typing import Optional
-from typing import Tuple
-from typing import Type
 from typing import TypeVar
 from typing import Union
 from typing import get_args
@@ -41,7 +37,7 @@ URIReference = NewType("URIReference", str)
 ExternalReference = NewType("ExternalReference", str)
 
 
-def validate_model_attribute(model: Type, attribute_base: str) -> None:
+def validate_model_attribute(model: type["BaseModel"], attribute_base: str) -> None:
     """Validate that an attribute name or a sub-attribute path exist for a
     given model."""
 
@@ -68,7 +64,7 @@ def validate_model_attribute(model: Type, attribute_base: str) -> None:
         validate_model_attribute(attribute_type, sub_attribute_base)
 
 
-def extract_schema_and_attribute_base(attribute_urn: str) -> Tuple[str, str]:
+def extract_schema_and_attribute_base(attribute_urn: str) -> tuple[str, str]:
     # Extract the schema urn part and the attribute name part from attribute
     # name, as defined in :rfc:`RFC7644 §3.10 <7644#section-3.10>`.
 
@@ -79,8 +75,8 @@ def extract_schema_and_attribute_base(attribute_urn: str) -> Tuple[str, str]:
 
 def validate_attribute_urn(
     attribute_name: str,
-    default_resource: Optional[Type] = None,
-    resource_types: Optional[List[Type]] = None,
+    default_resource: Optional[type["BaseModel"]] = None,
+    resource_types: Optional[list[type["BaseModel"]]] = None,
 ) -> str:
     """Validate that an attribute urn is valid or not.
 
@@ -120,7 +116,7 @@ def validate_attribute_urn(
     return f"{schema}:{attribute_base}"
 
 
-def contains_attribute_or_subattributes(attribute_urns: List[str], attribute_urn: str):
+def contains_attribute_or_subattributes(attribute_urns: list[str], attribute_urn: str):
     return attribute_urn in attribute_urns or any(
         item.startswith(f"{attribute_urn}.") or item.startswith(f"{attribute_urn}:")
         for item in attribute_urns
@@ -424,7 +420,7 @@ class BaseModel(PydanticBaseModel):
     )
 
     @classmethod
-    def get_field_annotation(cls, field_name: str, annotation_type: Type) -> Any:
+    def get_field_annotation(cls, field_name: str, annotation_type: type) -> Any:
         """Return the annotation of type 'annotation_type' of the field
         'field_name'."""
         field_metadata = cls.model_fields[field_name].metadata
@@ -440,7 +436,7 @@ class BaseModel(PydanticBaseModel):
         return field_annotation
 
     @classmethod
-    def get_field_root_type(cls, attribute_name: str) -> Type:
+    def get_field_root_type(cls, attribute_name: str) -> type:
         """Extract the root type from a model field.
 
         For example, return 'GroupMember' for
@@ -455,7 +451,7 @@ class BaseModel(PydanticBaseModel):
 
         # extract 'x' from 'List[x]'
         if isclass(get_origin(attribute_type)) and issubclass(
-            get_origin(attribute_type), List
+            get_origin(attribute_type), list
         ):
             attribute_type = get_args(attribute_type)[0]
 
@@ -727,7 +723,7 @@ class BaseModel(PydanticBaseModel):
     @model_serializer(mode="wrap")
     def model_serializer_exclude_none(
         self, handler, info: SerializationInfo
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Remove `None` values inserted by the
         :meth:`~scim2_models.base.BaseModel.scim_serializer`."""
 
@@ -749,8 +745,8 @@ class BaseModel(PydanticBaseModel):
         self,
         *args,
         scim_ctx: Optional[Context] = Context.DEFAULT,
-        attributes: Optional[List[str]] = None,
-        excluded_attributes: Optional[List[str]] = None,
+        attributes: Optional[list[str]] = None,
+        excluded_attributes: Optional[list[str]] = None,
         **kwargs,
     ):
         """Create a model representation that can be included in SCIM messages
@@ -834,4 +830,4 @@ def is_complex_attribute(type) -> bool:
     )
 
 
-BaseModelType: Type = type(BaseModel)
+BaseModelType: type = type(BaseModel)

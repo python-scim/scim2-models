@@ -1,11 +1,8 @@
 from datetime import datetime
 from typing import Annotated
 from typing import Any
-from typing import Dict
 from typing import Generic
-from typing import List
 from typing import Optional
-from typing import Type
 from typing import TypeVar
 from typing import Union
 from typing import get_args
@@ -105,7 +102,7 @@ class Extension(BaseModel):
 AnyExtension = TypeVar("AnyExtension", bound="Extension")
 
 
-def extension_serializer(value: Any, handler, info) -> Optional[Dict[str, Any]]:
+def extension_serializer(value: Any, handler, info) -> Optional[dict[str, Any]]:
     """Exclude the Resource attributes from the extension dump.
 
     For instance, attributes 'meta', 'id' or 'schemas' should not be
@@ -149,7 +146,7 @@ class ResourceMetaclass(BaseModelType):
 
 
 class Resource(BaseModel, Generic[AnyExtension], metaclass=ResourceMetaclass):
-    schemas: List[str]
+    schemas: list[str]
     """The "schemas" attribute is a REQUIRED attribute and is an array of
     Strings containing URIs that are used to indicate the namespaces of the
     SCIM schemas that define the attributes present in the current JSON
@@ -190,7 +187,7 @@ class Resource(BaseModel, Generic[AnyExtension], metaclass=ResourceMetaclass):
         setattr(self, item.__name__, value)
 
     @classmethod
-    def get_extension_models(cls) -> Dict[str, Type]:
+    def get_extension_models(cls) -> dict[str, type]:
         """Return extension a dict associating extension models with their
         schemas."""
 
@@ -208,8 +205,8 @@ class Resource(BaseModel, Generic[AnyExtension], metaclass=ResourceMetaclass):
 
     @staticmethod
     def get_by_schema(
-        resource_types: List[Type], schema: str, with_extensions=True
-    ) -> Optional[Type]:
+        resource_types: list[type[BaseModel]], schema: str, with_extensions=True
+    ) -> Optional[type]:
         """Given a resource type list and a schema, find the matching resource
         type."""
 
@@ -229,7 +226,7 @@ class Resource(BaseModel, Generic[AnyExtension], metaclass=ResourceMetaclass):
         return by_schema.get(schema.lower())
 
     @staticmethod
-    def get_by_payload(resource_types: List[Type], payload: Dict, **kwargs):
+    def get_by_payload(resource_types: list[type], payload: dict, **kwargs):
         """Given a resource type list and a payload, find the matching resource
         type."""
 
@@ -240,7 +237,7 @@ class Resource(BaseModel, Generic[AnyExtension], metaclass=ResourceMetaclass):
         return Resource.get_by_schema(resource_types, schema, **kwargs)
 
     @field_serializer("schemas")
-    def set_extension_schemas(self, schemas: List[str]):
+    def set_extension_schemas(self, schemas: list[str]):
         """Add model extension ids to the 'schemas' attribute."""
 
         extension_schemas = self.get_extension_models().keys()
@@ -299,7 +296,7 @@ def dedicated_attributes(model):
     return field_infos
 
 
-def model_to_schema(model: Type):
+def model_to_schema(model: type[BaseModel]):
     from scim2_models.rfc7643.schema import Schema
 
     schema_urn = model.model_fields["schemas"].default[0]
@@ -318,7 +315,7 @@ def model_to_schema(model: Type):
     return schema
 
 
-def get_reference_types(type) -> List[str]:
+def get_reference_types(type) -> list[str]:
     first_arg = get_args(type)[0]
     types = get_args(first_arg) if get_origin(first_arg) == Union else [first_arg]
 

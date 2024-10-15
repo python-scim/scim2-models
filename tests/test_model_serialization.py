@@ -1,5 +1,4 @@
 from typing import Annotated
-from typing import List
 from typing import Optional
 
 import pytest
@@ -19,7 +18,7 @@ class SubRetModel(ComplexAttribute):
 
 
 class SupRetResource(Resource):
-    schemas: List[str] = ["org:example:SupRetResource"]
+    schemas: list[str] = ["org:example:SupRetResource"]
 
     always_returned: Annotated[Optional[str], Returned.always] = None
     never_returned: Annotated[Optional[str], Returned.never] = None
@@ -30,7 +29,7 @@ class SupRetResource(Resource):
 
 
 class MutResource(Resource):
-    schemas: List[str] = ["org:example:MutResource"]
+    schemas: list[str] = ["org:example:MutResource"]
 
     read_only: Annotated[Optional[str], Mutability.read_only] = None
     read_write: Annotated[Optional[str], Mutability.read_write] = None

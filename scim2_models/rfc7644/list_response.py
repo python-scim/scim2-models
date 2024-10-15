@@ -1,9 +1,7 @@
 from typing import Annotated
 from typing import Any
 from typing import Generic
-from typing import List
 from typing import Optional
-from typing import Type
 from typing import Union
 from typing import get_args
 from typing import get_origin
@@ -17,6 +15,7 @@ from pydantic import model_validator
 from pydantic_core import PydanticCustomError
 from typing_extensions import Self
 
+from ..base import BaseModel
 from ..base import BaseModelType
 from ..base import Context
 from ..rfc7643.resource import AnyResource
@@ -56,7 +55,7 @@ class ListResponseMetaclass(BaseModelType):
 
         discriminator = Discriminator(get_schema_from_payload)
 
-        def get_tag(resource_type: Type) -> Tag:
+        def get_tag(resource_type: type[BaseModel]) -> Tag:
             return Tag(resource_type.model_fields["schemas"].default[0])
 
         tagged_resources = [
@@ -80,7 +79,7 @@ class ListResponseMetaclass(BaseModelType):
 
 
 class ListResponse(Message, Generic[AnyResource], metaclass=ListResponseMetaclass):
-    schemas: List[str] = ["urn:ietf:params:scim:api:messages:2.0:ListResponse"]
+    schemas: list[str] = ["urn:ietf:params:scim:api:messages:2.0:ListResponse"]
 
     total_results: Optional[int] = None
     """The total number of results returned by the list or query operation."""
@@ -92,7 +91,7 @@ class ListResponse(Message, Generic[AnyResource], metaclass=ListResponseMetaclas
     items_per_page: Optional[int] = None
     """The number of resources returned in a list response page."""
 
-    resources: Optional[List[AnyResource]] = Field(
+    resources: Optional[list[AnyResource]] = Field(
         None, serialization_alias="Resources"
     )
     """A multi-valued list of complex objects containing the requested

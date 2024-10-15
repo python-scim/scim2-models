@@ -3,11 +3,8 @@ from datetime import datetime
 from enum import Enum
 from typing import Annotated
 from typing import Any
-from typing import List
 from typing import Literal
 from typing import Optional
-from typing import Tuple
-from typing import Type
 from typing import Union
 from typing import get_origin
 
@@ -47,7 +44,7 @@ def make_python_identifier(identifier: str) -> str:
 
 
 def make_python_model(
-    obj: Union["Schema", "Attribute"], base: Optional[Type] = None, multiple=False
+    obj: Union["Schema", "Attribute"], base: Optional[type] = None, multiple=False
 ) -> "Resource":
     """Build a Python model from a Schema or an Attribute object."""
 
@@ -66,7 +63,7 @@ def make_python_model(
             if attr.name
         }
         pydantic_attributes["schemas"] = (
-            Optional[List[str]],
+            Optional[list[str]],
             Field(default=[obj.id]),
         )
 
@@ -97,8 +94,8 @@ class Attribute(ComplexAttribute):
         def to_python(
             self,
             multiple=False,
-            reference_types: Optional[List[str]] = None,
-        ) -> Type:
+            reference_types: Optional[list[str]] = None,
+        ) -> type:
             if self.value == self.reference and reference_types is not None:
                 if reference_types == ["external"]:
                     return Reference[ExternalReference]
@@ -166,7 +163,7 @@ class Attribute(ComplexAttribute):
     required."""
 
     canonical_values: Annotated[
-        Optional[List[str]], Mutability.read_only, CaseExact.true
+        Optional[list[str]], Mutability.read_only, CaseExact.true
     ] = None
     """A collection of suggested canonical values that MAY be used (e.g.,
     "work" and "home")."""
@@ -197,16 +194,16 @@ class Attribute(ComplexAttribute):
     uniqueness of attribute values."""
 
     reference_types: Annotated[
-        Optional[List[str]], Mutability.read_only, Required.false, CaseExact.true
+        Optional[list[str]], Mutability.read_only, Required.false, CaseExact.true
     ] = None
     """A multi-valued array of JSON strings that indicate the SCIM resource
     types that may be referenced."""
 
-    sub_attributes: Annotated[Optional[List["Attribute"]], Mutability.read_only] = None
+    sub_attributes: Annotated[Optional[list["Attribute"]], Mutability.read_only] = None
     """When an attribute is of type "complex", "subAttributes" defines a set of
     sub-attributes."""
 
-    def to_python(self) -> Optional[Tuple[Any, Field]]:
+    def to_python(self) -> Optional[tuple[Any, Field]]:
         """Build tuple suited to be passed to pydantic 'create_model'."""
 
         if not self.name:
@@ -218,7 +215,7 @@ class Attribute(ComplexAttribute):
             attr_type = make_python_model(obj=self, multiple=self.multi_valued)
 
         if self.multi_valued:
-            attr_type = List[attr_type]  # type: ignore
+            attr_type = list[attr_type]  # type: ignore
 
         annotation = Annotated[
             Optional[attr_type],  # type: ignore
@@ -241,7 +238,7 @@ class Attribute(ComplexAttribute):
 
 
 class Schema(Resource):
-    schemas: List[str] = ["urn:ietf:params:scim:schemas:core:2.0:Schema"]
+    schemas: list[str] = ["urn:ietf:params:scim:schemas:core:2.0:Schema"]
 
     id: Annotated[Optional[str], Mutability.read_only, Required.true] = None
     """The unique URI of the schema."""
@@ -255,7 +252,7 @@ class Schema(Resource):
     """The schema's human-readable description."""
 
     attributes: Annotated[
-        Optional[List[Attribute]], Mutability.read_only, Required.true
+        Optional[list[Attribute]], Mutability.read_only, Required.true
     ] = None
     """A complex type that defines service provider attributes and their
     qualities via the following set of sub-attributes."""

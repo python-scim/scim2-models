@@ -1,6 +1,5 @@
 from enum import Enum
 from typing import Any
-from typing import List
 from typing import Optional
 
 from pydantic import Field
@@ -60,9 +59,9 @@ class PatchOp(Message):
         The models for Patch operations are defined, but their behavior is not implemented nor tested yet.
     """
 
-    schemas: List[str] = ["urn:ietf:params:scim:api:messages:2.0:PatchOp"]
+    schemas: list[str] = ["urn:ietf:params:scim:api:messages:2.0:PatchOp"]
 
-    operations: Optional[List[PatchOperation]] = Field(
+    operations: Optional[list[PatchOperation]] = Field(
         None, serialization_alias="Operations"
     )
     """The body of an HTTP PATCH request MUST contain the attribute

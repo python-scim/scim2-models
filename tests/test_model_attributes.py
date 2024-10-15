@@ -1,6 +1,5 @@
 import uuid
 from typing import Annotated
-from typing import List
 from typing import Optional
 
 import pytest
@@ -21,10 +20,10 @@ class Sub(ComplexAttribute):
 
 
 class Sup(Resource):
-    schemas: List[str] = ["urn:example:2.0:Sup"]
+    schemas: list[str] = ["urn:example:2.0:Sup"]
     dummy: str
     sub: Sub
-    subs: List[Sub]
+    subs: list[Sub]
 
 
 def test_guess_root_type():
@@ -45,7 +44,7 @@ class Baz(ComplexAttribute):
 
 
 class Foo(Resource):
-    schemas: List[str] = ["urn:example:2.0:Foo"]
+    schemas: list[str] = ["urn:example:2.0:Foo"]
     sub: Annotated[ReturnedModel, Returned.default]
     bar: str
     snake_case: str
@@ -53,7 +52,7 @@ class Foo(Resource):
 
 
 class Bar(Resource):
-    schemas: List[str] = ["urn:example:2.0:Bar"]
+    schemas: list[str] = ["urn:example:2.0:Bar"]
     sub: Annotated[ReturnedModel, Returned.default]
     bar: str
     snake_case: str
@@ -61,7 +60,7 @@ class Bar(Resource):
 
 
 class Extension(Resource):
-    schemas: List[str] = ["urn:example:2.0:Extension"]
+    schemas: list[str] = ["urn:example:2.0:Extension"]
     baz: str
 
 
