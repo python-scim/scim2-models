@@ -5,11 +5,11 @@ from typing import Optional
 
 import pytest
 
-from scim2_models.attributes import validate_attribute_urn
 from scim2_models.base import BaseModel
 from scim2_models.base import ComplexAttribute
 from scim2_models.base import Context
 from scim2_models.base import Returned
+from scim2_models.base import validate_attribute_urn
 from scim2_models.rfc7643.enterprise_user import EnterpriseUser
 from scim2_models.rfc7643.resource import Meta
 from scim2_models.rfc7643.resource import Resource
