@@ -25,17 +25,14 @@ jobs:
           - '3.9'
     steps:
       - uses: actions/checkout@v4
-      - name: Install Poetry
-        uses: snok/install-poetry@v1
-      - uses: actions/setup-python@v5
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
         with:
-          python-version: ${{ matrix.python }}
-          cache: 'poetry'
-      - name: Install dependencies and run tests
-        run: |
-          poetry --version
-          poetry install
-          poetry run pytest --showlocals
+          enable-cache: true
+      - name: Install Python ${{ matrix.python }}
+        run: uv python install ${{ matrix.python }}
+      - name: Run tests
+        run: uv run pytest --showlocals
 
   downstream-tests:
     name: py${{ matrix.python }} ${{ matrix.downstream }} downstream unit tests
@@ -53,51 +50,44 @@ jobs:
           - scim2-cli
           - scim2-tester
     steps:
-      - uses: actions/checkout@v4
-      - name: Install Poetry
-        uses: snok/install-poetry@v1
-      - uses: actions/setup-python@v5
+      - name: Checkout upstream pyproject
+        uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
         with:
-          python-version: ${{ matrix.python }}
-          cache: 'poetry'
-      - name: Install dependencies
-        run: |
-          poetry --version
-          poetry install
+          enable-cache: true
       - name: Checkout downstream pyproject
         uses: actions/checkout@v4
         with:
           repository: yaal-coop/${{ matrix.downstream }}
           path: ${{ matrix.downstream }}
+      - name: Install Python ${{ matrix.python }}
+        run: |
+          cd ${{ matrix.downstream }}
+          uv python install ${{ matrix.python }}
       - name: Install downstream test environment
         run: |
           cd ${{ matrix.downstream }}
-          poetry install --with dev
-          poetry run pip install --upgrade --force ..
+          uv sync
+          uv pip install --upgrade --force-reinstall ..
       - name: Run downstream tests
         run: |
           cd ${{ matrix.downstream }}
-          poetry run pytest --showlocals
+          uv run pytest --showlocals
 
   minversions:
     name: minimum dependency versions
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install Poetry
-        uses: snok/install-poetry@v1
-      - uses: actions/setup-python@v5
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
         with:
-          python-version: '3.9'
-          cache: 'poetry'
-      - run: sed -i -E 's/"(\^|>=)([0-9\.]+)([^,]*)"/"==\2"/' pyproject.toml
-      - run: sed -i -E 's/python = "==/python = "^/' pyproject.toml
-      - name: Install dependencies and run tests
-        run: |
-          poetry --version
-          poetry lock
-          poetry install
-          poetry run pytest --showlocals
+          enable-cache: true
+      - name: Install minimum dependencies
+        run: uv sync --resolution=lowest-direct
+      - name: Run tests
+        run: uv run pytest --showlocals
 
   style:
     runs-on: ubuntu-latest
@@ -109,12 +99,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install Poetry
-        uses: snok/install-poetry@v1
-      - uses: actions/setup-python@v5
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
         with:
-          python-version: '3.12'
-          cache: 'poetry'
-      - run: |
-          poetry install --with doc
-          poetry run sphinx-build doc build/sphinx/html
+          enable-cache: true
+      - run: uv run sphinx-build doc build/sphinx/html

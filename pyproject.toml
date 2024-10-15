@@ -1,17 +1,15 @@
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
-[tool.poetry]
+[project]
 name = "scim2-models"
 version = "0.2.2"
 description = "SCIM2 models serialization and validation with pydantic"
-authors = ["Yaal Coop <contact@yaal.coop>"]
-license = "Apache"
+authors = [{name="Yaal Coop", email="contact@yaal.coop"}]
+license = {file = "LICENSE"}
 readme = "README.md"
 keywords = ["scim", "scim2", "provisioning", "pydantic", "rfc7643", "rfc7644"]
-documentation = "https://scim2-models.readthedocs.io"
-repository = "https://github.com/yaal-coop/scim2-models"
 classifiers = [
     "Intended Audience :: Developers",
     "Development Status :: 3 - Alpha",
@@ -21,33 +19,35 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: Implementation :: CPython",
-    "License :: OSI Approved :: MIT License",
+    "License :: OSI Approved :: Apache Software License",
     "Environment :: Web Environment",
     "Programming Language :: Python",
     "Operating System :: OS Independent",
 ]
 
-[tool.poetry.urls]
+requires-python = ">= 3.9"
+dependencies = [
+    "pydantic[email]>=2.7.0, <4"
+]
+
+[project.urls]
+documentation = "https://scim2-models.readthedocs.io"
+repository = "https://github.com/yaal-coop/scim2-models"
 changelog = "https://scim2-models.readthedocs.io/en/latest/changelog.html"
 funding = "https://github.com/sponsors/yaal-coop"
 
-[tool.poetry.dependencies]
-python = "^3.9"
-pydantic = {version = "^2.7.0", extras = ["email"]}
-
-[tool.poetry.group.dev.dependencies]
-pytest = "^8.2.1"
-pytest-coverage = "^0.0"
-
-[tool.poetry.group.doc]
-optional = true
-
-[tool.poetry.group.doc.dependencies]
-autodoc-pydantic = "^2.2.0"
-shibuya = "^2024.5.15"
-sphinx = "^7.3.7"
-sphinx-togglebutton = "^0.3.2"
-myst-parser = "^3.0.1"
+[tool.uv]
+dev-dependencies = [
+# development
+    "pytest>=8.2.1",
+    "pytest-coverage>=0.0",
+# documentation
+    "autodoc-pydantic>=2.2.0",
+    "myst-parser>=3.0.1",
+    "shibuya>=2024.5.15",
+    "sphinx>=7.3.7",
+    "sphinx-togglebutton>=0.3.2",
+]
 
 [tool.coverage.run]
 source = [
@@ -107,10 +107,8 @@ envlist =
     coverage
 
 [testenv]
-allowlist_externals = poetry
 commands =
-    poetry install
-    poetry run pytest --showlocals --full-trace {posargs}
+    pytest --showlocals --full-trace {posargs}
 
 [testenv:style]
 commands =
@@ -119,12 +117,10 @@ commands =
 
 [testenv:doc]
 commands =
-    poetry install --with doc --without dev
-    poetry run sphinx-build --builder html doc build/sphinx/html
+    sphinx-build --builder html doc build/sphinx/html
 
 [testenv:coverage]
 commands =
-    poetry install
-    poetry run pytest --cov --cov-fail-under=100 --cov-report term:skip-covered {posargs}
-    poetry run coverage html
+    pytest --cov --cov-fail-under=100 --cov-report term:skip-covered {posargs}
+    coverage html
 """
