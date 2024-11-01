@@ -103,4 +103,6 @@ jobs:
         uses: astral-sh/setup-uv@v3
         with:
           enable-cache: true
+      - name: Install dependencies
+        run: uv sync --group doc
       - run: uv run sphinx-build doc build/sphinx/html
