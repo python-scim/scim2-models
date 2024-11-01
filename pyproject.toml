@@ -36,13 +36,14 @@ repository = "https://github.com/yaal-coop/scim2-models"
 changelog = "https://scim2-models.readthedocs.io/en/latest/changelog.html"
 funding = "https://github.com/sponsors/yaal-coop"
 
-[tool.uv]
-dev-dependencies = [
-# development
+[dependency-groups]
+dev = [
     "pytest>=8.2.1",
     "pytest-coverage>=0.0",
-    "tox-uv>=1.15.0",
-# documentation
+    "tox-uv>=1.16.0",
+]
+
+doc = [
     "autodoc-pydantic>=2.2.0",
     "myst-parser>=3.0.1",
     "shibuya>=2024.5.15",
@@ -107,6 +108,7 @@ env_list = [
 ]
 
 [tool.tox.env_run_base]
+runner = "uv-venv-lock-runner"
 commands = [
     ["pytest", "--showlocals", "--full-trace", "{posargs}"],
 ]
@@ -125,6 +127,7 @@ commands = [
 ]
 
 [tool.tox.env.doc]
+dependency_groups = ["doc"]
 commands = [
     ["sphinx-build", "--builder", "html", "doc", "build/sphinx/html"],
     ["sphinx-build", "--builder", "man", "doc", "build/sphinx/html"],
