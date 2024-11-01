@@ -10,9 +10,7 @@ from scim2_models.rfc7643.user import User
 
 
 def canonic_schema(schema):
-    """Remove descriptions and sort attributes so schemas are easily
-    comparable."""
-
+    """Remove descriptions and sort attributes so schemas are easily comparable."""
     schema["meta"] = None
     schema["name"] = None
     schema["schemas"] = None

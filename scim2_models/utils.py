@@ -16,7 +16,6 @@ def to_camel(string: str) -> str:
     on alphanumerical characters after specials characters. For instance
     '$ref' stays '$ref'.
     """
-
     snake = to_snake(string)
     camel = re.sub(r"_+([0-9A-Za-z]+)", lambda m: m.group(1).title(), snake)
     return camel
@@ -27,7 +26,6 @@ def normalize_attribute_name(attribute_name: str) -> str:
 
     This method is used for attribute name validation.
     """
-
     is_extension_attribute = ":" in attribute_name
     if not is_extension_attribute:
         attribute_name = re.sub(r"[\W_]+", "", attribute_name)

@@ -24,8 +24,7 @@ from .message import Message
 
 class ListResponseMetaclass(BaseModelType):
     def tagged_resource_union(resource_union):
-        """Build Discriminated Unions, so pydantic can guess which class are
-        needed to instantiate by inspecting a payload.
+        """Build Discriminated Unions, so pydantic can guess which class are needed to instantiate by inspecting a payload.
 
         https://docs.pydantic.dev/latest/concepts/unions/#discriminated-unions
         """
@@ -102,9 +101,7 @@ class ListResponse(Message, Generic[AnyResource], metaclass=ListResponseMetaclas
     def check_results_number(
         cls, value: Any, handler: ValidatorFunctionWrapHandler, info: ValidationInfo
     ) -> Self:
-        """:rfc:`RFC7644 §3.4.2 <7644#section-3.4.2.4>` indicates that
-        'resources' must be set if 'totalResults' is non-zero."""
-
+        """:rfc:`RFC7644 §3.4.2 <7644#section-3.4.2.4>` indicates that 'resources' must be set if 'totalResults' is non-zero."""
         obj = handler(value)
 
         if (

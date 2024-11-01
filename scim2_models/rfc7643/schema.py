@@ -33,9 +33,7 @@ from .resource import Resource
 
 
 def make_python_identifier(identifier: str) -> str:
-    """Sanitize string to be a suitable Python/Pydantic class attribute
-    name."""
-
+    """Sanitize string to be a suitable Python/Pydantic class attribute name."""
     sanitized = re.sub(r"\W|^(?=\d)", "", identifier)
     if sanitized in RESERVED_WORDS:
         sanitized = f"{sanitized}_"
@@ -47,7 +45,6 @@ def make_python_model(
     obj: Union["Schema", "Attribute"], base: Optional[type] = None, multiple=False
 ) -> "Resource":
     """Build a Python model from a Schema or an Attribute object."""
-
     if isinstance(obj, Attribute):
         pydantic_attributes = {
             to_snake(make_python_identifier(attr.name)): attr.to_python()
@@ -205,7 +202,6 @@ class Attribute(ComplexAttribute):
 
     def to_python(self) -> Optional[tuple[Any, Field]]:
         """Build tuple suited to be passed to pydantic 'create_model'."""
-
         if not self.name:
             return None
 
@@ -260,6 +256,5 @@ class Schema(Resource):
     @field_validator("id")
     @classmethod
     def urn_id(cls, value: str) -> str:
-        """Schema ids are URI, as defined in RFC7643 §7."""
-
+        """Ensure that schema ids are URI, as defined in RFC7643 §7."""
         return str(Url(value))

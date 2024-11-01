@@ -67,7 +67,6 @@ def mut_resource():
 
 def test_dump_default(mut_resource):
     """By default, everything is dumped."""
-
     assert mut_resource.model_dump() == {
         "schemas": ["org:example:MutResource"],
         "id": "id",
@@ -97,7 +96,7 @@ def test_dump_default(mut_resource):
 
 
 def test_dump_creation_request(mut_resource):
-    """Test query building for resource creation request:
+    """Test query building for resource creation request.
 
     Attributes marked as:
     - Mutability.read_write are dumped
@@ -114,7 +113,7 @@ def test_dump_creation_request(mut_resource):
 
 
 def test_dump_query_request(mut_resource):
-    """Test query building for resource query request:
+    """Test query building for resource query request.
 
     Attributes marked as:
     - Mutability.read_write are dumped
@@ -122,7 +121,6 @@ def test_dump_query_request(mut_resource):
     - Mutability.write_only are not dumped
     - Mutability.read_only are dumped
     """
-
     assert mut_resource.model_dump(scim_ctx=Context.RESOURCE_QUERY_REQUEST) == {
         "schemas": ["org:example:MutResource"],
         "id": "id",
@@ -133,14 +131,14 @@ def test_dump_query_request(mut_resource):
 
 
 def test_dump_replacement_request(mut_resource):
-    """Test query building for resource model replacement requests:
+    """Test query building for resource model replacement requests.
 
     Attributes marked as:
     - Mutability.read_write are dumped
     - Mutability.immutable are not dumped
     - Mutability.write_only are dumped
-    - Mutability.read_only are not dumped"""
-
+    - Mutability.read_only are not dumped
+    """
     assert mut_resource.model_dump(scim_ctx=Context.RESOURCE_REPLACEMENT_REQUEST) == {
         "schemas": ["org:example:MutResource"],
         "readWrite": "x",
@@ -149,7 +147,7 @@ def test_dump_replacement_request(mut_resource):
 
 
 def test_dump_search_request(mut_resource):
-    """Test query building for resource query request:
+    """Test query building for resource query request.
 
     Attributes marked as:
     - Mutability.read_write are dumped
@@ -157,7 +155,6 @@ def test_dump_search_request(mut_resource):
     - Mutability.write_only are not dumped
     - Mutability.read_only are dumped
     """
-
     assert mut_resource.model_dump(scim_ctx=Context.RESOURCE_QUERY_REQUEST) == {
         "schemas": ["org:example:MutResource"],
         "id": "id",
@@ -169,7 +166,6 @@ def test_dump_search_request(mut_resource):
 
 def test_dump_default_response(ret_resource):
     """When no scim context is passed, every attributes are dumped."""
-
     assert ret_resource.model_dump() == {
         "schemas": ["org:example:SupRetResource"],
         "id": "id",
@@ -206,7 +202,6 @@ def test_dump_response(context, ret_resource):
 
     Including attributes with 'attributes=' replace the whole default set.
     """
-
     assert ret_resource.model_dump(scim_ctx=context) == {
         "schemas": ["org:example:SupRetResource"],
         "id": "id",

@@ -2,6 +2,7 @@ from scim2_models.utils import to_camel
 
 
 def test_to_camel():
+    """Test camilization utility."""
     assert to_camel("foo") == "foo"
     assert to_camel("Foo") == "foo"
     assert to_camel("fooBar") == "fooBar"

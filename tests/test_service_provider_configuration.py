@@ -6,6 +6,7 @@ from scim2_models import ServiceProviderConfig
 
 
 def test_service_provider_configuration(load_sample):
+    """Test creating an object representing the SPC example found in RFC7643."""
     payload = load_sample("rfc7643-8.5-service_provider_configuration.json")
     obj = ServiceProviderConfig.model_validate(payload)
 

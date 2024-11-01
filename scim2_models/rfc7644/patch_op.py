@@ -44,15 +44,13 @@ class PatchOperation(ComplexAttribute):
         in particular PATCH op operation values, as defined in section 3.5.2.
         Microsoft Entra ID emits the values of op as Add, Replace, and Remove.
         """
-
         if isinstance(v, str):
             return v.lower()
         return v
 
 
 class PatchOp(Message):
-    """Patch Operation as defined in :rfc:`RFC7644 §3.5.2
-    <7644#section-3.5.2>`.
+    """Patch Operation as defined in :rfc:`RFC7644 §3.5.2 <7644#section-3.5.2>`.
 
     .. todo::
 

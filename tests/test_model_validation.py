@@ -87,7 +87,7 @@ def test_validate_default_mutability():
 
 
 def test_validate_creation_request_mutability():
-    """Test query validation for resource creation request:
+    """Test query validation for resource creation request.
 
     Attributes marked as:
     - Mutability.read_only are ignored
@@ -109,12 +109,11 @@ def test_validate_creation_request_mutability():
 
 
 def test_validate_query_request_mutability():
-    """Test query validation for resource query request:
+    """Test query validation for resource query request.
 
     Attributes marked as:
     - Mutability.write_only raise a ValidationError
     """
-
     assert MutResource.model_validate(
         {
             "readOnly": "x",
@@ -142,12 +141,12 @@ def test_validate_query_request_mutability():
 
 
 def test_validate_replacement_request_mutability():
-    """Test query validation for resource model replacement requests:
+    """Test query validation for resource model replacement requests.
 
     Attributes marked as:
     - Mutability.immutable raise a ValidationError
-    - Mutability.read_only are ignored"""
-
+    - Mutability.read_only are ignored
+    """
     assert MutResource.model_validate(
         {
             "readOnly": "x",
@@ -174,12 +173,11 @@ def test_validate_replacement_request_mutability():
 
 
 def test_validate_search_request_mutability():
-    """Test query validation for resource query request:
+    """Test query validation for resource query request.
 
     Attributes marked as:
     - Mutability.write_only raise a ValidationError
     """
-
     assert MutResource.model_validate(
         {
             "readOnly": "x",
@@ -208,7 +206,6 @@ def test_validate_search_request_mutability():
 
 def test_validate_default_response_returnability():
     """When no scim context is passed, every attributes are dumped."""
-
     assert RetResource.model_validate(
         {
             "schemas": ["org:example:RetResource"],
@@ -282,7 +279,6 @@ def test_validate_response_returnability(context):
     - Returned.always raise a ValidationException if None
     - Returned.never raise a ValidationException if not None
     """
-
     assert RetResource.model_validate(
         {
             "schemas": ["org:example:RetResource"],
@@ -333,7 +329,6 @@ def test_validate_response_returnability(context):
 
 def test_validate_default_necessity():
     """Test query validation for resource creation request."""
-
     assert ReqResource.model_validate(
         {
             "required": "x",
@@ -378,7 +373,7 @@ def test_validate_default_necessity():
     ],
 )
 def test_validate_creation_and_replacement_request_necessity(context):
-    """Test query validation for resource creation and requests:
+    """Test query validation for resource creation and requests.
 
     Attributes marked as:
     - Required.true and missing raise a ValidationError
@@ -425,7 +420,7 @@ def test_validate_creation_and_replacement_request_necessity(context):
     ],
 )
 def test_validate_query_and_search_request_necessity(context):
-    """Test query validation for resource query request:
+    """Test query validation for resource query request.
 
     Attributes marked as:
     - Required.true and missing raise a ValidationError

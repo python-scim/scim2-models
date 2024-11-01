@@ -27,13 +27,9 @@ from ..utils import normalize_attribute_name
 
 
 class Meta(ComplexAttribute):
-    """All "meta" sub-attributes are assigned by the service provider (have a
-    "mutability" of "readOnly"), and all of these sub-attributes have a
-    "returned" characteristic of "default".
+    """All "meta" sub-attributes are assigned by the service provider (have a "mutability" of "readOnly"), and all of these sub-attributes have a "returned" characteristic of "default".
 
-    This attribute SHALL be
-    ignored when provided by clients.  "meta" contains the following
-    sub-attributes:
+    This attribute SHALL be ignored when provided by clients.  "meta" contains the following sub-attributes:
     """
 
     resource_type: Optional[str] = None
@@ -84,16 +80,12 @@ class Meta(ComplexAttribute):
 class Extension(BaseModel):
     @classmethod
     def to_schema(cls):
-        """Build a :class:`~scim2_models.Schema` from the current extension
-        class."""
-
+        """Build a :class:`~scim2_models.Schema` from the current extension class."""
         return model_to_schema(cls)
 
     @classmethod
     def from_schema(cls, schema) -> "Extension":
-        """Build a :class:`~scim2_models.Extension` subclass from the schema
-        definition."""
-
+        """Build a :class:`~scim2_models.Extension` subclass from the schema definition."""
         from .schema import make_python_model
 
         return make_python_model(schema, cls)
@@ -108,7 +100,6 @@ def extension_serializer(value: Any, handler, info) -> Optional[dict[str, Any]]:
     For instance, attributes 'meta', 'id' or 'schemas' should not be
     dumped when the model is used as an extension for another model.
     """
-
     partial_result = handler(value, info)
     result = {
         attr_name: value
@@ -121,7 +112,6 @@ def extension_serializer(value: Any, handler, info) -> Optional[dict[str, Any]]:
 class ResourceMetaclass(BaseModelType):
     def __new__(cls, name, bases, attrs, **kwargs):
         """Dynamically add a field for each extension."""
-
         if "__pydantic_generic_metadata__" in kwargs:
             extensions = kwargs["__pydantic_generic_metadata__"]["args"][0]
             extensions = (
@@ -188,9 +178,7 @@ class Resource(BaseModel, Generic[AnyExtension], metaclass=ResourceMetaclass):
 
     @classmethod
     def get_extension_models(cls) -> dict[str, type]:
-        """Return extension a dict associating extension models with their
-        schemas."""
-
+        """Return extension a dict associating extension models with their schemas."""
         extension_models = cls.__pydantic_generic_metadata__.get("args", [])
         extension_models = (
             get_args(extension_models[0])
@@ -207,9 +195,7 @@ class Resource(BaseModel, Generic[AnyExtension], metaclass=ResourceMetaclass):
     def get_by_schema(
         resource_types: list[type[BaseModel]], schema: str, with_extensions=True
     ) -> Optional[type]:
-        """Given a resource type list and a schema, find the matching resource
-        type."""
-
+        """Given a resource type list and a schema, find the matching resource type."""
         by_schema = {
             resource_type.model_fields["schemas"].default[0].lower(): resource_type
             for resource_type in (resource_types or [])
@@ -227,9 +213,7 @@ class Resource(BaseModel, Generic[AnyExtension], metaclass=ResourceMetaclass):
 
     @staticmethod
     def get_by_payload(resource_types: list[type], payload: dict, **kwargs):
-        """Given a resource type list and a payload, find the matching resource
-        type."""
-
+        """Given a resource type list and a payload, find the matching resource type."""
         if not payload or not payload.get("schemas"):
             return None
 
@@ -239,7 +223,6 @@ class Resource(BaseModel, Generic[AnyExtension], metaclass=ResourceMetaclass):
     @field_serializer("schemas")
     def set_extension_schemas(self, schemas: list[str]):
         """Add model extension ids to the 'schemas' attribute."""
-
         extension_schemas = self.get_extension_models().keys()
         schemas = self.schemas + [
             schema for schema in extension_schemas if schema not in self.schemas
@@ -248,16 +231,12 @@ class Resource(BaseModel, Generic[AnyExtension], metaclass=ResourceMetaclass):
 
     @classmethod
     def to_schema(cls):
-        """Build a :class:`~scim2_models.Schema` from the current resource
-        class."""
-
+        """Build a :class:`~scim2_models.Schema` from the current resource class."""
         return model_to_schema(cls)
 
     @classmethod
     def from_schema(cls, schema) -> "Resource":
-        """Build a :class:`scim2_models.Resource` subclass from the schema
-        definition."""
-
+        """Build a :class:`scim2_models.Resource` subclass from the schema definition."""
         from .schema import make_python_model
 
         return make_python_model(schema, cls)

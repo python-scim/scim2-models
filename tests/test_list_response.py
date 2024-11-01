@@ -70,8 +70,10 @@ def test_service_provider_configuration(load_sample):
 
 
 def test_resource_type(load_sample):
-    """https://datatracker.ietf.org/doc/html/rfc7644#section-4"""
+    """Test returning a list of resource types.
 
+    https://datatracker.ietf.org/doc/html/rfc7644#section-4
+    """
     user_resource_type_payload = load_sample("rfc7643-8.6-resource_type-user.json")
     group_resource_type_payload = load_sample("rfc7643-8.6-resource_type-group.json")
     payload = {
@@ -87,9 +89,7 @@ def test_resource_type(load_sample):
 
 
 def test_mixed_types(load_sample):
-    """Check that given the good type, a ListResponse can handle several
-    resource types."""
-
+    """Check that given the good type, a ListResponse can handle several resource types."""
     user_payload = load_sample("rfc7643-8.1-user-minimal.json")
     group_payload = load_sample("rfc7643-8.4-group.json")
     payload = {
@@ -112,7 +112,6 @@ class Foobar(Resource):
 
 def test_mixed_types_type_missing(load_sample):
     """Check that ValidationError are raised when unknown schemas are met."""
-
     user_payload = load_sample("rfc7643-8.1-user-minimal.json")
     group_payload = load_sample("rfc7643-8.4-group.json")
     payload = {
@@ -134,7 +133,6 @@ def test_mixed_types_type_missing(load_sample):
 
 def test_missing_resource_payload(load_sample):
     """Check that validation fails if resources schemas are missing."""
-
     payload = {
         "totalResults": 2,
         "itemsPerPage": 10,
@@ -152,7 +150,6 @@ def test_missing_resource_payload(load_sample):
 
 def test_missing_resource_schema(load_sample):
     """Check that validation fails if resources schemas are missing."""
-
     payload = {
         "totalResults": 2,
         "itemsPerPage": 10,
@@ -169,15 +166,12 @@ def test_missing_resource_schema(load_sample):
 
 
 def test_zero_results():
-    """:rfc:`RFC7644 §3.4.2 <7644#section-3.4.2>` indicates that
-    ListResponse.Resources is required when ListResponse.totalResults is non-
-    zero.
+    """:rfc:`RFC7644 §3.4.2 <7644#section-3.4.2>` indicates that ListResponse.Resources is required when ListResponse.totalResults is non- zero.
 
     This MAY be a subset of the full set of resources if pagination
     (Section 3.4.2.4) is requested. REQUIRED if "totalResults" is non-
     zero.
     """
-
     payload = {
         "totalResults": 1,
         "Resources": [
@@ -204,9 +198,10 @@ def test_zero_results():
 
 
 def test_list_response_schema_ordering():
-    """Test that the "schemas" attribute order does not impact behavior
-    https://datatracker.ietf.org/doc/html/rfc7643#section-3"""
+    """Test that the "schemas" attribute order does not impact behavior.
 
+    https://datatracker.ietf.org/doc/html/rfc7643#section-3
+    """
     payload = {
         "totalResults": 1,
         "Resources": [

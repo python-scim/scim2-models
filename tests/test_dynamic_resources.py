@@ -2782,5 +2782,4 @@ def test_make_schema_model_from_schema(load_sample):
 
 def test_empty_attribute():
     """Attributes must at least have a name to be pythonizable."""
-
     assert Attribute().to_python() is None

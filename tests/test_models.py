@@ -141,7 +141,6 @@ def test_get_resource_by_payload():
 
 def test_everything_is_optional():
     """Test that all attributes are optional on pre-defined models."""
-
     models = [
         User,
         EnterpriseUser,

@@ -82,7 +82,6 @@ def test_uri_ids():
 
     https://datatracker.ietf.org/doc/html/rfc7643#section-7
     """
-
     Schema(id="urn:ietf:params:scim:schemas:extension:enterprise:2.0:User")
     with pytest.raises(ValidationError):
         Schema(id="invalid\nuri")

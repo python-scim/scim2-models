@@ -8,7 +8,10 @@ from .message import Message
 
 
 class SearchRequest(Message):
-    """SearchRequest object defined at https://datatracker.ietf.org/doc/html/rfc7644#section-3.4.3"""
+    """SearchRequest object defined at RFC7644.
+
+    https://datatracker.ietf.org/doc/html/rfc7644#section-3.4.3
+    """
 
     schemas: list[str] = ["urn:ietf:params:scim:api:messages:2.0:SearchRequest"]
 
@@ -42,12 +45,10 @@ class SearchRequest(Message):
     @field_validator("start_index")
     @classmethod
     def start_index_floor(cls, value: int) -> int:
-        """According to :rfc:`RFC7644 §3.4.2 <7644#section-3.4.2.4>,
-        start_index values less than 0 are interpreted as 0.
+        """According to :rfc:`RFC7644 §3.4.2 <7644#section-3.4.2.4>, start_index values less than 0 are interpreted as 0.
 
         A value less than 1 SHALL be interpreted as 1.
         """
-
         return None if value is None else max(0, value)
 
     count: Optional[int] = None
@@ -57,12 +58,10 @@ class SearchRequest(Message):
     @field_validator("count")
     @classmethod
     def count_floor(cls, value: int) -> int:
-        """According to :rfc:`RFC7644 §3.4.2 <7644#section-3.4.2.4>, count
-        values less than 1 are interpreted as 1.
+        """According to :rfc:`RFC7644 §3.4.2 <7644#section-3.4.2.4>, count values less than 1 are interpreted as 1.
 
         A value less than 1 SHALL be interpreted as 1.
         """
-
         return None if value is None else max(1, value)
 
     @model_validator(mode="after")

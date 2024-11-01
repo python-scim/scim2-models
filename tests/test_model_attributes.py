@@ -66,7 +66,6 @@ class Extension(Resource):
 
 def test_validate_attribute_urn():
     """Test the method that validates and normalizes attribute URNs."""
-
     assert validate_attribute_urn("bar", Foo) == "urn:example:2.0:Foo:bar"
     assert (
         validate_attribute_urn("urn:example:2.0:Foo:bar", Foo)
@@ -149,7 +148,6 @@ def test_payload_attribute_case_sensitivity():
 
     Reported by issue #39.
     """
-
     payload = {
         "UserName": "UserName123",
         "Active": True,
@@ -176,7 +174,6 @@ def test_attribute_inclusion_case_sensitivity():
 
     Reported by #45.
     """
-
     user = User.model_validate({"userName": "foobar"})
     assert user.model_dump(
         scim_ctx=Context.RESOURCE_QUERY_RESPONSE, attributes=["userName"]
@@ -282,7 +279,6 @@ def test_attribute_inclusion_schema_extensions():
 
 def test_dump_after_assignment():
     """Test that attribute assignment does not break model dump."""
-
     user = User(id="1", user_name="ABC")
     user.meta = Meta(
         resource_type="User",

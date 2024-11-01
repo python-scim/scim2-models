@@ -38,9 +38,7 @@ ExternalReference = NewType("ExternalReference", str)
 
 
 def validate_model_attribute(model: type["BaseModel"], attribute_base: str) -> None:
-    """Validate that an attribute name or a sub-attribute path exist for a
-    given model."""
-
+    """Validate that an attribute name or a sub-attribute path exist for a given model."""
     from scim2_models.base import BaseModel
 
     attribute_name, *sub_attribute_blocks = attribute_base.split(".")
@@ -85,7 +83,6 @@ def validate_attribute_urn(
     :resource_types: The available resources in which to look for the attribute.
     :return: The normalized attribute URN.
     """
-
     from scim2_models.rfc7643.resource import Resource
 
     if not resource_types:
@@ -133,6 +130,7 @@ class Reference(UserString, Generic[ReferenceTypes]):
         - :data:`~scim2_models.URIReference`
 
     Examples
+    --------
 
     .. code-block:: python
 
@@ -141,6 +139,7 @@ class Reference(UserString, Generic[ReferenceTypes]):
             managers: Reference[Union["User", "Group"]]
             photo: Reference[ExternalReference]
             website: Reference[URIReference]
+
     """
 
     @classmethod
@@ -159,8 +158,7 @@ class Reference(UserString, Generic[ReferenceTypes]):
 
 
 class Context(Enum):
-    """Represent the different HTTP contexts detailed in :rfc:`RFC7644 §3.2
-    <7644#section-3.2>`
+    """Represent the different HTTP contexts detailed in :rfc:`RFC7644 §3.2 <7644#section-3.2>`.
 
     Contexts are intended to be used during model validation and serialization.
     For instance a client preparing a resource creation POST request can use
@@ -298,8 +296,7 @@ class Context(Enum):
 
 
 class Mutability(str, Enum):
-    """A single keyword indicating the circumstances under which the value of
-    the attribute can be (re)defined:"""
+    """A single keyword indicating the circumstances under which the value of the attribute can be (re)defined."""
 
     read_only = "readOnly"
     """The attribute SHALL NOT be modified."""
@@ -326,9 +323,7 @@ class Mutability(str, Enum):
 
 
 class Returned(str, Enum):
-    """A single keyword that indicates when an attribute and associated values
-    are returned in response to a GET request or in response to a PUT, POST, or
-    PATCH request."""
+    """A single keyword that indicates when an attribute and associated values are returned in response to a GET request or in response to a PUT, POST, or PATCH request."""
 
     always = "always"  # cannot be excluded
     """The attribute is always returned, regardless of the contents of the
@@ -353,8 +348,7 @@ class Returned(str, Enum):
 
 
 class Uniqueness(str, Enum):
-    """A single keyword value that specifies how the service provider enforces
-    uniqueness of attribute values."""
+    """A single keyword value that specifies how the service provider enforces uniqueness of attribute values."""
 
     none = "none"
     """The values are not intended to be unique in any way."""
@@ -393,8 +387,7 @@ class Required(Enum):
 
 
 class CaseExact(Enum):
-    """A Boolean value that specifies whether a string attribute is case-
-    sensitive or not."""
+    """A Boolean value that specifies whether a string attribute is case- sensitive or not."""
 
     true = True
     false = False
@@ -421,8 +414,7 @@ class BaseModel(PydanticBaseModel):
 
     @classmethod
     def get_field_annotation(cls, field_name: str, annotation_type: type) -> Any:
-        """Return the annotation of type 'annotation_type' of the field
-        'field_name'."""
+        """Return the annotation of type 'annotation_type' of the field 'field_name'."""
         field_metadata = cls.model_fields[field_name].metadata
 
         default_value = getattr(annotation_type, "_default", None)
@@ -442,7 +434,6 @@ class BaseModel(PydanticBaseModel):
         For example, return 'GroupMember' for
         'Optional[List[GroupMember]]'
         """
-
         attribute_type = cls.model_fields[attribute_name].annotation
 
         # extract 'x' from 'Optional[x]'
@@ -462,10 +453,7 @@ class BaseModel(PydanticBaseModel):
     def check_request_attributes_mutability(
         cls, value: Any, info: ValidationInfo
     ) -> Any:
-        """Check and fix that the field mutability is expected according to the
-        requests validation context, as defined in :rfc:`RFC7643 §7
-        <7653#section-7>`."""
-
+        """Check and fix that the field mutability is expected according to the requests validation context, as defined in :rfc:`RFC7643 §7 <7653#section-7>`."""
         if (
             not info.context
             or not info.context.get("scim")
@@ -534,10 +522,7 @@ class BaseModel(PydanticBaseModel):
     def check_response_attributes_returnability(
         cls, value: Any, handler: ValidatorFunctionWrapHandler, info: ValidationInfo
     ) -> Self:
-        """Check that the fields returnability is expected according to the
-        responses validation context, as defined in :rfc:`RFC7643 §7
-        <7653#section-7>`."""
-
+        """Check that the fields returnability is expected according to the responses validation context, as defined in :rfc:`RFC7643 §7 <7653#section-7>`."""
         value = handler(value)
 
         if (
@@ -578,9 +563,7 @@ class BaseModel(PydanticBaseModel):
     def check_response_attributes_necessity(
         cls, value: Any, handler: ValidatorFunctionWrapHandler, info: ValidationInfo
     ) -> Self:
-        """Check that the required attributes are present in creations and
-        replacement requests."""
-
+        """Check that the required attributes are present in creations and replacement requests."""
         value = handler(value)
 
         if (
@@ -609,12 +592,7 @@ class BaseModel(PydanticBaseModel):
         return value
 
     def mark_with_schema(self):
-        """Navigate through attributes and sub-attributes of type
-        ComplexAttribute, and mark them with a '_schema' attribute.
-
-        '_schema' will later be used by 'get_attribute_urn'.
-        """
-
+        """Navigate through attributes and sub-attributes of type ComplexAttribute, and mark them with a '_schema' attribute. '_schema' will later be used by 'get_attribute_urn'."""
         from scim2_models.rfc7643.resource import Resource
 
         for field_name, field in self.model_fields.items():
@@ -644,9 +622,7 @@ class BaseModel(PydanticBaseModel):
         handler: SerializerFunctionWrapHandler,
         info: SerializationInfo,
     ) -> Any:
-        """Serialize the fields according to mutability indications passed in
-        the serialization context."""
-
+        """Serialize the fields according to mutability indications passed in the serialization context."""
         value = handler(value)
 
         if info.context.get("scim") and Context.is_request(info.context["scim"]):
@@ -658,9 +634,7 @@ class BaseModel(PydanticBaseModel):
         return value
 
     def scim_request_serializer(self, value: Any, info: SerializationInfo) -> Any:
-        """Serialize the fields according to mutability indications passed in
-        the serialization context."""
-
+        """Serialize the fields according to mutability indications passed in the serialization context."""
         mutability = self.get_field_annotation(info.field_name, Mutability)
         context = info.context.get("scim")
 
@@ -689,9 +663,7 @@ class BaseModel(PydanticBaseModel):
         return value
 
     def scim_response_serializer(self, value: Any, info: SerializationInfo) -> Any:
-        """Serialize the fields according to returnability indications passed
-        in the serialization context."""
-
+        """Serialize the fields according to returnability indications passed in the serialization context."""
         returnability = self.get_field_annotation(info.field_name, Returned)
         attribute_urn = self.get_attribute_urn(info.field_name)
         included_urns = info.context.get("scim_attributes", [])
@@ -724,9 +696,7 @@ class BaseModel(PydanticBaseModel):
     def model_serializer_exclude_none(
         self, handler, info: SerializationInfo
     ) -> dict[str, Any]:
-        """Remove `None` values inserted by the
-        :meth:`~scim2_models.base.BaseModel.scim_serializer`."""
-
+        """Remove `None` values inserted by the :meth:`~scim2_models.base.BaseModel.scim_serializer`."""
         self.mark_with_schema()
         result = handler(self)
         return {key: value for key, value in result.items() if value is not None}
@@ -735,9 +705,7 @@ class BaseModel(PydanticBaseModel):
     def model_validate(
         cls, *args, scim_ctx: Optional[Context] = Context.DEFAULT, **kwargs
     ) -> "BaseModel":
-        """Validate SCIM payloads and generate model representation by using
-        Pydantic :code:`BaseModel.model_validate`."""
-
+        """Validate SCIM payloads and generate model representation by using Pydantic :code:`BaseModel.model_validate`."""
         kwargs.setdefault("context", {}).setdefault("scim", scim_ctx)
         return super().model_validate(*args, **kwargs)
 
@@ -749,14 +717,12 @@ class BaseModel(PydanticBaseModel):
         excluded_attributes: Optional[list[str]] = None,
         **kwargs,
     ):
-        """Create a model representation that can be included in SCIM messages
-        by using Pydantic :code:`BaseModel.model_dump`.
+        """Create a model representation that can be included in SCIM messages by using Pydantic :code:`BaseModel.model_dump`.
 
         :param scim_ctx: If a SCIM context is passed, some default values of
             Pydantic :code:`BaseModel.model_dump` are tuned to generate valid SCIM
             messages. Pass :data:`None` to get the default Pydantic behavior.
         """
-
         kwargs.setdefault("context", {}).setdefault("scim", scim_ctx)
         kwargs["context"]["scim_attributes"] = [
             validate_attribute_urn(attribute, self.__class__)
@@ -788,8 +754,7 @@ class BaseModel(PydanticBaseModel):
 
 
 class ComplexAttribute(BaseModel):
-    """A complex attribute as defined in :rfc:`RFC7643 §2.3.8
-    <7643#section-2.3.8>`."""
+    """A complex attribute as defined in :rfc:`RFC7643 §2.3.8 <7643#section-2.3.8>`."""
 
     _schema: Optional[str] = None
 

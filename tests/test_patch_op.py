@@ -8,7 +8,6 @@ from scim2_models.base import Context
 
 def test_validate_patchop_case_insensitivith():
     """Validate that a patch operation's Op declaration is case-insensitive."""
-
     assert PatchOp.model_validate(
         {
             "operations": [

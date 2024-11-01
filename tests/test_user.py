@@ -10,6 +10,7 @@ from scim2_models import User
 
 
 def test_minimal_user(load_sample):
+    """Test creating an object representing the minimal user example of RFC7643."""
     payload = load_sample("rfc7643-8.1-user-minimal.json")
     obj = User.model_validate(payload)
 
@@ -31,6 +32,7 @@ def test_minimal_user(load_sample):
 
 
 def test_full_user(load_sample):
+    """Test creating an object representing the full user example of RFC7643."""
     payload = load_sample("rfc7643-8.2-user-full.json")
     obj = User.model_validate(payload)
 

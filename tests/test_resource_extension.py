@@ -13,8 +13,7 @@ from scim2_models import User
 
 
 def test_extension_getitem():
-    """Test that an extension can be accessed and update with __getitem__"""
-
+    """Test that an extension can be accessed and update with __getitem__."""
     user = User[EnterpriseUser](
         id="2819c223-7f76-453a-919d-413861904646",
         user_name="bjensen@example.com",
@@ -74,8 +73,7 @@ def test_extension_getitem():
 
 
 def test_extension_setitem():
-    """Test that an extension can be set with __setitem__"""
-
+    """Test that an extension can be set with __setitem__."""
     user = User[EnterpriseUser](
         id="2819c223-7f76-453a-919d-413861904646",
         user_name="bjensen@example.com",
@@ -136,7 +134,6 @@ def test_extension_setitem():
 
 def test_extension_no_payload():
     """An extension is defined but there is no matching payload."""
-
     payload = {
         "id": "2819c223-7f76-453a-919d-413861904646",
         "meta": {
@@ -158,7 +155,6 @@ def test_extension_no_payload():
 
 def test_extension_validate_with_context():
     """Test the use of scim_ctx when validating resources with extensions."""
-
     payload = {
         "id": "3b0bc21d-1a10-4678-9e52-2f354c0c7544",
         "meta": {
@@ -185,9 +181,7 @@ def test_extension_validate_with_context():
 
 
 def test_invalid_getitem():
-    """Test that an non Resource subclass __getitem__ attribute raise a
-    KeyError."""
-
+    """Test that an non Resource subclass __getitem__ attribute raise a KeyError."""
     user = User[EnterpriseUser](user_name="foobar")
     with pytest.raises(KeyError):
         user["invalid"]
@@ -197,9 +191,7 @@ def test_invalid_getitem():
 
 
 def test_invalid_setitem():
-    """Test that an non Resource subclass __getitem__ attribute raise a
-    KeyError."""
-
+    """Test that an non Resource subclass __getitem__ attribute raise a KeyError."""
     user = User[EnterpriseUser](user_name="foobar")
     with pytest.raises(KeyError):
         user["invalid"] = "foobar"
@@ -217,7 +209,6 @@ class SuperHero(Extension):
 
 def test_multiple_extensions_union():
     """Test that multiple extensions can be used by using Union."""
-
     user_model = User[Union[EnterpriseUser, SuperHero]]
     instance = user_model()
     instance[SuperHero] = SuperHero(superpower="flight")
@@ -235,7 +226,6 @@ def test_multiple_extensions_union():
 
 def test_extensions_schemas():
     """Verifies that attributes from schema extensions work."""
-
     user = User[EnterpriseUser].model_validate(
         {
             "userName": "foobar",
@@ -259,12 +249,10 @@ def test_extensions_schemas():
 
 
 def test_validate_items_without_extension():
-    """A model with an optional extension should be able to validate a payload
-    without an extension payload.
+    """A model with an optional extension should be able to validate a payload without an extension payload.
 
     https://github.com/yaal-coop/scim2-models/issues/77
     """
-
     payload = {
         "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
         "id": "new-user",
