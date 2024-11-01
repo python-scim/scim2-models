@@ -126,7 +126,8 @@ commands = [
 
 [tool.tox.env.style]
 skip_install = true
-deps = "pre-commit-uv"
+runner = "uv-venv-runner"
+deps = ["pre-commit-uv"]
 commands = [
     ["pre-commit", "run", "--all-files", "--show-diff-on-failure"],
 ]
