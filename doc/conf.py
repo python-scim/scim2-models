@@ -16,6 +16,7 @@ extensions = [
     "sphinx.ext.todo",
     "sphinx.ext.viewcode",
     "sphinxcontrib.autodoc_pydantic",
+    "sphinx_issues",
     "sphinx_togglebutton",
     "myst_parser",
 ]
@@ -86,3 +87,7 @@ autodoc_pydantic_field_doc_policy = "docstring"
 doctest_global_setup = """
 from scim2_models import *
 """
+
+# -- Options for sphinx-issues -------------------------------------
+
+issues_github_path = "python-scim/scim2-models"

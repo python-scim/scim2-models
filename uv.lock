@@ -767,7 +767,7 @@ wheels = [
 
 [[package]]
 name = "scim2-models"
-version = "0.2.2"
+version = "0.2.3"
 source = { editable = "." }
 dependencies = [
     { name = "pydantic", extra = ["email"] },
@@ -784,6 +784,7 @@ doc = [
     { name = "myst-parser" },
     { name = "shibuya" },
     { name = "sphinx" },
+    { name = "sphinx-issues" },
     { name = "sphinx-togglebutton" },
 ]
 
@@ -801,6 +802,7 @@ doc = [
     { name = "myst-parser", specifier = ">=3.0.1" },
     { name = "shibuya", specifier = ">=2024.5.15" },
     { name = "sphinx", specifier = ">=7.3.7" },
+    { name = "sphinx-issues", specifier = ">=5.0.0" },
     { name = "sphinx-togglebutton", specifier = ">=0.3.2" },
 ]
 
@@ -861,6 +863,18 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/5b/be/50e50cb4f2eff47df05673d361095cafd95521d2a22521b920c67a372dcb/sphinx-7.4.7.tar.gz", hash = "sha256:242f92a7ea7e6c5b406fdc2615413890ba9f699114a9c09192d7dfead2ee9cfe", size = 8067911 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/0d/ef/153f6803c5d5f8917dbb7f7fcf6d34a871ede3296fa89c2c703f5f8a6c8e/sphinx-7.4.7-py3-none-any.whl", hash = "sha256:c2419e2135d11f1951cd994d6eb18a1835bd8fdd8429f9ca375dc1f3281bd239", size = 3401624 },
+]
+
+[[package]]
+name = "sphinx-issues"
+version = "5.0.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "sphinx" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/ab/2b/5bc6fac05eba113665f18d4ebe3c1180d1ce3e7b6fd6823835dbec48dd4e/sphinx_issues-5.0.0.tar.gz", hash = "sha256:192e43cf071ed7aead401cd14fd15076ecb0866238c095d672180618740c6bae", size = 14021 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/1d/14/a1b38212db8d327f53f2f56f0ed81c8b80ee2c2160e8819069c0d329d0a9/sphinx_issues-5.0.0-py3-none-any.whl", hash = "sha256:d80704a01c8af3d76586771a67a9e48f2d1a6091a0377458c49908460a6a31ea", size = 8063 },
 ]
 
 [[package]]
