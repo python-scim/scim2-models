@@ -2,6 +2,7 @@ from collections import UserString
 from enum import Enum
 from enum import auto
 from inspect import isclass
+from types import UnionType
 from typing import Annotated
 from typing import Any
 from typing import Generic
@@ -437,7 +438,7 @@ class BaseModel(PydanticBaseModel):
         attribute_type = cls.model_fields[attribute_name].annotation
 
         # extract 'x' from 'Optional[x]'
-        if get_origin(attribute_type) is Union:
+        if get_origin(attribute_type) in (Union, UnionType):
             attribute_type = get_args(attribute_type)[0]
 
         # extract 'x' from 'List[x]'

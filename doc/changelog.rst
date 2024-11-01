@@ -8,6 +8,7 @@ Added
 ^^^^^
 - Python 3.13 support.
 - Proper Base64 serialization. #31
+- :meth:`~BaseModel.get_field_root_type` supports :data:`~typing.UnionType`.
 
 Changed
 ^^^^^^^
