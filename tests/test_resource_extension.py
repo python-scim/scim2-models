@@ -251,7 +251,7 @@ def test_extensions_schemas():
 def test_validate_items_without_extension():
     """A model with an optional extension should be able to validate a payload without an extension payload.
 
-    https://github.com/yaal-coop/scim2-models/issues/77
+    https://github.com/python-scim/scim2-models/issues/77
     """
     payload = {
         "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],

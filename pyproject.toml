@@ -32,9 +32,9 @@ dependencies = [
 
 [project.urls]
 documentation = "https://scim2-models.readthedocs.io"
-repository = "https://github.com/yaal-coop/scim2-models"
+repository = "https://github.com/python-scim/scim2-models"
 changelog = "https://scim2-models.readthedocs.io/en/latest/changelog.html"
-funding = "https://github.com/sponsors/yaal-coop"
+funding = "https://github.com/sponsors/python-scim"
 
 [dependency-groups]
 dev = [

@@ -47,6 +47,6 @@ assert user.meta.created == datetime.datetime(
 ```
 
 scim2-models belongs in a collection of SCIM tools developed by [Yaal Coop](https://yaal.coop),
-with [scim2-client](https://github.com/yaal-coop/scim2-client),
-[scim2-tester](https://github.com/yaal-coop/scim2-tester) and
-[scim2-cli](https://github.com/yaal-coop/scim2-cli)
+with [scim2-client](https://github.com/python-scim/scim2-client),
+[scim2-tester](https://github.com/python-scim/scim2-tester) and
+[scim2-cli](https://github.com/python-scim/scim2-cli)

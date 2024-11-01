@@ -41,7 +41,7 @@ def test_parse_and_serialize_examples(load_sample):
 
         skipped = [
             # resources without schemas are not yet supported
-            # https://github.com/yaal-coop/scim2-models/issues/20
+            # https://github.com/python-scim/scim2-models/issues/20
             "rfc7644-3.4.2-list_response-partial_attributes.json",
             "rfc7644-3.4.3-list_response-post_query.json",
             # BulkOperation.data PatchOperation.value should be of type resource
