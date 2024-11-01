@@ -8,8 +8,8 @@ build:
     python: "3.12"
   jobs:
     post_create_environment:
-      - pip install poetry
-      - poetry export --with doc --output requirements.txt
+      - pip install uv
+      - uv export --group doc --no-hashes --output-file requirements.txt
     post_install:
       - pip install .
       - pip install --requirement requirements.txt
