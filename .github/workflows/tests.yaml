@@ -59,7 +59,7 @@ jobs:
       - name: Checkout downstream pyproject
         uses: actions/checkout@v4
         with:
-          repository: yaal-coop/${{ matrix.downstream }}
+          repository: python-scim/${{ matrix.downstream }}
           path: ${{ matrix.downstream }}
       - name: Install Python ${{ matrix.python }}
         run: |
