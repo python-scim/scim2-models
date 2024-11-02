@@ -40,9 +40,9 @@ funding = "https://github.com/sponsors/python-scim"
 dev = [
     "pytest>=8.2.1",
     "pytest-coverage>=0.0",
+    "pre-commit-uv>=4.1.4",
     "tox-uv>=1.16.0",
 ]
-
 doc = [
     "autodoc-pydantic>=2.2.0",
     "myst-parser>=3.0.1",
@@ -121,6 +121,7 @@ env_list = [
 
 [tool.tox.env_run_base]
 runner = "uv-venv-lock-runner"
+dependency_groups = ["doc"]
 commands = [
     ["pytest", "--showlocals", "--full-trace", "{posargs}"],
 ]
@@ -135,9 +136,6 @@ commands = [
 
 [tool.tox.env.minversions]
 uv_resolution = "lowest-direct"
-commands = [
-    ["pytest", "--showlocals", "--full-trace", "{posargs}"],
-]
 
 [tool.tox.env.doc]
 dependency_groups = ["doc"]
