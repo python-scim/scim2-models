@@ -121,7 +121,7 @@ env_list = [
 
 [tool.tox.env_run_base]
 runner = "uv-venv-lock-runner"
-dependency_groups = ["doc"]
+dependency_groups = ["dev"]
 commands = [
     ["pytest", "--showlocals", "--full-trace", "{posargs}"],
 ]
@@ -129,7 +129,6 @@ commands = [
 [tool.tox.env.style]
 skip_install = true
 runner = "uv-venv-runner"
-deps = ["pre-commit-uv"]
 commands = [
     ["pre-commit", "run", "--all-files", "--show-diff-on-failure"],
 ]
