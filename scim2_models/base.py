@@ -2,7 +2,6 @@ from collections import UserString
 from enum import Enum
 from enum import auto
 from inspect import isclass
-from types import UnionType
 from typing import Annotated
 from typing import Any
 from typing import Generic
@@ -32,6 +31,14 @@ from typing_extensions import Self
 
 from scim2_models.utils import normalize_attribute_name
 from scim2_models.utils import to_camel
+
+try:
+    from types import UnionType
+
+    UNION_TYPES = [Union, UnionType]
+except ImportError:
+    # Python 3.9 has no UnionType
+    UNION_TYPES = [Union]
 
 ReferenceTypes = TypeVar("ReferenceTypes")
 URIReference = NewType("URIReference", str)
@@ -438,7 +445,7 @@ class BaseModel(PydanticBaseModel):
         attribute_type = cls.model_fields[attribute_name].annotation
 
         # extract 'x' from 'Optional[x]'
-        if get_origin(attribute_type) in (Union, UnionType):
+        if get_origin(attribute_type) in UNION_TYPES:
             attribute_type = get_args(attribute_type)[0]
 
         # extract 'x' from 'List[x]'

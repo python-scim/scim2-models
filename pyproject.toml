@@ -65,6 +65,7 @@ exclude_lines = [
     "@pytest.mark.skip",
     "pragma: no cover",
     "raise NotImplementedError",
+    "except ImportError",
 ]
 
 [tool.ruff.lint]
