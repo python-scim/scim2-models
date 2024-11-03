@@ -7,7 +7,6 @@ from typing import Any
 from typing import Generic
 from typing import Optional
 from typing import TypeVar
-from typing import Union
 from typing import get_args
 from typing import get_origin
 
@@ -32,13 +31,7 @@ from typing_extensions import Self
 from scim2_models.utils import normalize_attribute_name
 from scim2_models.utils import to_camel
 
-try:
-    from types import UnionType
-
-    UNION_TYPES = [Union, UnionType]
-except ImportError:
-    # Python 3.9 has no UnionType
-    UNION_TYPES = [Union]
+from .utils import UNION_TYPES
 
 ReferenceTypes = TypeVar("ReferenceTypes")
 URIReference = NewType("URIReference", str)
@@ -455,6 +448,18 @@ class BaseModel(PydanticBaseModel):
             attribute_type = get_args(attribute_type)[0]
 
         return attribute_type
+
+    @classmethod
+    def get_field_multiplicity(cls, attribute_name: str) -> bool:
+        """Indicate whether a field holds multiple values."""
+        attribute_type = cls.model_fields[attribute_name].annotation
+
+        # extract 'x' from 'Optional[x]'
+        if get_origin(attribute_type) in UNION_TYPES:
+            attribute_type = get_args(attribute_type)[0]
+
+        origin = get_origin(attribute_type)
+        return isinstance(origin, type) and issubclass(origin, list)
 
     @field_validator("*")
     @classmethod

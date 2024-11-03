@@ -245,10 +245,6 @@ class Resource(BaseModel, Generic[AnyExtension], metaclass=ResourceMetaclass):
 AnyResource = TypeVar("AnyResource", bound="Resource")
 
 
-def is_multiple(field):
-    return "list" in str(field.annotation).lower()
-
-
 def dedicated_attributes(model):
     """Return attributes that are not members of parent classes."""
 
@@ -332,7 +328,7 @@ def model_attribute_to_attribute(model, attribute_name):
     return Attribute(
         name=field_info.serialization_alias or attribute_name,
         type=attribute_type,
-        multi_valued=is_multiple(field_info),
+        multi_valued=model.get_field_multiplicity(attribute_name),
         description=field_info.description,
         canonical_values=field_info.examples,
         required=model.get_field_annotation(attribute_name, Required),

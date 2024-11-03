@@ -16,7 +16,6 @@ from scim2_models.base import Uniqueness
 from scim2_models.base import URIReference
 from scim2_models.rfc7643.resource import Extension
 from scim2_models.rfc7643.resource import Resource
-from scim2_models.rfc7643.resource import is_multiple
 from scim2_models.rfc7643.schema import Attribute
 from scim2_models.rfc7643.schema import Schema
 
@@ -32,7 +31,7 @@ def test_make_group_model_from_schema(load_sample):
 
     # displayName
     assert Group.get_field_root_type("display_name") is str
-    assert not is_multiple(Group.model_fields["display_name"])
+    assert not Group.get_field_multiplicity("display_name")
     assert (
         Group.model_fields["display_name"].description
         == "A human-readable name for the Group. REQUIRED."
@@ -49,7 +48,7 @@ def test_make_group_model_from_schema(load_sample):
     Members = Group.get_field_root_type("members")
     assert Members == Group.Members
     assert issubclass(Members, ComplexAttribute)
-    assert is_multiple(Group.model_fields["members"])
+    assert Group.get_field_multiplicity("members")
     assert (
         Group.model_fields["members"].description == "A list of members of the Group."
     )
@@ -61,7 +60,7 @@ def test_make_group_model_from_schema(load_sample):
 
     # members.value
     assert Members.get_field_root_type("value") is str
-    assert not is_multiple(Members.model_fields["value"])
+    assert not Members.get_field_multiplicity("value")
     assert (
         Members.model_fields["value"].description
         == "Identifier of the member of this Group."
@@ -77,7 +76,7 @@ def test_make_group_model_from_schema(load_sample):
         Members.get_field_root_type("ref")
         == Reference[Union[Literal["User"], Literal["Group"]]]
     )
-    assert not is_multiple(Members.model_fields["ref"])
+    assert not Members.get_field_multiplicity("ref")
     assert (
         Members.model_fields["ref"].description
         == "The URI corresponding to a SCIM resource that is a member of this Group."
@@ -91,7 +90,7 @@ def test_make_group_model_from_schema(load_sample):
 
     # Members.type
     assert Members.get_field_root_type("type") is str
-    assert not is_multiple(Members.model_fields["type"])
+    assert not Members.get_field_multiplicity("type")
     assert (
         Members.model_fields["type"].description
         == "A label indicating the type of resource, e.g., 'User' or 'Group'."
@@ -105,7 +104,7 @@ def test_make_group_model_from_schema(load_sample):
 
     # Members.display
     assert Members.get_field_root_type("display") is str
-    assert not is_multiple(Members.model_fields["display"])
+    assert not Members.get_field_multiplicity("display")
     assert (
         Members.model_fields["display"].description
         == "A human-readable name for the group member, primarily used for display purposes."
@@ -160,7 +159,7 @@ def test_make_user_model_from_schema(load_sample):
 
     # user_name
     assert User.get_field_root_type("user_name") is str
-    assert not is_multiple(User.model_fields["user_name"])
+    assert not User.get_field_multiplicity("user_name")
     assert (
         User.model_fields["user_name"].description
         == "Unique identifier for the User, typically used by the user to directly authenticate to the service provider. Each User MUST include a non-empty userName value.  This identifier MUST be unique across the service provider's entire set of Users. REQUIRED."
@@ -175,7 +174,7 @@ def test_make_user_model_from_schema(load_sample):
     Name = User.get_field_root_type("name")
     assert Name == User.Name
     assert issubclass(Name, ComplexAttribute)
-    assert not is_multiple(User.model_fields["name"])
+    assert not User.get_field_multiplicity("name")
     assert (
         User.model_fields["name"].description
         == "The components of the user's real name. Providers MAY return just the full name as a single string in the formatted sub-attribute, or they MAY return just the individual component attributes using the other sub-attributes, or they MAY return both.  If both variants are returned, they SHOULD be describing the same name, with the formatted name indicating how the component attributes should be combined."
@@ -188,7 +187,7 @@ def test_make_user_model_from_schema(load_sample):
 
     # name.formatted
     assert Name.get_field_root_type("formatted") is str
-    assert not is_multiple(Name.model_fields["formatted"])
+    assert not Name.get_field_multiplicity("formatted")
     assert (
         Name.model_fields["formatted"].description
         == "The full name, including all middle names, titles, and suffixes as appropriate, formatted for display (e.g., 'Ms. Barbara J Jensen, III')."
@@ -201,7 +200,7 @@ def test_make_user_model_from_schema(load_sample):
 
     # name.family_name
     assert Name.get_field_root_type("family_name") is str
-    assert not is_multiple(Name.model_fields["family_name"])
+    assert not Name.get_field_multiplicity("family_name")
     assert (
         Name.model_fields["family_name"].description
         == "The family name of the User, or last name in most Western languages (e.g., 'Jensen' given the full name 'Ms. Barbara J Jensen, III')."
@@ -214,7 +213,7 @@ def test_make_user_model_from_schema(load_sample):
 
     # name.given_name
     assert Name.get_field_root_type("given_name") is str
-    assert not is_multiple(Name.model_fields["given_name"])
+    assert not Name.get_field_multiplicity("given_name")
     assert (
         Name.model_fields["given_name"].description
         == "The given name of the User, or first name in most Western languages (e.g., 'Barbara' given the full name 'Ms. Barbara J Jensen, III')."
@@ -227,7 +226,7 @@ def test_make_user_model_from_schema(load_sample):
 
     # name.middle_name
     assert Name.get_field_root_type("middle_name") is str
-    assert not is_multiple(Name.model_fields["middle_name"])
+    assert not Name.get_field_multiplicity("middle_name")
     assert (
         Name.model_fields["middle_name"].description
         == "The middle name(s) of the User (e.g., 'Jane' given the full name 'Ms. Barbara J Jensen, III')."
@@ -240,7 +239,7 @@ def test_make_user_model_from_schema(load_sample):
 
     # name.honorific_prefix
     assert Name.get_field_root_type("honorific_prefix") is str
-    assert not is_multiple(Name.model_fields["honorific_prefix"])
+    assert not Name.get_field_multiplicity("honorific_prefix")
     assert (
         Name.model_fields["honorific_prefix"].description
         == "The honorific prefix(es) of the User, or title in most Western languages (e.g., 'Ms.' given the full name 'Ms. Barbara J Jensen, III')."
@@ -256,7 +255,7 @@ def test_make_user_model_from_schema(load_sample):
 
     # name.honorific_suffix
     assert Name.get_field_root_type("honorific_suffix") is str
-    assert not is_multiple(Name.model_fields["honorific_suffix"])
+    assert not Name.get_field_multiplicity("honorific_suffix")
     assert (
         Name.model_fields["honorific_suffix"].description
         == "The honorific suffix(es) of the User, or suffix in most Western languages (e.g., 'III' given the full name 'Ms. Barbara J Jensen, III')."
@@ -272,7 +271,7 @@ def test_make_user_model_from_schema(load_sample):
 
     # display_name
     assert User.get_field_root_type("display_name") is str
-    assert not is_multiple(User.model_fields["display_name"])
+    assert not User.get_field_multiplicity("display_name")
     assert (
         User.model_fields["display_name"].description
         == "The name of the User, suitable for display to end-users.  The name SHOULD be the full name of the User being described, if known."
@@ -287,7 +286,7 @@ def test_make_user_model_from_schema(load_sample):
 
     # nick_name
     assert User.get_field_root_type("nick_name") is str
-    assert not is_multiple(User.model_fields["nick_name"])
+    assert not User.get_field_multiplicity("nick_name")
     assert (
         User.model_fields["nick_name"].description
         == "The casual way to address the user in real life, e.g., 'Bob' or 'Bobby' instead of 'Robert'.  This attribute SHOULD NOT be used to represent a User's username (e.g., 'bjensen' or 'mpepperidge')."
@@ -300,7 +299,7 @@ def test_make_user_model_from_schema(load_sample):
 
     # profile_url
     assert User.get_field_root_type("profile_url") == Reference[ExternalReference]
-    assert not is_multiple(User.model_fields["profile_url"])
+    assert not User.get_field_multiplicity("profile_url")
     assert (
         User.model_fields["profile_url"].description
         == "A fully qualified URL pointing to a page representing the User's online profile."
@@ -313,7 +312,7 @@ def test_make_user_model_from_schema(load_sample):
 
     # title
     assert User.get_field_root_type("title") is str
-    assert not is_multiple(User.model_fields["title"])
+    assert not User.get_field_multiplicity("title")
     assert (
         User.model_fields["title"].description
         == 'The user\'s title, such as "Vice President."'
@@ -326,7 +325,7 @@ def test_make_user_model_from_schema(load_sample):
 
     # user_type
     assert User.get_field_root_type("user_type") is str
-    assert not is_multiple(User.model_fields["user_type"])
+    assert not User.get_field_multiplicity("user_type")
     assert (
         User.model_fields["user_type"].description
         == "Used to identify the relationship between the organization and the user.  Typical values used might be 'Contractor', 'Employee', 'Intern', 'Temp', 'External', and 'Unknown', but any value may be used."
@@ -339,7 +338,7 @@ def test_make_user_model_from_schema(load_sample):
 
     # preferred_language
     assert User.get_field_root_type("preferred_language") is str
-    assert not is_multiple(User.model_fields["preferred_language"])
+    assert not User.get_field_multiplicity("preferred_language")
     assert (
         User.model_fields["preferred_language"].description
         == "Indicates the User's preferred written or spoken language.  Generally used for selecting a localized user interface; e.g., 'en_US' specifies the language English and country US."
@@ -357,7 +356,7 @@ def test_make_user_model_from_schema(load_sample):
 
     # locale
     assert User.get_field_root_type("locale") is str
-    assert not is_multiple(User.model_fields["locale"])
+    assert not User.get_field_multiplicity("locale")
     assert (
         User.model_fields["locale"].description
         == "Used to indicate the User's default location for purposes of localizing items such as currency, date time format, or numerical representations."
@@ -370,7 +369,7 @@ def test_make_user_model_from_schema(load_sample):
 
     # timezone
     assert User.get_field_root_type("timezone") is str
-    assert not is_multiple(User.model_fields["timezone"])
+    assert not User.get_field_multiplicity("timezone")
     assert (
         User.model_fields["timezone"].description
         == "The User's time zone in the 'Olson' time zone database format, e.g., 'America/Los_Angeles'."
@@ -383,7 +382,7 @@ def test_make_user_model_from_schema(load_sample):
 
     # active
     assert User.get_field_root_type("active") is bool
-    assert not is_multiple(User.model_fields["active"])
+    assert not User.get_field_multiplicity("active")
     assert (
         User.model_fields["active"].description
         == "A Boolean value indicating the User's administrative status."
@@ -396,7 +395,7 @@ def test_make_user_model_from_schema(load_sample):
 
     # password
     assert User.get_field_root_type("password") is str
-    assert not is_multiple(User.model_fields["password"])
+    assert not User.get_field_multiplicity("password")
     assert (
         User.model_fields["password"].description
         == "The User's cleartext password.  This attribute is intended to be used as a means to specify an initial password when creating a new User or to reset an existing User'spassword."
@@ -411,7 +410,7 @@ def test_make_user_model_from_schema(load_sample):
     Emails = User.get_field_root_type("emails")
     assert Emails == User.Emails
     assert issubclass(Emails, MultiValuedComplexAttribute)
-    assert is_multiple(User.model_fields["emails"])
+    assert User.get_field_multiplicity("emails")
     assert (
         User.model_fields["emails"].description
         == "Email addresses for the user.  The value SHOULD be canonicalized by the service provider, e.g., 'bjensen@example.com' instead of 'bjensen@EXAMPLE.COM'. Canonical type values of 'work', 'home', and 'other'."
@@ -424,7 +423,7 @@ def test_make_user_model_from_schema(load_sample):
 
     # email.value
     assert Emails.get_field_root_type("value") is str
-    assert not is_multiple(Emails.model_fields["value"])
+    assert not Emails.get_field_multiplicity("value")
     assert (
         Emails.model_fields["value"].description
         == "Email addresses for the user.  The value SHOULD be canonicalized by the service provider, e.g., 'bjensen@example.com' instead of 'bjensen@EXAMPLE.COM'. Canonical type values of 'work', 'home', and 'other'."
@@ -437,7 +436,7 @@ def test_make_user_model_from_schema(load_sample):
 
     # email.display
     assert Emails.get_field_root_type("display") is str
-    assert not is_multiple(Emails.model_fields["display"])
+    assert not Emails.get_field_multiplicity("display")
     assert (
         Emails.model_fields["display"].description
         == "A human-readable name, primarily used for display purposes.  READ-ONLY."
@@ -450,7 +449,7 @@ def test_make_user_model_from_schema(load_sample):
 
     # email.type
     assert Emails.get_field_root_type("type") is str
-    assert not is_multiple(Emails.model_fields["type"])
+    assert not Emails.get_field_multiplicity("type")
     assert (
         Emails.model_fields["type"].description
         == "A label indicating the attribute's function, e.g., 'work' or 'home'."
@@ -464,7 +463,7 @@ def test_make_user_model_from_schema(load_sample):
 
     # email.primary
     assert Emails.get_field_root_type("primary") is bool
-    assert not is_multiple(Emails.model_fields["primary"])
+    assert not Emails.get_field_multiplicity("primary")
     assert (
         Emails.model_fields["primary"].description
         == "A Boolean value indicating the 'primary' or preferred attribute value for this attribute, e.g., the preferred mailing address or primary email address.  The primary attribute value 'True' MUST appear no more than once."
@@ -479,7 +478,7 @@ def test_make_user_model_from_schema(load_sample):
     PhoneNumbers = User.get_field_root_type("phone_numbers")
     assert PhoneNumbers == User.PhoneNumbers
     assert issubclass(PhoneNumbers, MultiValuedComplexAttribute)
-    assert is_multiple(User.model_fields["phone_numbers"])
+    assert User.get_field_multiplicity("phone_numbers")
     assert (
         User.model_fields["phone_numbers"].description
         == "Phone numbers for the User.  The value SHOULD be canonicalized by the service provider according to the format specified in RFC 3966, e.g., 'tel:+1-201-555-0123'. Canonical type values of 'work', 'home', 'mobile', 'fax', 'pager', and 'other'."
@@ -494,7 +493,7 @@ def test_make_user_model_from_schema(load_sample):
 
     # phone_number.value
     assert PhoneNumbers.get_field_root_type("value") is str
-    assert not is_multiple(PhoneNumbers.model_fields["value"])
+    assert not PhoneNumbers.get_field_multiplicity("value")
     assert PhoneNumbers.model_fields["value"].description == "Phone number of the User."
     assert PhoneNumbers.get_field_annotation("value", Required) == Required.false
     assert PhoneNumbers.get_field_annotation("value", CaseExact) == CaseExact.false
@@ -506,7 +505,7 @@ def test_make_user_model_from_schema(load_sample):
 
     # phone_number.display
     assert PhoneNumbers.get_field_root_type("display") is str
-    assert not is_multiple(PhoneNumbers.model_fields["display"])
+    assert not PhoneNumbers.get_field_multiplicity("display")
     assert (
         PhoneNumbers.model_fields["display"].description
         == "A human-readable name, primarily used for display purposes.  READ-ONLY."
@@ -522,7 +521,7 @@ def test_make_user_model_from_schema(load_sample):
 
     # phone_number.type
     assert PhoneNumbers.get_field_root_type("type") is str
-    assert not is_multiple(PhoneNumbers.model_fields["type"])
+    assert not PhoneNumbers.get_field_multiplicity("type")
     assert (
         PhoneNumbers.model_fields["type"].description
         == "A label indicating the attribute's function, e.g., 'work', 'home', 'mobile'."
@@ -545,7 +544,7 @@ def test_make_user_model_from_schema(load_sample):
 
     # phone_number.primary
     assert PhoneNumbers.get_field_root_type("primary") is bool
-    assert not is_multiple(PhoneNumbers.model_fields["primary"])
+    assert not PhoneNumbers.get_field_multiplicity("primary")
     assert (
         PhoneNumbers.model_fields["primary"].description
         == "A Boolean value indicating the 'primary' or preferred attribute value for this attribute, e.g., the preferred phone number or primary phone number.  The primary attribute value 'True' MUST appear no more than once."
@@ -563,7 +562,7 @@ def test_make_user_model_from_schema(load_sample):
     Ims = User.get_field_root_type("ims")
     assert Ims == User.Ims
     assert issubclass(Ims, MultiValuedComplexAttribute)
-    assert is_multiple(User.model_fields["ims"])
+    assert User.get_field_multiplicity("ims")
     assert (
         User.model_fields["ims"].description
         == "Instant messaging addresses for the User."
@@ -576,7 +575,7 @@ def test_make_user_model_from_schema(load_sample):
 
     # im.value
     assert Ims.get_field_root_type("value") is str
-    assert not is_multiple(Ims.model_fields["value"])
+    assert not Ims.get_field_multiplicity("value")
     assert (
         Ims.model_fields["value"].description
         == "Instant messaging address for the User."
@@ -589,7 +588,7 @@ def test_make_user_model_from_schema(load_sample):
 
     # im.display
     assert Ims.get_field_root_type("display") is str
-    assert not is_multiple(Ims.model_fields["display"])
+    assert not Ims.get_field_multiplicity("display")
     assert (
         Ims.model_fields["display"].description
         == "A human-readable name, primarily used for display purposes.  READ-ONLY."
@@ -602,7 +601,7 @@ def test_make_user_model_from_schema(load_sample):
 
     # im.type
     assert Ims.get_field_root_type("type") is str
-    assert not is_multiple(Ims.model_fields["type"])
+    assert not Ims.get_field_multiplicity("type")
     assert (
         Ims.model_fields["type"].description
         == "A label indicating the attribute's function, e.g., 'aim', 'gtalk', 'xmpp'."
@@ -625,7 +624,7 @@ def test_make_user_model_from_schema(load_sample):
 
     # im.primary
     assert Ims.get_field_root_type("primary") is bool
-    assert not is_multiple(Ims.model_fields["primary"])
+    assert not Ims.get_field_multiplicity("primary")
     assert (
         Ims.model_fields["primary"].description
         == "A Boolean value indicating the 'primary' or preferred attribute value for this attribute, e.g., the preferred messenger or primary messenger.  The primary attribute value 'True' MUST appear no more than once."
@@ -640,7 +639,7 @@ def test_make_user_model_from_schema(load_sample):
     Photos = User.get_field_root_type("photos")
     assert Photos == User.Photos
     assert issubclass(Photos, MultiValuedComplexAttribute)
-    assert is_multiple(User.model_fields["photos"])
+    assert User.get_field_multiplicity("photos")
     assert User.model_fields["photos"].description == "URLs of photos of the User."
     assert User.get_field_annotation("photos", Required) == Required.false
     assert User.get_field_annotation("photos", CaseExact) == CaseExact.false
@@ -650,7 +649,7 @@ def test_make_user_model_from_schema(load_sample):
 
     # photo.value
     assert Photos.get_field_root_type("value") == Reference[ExternalReference]
-    assert not is_multiple(Photos.model_fields["value"])
+    assert not Photos.get_field_multiplicity("value")
     assert Photos.model_fields["value"].description == "URL of a photo of the User."
     assert Photos.get_field_annotation("value", Required) == Required.false
     assert Photos.get_field_annotation("value", CaseExact) == CaseExact.true
@@ -660,7 +659,7 @@ def test_make_user_model_from_schema(load_sample):
 
     # photo.display
     assert Photos.get_field_root_type("display") is str
-    assert not is_multiple(Photos.model_fields["display"])
+    assert not Photos.get_field_multiplicity("display")
     assert (
         Photos.model_fields["display"].description
         == "A human-readable name, primarily used for display purposes.  READ-ONLY."
@@ -673,7 +672,7 @@ def test_make_user_model_from_schema(load_sample):
 
     # photo.type
     assert Photos.get_field_root_type("type") is str
-    assert not is_multiple(Photos.model_fields["type"])
+    assert not Photos.get_field_multiplicity("type")
     assert (
         Photos.model_fields["type"].description
         == "A label indicating the attribute's function, i.e., 'photo' or 'thumbnail'."
@@ -687,7 +686,7 @@ def test_make_user_model_from_schema(load_sample):
 
     # photo.primary
     assert Photos.get_field_root_type("primary") is bool
-    assert not is_multiple(Photos.model_fields["primary"])
+    assert not Photos.get_field_multiplicity("primary")
     assert (
         Photos.model_fields["primary"].description
         == "A Boolean value indicating the 'primary' or preferred attribute value for this attribute, e.g., the preferred photo or thumbnail.  The primary attribute value 'True' MUST appear no more than once."
@@ -702,7 +701,7 @@ def test_make_user_model_from_schema(load_sample):
     Addresses = User.get_field_root_type("addresses")
     assert Addresses == User.Addresses
     assert issubclass(Addresses, MultiValuedComplexAttribute)
-    assert is_multiple(User.model_fields["addresses"])
+    assert User.get_field_multiplicity("addresses")
     assert (
         User.model_fields["addresses"].description
         == "A physical mailing address for this User. Canonical type values of 'work', 'home', and 'other'.  This attribute is a complex type with the following sub-attributes."
@@ -715,7 +714,7 @@ def test_make_user_model_from_schema(load_sample):
 
     # address.formatted
     assert Addresses.get_field_root_type("formatted") is str
-    assert not is_multiple(Addresses.model_fields["formatted"])
+    assert not Addresses.get_field_multiplicity("formatted")
     assert (
         Addresses.model_fields["formatted"].description
         == "The full mailing address, formatted for display or use with a mailing label.  This attribute MAY contain newlines."
@@ -730,7 +729,7 @@ def test_make_user_model_from_schema(load_sample):
 
     # address.street_address
     assert Addresses.get_field_root_type("street_address") is str
-    assert not is_multiple(Addresses.model_fields["street_address"])
+    assert not Addresses.get_field_multiplicity("street_address")
     assert (
         Addresses.model_fields["street_address"].description
         == "The full street address component, which may include house number, street name, P.O. box, and multi-line extended street address information.  This attribute MAY contain newlines."
@@ -752,7 +751,7 @@ def test_make_user_model_from_schema(load_sample):
 
     # address.locality
     assert Addresses.get_field_root_type("locality") is str
-    assert not is_multiple(Addresses.model_fields["locality"])
+    assert not Addresses.get_field_multiplicity("locality")
     assert (
         Addresses.model_fields["locality"].description
         == "The city or locality component."
@@ -767,7 +766,7 @@ def test_make_user_model_from_schema(load_sample):
 
     # address.region
     assert Addresses.get_field_root_type("region") is str
-    assert not is_multiple(Addresses.model_fields["region"])
+    assert not Addresses.get_field_multiplicity("region")
     assert (
         Addresses.model_fields["region"].description == "The state or region component."
     )
@@ -779,7 +778,7 @@ def test_make_user_model_from_schema(load_sample):
 
     # address.postal_code
     assert Addresses.get_field_root_type("postal_code") is str
-    assert not is_multiple(Addresses.model_fields["postal_code"])
+    assert not Addresses.get_field_multiplicity("postal_code")
     assert (
         Addresses.model_fields["postal_code"].description
         == "The zip code or postal code component."
@@ -795,7 +794,7 @@ def test_make_user_model_from_schema(load_sample):
 
     # address.country
     assert Addresses.get_field_root_type("country") is str
-    assert not is_multiple(Addresses.model_fields["country"])
+    assert not Addresses.get_field_multiplicity("country")
     assert (
         Addresses.model_fields["country"].description == "The country name component."
     )
@@ -809,7 +808,7 @@ def test_make_user_model_from_schema(load_sample):
 
     # address.type
     assert Addresses.get_field_root_type("type") is str
-    assert not is_multiple(Addresses.model_fields["type"])
+    assert not Addresses.get_field_multiplicity("type")
     assert (
         Addresses.model_fields["type"].description
         == "A label indicating the attribute's function, e.g., 'work' or 'home'."
@@ -823,7 +822,7 @@ def test_make_user_model_from_schema(load_sample):
 
     # address.primary
     assert Addresses.get_field_root_type("primary") is bool
-    assert not is_multiple(Addresses.model_fields["primary"])
+    assert not Addresses.get_field_multiplicity("primary")
     assert (
         Addresses.model_fields["primary"].description
         == "A Boolean value indicating the 'primary' or preferred attribute value for this attribute, e.g., the preferred mailing address or primary email address.  The primary attribute value 'True' MUST appear no more than once."
@@ -840,7 +839,7 @@ def test_make_user_model_from_schema(load_sample):
     Groups = User.get_field_root_type("groups")
     assert Groups == User.Groups
     assert issubclass(Groups, MultiValuedComplexAttribute)
-    assert is_multiple(User.model_fields["groups"])
+    assert User.get_field_multiplicity("groups")
     assert (
         User.model_fields["groups"].description
         == "A list of groups to which the user belongs, either through direct membership, through nested groups, or dynamically calculated."
@@ -853,7 +852,7 @@ def test_make_user_model_from_schema(load_sample):
 
     # group.value
     assert Groups.get_field_root_type("value") is str
-    assert not is_multiple(Groups.model_fields["value"])
+    assert not Groups.get_field_multiplicity("value")
     assert (
         Groups.model_fields["value"].description
         == "The identifier of the User's group."
@@ -869,7 +868,7 @@ def test_make_user_model_from_schema(load_sample):
         Groups.get_field_root_type("ref")
         == Reference[Union[Literal["User"], Literal["Group"]]]
     )
-    assert not is_multiple(Groups.model_fields["ref"])
+    assert not Groups.get_field_multiplicity("ref")
     assert (
         Groups.model_fields["ref"].description
         == "The URI of the corresponding 'Group' resource to which the user belongs."
@@ -882,7 +881,7 @@ def test_make_user_model_from_schema(load_sample):
 
     # group.display
     assert Groups.get_field_root_type("display") is str
-    assert not is_multiple(Groups.model_fields["display"])
+    assert not Groups.get_field_multiplicity("display")
     assert (
         Groups.model_fields["display"].description
         == "A human-readable name, primarily used for display purposes.  READ-ONLY."
@@ -895,7 +894,7 @@ def test_make_user_model_from_schema(load_sample):
 
     # group.type
     assert Groups.get_field_root_type("type") is str
-    assert not is_multiple(Groups.model_fields["type"])
+    assert not Groups.get_field_multiplicity("type")
     assert (
         Groups.model_fields["type"].description
         == "A label indicating the attribute's function, e.g., 'direct' or 'indirect'."
@@ -914,7 +913,7 @@ def test_make_user_model_from_schema(load_sample):
     Entitlements = User.get_field_root_type("entitlements")
     assert Entitlements == User.Entitlements
     assert issubclass(Entitlements, MultiValuedComplexAttribute)
-    assert is_multiple(User.model_fields["entitlements"])
+    assert User.get_field_multiplicity("entitlements")
     assert (
         User.model_fields["entitlements"].description
         == "A list of entitlements for the User that represent a thing the User has."
@@ -929,7 +928,7 @@ def test_make_user_model_from_schema(load_sample):
 
     # entitlement.value
     assert Entitlements.get_field_root_type("value") is str
-    assert not is_multiple(Entitlements.model_fields["value"])
+    assert not Entitlements.get_field_multiplicity("value")
     assert (
         Entitlements.model_fields["value"].description == "The value of an entitlement."
     )
@@ -943,7 +942,7 @@ def test_make_user_model_from_schema(load_sample):
 
     # entitlement.display
     assert Entitlements.get_field_root_type("display") is str
-    assert not is_multiple(Entitlements.model_fields["display"])
+    assert not Entitlements.get_field_multiplicity("display")
     assert (
         Entitlements.model_fields["display"].description
         == "A human-readable name, primarily used for display purposes.  READ-ONLY."
@@ -959,7 +958,7 @@ def test_make_user_model_from_schema(load_sample):
 
     # entitlement.type
     assert Entitlements.get_field_root_type("type") is str
-    assert not is_multiple(Entitlements.model_fields["type"])
+    assert not Entitlements.get_field_multiplicity("type")
     assert (
         Entitlements.model_fields["type"].description
         == "A label indicating the attribute's function."
@@ -974,7 +973,7 @@ def test_make_user_model_from_schema(load_sample):
 
     # entitlement.primary
     assert Entitlements.get_field_root_type("primary") is bool
-    assert not is_multiple(Entitlements.model_fields["primary"])
+    assert not Entitlements.get_field_multiplicity("primary")
     assert (
         Entitlements.model_fields["primary"].description
         == "A Boolean value indicating the 'primary' or preferred attribute value for this attribute.  The primary attribute value 'True' MUST appear no more than once."
@@ -992,7 +991,7 @@ def test_make_user_model_from_schema(load_sample):
     Roles = User.get_field_root_type("roles")
     assert Roles == User.Roles
     assert issubclass(Roles, MultiValuedComplexAttribute)
-    assert is_multiple(User.model_fields["roles"])
+    assert User.get_field_multiplicity("roles")
     assert (
         User.model_fields["roles"].description
         == "A list of roles for the User that collectively represent who the User is, e.g., 'Student', 'Faculty'."
@@ -1005,7 +1004,7 @@ def test_make_user_model_from_schema(load_sample):
 
     # role.value
     assert Roles.get_field_root_type("value") is str
-    assert not is_multiple(Roles.model_fields["value"])
+    assert not Roles.get_field_multiplicity("value")
     assert Roles.model_fields["value"].description == "The value of a role."
     assert Roles.get_field_annotation("value", Required) == Required.false
     assert Roles.get_field_annotation("value", CaseExact) == CaseExact.false
@@ -1015,7 +1014,7 @@ def test_make_user_model_from_schema(load_sample):
 
     # role.display
     assert Roles.get_field_root_type("display") is str
-    assert not is_multiple(Roles.model_fields["display"])
+    assert not Roles.get_field_multiplicity("display")
     assert (
         Roles.model_fields["display"].description
         == "A human-readable name, primarily used for display purposes.  READ-ONLY."
@@ -1028,7 +1027,7 @@ def test_make_user_model_from_schema(load_sample):
 
     # role.type
     assert Roles.get_field_root_type("type") is str
-    assert not is_multiple(Roles.model_fields["type"])
+    assert not Roles.get_field_multiplicity("type")
     assert (
         Roles.model_fields["type"].description
         == "A label indicating the attribute's function."
@@ -1041,7 +1040,7 @@ def test_make_user_model_from_schema(load_sample):
 
     # role.primary
     assert Roles.get_field_root_type("primary") is bool
-    assert not is_multiple(Roles.model_fields["primary"])
+    assert not Roles.get_field_multiplicity("primary")
     assert (
         Roles.model_fields["primary"].description
         == "A Boolean value indicating the 'primary' or preferred attribute value for this attribute.  The primary attribute value 'True' MUST appear no more than once."
@@ -1056,7 +1055,7 @@ def test_make_user_model_from_schema(load_sample):
     X509Certificates = User.get_field_root_type("x_509_certificates")
     assert X509Certificates == User.X509Certificates
     assert issubclass(X509Certificates, MultiValuedComplexAttribute)
-    assert is_multiple(User.model_fields["x_509_certificates"])
+    assert User.get_field_multiplicity("x_509_certificates")
     assert (
         User.model_fields["x_509_certificates"].description
         == "A list of certificates issued to the User."
@@ -1074,7 +1073,7 @@ def test_make_user_model_from_schema(load_sample):
 
     # x_509_certificate.value
     assert X509Certificates.get_field_root_type("value") is Base64Bytes
-    assert not is_multiple(X509Certificates.model_fields["value"])
+    assert not X509Certificates.get_field_multiplicity("value")
     assert (
         X509Certificates.model_fields["value"].description
         == "The value of an X.509 certificate."
@@ -1090,7 +1089,7 @@ def test_make_user_model_from_schema(load_sample):
 
     # x_509_certificate.display
     assert X509Certificates.get_field_root_type("display") is str
-    assert not is_multiple(X509Certificates.model_fields["display"])
+    assert not X509Certificates.get_field_multiplicity("display")
     assert (
         X509Certificates.model_fields["display"].description
         == "A human-readable name, primarily used for display purposes.  READ-ONLY."
@@ -1112,7 +1111,7 @@ def test_make_user_model_from_schema(load_sample):
 
     # x_509_certificate.type
     assert X509Certificates.get_field_root_type("type") is str
-    assert not is_multiple(X509Certificates.model_fields["type"])
+    assert not X509Certificates.get_field_multiplicity("type")
     assert (
         X509Certificates.model_fields["type"].description
         == "A label indicating the attribute's function."
@@ -1128,7 +1127,7 @@ def test_make_user_model_from_schema(load_sample):
 
     # x_509_certificate.primary
     assert X509Certificates.get_field_root_type("primary") is bool
-    assert not is_multiple(X509Certificates.model_fields["primary"])
+    assert not X509Certificates.get_field_multiplicity("primary")
     assert (
         X509Certificates.model_fields["primary"].description
         == "A Boolean value indicating the 'primary' or preferred attribute value for this attribute.  The primary attribute value 'True' MUST appear no more than once."
@@ -1252,7 +1251,7 @@ def test_make_enterprise_user_model_from_schema(load_sample):
 
     # employee_number
     assert EnterpriseUser.get_field_root_type("employee_number") is str
-    assert not is_multiple(EnterpriseUser.model_fields["employee_number"])
+    assert not EnterpriseUser.get_field_multiplicity("employee_number")
     assert (
         EnterpriseUser.model_fields["employee_number"].description
         == "Numeric or alphanumeric identifier assigned to a person, typically based on order of hire or association with an organization."
@@ -1280,7 +1279,7 @@ def test_make_enterprise_user_model_from_schema(load_sample):
 
     # cost_center
     assert EnterpriseUser.get_field_root_type("cost_center") is str
-    assert not is_multiple(EnterpriseUser.model_fields["cost_center"])
+    assert not EnterpriseUser.get_field_multiplicity("cost_center")
     assert (
         EnterpriseUser.model_fields["cost_center"].description
         == "Identifies the name of a cost center."
@@ -1305,7 +1304,7 @@ def test_make_enterprise_user_model_from_schema(load_sample):
 
     # organization
     assert EnterpriseUser.get_field_root_type("organization") is str
-    assert not is_multiple(EnterpriseUser.model_fields["organization"])
+    assert not EnterpriseUser.get_field_multiplicity("organization")
     assert (
         EnterpriseUser.model_fields["organization"].description
         == "Identifies the name of an organization."
@@ -1332,7 +1331,7 @@ def test_make_enterprise_user_model_from_schema(load_sample):
 
     # division
     assert EnterpriseUser.get_field_root_type("division") is str
-    assert not is_multiple(EnterpriseUser.model_fields["division"])
+    assert not EnterpriseUser.get_field_multiplicity("division")
     assert (
         EnterpriseUser.model_fields["division"].description
         == "Identifies the name of a division."
@@ -1350,7 +1349,7 @@ def test_make_enterprise_user_model_from_schema(load_sample):
 
     # department
     assert EnterpriseUser.get_field_root_type("department") is str
-    assert not is_multiple(EnterpriseUser.model_fields["department"])
+    assert not EnterpriseUser.get_field_multiplicity("department")
     assert (
         EnterpriseUser.model_fields["department"].description
         == "Identifies the name of a department."
@@ -1374,7 +1373,7 @@ def test_make_enterprise_user_model_from_schema(load_sample):
     Manager = EnterpriseUser.get_field_root_type("manager")
     assert Manager == EnterpriseUser.Manager
     assert issubclass(Manager, ComplexAttribute)
-    assert not is_multiple(EnterpriseUser.model_fields["manager"])
+    assert not EnterpriseUser.get_field_multiplicity("manager")
     assert (
         EnterpriseUser.model_fields["manager"].description
         == "The User's manager.  A complex type that optionally allows service providers to represent organizational hierarchy by referencing the 'id' attribute of another User."
@@ -1390,7 +1389,7 @@ def test_make_enterprise_user_model_from_schema(load_sample):
 
     # Manager.value
     assert Manager.get_field_root_type("value") is str
-    assert not is_multiple(Manager.model_fields["value"])
+    assert not Manager.get_field_multiplicity("value")
     assert (
         Manager.model_fields["value"].description
         == "The id of the SCIM resource representing the User's manager.  REQUIRED."
@@ -1403,7 +1402,7 @@ def test_make_enterprise_user_model_from_schema(load_sample):
 
     # Manager.ref
     assert Manager.get_field_root_type("ref") == Reference[Literal["User"]]
-    assert not is_multiple(Manager.model_fields["ref"])
+    assert not Manager.get_field_multiplicity("ref")
     assert (
         Manager.model_fields["ref"].description
         == "The URI of the SCIM resource representing the User's manager.  REQUIRED."
@@ -1416,7 +1415,7 @@ def test_make_enterprise_user_model_from_schema(load_sample):
 
     # Manager.display_name
     assert Manager.get_field_root_type("display_name") is str
-    assert not is_multiple(Manager.model_fields["display_name"])
+    assert not Manager.get_field_multiplicity("display_name")
     assert (
         Manager.model_fields["display_name"].description
         == "The displayName of the User's manager. OPTIONAL and READ-ONLY."
@@ -1441,7 +1440,7 @@ def test_make_resource_type_model_from_schema(load_sample):
 
     # id
     assert ResourceType.get_field_root_type("id") is str
-    assert not is_multiple(ResourceType.model_fields["id"])
+    assert not ResourceType.get_field_multiplicity("id")
     assert (
         ResourceType.model_fields["id"].description
         == "The resource type's server unique id. May be the same as the 'name' attribute."
@@ -1454,7 +1453,7 @@ def test_make_resource_type_model_from_schema(load_sample):
 
     # name
     assert ResourceType.get_field_root_type("name") is str
-    assert not is_multiple(ResourceType.model_fields["name"])
+    assert not ResourceType.get_field_multiplicity("name")
     assert (
         ResourceType.model_fields["name"].description
         == "The resource type name.  When applicable, service providers MUST specify the name, e.g., 'User'."
@@ -1467,7 +1466,7 @@ def test_make_resource_type_model_from_schema(load_sample):
 
     # description
     assert ResourceType.get_field_root_type("description") is str
-    assert not is_multiple(ResourceType.model_fields["description"])
+    assert not ResourceType.get_field_multiplicity("description")
     assert (
         ResourceType.model_fields["description"].description
         == "The resource type's human-readable description.  When applicable, service providers MUST specify the description."
@@ -1489,7 +1488,7 @@ def test_make_resource_type_model_from_schema(load_sample):
 
     # endpoint
     assert ResourceType.get_field_root_type("endpoint") == Reference[URIReference]
-    assert not is_multiple(ResourceType.model_fields["endpoint"])
+    assert not ResourceType.get_field_multiplicity("endpoint")
     assert (
         ResourceType.model_fields["endpoint"].description
         == "The resource type's HTTP-addressable endpoint relative to the Base URL, e.g., '/Users'."
@@ -1505,7 +1504,7 @@ def test_make_resource_type_model_from_schema(load_sample):
 
     # schema
     assert ResourceType.get_field_root_type("schema_") == Reference[URIReference]
-    assert not is_multiple(ResourceType.model_fields["schema_"])
+    assert not ResourceType.get_field_multiplicity("schema_")
     assert (
         ResourceType.model_fields["schema_"].description
         == "The resource type's primary/base schema URI."
@@ -1522,7 +1521,7 @@ def test_make_resource_type_model_from_schema(load_sample):
     SchemaExtensions = ResourceType.get_field_root_type("schema_extensions")
     assert SchemaExtensions == ResourceType.SchemaExtensions
     assert issubclass(SchemaExtensions, ComplexAttribute)
-    assert is_multiple(ResourceType.model_fields["schema_extensions"])
+    assert ResourceType.get_field_multiplicity("schema_extensions")
     assert (
         ResourceType.model_fields["schema_extensions"].description
         == "A list of URIs of the resource type's schema extensions."
@@ -1550,7 +1549,7 @@ def test_make_resource_type_model_from_schema(load_sample):
 
     # SchemaExtensions.schema
     assert SchemaExtensions.get_field_root_type("schema_") == Reference[URIReference]
-    assert not is_multiple(SchemaExtensions.model_fields["schema_"])
+    assert not SchemaExtensions.get_field_multiplicity("schema_")
     assert (
         SchemaExtensions.model_fields["schema_"].description
         == "The URI of a schema extension."
@@ -1570,7 +1569,7 @@ def test_make_resource_type_model_from_schema(load_sample):
 
     # SchemaExtensions.required
     assert SchemaExtensions.get_field_root_type("required") is bool
-    assert not is_multiple(SchemaExtensions.model_fields["required"])
+    assert not SchemaExtensions.get_field_multiplicity("required")
     assert (
         SchemaExtensions.model_fields["required"].description
         == "A Boolean value that specifies whether or not the schema extension is required for the resource type.  If True, a resource of this type MUST include this schema extension and also include any attributes declared as required in this schema extension. If False, a resource of this type MAY omit this schema extension."
@@ -1637,7 +1636,7 @@ def test_make_service_provider_config_model_from_schema(load_sample):
         ServiceProviderConfig.get_field_root_type("documentation_uri")
         == Reference[ExternalReference]
     )
-    assert not is_multiple(ServiceProviderConfig.model_fields["documentation_uri"])
+    assert not ServiceProviderConfig.get_field_multiplicity("documentation_uri")
     assert (
         ServiceProviderConfig.model_fields["documentation_uri"].description
         == "An HTTP-addressable URL pointing to the service provider's human-consumable help documentation."
@@ -1667,7 +1666,7 @@ def test_make_service_provider_config_model_from_schema(load_sample):
     Patch = ServiceProviderConfig.get_field_root_type("patch")
     assert Patch == ServiceProviderConfig.Patch
     assert issubclass(Patch, ComplexAttribute)
-    assert not is_multiple(ServiceProviderConfig.model_fields["patch"])
+    assert not ServiceProviderConfig.get_field_multiplicity("patch")
     assert (
         ServiceProviderConfig.model_fields["patch"].description
         == "A complex type that specifies PATCH configuration options."
@@ -1694,7 +1693,7 @@ def test_make_service_provider_config_model_from_schema(load_sample):
 
     # patch.supported
     assert Patch.get_field_root_type("supported") is bool
-    assert not is_multiple(Patch.model_fields["supported"])
+    assert not Patch.get_field_multiplicity("supported")
     assert (
         Patch.model_fields["supported"].description
         == "A Boolean value specifying whether or not the operation is supported."
@@ -1709,7 +1708,7 @@ def test_make_service_provider_config_model_from_schema(load_sample):
     Bulk = ServiceProviderConfig.get_field_root_type("bulk")
     assert Bulk == ServiceProviderConfig.Bulk
     assert issubclass(Bulk, ComplexAttribute)
-    assert not is_multiple(ServiceProviderConfig.model_fields["bulk"])
+    assert not ServiceProviderConfig.get_field_multiplicity("bulk")
     assert (
         ServiceProviderConfig.model_fields["bulk"].description
         == "A complex type that specifies bulk configuration options."
@@ -1732,7 +1731,7 @@ def test_make_service_provider_config_model_from_schema(load_sample):
 
     # bulk.supported
     assert Bulk.get_field_root_type("supported") is bool
-    assert not is_multiple(Bulk.model_fields["supported"])
+    assert not Bulk.get_field_multiplicity("supported")
     assert (
         Bulk.model_fields["supported"].description
         == "A Boolean value specifying whether or not the operation is supported."
@@ -1745,7 +1744,7 @@ def test_make_service_provider_config_model_from_schema(load_sample):
 
     # bulk.max_operations
     assert Bulk.get_field_root_type("max_operations") is int
-    assert not is_multiple(Bulk.model_fields["max_operations"])
+    assert not Bulk.get_field_multiplicity("max_operations")
     assert (
         Bulk.model_fields["max_operations"].description
         == "An integer value specifying the maximum number of operations."
@@ -1760,7 +1759,7 @@ def test_make_service_provider_config_model_from_schema(load_sample):
 
     # bulk.max_payload_size
     assert Bulk.get_field_root_type("max_payload_size") is int
-    assert not is_multiple(Bulk.model_fields["max_payload_size"])
+    assert not Bulk.get_field_multiplicity("max_payload_size")
     assert (
         Bulk.model_fields["max_payload_size"].description
         == "An integer value specifying the maximum payload size in bytes."
@@ -1778,7 +1777,7 @@ def test_make_service_provider_config_model_from_schema(load_sample):
     Filter = ServiceProviderConfig.get_field_root_type("filter")
     assert Filter == ServiceProviderConfig.Filter
     assert issubclass(Filter, ComplexAttribute)
-    assert not is_multiple(ServiceProviderConfig.model_fields["filter"])
+    assert not ServiceProviderConfig.get_field_multiplicity("filter")
     assert (
         ServiceProviderConfig.model_fields["filter"].description
         == "A complex type that specifies FILTER options."
@@ -1805,7 +1804,7 @@ def test_make_service_provider_config_model_from_schema(load_sample):
 
     # filter.supported
     assert Filter.get_field_root_type("supported") is bool
-    assert not is_multiple(Filter.model_fields["supported"])
+    assert not Filter.get_field_multiplicity("supported")
     assert (
         Filter.model_fields["supported"].description
         == "A Boolean value specifying whether or not the operation is supported."
@@ -1818,7 +1817,7 @@ def test_make_service_provider_config_model_from_schema(load_sample):
 
     # filter.max_results
     assert Filter.get_field_root_type("max_results") is int
-    assert not is_multiple(Filter.model_fields["max_results"])
+    assert not Filter.get_field_multiplicity("max_results")
     assert (
         Filter.model_fields["max_results"].description
         == "An integer value specifying the maximum number of resources returned in a response."
@@ -1835,7 +1834,7 @@ def test_make_service_provider_config_model_from_schema(load_sample):
     ChangePassword = ServiceProviderConfig.get_field_root_type("change_password")
     assert ChangePassword == ServiceProviderConfig.ChangePassword
     assert issubclass(ChangePassword, ComplexAttribute)
-    assert not is_multiple(ServiceProviderConfig.model_fields["change_password"])
+    assert not ServiceProviderConfig.get_field_multiplicity("change_password")
     assert (
         ServiceProviderConfig.model_fields["change_password"].description
         == "A complex type that specifies configuration options related to changing a password."
@@ -1863,7 +1862,7 @@ def test_make_service_provider_config_model_from_schema(load_sample):
 
     # change_password.supported
     assert ChangePassword.get_field_root_type("supported") is bool
-    assert not is_multiple(ChangePassword.model_fields["supported"])
+    assert not ChangePassword.get_field_multiplicity("supported")
     assert (
         ChangePassword.model_fields["supported"].description
         == "A Boolean value specifying whether or not the operation is supported."
@@ -1887,7 +1886,7 @@ def test_make_service_provider_config_model_from_schema(load_sample):
     Sort = ServiceProviderConfig.get_field_root_type("sort")
     assert Sort == ServiceProviderConfig.Sort
     assert issubclass(Sort, ComplexAttribute)
-    assert not is_multiple(ServiceProviderConfig.model_fields["sort"])
+    assert not ServiceProviderConfig.get_field_multiplicity("sort")
     assert (
         ServiceProviderConfig.model_fields["sort"].description
         == "A complex type that specifies sort result options."
@@ -1910,7 +1909,7 @@ def test_make_service_provider_config_model_from_schema(load_sample):
 
     # sort.supported
     assert Sort.get_field_root_type("supported") is bool
-    assert not is_multiple(Sort.model_fields["supported"])
+    assert not Sort.get_field_multiplicity("supported")
     assert (
         Sort.model_fields["supported"].description
         == "A Boolean value specifying whether or not the operation is supported."
@@ -1925,7 +1924,7 @@ def test_make_service_provider_config_model_from_schema(load_sample):
     Etag = ServiceProviderConfig.get_field_root_type("etag")
     assert Etag == ServiceProviderConfig.Etag
     assert issubclass(Etag, ComplexAttribute)
-    assert not is_multiple(ServiceProviderConfig.model_fields["etag"])
+    assert not ServiceProviderConfig.get_field_multiplicity("etag")
     assert (
         ServiceProviderConfig.model_fields["etag"].description
         == "A complex type that specifies ETag result options."
@@ -1948,7 +1947,7 @@ def test_make_service_provider_config_model_from_schema(load_sample):
 
     # etag.supported
     assert Etag.get_field_root_type("supported") is bool
-    assert not is_multiple(Etag.model_fields["supported"])
+    assert not Etag.get_field_multiplicity("supported")
     assert (
         Etag.model_fields["supported"].description
         == "A Boolean value specifying whether or not the operation is supported."
@@ -1965,7 +1964,7 @@ def test_make_service_provider_config_model_from_schema(load_sample):
     )
     assert AuthenticationSchemes == ServiceProviderConfig.AuthenticationSchemes
     assert issubclass(AuthenticationSchemes, ComplexAttribute)
-    assert is_multiple(ServiceProviderConfig.model_fields["authentication_schemes"])
+    assert ServiceProviderConfig.get_field_multiplicity("authentication_schemes")
     assert (
         ServiceProviderConfig.model_fields["authentication_schemes"].description
         == "A complex type that specifies supported authentication scheme properties."
@@ -1993,7 +1992,7 @@ def test_make_service_provider_config_model_from_schema(load_sample):
 
     # authentication_schemes.name
     assert AuthenticationSchemes.get_field_root_type("name") is str
-    assert not is_multiple(AuthenticationSchemes.model_fields["name"])
+    assert not AuthenticationSchemes.get_field_multiplicity("name")
     assert (
         AuthenticationSchemes.model_fields["name"].description
         == "The common authentication scheme name, e.g., HTTP Basic."
@@ -2016,7 +2015,7 @@ def test_make_service_provider_config_model_from_schema(load_sample):
 
     # authentication_schemes.description
     assert AuthenticationSchemes.get_field_root_type("description") is str
-    assert not is_multiple(AuthenticationSchemes.model_fields["description"])
+    assert not AuthenticationSchemes.get_field_multiplicity("description")
     assert (
         AuthenticationSchemes.model_fields["description"].description
         == "A description of the authentication scheme."
@@ -2047,7 +2046,7 @@ def test_make_service_provider_config_model_from_schema(load_sample):
         AuthenticationSchemes.get_field_root_type("spec_uri")
         == Reference[ExternalReference]
     )
-    assert not is_multiple(AuthenticationSchemes.model_fields["spec_uri"])
+    assert not AuthenticationSchemes.get_field_multiplicity("spec_uri")
     assert (
         AuthenticationSchemes.model_fields["spec_uri"].description
         == "An HTTP-addressable URL pointing to the authentication scheme's specification."
@@ -2078,7 +2077,7 @@ def test_make_service_provider_config_model_from_schema(load_sample):
         AuthenticationSchemes.get_field_root_type("documentation_uri")
         == Reference[ExternalReference]
     )
-    assert not is_multiple(AuthenticationSchemes.model_fields["documentation_uri"])
+    assert not AuthenticationSchemes.get_field_multiplicity("documentation_uri")
     assert (
         AuthenticationSchemes.model_fields["documentation_uri"].description
         == "An HTTP-addressable URL pointing to the authentication scheme's usage documentation."
@@ -2170,7 +2169,7 @@ def test_make_schema_model_from_schema(load_sample):
 
     # id
     assert Schema_.get_field_root_type("id") is str
-    assert not is_multiple(Schema_.model_fields["id"])
+    assert not Schema_.get_field_multiplicity("id")
     assert (
         Schema_.model_fields["id"].description
         == "The unique URI of the schema. When applicable, service providers MUST specify the URI."
@@ -2183,7 +2182,7 @@ def test_make_schema_model_from_schema(load_sample):
 
     # name
     assert Schema_.get_field_root_type("name") is str
-    assert not is_multiple(Schema_.model_fields["name"])
+    assert not Schema_.get_field_multiplicity("name")
     assert (
         Schema_.model_fields["name"].description
         == "The schema's human-readable name.  When applicable, service providers MUST specify the name, e.g., 'User'."
@@ -2196,7 +2195,7 @@ def test_make_schema_model_from_schema(load_sample):
 
     # description
     assert Schema_.get_field_root_type("description") is str
-    assert not is_multiple(Schema_.model_fields["description"])
+    assert not Schema_.get_field_multiplicity("description")
     assert (
         Schema_.model_fields["description"].description
         == "The schema's human-readable description.  When applicable, service providers MUST specify the description."
@@ -2213,7 +2212,7 @@ def test_make_schema_model_from_schema(load_sample):
     Attributes = Schema_.get_field_root_type("attributes")
     assert Attributes == Schema_.Attributes
     assert issubclass(Attributes, MultiValuedComplexAttribute)
-    assert is_multiple(Schema_.model_fields["attributes"])
+    assert Schema_.get_field_multiplicity("attributes")
     assert (
         Schema_.model_fields["attributes"].description
         == "A complex attribute that includes the attributes of a schema."
@@ -2228,7 +2227,7 @@ def test_make_schema_model_from_schema(load_sample):
 
     # attributes.name
     assert Attributes.get_field_root_type("name") is str
-    assert not is_multiple(Attributes.model_fields["name"])
+    assert not Attributes.get_field_multiplicity("name")
     assert Attributes.model_fields["name"].description == "The attribute's name."
     assert Attributes.get_field_annotation("name", Required) == Required.true
     assert Attributes.get_field_annotation("name", CaseExact) == CaseExact.true
@@ -2238,7 +2237,7 @@ def test_make_schema_model_from_schema(load_sample):
 
     # attributes.type
     assert Attributes.get_field_root_type("type") is str
-    assert not is_multiple(Attributes.model_fields["type"])
+    assert not Attributes.get_field_multiplicity("type")
     assert (
         Attributes.model_fields["type"].description
         == "The attribute's data type. Valid values include 'string', 'complex', 'boolean', 'decimal', 'integer', 'dateTime', 'reference'."
@@ -2261,7 +2260,7 @@ def test_make_schema_model_from_schema(load_sample):
 
     # attributes.multi_valued
     assert Attributes.get_field_root_type("multi_valued") is bool
-    assert not is_multiple(Attributes.model_fields["multi_valued"])
+    assert not Attributes.get_field_multiplicity("multi_valued")
     assert (
         Attributes.model_fields["multi_valued"].description
         == "A Boolean value indicating an  attribute's plurality."
@@ -2279,7 +2278,7 @@ def test_make_schema_model_from_schema(load_sample):
 
     # attributes.description
     assert Attributes.get_field_root_type("description") is str
-    assert not is_multiple(Attributes.model_fields["description"])
+    assert not Attributes.get_field_multiplicity("description")
     assert (
         Attributes.model_fields["description"].description
         == "A human-readable description of the attribute."
@@ -2295,7 +2294,7 @@ def test_make_schema_model_from_schema(load_sample):
 
     # attributes.required
     assert Attributes.get_field_root_type("required") is bool
-    assert not is_multiple(Attributes.model_fields["required"])
+    assert not Attributes.get_field_multiplicity("required")
     assert (
         Attributes.model_fields["required"].description
         == "A boolean value indicating whether or not the attribute is required."
@@ -2310,7 +2309,7 @@ def test_make_schema_model_from_schema(load_sample):
 
     # attributes.canonical_values
     assert Attributes.get_field_root_type("canonical_values") is str
-    assert is_multiple(Attributes.model_fields["canonical_values"])
+    assert Attributes.get_field_multiplicity("canonical_values")
     assert (
         Attributes.model_fields["canonical_values"].description
         == "A collection of canonical values.  When  applicable, service providers MUST specify the canonical types, e.g., 'work', 'home'."
@@ -2336,7 +2335,7 @@ def test_make_schema_model_from_schema(load_sample):
 
     # attributes.case_exact
     assert Attributes.get_field_root_type("case_exact") is bool
-    assert not is_multiple(Attributes.model_fields["case_exact"])
+    assert not Attributes.get_field_multiplicity("case_exact")
     assert (
         Attributes.model_fields["case_exact"].description
         == "A Boolean value indicating whether or not a string attribute is case sensitive."
@@ -2352,7 +2351,7 @@ def test_make_schema_model_from_schema(load_sample):
 
     # attributes.mutability
     assert Attributes.get_field_root_type("mutability") is str
-    assert not is_multiple(Attributes.model_fields["mutability"])
+    assert not Attributes.get_field_multiplicity("mutability")
     assert (
         Attributes.model_fields["mutability"].description
         == "Indicates whether or not an attribute is modifiable."
@@ -2374,7 +2373,7 @@ def test_make_schema_model_from_schema(load_sample):
 
     # attributes.returned
     assert Attributes.get_field_root_type("returned") is str
-    assert not is_multiple(Attributes.model_fields["returned"])
+    assert not Attributes.get_field_multiplicity("returned")
     assert (
         Attributes.model_fields["returned"].description
         == "Indicates when an attribute is returned in a response (e.g., to a query)."
@@ -2395,7 +2394,7 @@ def test_make_schema_model_from_schema(load_sample):
 
     # attributes.uniqueness
     assert Attributes.get_field_root_type("uniqueness") is str
-    assert not is_multiple(Attributes.model_fields["uniqueness"])
+    assert not Attributes.get_field_multiplicity("uniqueness")
     assert (
         Attributes.model_fields["uniqueness"].description
         == "Indicates how unique a value must be."
@@ -2416,7 +2415,7 @@ def test_make_schema_model_from_schema(load_sample):
 
     # attributes.reference_types
     assert Attributes.get_field_root_type("reference_types") is str
-    assert is_multiple(Attributes.model_fields["reference_types"])
+    assert Attributes.get_field_multiplicity("reference_types")
     assert (
         Attributes.model_fields["reference_types"].description
         == "Used only with an attribute of type 'reference'.  Specifies a SCIM resourceType that a reference attribute MAY refer to, e.g., 'User'."
@@ -2443,7 +2442,7 @@ def test_make_schema_model_from_schema(load_sample):
     SubAttributes = Attributes.get_field_root_type("sub_attributes")
     assert SubAttributes == Attributes.SubAttributes
     assert issubclass(SubAttributes, MultiValuedComplexAttribute)
-    assert is_multiple(Attributes.model_fields["sub_attributes"])
+    assert Attributes.get_field_multiplicity("sub_attributes")
     assert (
         Attributes.model_fields["sub_attributes"].description
         == "Used to define the sub-attributes of a complex attribute."
@@ -2465,7 +2464,7 @@ def test_make_schema_model_from_schema(load_sample):
 
     # sub_attributes.name
     assert SubAttributes.get_field_root_type("name") is str
-    assert not is_multiple(SubAttributes.model_fields["name"])
+    assert not SubAttributes.get_field_multiplicity("name")
     assert SubAttributes.model_fields["name"].description == "The attribute's name."
     assert SubAttributes.get_field_annotation("name", Required) == Required.true
     assert SubAttributes.get_field_annotation("name", CaseExact) == CaseExact.true
@@ -2477,7 +2476,7 @@ def test_make_schema_model_from_schema(load_sample):
 
     # sub_attributes.type
     assert SubAttributes.get_field_root_type("type") is str
-    assert not is_multiple(SubAttributes.model_fields["type"])
+    assert not SubAttributes.get_field_multiplicity("type")
     assert (
         SubAttributes.model_fields["type"].description
         == "The attribute's data type. Valid values include 'string', 'complex', 'boolean', 'decimal', 'integer', 'dateTime', 'reference'."
@@ -2502,7 +2501,7 @@ def test_make_schema_model_from_schema(load_sample):
 
     # sub_attributes.multi_valued
     assert SubAttributes.get_field_root_type("multi_valued") is bool
-    assert not is_multiple(SubAttributes.model_fields["multi_valued"])
+    assert not SubAttributes.get_field_multiplicity("multi_valued")
     assert (
         SubAttributes.model_fields["multi_valued"].description
         == "A Boolean value indicating an attribute's plurality."
@@ -2525,7 +2524,7 @@ def test_make_schema_model_from_schema(load_sample):
 
     # sub_attributes.description
     assert SubAttributes.get_field_root_type("description") is str
-    assert not is_multiple(SubAttributes.model_fields["description"])
+    assert not SubAttributes.get_field_multiplicity("description")
     assert (
         SubAttributes.model_fields["description"].description
         == "A human-readable description of the attribute."
@@ -2547,7 +2546,7 @@ def test_make_schema_model_from_schema(load_sample):
 
     # sub_attributes.required
     assert SubAttributes.get_field_root_type("required") is bool
-    assert not is_multiple(SubAttributes.model_fields["required"])
+    assert not SubAttributes.get_field_multiplicity("required")
     assert (
         SubAttributes.model_fields["required"].description
         == "A boolean value indicating whether or not the attribute is required."
@@ -2563,7 +2562,7 @@ def test_make_schema_model_from_schema(load_sample):
 
     # sub_attributes.canonical_values
     assert SubAttributes.get_field_root_type("canonical_values") is str
-    assert is_multiple(SubAttributes.model_fields["canonical_values"])
+    assert SubAttributes.get_field_multiplicity("canonical_values")
     assert (
         SubAttributes.model_fields["canonical_values"].description
         == "A collection of canonical values.  When applicable, service providers MUST specify the canonical types, e.g., 'work', 'home'."
@@ -2591,7 +2590,7 @@ def test_make_schema_model_from_schema(load_sample):
 
     # sub_attributes.case_exact
     assert SubAttributes.get_field_root_type("case_exact") is bool
-    assert not is_multiple(SubAttributes.model_fields["case_exact"])
+    assert not SubAttributes.get_field_multiplicity("case_exact")
     assert (
         SubAttributes.model_fields["case_exact"].description
         == "A Boolean value indicating whether or not a string attribute is case sensitive."
@@ -2613,7 +2612,7 @@ def test_make_schema_model_from_schema(load_sample):
 
     # sub_attributes.mutability
     assert SubAttributes.get_field_root_type("mutability") is str
-    assert not is_multiple(SubAttributes.model_fields["mutability"])
+    assert not SubAttributes.get_field_multiplicity("mutability")
     assert (
         SubAttributes.model_fields["mutability"].description
         == "Indicates whether or not an attribute is modifiable."
@@ -2639,7 +2638,7 @@ def test_make_schema_model_from_schema(load_sample):
 
     # sub_attributes.returned
     assert SubAttributes.get_field_root_type("returned") is str
-    assert not is_multiple(SubAttributes.model_fields["returned"])
+    assert not SubAttributes.get_field_multiplicity("returned")
     assert (
         SubAttributes.model_fields["returned"].description
         == "Indicates when an attribute is returned in a response (e.g., to a query)."
@@ -2661,7 +2660,7 @@ def test_make_schema_model_from_schema(load_sample):
 
     # sub_attributes.uniqueness
     assert SubAttributes.get_field_root_type("uniqueness") is str
-    assert not is_multiple(SubAttributes.model_fields["uniqueness"])
+    assert not SubAttributes.get_field_multiplicity("uniqueness")
     assert (
         SubAttributes.model_fields["uniqueness"].description
         == "Indicates how unique a value must be."
@@ -2686,7 +2685,7 @@ def test_make_schema_model_from_schema(load_sample):
 
     # sub_attributes.reference_types
     assert SubAttributes.get_field_root_type("reference_types") is str
-    assert is_multiple(SubAttributes.model_fields["reference_types"])
+    assert SubAttributes.get_field_multiplicity("reference_types")
     assert (
         SubAttributes.model_fields["reference_types"].description
         == "Used only with an attribute of type 'reference'.  Specifies a SCIM resourceType that a reference attribute MAY refer to, e.g., 'User'."

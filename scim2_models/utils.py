@@ -1,7 +1,16 @@
 import re
 from typing import Optional
+from typing import Union
 
 from pydantic.alias_generators import to_snake
+
+try:
+    from types import UnionType
+
+    UNION_TYPES = [Union, UnionType]
+except ImportError:
+    # Python 3.9 has no UnionType
+    UNION_TYPES = [Union]
 
 
 def int_to_str(status: Optional[int]) -> Optional[str]:
