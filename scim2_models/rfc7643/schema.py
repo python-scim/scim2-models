@@ -3,6 +3,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Annotated
 from typing import Any
+from typing import List  # noqa : UP005
 from typing import Literal
 from typing import Optional
 from typing import Union
@@ -196,7 +197,8 @@ class Attribute(ComplexAttribute):
     """A multi-valued array of JSON strings that indicate the SCIM resource
     types that may be referenced."""
 
-    sub_attributes: Annotated[Optional[list["Attribute"]], Mutability.read_only] = None
+    # for python 3.9 and 3.10 compatibility, this should be 'list' and not 'List'
+    sub_attributes: Annotated[Optional[List["Attribute"]], Mutability.read_only] = None  # noqa: UP006
     """When an attribute is of type "complex", "subAttributes" defines a set of
     sub-attributes."""
 
