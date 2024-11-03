@@ -39,7 +39,7 @@ funding = "https://github.com/sponsors/python-scim"
 [dependency-groups]
 dev = [
     "pytest>=8.2.1",
-    "pytest-coverage>=0.0",
+    "pytest-cov>=6.0.0",
     "pre-commit-uv>=4.1.4",
     "tox-uv>=1.16.0",
 ]
