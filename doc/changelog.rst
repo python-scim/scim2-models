@@ -1,12 +1,12 @@
 Changelog
 =========
 
-[0.2.4] - Unreleased
+[0.2.4] - 2024-11-03
 --------------------
 
 Fixed
 ^^^^^
-- Python 3.9 compatibility.
+- Python 3.9 and 3.10 compatibility.
 
 [0.2.3] - 2024-11-01
 --------------------

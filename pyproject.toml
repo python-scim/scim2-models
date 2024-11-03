@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "scim2-models"
-version = "0.2.3"
+version = "0.2.4"
 description = "SCIM2 models serialization and validation with pydantic"
 authors = [{name="Yaal Coop", email="contact@yaal.coop"}]
 license = {file = "LICENSE"}
