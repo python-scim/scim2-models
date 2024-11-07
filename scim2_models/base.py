@@ -608,7 +608,7 @@ class BaseModel(PydanticBaseModel):
         """Navigate through attributes and sub-attributes of type ComplexAttribute, and mark them with a '_schema' attribute. '_schema' will later be used by 'get_attribute_urn'."""
         from scim2_models.rfc7643.resource import Resource
 
-        for field_name, field in self.model_fields.items():
+        for field_name in self.model_fields:
             attr_type = self.get_field_root_type(field_name)
             if not is_complex_attribute(attr_type):
                 continue

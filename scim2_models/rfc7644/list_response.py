@@ -40,7 +40,7 @@ class ListResponseMetaclass(BaseModelType):
             payload_schemas = (
                 payload.get("schemas", [])
                 if isinstance(payload, dict)
-                else getattr(payload, "schemas")
+                else payload.schemas
             )
 
             resource_types_schemas = [
