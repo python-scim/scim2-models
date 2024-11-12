@@ -17,6 +17,7 @@ from pydantic.alias_generators import to_pascal
 from pydantic.alias_generators import to_snake
 from pydantic_core import Url
 
+from ..base import BaseModel
 from ..base import CaseExact
 from ..base import ComplexAttribute
 from ..base import ExternalReference
@@ -30,6 +31,7 @@ from ..base import URIReference
 from ..base import is_complex_attribute
 from ..constants import RESERVED_WORDS
 from ..utils import normalize_attribute_name
+from .resource import Extension
 from .resource import Resource
 
 
@@ -43,8 +45,10 @@ def make_python_identifier(identifier: str) -> str:
 
 
 def make_python_model(
-    obj: Union["Schema", "Attribute"], base: Optional[type] = None, multiple=False
-) -> "Resource":
+    obj: Union["Schema", "Attribute"],
+    base: Optional[type[BaseModel]] = None,
+    multiple=False,
+) -> "Resource" | "Extension":
     """Build a Python model from a Schema or an Attribute object."""
     if isinstance(obj, Attribute):
         pydantic_attributes = {

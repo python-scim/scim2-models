@@ -55,7 +55,7 @@ def validate_model_attribute(model: type["BaseModel"], attribute_base: str) -> N
     if sub_attribute_base:
         attribute_type = model.get_field_root_type(attribute_name)
 
-        if not issubclass(attribute_type, BaseModel):
+        if not attribute_type or not issubclass(attribute_type, BaseModel):
             raise ValueError(
                 f"Attribute '{attribute_name}' is not a complex attribute, and cannot have a '{sub_attribute_base}' sub-attribute"
             )
@@ -429,7 +429,7 @@ class BaseModel(PydanticBaseModel):
         return field_annotation
 
     @classmethod
-    def get_field_root_type(cls, attribute_name: str) -> type:
+    def get_field_root_type(cls, attribute_name: str) -> type | None:
         """Extract the root type from a model field.
 
         For example, return 'GroupMember' for
@@ -442,9 +442,8 @@ class BaseModel(PydanticBaseModel):
             attribute_type = get_args(attribute_type)[0]
 
         # extract 'x' from 'List[x]'
-        if isclass(get_origin(attribute_type)) and issubclass(
-            get_origin(attribute_type), list
-        ):
+        origin = get_origin(attribute_type)
+        if origin and isclass(origin) and issubclass(origin, list):
             attribute_type = get_args(attribute_type)[0]
 
         return attribute_type
@@ -637,11 +636,12 @@ class BaseModel(PydanticBaseModel):
     ) -> Any:
         """Serialize the fields according to mutability indications passed in the serialization context."""
         value = handler(value)
+        scim_ctx = info.context.get("scim") if info.context else None
 
-        if info.context.get("scim") and Context.is_request(info.context["scim"]):
+        if scim_ctx and Context.is_request(scim_ctx):
             value = self.scim_request_serializer(value, info)
 
-        if info.context.get("scim") and Context.is_response(info.context["scim"]):
+        if scim_ctx and Context.is_response(scim_ctx):
             value = self.scim_response_serializer(value, info)
 
         return value
@@ -649,16 +649,16 @@ class BaseModel(PydanticBaseModel):
     def scim_request_serializer(self, value: Any, info: SerializationInfo) -> Any:
         """Serialize the fields according to mutability indications passed in the serialization context."""
         mutability = self.get_field_annotation(info.field_name, Mutability)
-        context = info.context.get("scim")
+        scim_ctx = info.context.get("scim") if info.context else None
 
         if (
-            context == Context.RESOURCE_CREATION_REQUEST
+            scim_ctx == Context.RESOURCE_CREATION_REQUEST
             and mutability == Mutability.read_only
         ):
             return None
 
         if (
-            context
+            scim_ctx
             in (
                 Context.RESOURCE_QUERY_REQUEST,
                 Context.SEARCH_REQUEST,
@@ -667,7 +667,7 @@ class BaseModel(PydanticBaseModel):
         ):
             return None
 
-        if context == Context.RESOURCE_REPLACEMENT_REQUEST and mutability in (
+        if scim_ctx == Context.RESOURCE_REPLACEMENT_REQUEST and mutability in (
             Mutability.immutable,
             Mutability.read_only,
         ):
@@ -679,8 +679,10 @@ class BaseModel(PydanticBaseModel):
         """Serialize the fields according to returnability indications passed in the serialization context."""
         returnability = self.get_field_annotation(info.field_name, Returned)
         attribute_urn = self.get_attribute_urn(info.field_name)
-        included_urns = info.context.get("scim_attributes", [])
-        excluded_urns = info.context.get("scim_excluded_attributes", [])
+        included_urns = info.context.get("scim_attributes", []) if info.context else []
+        excluded_urns = (
+            info.context.get("scim_excluded_attributes", []) if info.context else []
+        )
 
         attribute_urn = normalize_attribute_name(attribute_urn)
         included_urns = [normalize_attribute_name(urn) for urn in included_urns]
