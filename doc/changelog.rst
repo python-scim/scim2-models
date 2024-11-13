@@ -1,13 +1,19 @@
 Changelog
 =========
 
+[0.2.5] - 2024-11-13
+--------------------
+Fixed
+^^^^^
+
+- :meth:`~scim2_models.BaseModel.model_validate` types.
+
 [0.2.4] - 2024-11-03
 --------------------
 
 Fixed
 ^^^^^
 - Python 3.9 and 3.10 compatibility.
-- :meth:`~scim2_models.BaseModel.model_validate` types.
 
 [0.2.3] - 2024-11-01
 --------------------
