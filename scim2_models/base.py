@@ -429,7 +429,7 @@ class BaseModel(PydanticBaseModel):
         return field_annotation
 
     @classmethod
-    def get_field_root_type(cls, attribute_name: str) -> type | None:
+    def get_field_root_type(cls, attribute_name: str) -> Optional[type]:
         """Extract the root type from a model field.
 
         For example, return 'GroupMember' for

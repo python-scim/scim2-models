@@ -48,7 +48,7 @@ def make_python_model(
     obj: Union["Schema", "Attribute"],
     base: Optional[type[BaseModel]] = None,
     multiple=False,
-) -> "Resource" | "Extension":
+) -> Union[Resource, Extension]:
     """Build a Python model from a Schema or an Attribute object."""
     if isinstance(obj, Attribute):
         pydantic_attributes = {
