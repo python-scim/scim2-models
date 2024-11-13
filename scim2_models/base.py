@@ -719,7 +719,7 @@ class BaseModel(PydanticBaseModel):
     @classmethod
     def model_validate(
         cls, *args, scim_ctx: Optional[Context] = Context.DEFAULT, **kwargs
-    ) -> "BaseModel":
+    ) -> Self:
         """Validate SCIM payloads and generate model representation by using Pydantic :code:`BaseModel.model_validate`."""
         kwargs.setdefault("context", {}).setdefault("scim", scim_ctx)
         return super().model_validate(*args, **kwargs)
@@ -731,7 +731,7 @@ class BaseModel(PydanticBaseModel):
         attributes: Optional[list[str]] = None,
         excluded_attributes: Optional[list[str]] = None,
         **kwargs,
-    ):
+    ) -> dict:
         """Create a model representation that can be included in SCIM messages by using Pydantic :code:`BaseModel.model_dump`.
 
         :param scim_ctx: If a SCIM context is passed, some default values of
