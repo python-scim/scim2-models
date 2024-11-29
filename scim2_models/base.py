@@ -98,6 +98,7 @@ def validate_attribute_urn(
         else None
     )
 
+    schema: Optional[Any]
     schema, attribute_base = extract_schema_and_attribute_base(attribute_name)
     if not schema:
         schema = default_schema

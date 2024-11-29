@@ -5,7 +5,7 @@ from typing import Union
 from pydantic.alias_generators import to_snake
 
 try:
-    from types import UnionType
+    from types import UnionType  # type: ignore
 
     UNION_TYPES = [Union, UnionType]
 except ImportError:
