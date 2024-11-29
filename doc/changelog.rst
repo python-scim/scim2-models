@@ -1,11 +1,18 @@
 Changelog
 =========
 
-[0.2.5] - 2024-11-13
+[0.2.5] - Unreleased
 --------------------
+
 Fixed
 ^^^^^
+- Implement :meth:`~scim2_models.BaseModel.model_dump_json`.
 
+[0.2.5] - 2024-11-13
+--------------------
+
+Fixed
+^^^^^
 - :meth:`~scim2_models.BaseModel.model_validate` types.
 
 [0.2.4] - 2024-11-03

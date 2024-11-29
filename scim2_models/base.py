@@ -724,6 +724,29 @@ class BaseModel(PydanticBaseModel):
         kwargs.setdefault("context", {}).setdefault("scim", scim_ctx)
         return super().model_validate(*args, **kwargs)
 
+    def _prepare_model_dump(
+        self,
+        scim_ctx: Optional[Context] = Context.DEFAULT,
+        attributes: Optional[list[str]] = None,
+        excluded_attributes: Optional[list[str]] = None,
+        **kwargs,
+    ):
+        kwargs.setdefault("context", {}).setdefault("scim", scim_ctx)
+        kwargs["context"]["scim_attributes"] = [
+            validate_attribute_urn(attribute, self.__class__)
+            for attribute in (attributes or [])
+        ]
+        kwargs["context"]["scim_excluded_attributes"] = [
+            validate_attribute_urn(attribute, self.__class__)
+            for attribute in (excluded_attributes or [])
+        ]
+
+        if scim_ctx:
+            kwargs.setdefault("exclude_none", True)
+            kwargs.setdefault("by_alias", True)
+
+        return kwargs
+
     def model_dump(
         self,
         *args,
@@ -738,22 +761,31 @@ class BaseModel(PydanticBaseModel):
             Pydantic :code:`BaseModel.model_dump` are tuned to generate valid SCIM
             messages. Pass :data:`None` to get the default Pydantic behavior.
         """
-        kwargs.setdefault("context", {}).setdefault("scim", scim_ctx)
-        kwargs["context"]["scim_attributes"] = [
-            validate_attribute_urn(attribute, self.__class__)
-            for attribute in (attributes or [])
-        ]
-        kwargs["context"]["scim_excluded_attributes"] = [
-            validate_attribute_urn(attribute, self.__class__)
-            for attribute in (excluded_attributes or [])
-        ]
-
+        dump_kwargs = self._prepare_model_dump(
+            scim_ctx, attributes, excluded_attributes, **kwargs
+        )
         if scim_ctx:
-            kwargs.setdefault("exclude_none", True)
-            kwargs.setdefault("by_alias", True)
-            kwargs.setdefault("mode", "json")
+            dump_kwargs.setdefault("mode", "json")
+        return super().model_dump(*args, **dump_kwargs)
 
-        return super().model_dump(*args, **kwargs)
+    def model_dump_json(
+        self,
+        *args,
+        scim_ctx: Optional[Context] = Context.DEFAULT,
+        attributes: Optional[list[str]] = None,
+        excluded_attributes: Optional[list[str]] = None,
+        **kwargs,
+    ) -> dict:
+        """Create a JSON model representation that can be included in SCIM messages by using Pydantic :code:`BaseModel.model_dump_json`.
+
+        :param scim_ctx: If a SCIM context is passed, some default values of
+            Pydantic :code:`BaseModel.model_dump` are tuned to generate valid SCIM
+            messages. Pass :data:`None` to get the default Pydantic behavior.
+        """
+        dump_kwargs = self._prepare_model_dump(
+            scim_ctx, attributes, excluded_attributes, **kwargs
+        )
+        return super().model_dump_json(*args, **dump_kwargs)
 
     def get_attribute_urn(self, field_name: str) -> str:
         """Build the full URN of the attribute.

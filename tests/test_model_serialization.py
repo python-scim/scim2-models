@@ -65,6 +65,13 @@ def mut_resource():
     )
 
 
+def test_model_dump_json(mut_resource):
+    assert (
+        mut_resource.model_dump_json()
+        == '{"schemas":["org:example:MutResource"],"id":"id","readOnly":"x","readWrite":"x","immutable":"x","writeOnly":"x"}'
+    )
+
+
 def test_dump_default(mut_resource):
     """By default, everything is dumped."""
     assert mut_resource.model_dump() == {
