@@ -7,6 +7,7 @@ Changelog
 Fixed
 ^^^^^
 - Implement :meth:`~scim2_models.BaseModel.model_dump_json`.
+- Temporarily set Pydantic 2.9 as the maximum supported version.
 
 [0.2.5] - 2024-11-13
 --------------------
