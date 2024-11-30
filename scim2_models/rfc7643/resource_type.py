@@ -2,6 +2,7 @@ from typing import Annotated
 from typing import Optional
 
 from pydantic import Field
+from typing_extensions import Self
 
 from ..base import CaseExact
 from ..base import ComplexAttribute
@@ -73,3 +74,23 @@ class ResourceType(Resource):
         Optional[list[SchemaExtension]], Mutability.read_only, Required.true
     ] = None
     """A list of URIs of the resource type's schema extensions."""
+
+    @classmethod
+    def from_resource(cls, resource_model: type[Resource]) -> Self:
+        """Build a naive ResourceType from a resource model."""
+        schema = resource_model.model_fields["schemas"].default[0]
+        name = schema.split(":")[-1]
+        extensions = resource_model.__pydantic_generic_metadata__["args"]
+        return ResourceType(
+            id=name,
+            name=name,
+            description=name,
+            endpoint=f"/{name}s",
+            schema_=schema,
+            schema_extensions=[
+                SchemaExtension(
+                    schema_=extension.model_fields["schemas"].default[0], required=False
+                )
+                for extension in extensions
+            ],
+        )

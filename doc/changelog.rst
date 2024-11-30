@@ -1,6 +1,13 @@
 Changelog
 =========
 
+[0.2.7] - Unreleased
+--------------------
+
+Added
+^^^^^
+- Implement :meth:`ResourceType.from_resource`.
+
 [0.2.6] - 2024-11-29
 --------------------
 

@@ -1,5 +1,7 @@
+from scim2_models import EnterpriseUser
 from scim2_models import Reference
 from scim2_models import ResourceType
+from scim2_models import User
 
 
 def test_user_resource_type(load_sample):
@@ -35,3 +37,27 @@ def test_group_resource_type(load_sample):
     assert obj.meta.resource_type == "ResourceType"
 
     assert obj.model_dump(exclude_unset=True) == payload
+
+
+def test_from_simple_resource():
+    user_rt = ResourceType.from_resource(User)
+    assert user_rt.id == "User"
+    assert user_rt.name == "User"
+    assert user_rt.description == "User"
+    assert user_rt.endpoint == "/Users"
+    assert user_rt.schema_ == "urn:ietf:params:scim:schemas:core:2.0:User"
+    assert not user_rt.schema_extensions
+
+
+def test_from_resource_with_extensions():
+    enterprise_user_rt = ResourceType.from_resource(User[EnterpriseUser])
+    assert enterprise_user_rt.id == "User"
+    assert enterprise_user_rt.name == "User"
+    assert enterprise_user_rt.description == "User"
+    assert enterprise_user_rt.endpoint == "/Users"
+    assert enterprise_user_rt.schema_ == "urn:ietf:params:scim:schemas:core:2.0:User"
+    assert (
+        enterprise_user_rt.schema_extensions[0].schema_
+        == "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"
+    )
+    assert not enterprise_user_rt.schema_extensions[0].required
