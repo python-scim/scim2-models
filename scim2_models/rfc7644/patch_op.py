@@ -1,5 +1,6 @@
 from enum import Enum
 from typing import Any
+from typing import ClassVar
 from typing import Optional
 
 from pydantic import Field
@@ -57,7 +58,7 @@ class PatchOp(Message):
         The models for Patch operations are defined, but their behavior is not implemented nor tested yet.
     """
 
-    schemas: list[str] = ["urn:ietf:params:scim:api:messages:2.0:PatchOp"]
+    scim_schema: ClassVar[str] = "urn:ietf:params:scim:api:messages:2.0:PatchOp"
 
     operations: Optional[list[PatchOperation]] = Field(
         None, serialization_alias="Operations"

@@ -1,3 +1,4 @@
+from typing import ClassVar
 from typing import Union
 
 import pytest
@@ -107,7 +108,7 @@ def test_mixed_types(load_sample):
 
 
 class Foobar(Resource):
-    schemas: list[str] = ["foobarschema"]
+    scim_schema: ClassVar[str] = "foobarschema"
 
 
 def test_mixed_types_type_missing(load_sample):

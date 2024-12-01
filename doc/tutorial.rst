@@ -272,11 +272,12 @@ Custom models
 
 You can write your own model and use it the same way than the other scim2-models models.
 Just inherit from :class:`~scim2_models.Resource` for your main resource, or :class:`~scim2_models.Extension` for extensions.
+Then you need to define a ``scim_schema`` attribute, that is a class variable detailing the schema identifier of your model.
 Use :class:`~scim2_models.ComplexAttribute` as base class for complex attributes:
 
 .. code-block:: python
 
-    >>> from typing import Annotated, Optional, List
+    >>> from typing import Annotated, ClassVar, Optional, List
     >>> from scim2_models import Resource, Returned, Mutability, ComplexAttribute
     >>> from enum import Enum
 
@@ -288,7 +289,7 @@ Use :class:`~scim2_models.ComplexAttribute` as base class for complex attributes
     ...     """The pet color."""
 
     >>> class Pet(Resource):
-    ...     schemas: List[str] = ["example:schemas:Pet"]
+    ...     scim_schema : ClassVar[str] = "example:schemas:Pet"
     ...
     ...     name: Annotated[Optional[str], Mutability.immutable, Returned.always]
     ...     """The name of the pet."""
@@ -309,6 +310,8 @@ that can take type parameters to represent :rfc:`RFC7643 §7 'referenceTypes'<7
 
     >>> from typing import Literal
     >>> class PetOwner(Resource):
+    ...    scim_schema : ClassVar[str] = "examples:schema.PetOwner"
+    ...
     ...    pet: Reference[Literal["Pet"]]
 
 :class:`~scim2_models.Reference` has two special type parameters :data:`~scim2_models.ExternalReference` and :data:`~scim2_models.URIReference` that matches :rfc:`RFC7643 §7 <7643#section-7>` external and URI reference types.
@@ -325,7 +328,7 @@ This is useful for server implementations, so custom models or models provided b
     >>> class MyCustomResource(Resource):
     ...     """My awesome custom schema."""
     ...
-    ...     schemas: List[str] = ["example:schemas:MyCustomResource"]
+    ...     scim_schema: ClassVar[str] = "example:schemas:MyCustomResource"
     ...
     ...     foobar: Optional[str]
     ...

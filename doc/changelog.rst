@@ -1,6 +1,28 @@
 Changelog
 =========
 
+[0.3.0] - Unreleased
+--------------------
+
+.. warning::
+
+   This version comes with breaking changes:
+
+   - :class:`~scim2_models.Resource`, :class:`~scim2_models.Extension` and :class:`~scim2_models.Message` must define a ``scim_schema`` attribute.
+
+     .. code-block:: python
+        :caption: Before
+
+        class MyResource(Resource):
+            schemas : list[str] = ["example:schema:MyResource"]
+
+     .. code-block:: python
+        :caption: After
+
+        class MyResource(Resource):
+            scim_schema: ClassVar[str] = "example:schema:MyResource"
+
+
 [0.2.7] - 2024-11-30
 --------------------
 

@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import ClassVar
 from typing import Optional
 
 from pydantic import field_validator
@@ -13,7 +14,7 @@ class SearchRequest(Message):
     https://datatracker.ietf.org/doc/html/rfc7644#section-3.4.3
     """
 
-    schemas: list[str] = ["urn:ietf:params:scim:api:messages:2.0:SearchRequest"]
+    scim_schema: ClassVar[str] = "urn:ietf:params:scim:api:messages:2.0:SearchRequest"
 
     attributes: Optional[list[str]] = None
     """A multi-valued list of strings indicating the names of resource

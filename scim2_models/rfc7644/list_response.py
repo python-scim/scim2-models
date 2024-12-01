@@ -1,5 +1,6 @@
 from typing import Annotated
 from typing import Any
+from typing import ClassVar
 from typing import Generic
 from typing import Optional
 from typing import Union
@@ -44,8 +45,7 @@ class ListResponseMetaclass(BaseModelType):
             )
 
             resource_types_schemas = [
-                resource_type.model_fields["schemas"].default[0]
-                for resource_type in resource_types
+                resource_type.scim_schema for resource_type in resource_types
             ]
             common_schemas = [
                 schema for schema in payload_schemas if schema in resource_types_schemas
@@ -55,7 +55,7 @@ class ListResponseMetaclass(BaseModelType):
         discriminator = Discriminator(get_schema_from_payload)
 
         def get_tag(resource_type: type[BaseModel]) -> Tag:
-            return Tag(resource_type.model_fields["schemas"].default[0])
+            return Tag(resource_type.scim_schema)
 
         tagged_resources = [
             Annotated[resource_type, get_tag(resource_type)]
@@ -78,7 +78,7 @@ class ListResponseMetaclass(BaseModelType):
 
 
 class ListResponse(Message, Generic[AnyResource], metaclass=ListResponseMetaclass):
-    schemas: list[str] = ["urn:ietf:params:scim:api:messages:2.0:ListResponse"]
+    scim_schema: ClassVar[str] = "urn:ietf:params:scim:api:messages:2.0:ListResponse"
 
     total_results: Optional[int] = None
     """The total number of results returned by the list or query operation."""

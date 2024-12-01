@@ -92,11 +92,7 @@ def validate_attribute_urn(
     if default_resource and default_resource not in resource_types:
         resource_types.append(default_resource)
 
-    default_schema = (
-        default_resource.model_fields["schemas"].default[0]
-        if default_resource
-        else None
-    )
+    default_schema = default_resource.scim_schema if default_resource else None
 
     schema: Optional[Any]
     schema, attribute_base = extract_schema_and_attribute_base(attribute_name)
@@ -613,10 +609,7 @@ class BaseModel(PydanticBaseModel):
             if not is_complex_attribute(attr_type):
                 continue
 
-            main_schema = (
-                getattr(self, "_schema", None)
-                or self.model_fields["schemas"].default[0]
-            )
+            main_schema = getattr(self, "_scim_schema", None) or self.scim_schema
 
             separator = ":" if isinstance(self, Resource) else "."
             schema = f"{main_schema}{separator}{field_name}"
@@ -624,9 +617,9 @@ class BaseModel(PydanticBaseModel):
             if attr_value := getattr(self, field_name):
                 if isinstance(attr_value, list):
                     for item in attr_value:
-                        item._schema = schema
+                        item._scim_schema = schema
                 else:
-                    attr_value._schema = schema
+                    attr_value._scim_schema = schema
 
     @field_serializer("*", mode="wrap")
     def scim_serializer(
@@ -793,7 +786,7 @@ class BaseModel(PydanticBaseModel):
 
         See :rfc:`RFC7644 §3.10 <7644#section-3.10>`.
         """
-        main_schema = self.model_fields["schemas"].default[0]
+        main_schema = self.scim_schema
         alias = self.model_fields[field_name].serialization_alias or field_name
 
         # if alias contains a ':' this is an extension urn
@@ -804,7 +797,7 @@ class BaseModel(PydanticBaseModel):
 class ComplexAttribute(BaseModel):
     """A complex attribute as defined in :rfc:`RFC7643 §2.3.8 <7643#section-2.3.8>`."""
 
-    _schema: Optional[str] = None
+    _scim_schema: Optional[str] = None
 
     def get_attribute_urn(self, field_name: str) -> str:
         """Build the full URN of the attribute.
@@ -812,7 +805,7 @@ class ComplexAttribute(BaseModel):
         See :rfc:`RFC7644 §3.10 <7644#section-3.10>`.
         """
         alias = self.model_fields[field_name].serialization_alias or field_name
-        return f"{self._schema}.{alias}"
+        return f"{self._scim_schema}.{alias}"
 
 
 class MultiValuedComplexAttribute(ComplexAttribute):

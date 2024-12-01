@@ -1,4 +1,5 @@
 from typing import Annotated
+from typing import ClassVar
 from typing import Optional
 
 from pydantic import Field
@@ -35,7 +36,7 @@ class SchemaExtension(ComplexAttribute):
 
 
 class ResourceType(Resource):
-    schemas: list[str] = ["urn:ietf:params:scim:schemas:core:2.0:ResourceType"]
+    scim_schema: ClassVar[str] = "urn:ietf:params:scim:schemas:core:2.0:ResourceType"
 
     name: Annotated[Optional[str], Mutability.read_only, Required.true] = None
     """The resource type name.
@@ -78,7 +79,7 @@ class ResourceType(Resource):
     @classmethod
     def from_resource(cls, resource_model: type[Resource]) -> Self:
         """Build a naive ResourceType from a resource model."""
-        schema = resource_model.model_fields["schemas"].default[0]
+        schema = resource_model.scim_schema
         name = schema.split(":")[-1]
         extensions = resource_model.__pydantic_generic_metadata__["args"]
         return ResourceType(
@@ -88,9 +89,7 @@ class ResourceType(Resource):
             endpoint=f"/{name}s",
             schema_=schema,
             schema_extensions=[
-                SchemaExtension(
-                    schema_=extension.model_fields["schemas"].default[0], required=False
-                )
+                SchemaExtension(schema_=extension.scim_schema, required=False)
                 for extension in extensions
             ],
         )

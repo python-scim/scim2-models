@@ -78,6 +78,13 @@ class Meta(ComplexAttribute):
 
 
 class Extension(BaseModel):
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        if not hasattr(cls, "scim_schema"):
+            raise AttributeError(
+                f"{cls.__name__} did not define a scim_schema attribute"
+            )
+
     @classmethod
     def to_schema(cls):
         """Build a :class:`~scim2_models.Schema` from the current extension class."""
@@ -120,7 +127,7 @@ class ResourceMetaclass(BaseModelType):
                 else [extensions]
             )
             for extension in extensions:
-                schema = extension.model_fields["schemas"].default[0]
+                schema = extension.scim_schema
                 attrs.setdefault("__annotations__", {})[extension.__name__] = Annotated[
                     Optional[extension],
                     WrapSerializer(extension_serializer),
@@ -136,6 +143,18 @@ class ResourceMetaclass(BaseModelType):
 
 
 class Resource(BaseModel, Generic[AnyExtension], metaclass=ResourceMetaclass):
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        if not hasattr(cls, "scim_schema"):
+            raise AttributeError(
+                f"{cls.__name__} did not define a scim_schema attribute"
+            )
+
+        def init_schemas():
+            return [cls.scim_schema]
+
+        cls.model_fields["schemas"].default_factory = init_schemas
+
     schemas: list[str]
     """The "schemas" attribute is a REQUIRED attribute and is an array of
     Strings containing URIs that are used to indicate the namespaces of the
@@ -186,9 +205,7 @@ class Resource(BaseModel, Generic[AnyExtension], metaclass=ResourceMetaclass):
             else extension_models
         )
 
-        by_schema = {
-            ext.model_fields["schemas"].default[0]: ext for ext in extension_models
-        }
+        by_schema = {ext.scim_schema: ext for ext in extension_models}
         return by_schema
 
     @staticmethod
@@ -197,7 +214,7 @@ class Resource(BaseModel, Generic[AnyExtension], metaclass=ResourceMetaclass):
     ) -> Optional[type]:
         """Given a resource type list and a schema, find the matching resource type."""
         by_schema = {
-            resource_type.model_fields["schemas"].default[0].lower(): resource_type
+            resource_type.scim_schema.lower(): resource_type
             for resource_type in (resource_types or [])
         }
         if with_extensions:
@@ -274,7 +291,7 @@ def dedicated_attributes(model):
 def model_to_schema(model: type[BaseModel]):
     from scim2_models.rfc7643.schema import Schema
 
-    schema_urn = model.model_fields["schemas"].default[0]
+    schema_urn = model.scim_schema
     field_infos = dedicated_attributes(model)
     attributes = [
         model_attribute_to_attribute(model, attribute_name)

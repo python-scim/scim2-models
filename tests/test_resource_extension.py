@@ -1,4 +1,5 @@
 import datetime
+from typing import ClassVar
 from typing import Optional
 from typing import Union
 
@@ -201,7 +202,9 @@ def test_invalid_setitem():
 
 
 class SuperHero(Extension):
-    schemas: list[str] = ["urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"]
+    scim_schema: ClassVar[str] = (
+        "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"
+    )
 
     superpower: Optional[str] = None
     """The superhero superpower."""

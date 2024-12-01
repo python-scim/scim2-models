@@ -3,6 +3,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Annotated
 from typing import Any
+from typing import ClassVar
 from typing import List  # noqa : UP005
 from typing import Literal
 from typing import Optional
@@ -64,10 +65,7 @@ def make_python_model(
             for attr in (obj.attributes or [])
             if attr.name
         }
-        pydantic_attributes["schemas"] = (
-            Optional[list[str]],
-            Field(default=[obj.id]),
-        )
+        pydantic_attributes["scim_schema"] = (ClassVar[str], obj.id)
 
     model_name = to_pascal(to_snake(obj.name))
     model = create_model(model_name, __base__=base, **pydantic_attributes)
@@ -240,7 +238,7 @@ class Attribute(ComplexAttribute):
 
 
 class Schema(Resource):
-    schemas: list[str] = ["urn:ietf:params:scim:schemas:core:2.0:Schema"]
+    scim_schema: ClassVar[str] = "urn:ietf:params:scim:schemas:core:2.0:Schema"
 
     id: Annotated[Optional[str], Mutability.read_only, Required.true] = None
     """The unique URI of the schema."""

@@ -1,4 +1,5 @@
 from typing import Annotated
+from typing import ClassVar
 from typing import Optional
 
 import pytest
@@ -12,7 +13,7 @@ from scim2_models.rfc7643.resource import Resource
 
 
 class RetResource(Resource):
-    schemas: list[str] = ["org:example:RetResource"]
+    scim_schema: ClassVar[str] = "org:example:RetResource"
 
     always_returned: Annotated[Optional[str], Returned.always] = None
     never_returned: Annotated[Optional[str], Returned.never] = None
@@ -21,7 +22,7 @@ class RetResource(Resource):
 
 
 class MutResource(Resource):
-    schemas: list[str] = ["org:example:MutResource"]
+    scim_schema: ClassVar[str] = "org:example:MutResource"
 
     read_only: Annotated[Optional[str], Mutability.read_only] = None
     read_write: Annotated[Optional[str], Mutability.read_write] = None
@@ -30,7 +31,7 @@ class MutResource(Resource):
 
 
 class ReqResource(Resource):
-    schemas: list[str] = ["org:example:ReqResource"]
+    scim_schema: ClassVar[str] = "org:example:ReqResource"
 
     required: Annotated[Optional[str], Required.true] = None
     optional: Annotated[Optional[str], Required.false] = None
