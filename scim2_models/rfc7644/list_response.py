@@ -18,6 +18,7 @@ from typing_extensions import Self
 from ..base import BaseModel
 from ..base import BaseModelType
 from ..base import Context
+from ..base import Required
 from ..rfc7643.resource import AnyResource
 from .message import Message
 
@@ -78,7 +79,9 @@ class ListResponseMetaclass(BaseModelType):
 
 
 class ListResponse(Message, Generic[AnyResource], metaclass=ListResponseMetaclass):
-    schemas: list[str] = ["urn:ietf:params:scim:api:messages:2.0:ListResponse"]
+    schemas: Annotated[list[str], Required.true] = [
+        "urn:ietf:params:scim:api:messages:2.0:ListResponse"
+    ]
 
     total_results: Optional[int] = None
     """The total number of results returned by the list or query operation."""

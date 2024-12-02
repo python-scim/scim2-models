@@ -35,7 +35,9 @@ class SchemaExtension(ComplexAttribute):
 
 
 class ResourceType(Resource):
-    schemas: list[str] = ["urn:ietf:params:scim:schemas:core:2.0:ResourceType"]
+    schemas: Annotated[list[str], Required.true] = [
+        "urn:ietf:params:scim:schemas:core:2.0:ResourceType"
+    ]
 
     name: Annotated[Optional[str], Mutability.read_only, Required.true] = None
     """The resource type name.

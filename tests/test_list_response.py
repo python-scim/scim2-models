@@ -1,3 +1,4 @@
+from typing import Annotated
 from typing import Union
 
 import pytest
@@ -7,6 +8,7 @@ from scim2_models import Context
 from scim2_models import EnterpriseUser
 from scim2_models import Group
 from scim2_models import ListResponse
+from scim2_models import Required
 from scim2_models import Resource
 from scim2_models import ResourceType
 from scim2_models import ServiceProviderConfig
@@ -107,7 +109,7 @@ def test_mixed_types(load_sample):
 
 
 class Foobar(Resource):
-    schemas: list[str] = ["foobarschema"]
+    schemas: Annotated[list[str], Required.true] = ["foobarschema"]
 
 
 def test_mixed_types_type_missing(load_sample):

@@ -94,7 +94,9 @@ class AuthenticationScheme(ComplexAttribute):
 
 
 class ServiceProviderConfig(Resource):
-    schemas: list[str] = ["urn:ietf:params:scim:schemas:core:2.0:ServiceProviderConfig"]
+    schemas: Annotated[list[str], Required.true] = [
+        "urn:ietf:params:scim:schemas:core:2.0:ServiceProviderConfig"
+    ]
 
     id: Annotated[
         Optional[str], Mutability.read_only, Returned.default, Uniqueness.global_

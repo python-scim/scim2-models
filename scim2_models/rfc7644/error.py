@@ -3,6 +3,7 @@ from typing import Optional
 
 from pydantic import PlainSerializer
 
+from ..base import Required
 from ..utils import int_to_str
 from .message import Message
 
@@ -10,7 +11,9 @@ from .message import Message
 class Error(Message):
     """Representation of SCIM API errors."""
 
-    schemas: list[str] = ["urn:ietf:params:scim:api:messages:2.0:Error"]
+    schemas: Annotated[list[str], Required.true] = [
+        "urn:ietf:params:scim:api:messages:2.0:Error"
+    ]
 
     status: Annotated[Optional[int], PlainSerializer(int_to_str)] = None
     """The HTTP status code (see Section 6 of [RFC7231]) expressed as a JSON

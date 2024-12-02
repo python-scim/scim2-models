@@ -26,7 +26,9 @@ class Manager(ComplexAttribute):
 
 
 class EnterpriseUser(Extension):
-    schemas: list[str] = ["urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"]
+    schemas: Annotated[list[str], Required.true] = [
+        "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"
+    ]
 
     employee_number: Optional[str] = None
     """Numeric or alphanumeric identifier assigned to a person, typically based

@@ -1,4 +1,5 @@
 import datetime
+from typing import Annotated
 from typing import Optional
 from typing import Union
 
@@ -9,6 +10,7 @@ from scim2_models import EnterpriseUser
 from scim2_models import Extension
 from scim2_models import Manager
 from scim2_models import Meta
+from scim2_models import Required
 from scim2_models import User
 
 
@@ -201,7 +203,7 @@ def test_invalid_setitem():
 
 
 class SuperHero(Extension):
-    schemas: list[str] = ["example:extensions:SuperHero"]
+    schemas: Annotated[list[str], Required.true] = ["example:extensions:SuperHero"]
 
     superpower: Optional[str] = None
     """The superhero superpower."""

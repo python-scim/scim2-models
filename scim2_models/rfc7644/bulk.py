@@ -7,6 +7,7 @@ from pydantic import Field
 from pydantic import PlainSerializer
 
 from ..base import ComplexAttribute
+from ..base import Required
 from ..utils import int_to_str
 from .message import Message
 
@@ -53,7 +54,9 @@ class BulkRequest(Message):
         The models for Bulk operations are defined, but their behavior is not implemented nor tested yet.
     """
 
-    schemas: list[str] = ["urn:ietf:params:scim:api:messages:2.0:BulkRequest"]
+    schemas: Annotated[list[str], Required.true] = [
+        "urn:ietf:params:scim:api:messages:2.0:BulkRequest"
+    ]
 
     fail_on_errors: Optional[int] = None
     """An integer specifying the number of errors that the service provider
@@ -74,7 +77,9 @@ class BulkResponse(Message):
         The models for Bulk operations are defined, but their behavior is not implemented nor tested yet.
     """
 
-    schemas: list[str] = ["urn:ietf:params:scim:api:messages:2.0:BulkResponse"]
+    schemas: Annotated[list[str], Required.true] = [
+        "urn:ietf:params:scim:api:messages:2.0:BulkResponse"
+    ]
 
     operations: Optional[list[BulkOperation]] = Field(
         None, serialization_alias="Operations"

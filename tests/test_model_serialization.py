@@ -6,6 +6,7 @@ import pytest
 from scim2_models.base import ComplexAttribute
 from scim2_models.base import Context
 from scim2_models.base import Mutability
+from scim2_models.base import Required
 from scim2_models.base import Returned
 from scim2_models.rfc7643.resource import Resource
 
@@ -18,7 +19,7 @@ class SubRetModel(ComplexAttribute):
 
 
 class SupRetResource(Resource):
-    schemas: list[str] = ["org:example:SupRetResource"]
+    schemas: Annotated[list[str], Required.true] = ["org:example:SupRetResource"]
 
     always_returned: Annotated[Optional[str], Returned.always] = None
     never_returned: Annotated[Optional[str], Returned.never] = None
@@ -29,7 +30,7 @@ class SupRetResource(Resource):
 
 
 class MutResource(Resource):
-    schemas: list[str] = ["org:example:MutResource"]
+    schemas: Annotated[list[str], Required.true] = ["org:example:MutResource"]
 
     read_only: Annotated[Optional[str], Mutability.read_only] = None
     read_write: Annotated[Optional[str], Mutability.read_write] = None

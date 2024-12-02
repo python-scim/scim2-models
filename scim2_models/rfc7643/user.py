@@ -214,7 +214,9 @@ class X509Certificate(MultiValuedComplexAttribute):
 
 
 class User(Resource):
-    schemas: list[str] = ["urn:ietf:params:scim:schemas:core:2.0:User"]
+    schemas: Annotated[list[str], Required.true] = [
+        "urn:ietf:params:scim:schemas:core:2.0:User"
+    ]
 
     user_name: Annotated[Optional[str], Uniqueness.server, Required.true] = None
     """Unique identifier for the User, typically used by the user to directly

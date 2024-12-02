@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import Annotated
 from typing import Any
 from typing import Optional
 
@@ -6,6 +7,7 @@ from pydantic import Field
 from pydantic import field_validator
 
 from ..base import ComplexAttribute
+from ..base import Required
 from .message import Message
 
 
@@ -57,7 +59,9 @@ class PatchOp(Message):
         The models for Patch operations are defined, but their behavior is not implemented nor tested yet.
     """
 
-    schemas: list[str] = ["urn:ietf:params:scim:api:messages:2.0:PatchOp"]
+    schemas: Annotated[list[str], Required.true] = [
+        "urn:ietf:params:scim:api:messages:2.0:PatchOp"
+    ]
 
     operations: Optional[list[PatchOperation]] = Field(
         None, serialization_alias="Operations"

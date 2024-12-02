@@ -136,7 +136,7 @@ class ResourceMetaclass(BaseModelType):
 
 
 class Resource(BaseModel, Generic[AnyExtension], metaclass=ResourceMetaclass):
-    schemas: list[str]
+    schemas: Annotated[list[str], Required.true]
     """The "schemas" attribute is a REQUIRED attribute and is an array of
     Strings containing URIs that are used to indicate the namespaces of the
     SCIM schemas that define the attributes present in the current JSON
@@ -229,7 +229,7 @@ class Resource(BaseModel, Generic[AnyExtension], metaclass=ResourceMetaclass):
         return Resource.get_by_schema(resource_types, schema, **kwargs)
 
     @field_serializer("schemas")
-    def set_extension_schemas(self, schemas: list[str]):
+    def set_extension_schemas(self, schemas: Annotated[list[str], Required.true]):
         """Add model extension ids to the 'schemas' attribute."""
         extension_schemas = self.get_extension_models().keys()
         schemas = self.schemas + [

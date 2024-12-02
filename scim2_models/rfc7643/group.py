@@ -8,6 +8,7 @@ from pydantic import Field
 from ..base import MultiValuedComplexAttribute
 from ..base import Mutability
 from ..base import Reference
+from ..base import Required
 from .resource import Resource
 
 
@@ -31,7 +32,9 @@ class GroupMember(MultiValuedComplexAttribute):
 
 
 class Group(Resource):
-    schemas: list[str] = ["urn:ietf:params:scim:schemas:core:2.0:Group"]
+    schemas: Annotated[list[str], Required.true] = [
+        "urn:ietf:params:scim:schemas:core:2.0:Group"
+    ]
 
     display_name: Optional[str] = None
     """A human-readable name for the Group."""

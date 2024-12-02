@@ -65,7 +65,7 @@ def make_python_model(
             if attr.name
         }
         pydantic_attributes["schemas"] = (
-            Optional[list[str]],
+            Annotated[list[str], Required.true],
             Field(default=[obj.id]),
         )
 
@@ -240,7 +240,9 @@ class Attribute(ComplexAttribute):
 
 
 class Schema(Resource):
-    schemas: list[str] = ["urn:ietf:params:scim:schemas:core:2.0:Schema"]
+    schemas: Annotated[list[str], Required.true] = [
+        "urn:ietf:params:scim:schemas:core:2.0:Schema"
+    ]
 
     id: Annotated[Optional[str], Mutability.read_only, Required.true] = None
     """The unique URI of the schema."""
