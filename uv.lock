@@ -871,7 +871,7 @@ doc = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "pydantic", extras = ["email"], specifier = ">=2.7.0,<2.10" }]
+requires-dist = [{ name = "pydantic", extras = ["email"], specifier = ">=2.7.0" }]
 
 [package.metadata.requires-dev]
 dev = [
