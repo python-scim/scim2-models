@@ -4,7 +4,6 @@ from typing import Literal
 from typing import Optional
 from typing import Union
 
-from pydantic import Base64Bytes
 from pydantic import EmailStr
 from pydantic import Field
 
@@ -17,6 +16,7 @@ from ..base import Reference
 from ..base import Required
 from ..base import Returned
 from ..base import Uniqueness
+from ..utils import Base64Bytes
 from .resource import Resource
 
 

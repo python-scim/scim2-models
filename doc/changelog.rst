@@ -1,6 +1,17 @@
 Changelog
 =========
 
+[0.2.10] - 2024-12-02
+---------------------
+
+Changed
+^^^^^^^
+- The ``schema`` attribute is annotated with :attr:`~scim2_models.Required.true`.
+
+Fixed
+^^^^^
+- ``Base64Bytes`` compatibility between pydantic 2.10+ and <2.10
+
 [0.2.9] - 2024-12-02
 --------------------
 

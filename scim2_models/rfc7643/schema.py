@@ -9,7 +9,6 @@ from typing import Optional
 from typing import Union
 from typing import get_origin
 
-from pydantic import Base64Bytes
 from pydantic import Field
 from pydantic import create_model
 from pydantic import field_validator
@@ -30,6 +29,7 @@ from ..base import Uniqueness
 from ..base import URIReference
 from ..base import is_complex_attribute
 from ..constants import RESERVED_WORDS
+from ..utils import Base64Bytes
 from ..utils import normalize_attribute_name
 from .resource import Extension
 from .resource import Resource

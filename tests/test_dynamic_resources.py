@@ -2,8 +2,6 @@ import datetime
 from typing import Literal
 from typing import Union
 
-from pydantic import Base64Bytes
-
 from scim2_models.base import CaseExact
 from scim2_models.base import ComplexAttribute
 from scim2_models.base import ExternalReference
@@ -18,6 +16,7 @@ from scim2_models.rfc7643.resource import Extension
 from scim2_models.rfc7643.resource import Resource
 from scim2_models.rfc7643.schema import Attribute
 from scim2_models.rfc7643.schema import Schema
+from scim2_models.utils import Base64Bytes
 
 
 def test_make_group_model_from_schema(load_sample):
