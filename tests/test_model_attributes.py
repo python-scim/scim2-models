@@ -301,7 +301,7 @@ def test_dump_after_assignment():
 
 def test_binary_attributes():
     decoded = b"This is a very long line with a lot of characters, enough to create newlines when encoded."
-    encoded = "VGhpcyBpcyBhIHZlcnkgbG9uZyBsaW5lIHdpdGggYSBsb3Qgb2YgY2hhcmFjdGVycywgZW5vdWdo\nIHRvIGNyZWF0ZSBuZXdsaW5lcyB3aGVuIGVuY29kZWQu\n"
+    encoded = "VGhpcyBpcyBhIHZlcnkgbG9uZyBsaW5lIHdpdGggYSBsb3Qgb2YgY2hhcmFjdGVycywgZW5vdWdoIHRvIGNyZWF0ZSBuZXdsaW5lcyB3aGVuIGVuY29kZWQu"
 
     user = User.model_validate(
         {"userName": "foobar", "x509Certificates": [{"value": encoded}]}
@@ -319,7 +319,7 @@ def test_binary_attributes():
     assert user.x509_certificates[0].value == decoded
     assert user.model_dump()["x509Certificates"][0]["value"] == encoded
 
-    encoded_with_padding = "VGhpcyBpcyBhIHZlcnkgbG9uZyBsaW5lIHdpdGggYSBsb3Qgb2YgY2hhcmFjdGVycywgZW5vdWdo\nIHRvIGNyZWF0ZSBuZXdsaW5lcyB3aGVuIGVuY29kZWQu==================\n"
+    encoded_with_padding = "VGhpcyBpcyBhIHZlcnkgbG9uZyBsaW5lIHdpdGggYSBsb3Qgb2YgY2hhcmFjdGVycywgZW5vdWdoIHRvIGNyZWF0ZSBuZXdsaW5lcyB3aGVuIGVuY29kZWQu=================="
     user = User.model_validate(
         {"userName": "foobar", "x509Certificates": [{"value": encoded_with_padding}]}
     )
