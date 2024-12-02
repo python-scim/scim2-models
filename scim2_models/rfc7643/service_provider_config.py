@@ -1,6 +1,5 @@
 from enum import Enum
 from typing import Annotated
-from typing import ClassVar
 from typing import Optional
 
 from pydantic import Field
@@ -95,9 +94,7 @@ class AuthenticationScheme(ComplexAttribute):
 
 
 class ServiceProviderConfig(Resource):
-    scim_schema: ClassVar[str] = (
-        "urn:ietf:params:scim:schemas:core:2.0:ServiceProviderConfig"
-    )
+    schemas: list[str] = ["urn:ietf:params:scim:schemas:core:2.0:ServiceProviderConfig"]
 
     id: Annotated[
         Optional[str], Mutability.read_only, Returned.default, Uniqueness.global_

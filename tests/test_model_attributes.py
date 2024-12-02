@@ -1,6 +1,5 @@
 import uuid
 from typing import Annotated
-from typing import ClassVar
 from typing import Optional
 
 import pytest
@@ -21,7 +20,7 @@ class Sub(ComplexAttribute):
 
 
 class Sup(Resource):
-    scim_schema: ClassVar[str] = "urn:example:2.0:Sup"
+    schemas: list[str] = ["urn:example:2.0:Sup"]
     dummy: str
     sub: Sub
     subs: list[Sub]
@@ -45,7 +44,7 @@ class Baz(ComplexAttribute):
 
 
 class Foo(Resource):
-    scim_schema: ClassVar[str] = "urn:example:2.0:Foo"
+    schemas: list[str] = ["urn:example:2.0:Foo"]
     sub: Annotated[ReturnedModel, Returned.default]
     bar: str
     snake_case: str
@@ -53,7 +52,7 @@ class Foo(Resource):
 
 
 class Bar(Resource):
-    scim_schema: ClassVar[str] = "urn:example:2.0:Bar"
+    schemas: list[str] = ["urn:example:2.0:Bar"]
     sub: Annotated[ReturnedModel, Returned.default]
     bar: str
     snake_case: str
@@ -61,7 +60,7 @@ class Bar(Resource):
 
 
 class Extension(Resource):
-    scim_schema: ClassVar[str] = "urn:example:2.0:Extension"
+    schemas: list[str] = ["urn:example:2.0:Extension"]
     baz: str
 
 

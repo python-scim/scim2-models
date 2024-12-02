@@ -25,7 +25,9 @@ def test_make_group_model_from_schema(load_sample):
     schema = Schema.model_validate(payload)
     Group = Resource.from_schema(schema)
 
-    assert Group.scim_schema == "urn:ietf:params:scim:schemas:core:2.0:Group"
+    assert Group.model_fields["schemas"].default == [
+        "urn:ietf:params:scim:schemas:core:2.0:Group"
+    ]
 
     # displayName
     assert Group.get_field_root_type("display_name") is str
@@ -151,7 +153,9 @@ def test_make_user_model_from_schema(load_sample):
     schema = Schema.model_validate(payload)
     User = Resource.from_schema(schema)
 
-    assert User.scim_schema == "urn:ietf:params:scim:schemas:core:2.0:User"
+    assert User.model_fields["schemas"].default == [
+        "urn:ietf:params:scim:schemas:core:2.0:User"
+    ]
 
     # user_name
     assert User.get_field_root_type("user_name") is str
@@ -1241,10 +1245,9 @@ def test_make_enterprise_user_model_from_schema(load_sample):
     schema = Schema.model_validate(payload)
     EnterpriseUser = Extension.from_schema(schema)
 
-    assert (
-        EnterpriseUser.scim_schema
-        == "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"
-    )
+    assert EnterpriseUser.model_fields["schemas"].default == [
+        "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"
+    ]
 
     # employee_number
     assert EnterpriseUser.get_field_root_type("employee_number") is str
@@ -1431,9 +1434,9 @@ def test_make_resource_type_model_from_schema(load_sample):
     schema = Schema.model_validate(payload)
     ResourceType = Resource.from_schema(schema)
 
-    assert (
-        ResourceType.scim_schema == "urn:ietf:params:scim:schemas:core:2.0:ResourceType"
-    )
+    assert ResourceType.model_fields["schemas"].default == [
+        "urn:ietf:params:scim:schemas:core:2.0:ResourceType"
+    ]
 
     # id
     assert ResourceType.get_field_root_type("id") is str
@@ -1624,10 +1627,9 @@ def test_make_service_provider_config_model_from_schema(load_sample):
     schema = Schema.model_validate(payload)
     ServiceProviderConfig = Resource.from_schema(schema)
 
-    assert (
-        ServiceProviderConfig.scim_schema
-        == "urn:ietf:params:scim:schemas:core:2.0:ServiceProviderConfig"
-    )
+    assert ServiceProviderConfig.model_fields["schemas"].default == [
+        "urn:ietf:params:scim:schemas:core:2.0:ServiceProviderConfig"
+    ]
 
     # documentation_uri
     assert (
@@ -2161,7 +2163,9 @@ def test_make_schema_model_from_schema(load_sample):
     schema = Schema.model_validate(payload)
     Schema_ = Resource.from_schema(schema)
 
-    assert Schema_.scim_schema == "urn:ietf:params:scim:schemas:core:2.0:Schema"
+    assert Schema_.model_fields["schemas"].default == [
+        "urn:ietf:params:scim:schemas:core:2.0:Schema"
+    ]
 
     # id
     assert Schema_.get_field_root_type("id") is str

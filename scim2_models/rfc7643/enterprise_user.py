@@ -1,5 +1,4 @@
 from typing import Annotated
-from typing import ClassVar
 from typing import Literal
 from typing import Optional
 
@@ -27,9 +26,7 @@ class Manager(ComplexAttribute):
 
 
 class EnterpriseUser(Extension):
-    scim_schema: ClassVar[str] = (
-        "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"
-    )
+    schemas: list[str] = ["urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"]
 
     employee_number: Optional[str] = None
     """Numeric or alphanumeric identifier assigned to a person, typically based

@@ -1,7 +1,6 @@
 from enum import Enum
 from typing import Annotated
 from typing import Any
-from typing import ClassVar
 from typing import Optional
 
 from pydantic import Field
@@ -54,7 +53,7 @@ class BulkRequest(Message):
         The models for Bulk operations are defined, but their behavior is not implemented nor tested yet.
     """
 
-    scim_schema: ClassVar[str] = "urn:ietf:params:scim:api:messages:2.0:BulkRequest"
+    schemas: list[str] = ["urn:ietf:params:scim:api:messages:2.0:BulkRequest"]
 
     fail_on_errors: Optional[int] = None
     """An integer specifying the number of errors that the service provider
@@ -75,7 +74,7 @@ class BulkResponse(Message):
         The models for Bulk operations are defined, but their behavior is not implemented nor tested yet.
     """
 
-    scim_schema: ClassVar[str] = "urn:ietf:params:scim:api:messages:2.0:BulkResponse"
+    schemas: list[str] = ["urn:ietf:params:scim:api:messages:2.0:BulkResponse"]
 
     operations: Optional[list[BulkOperation]] = Field(
         None, serialization_alias="Operations"

@@ -1,6 +1,5 @@
 from enum import Enum
 from typing import Annotated
-from typing import ClassVar
 from typing import Literal
 from typing import Optional
 from typing import Union
@@ -215,7 +214,7 @@ class X509Certificate(MultiValuedComplexAttribute):
 
 
 class User(Resource):
-    scim_schema: ClassVar[str] = "urn:ietf:params:scim:schemas:core:2.0:User"
+    schemas: list[str] = ["urn:ietf:params:scim:schemas:core:2.0:User"]
 
     user_name: Annotated[Optional[str], Uniqueness.server, Required.true] = None
     """Unique identifier for the User, typically used by the user to directly

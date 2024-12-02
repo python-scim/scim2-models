@@ -1,16 +1,12 @@
 import os
 from typing import Union
 
-import pytest
-
 from scim2_models import BulkRequest
 from scim2_models import BulkResponse
 from scim2_models import EnterpriseUser
 from scim2_models import Error
-from scim2_models import Extension
 from scim2_models import Group
 from scim2_models import ListResponse
-from scim2_models import Message
 from scim2_models import PatchOp
 from scim2_models import Resource
 from scim2_models import ResourceType
@@ -161,18 +157,3 @@ def test_everything_is_optional():
     ]
     for model in models:
         model()
-
-
-def test_scim_schema_is_mandatory():
-    """Check that the scim_schema attribute is needed to define new resources."""
-    with pytest.raises(AttributeError):
-
-        class InvalidResource(Resource): ...
-
-    with pytest.raises(AttributeError):
-
-        class InvalidExtension(Extension): ...
-
-    with pytest.raises(AttributeError):
-
-        class InvalidMessage(Message): ...
