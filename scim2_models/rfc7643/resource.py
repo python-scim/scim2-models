@@ -177,7 +177,7 @@ class Resource(BaseModel, Generic[AnyExtension], metaclass=ResourceMetaclass):
         setattr(self, item.__name__, value)
 
     @classmethod
-    def get_extension_models(cls) -> dict[str, type]:
+    def get_extension_models(cls) -> dict[str, type[Extension]]:
         """Return extension a dict associating extension models with their schemas."""
         extension_models = cls.__pydantic_generic_metadata__.get("args", [])
         extension_models = (
@@ -190,6 +190,14 @@ class Resource(BaseModel, Generic[AnyExtension], metaclass=ResourceMetaclass):
             ext.model_fields["schemas"].default[0]: ext for ext in extension_models
         }
         return by_schema
+
+    @classmethod
+    def get_extension_model(cls, name_or_schema) -> Optional[type[Extension]]:
+        """Return an extension by its name or schema."""
+        for schema, extension in cls.get_extension_models().items():
+            if schema == name_or_schema or extension.__name__ == name_or_schema:
+                return extension
+        return None
 
     @staticmethod
     def get_by_schema(

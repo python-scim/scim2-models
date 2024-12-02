@@ -201,7 +201,7 @@ def test_invalid_setitem():
 
 
 class SuperHero(Extension):
-    schemas: list[str] = ["urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"]
+    schemas: list[str] = ["example:extensions:SuperHero"]
 
     superpower: Optional[str] = None
     """The superhero superpower."""
@@ -217,8 +217,9 @@ def test_multiple_extensions_union():
         "schemas": [
             "urn:ietf:params:scim:schemas:core:2.0:User",
             "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User",
+            "example:extensions:SuperHero",
         ],
-        "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User": {
+        "example:extensions:SuperHero": {
             "superpower": "flight",
         },
     }
@@ -267,4 +268,40 @@ def test_validate_items_without_extension():
     }
     User[EnterpriseUser].model_validate(
         payload, scim_ctx=Context.RESOURCE_CREATION_RESPONSE
+    )
+
+
+def test_get_extension_model():
+    assert User[EnterpriseUser].get_extension_model("EnterpriseUser") == EnterpriseUser
+    assert (
+        User[EnterpriseUser].get_extension_model(
+            "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"
+        )
+        == EnterpriseUser
+    )
+
+    assert (
+        User[Union[EnterpriseUser, SuperHero]].get_extension_model("EnterpriseUser")
+        == EnterpriseUser
+    )
+    assert (
+        User[Union[EnterpriseUser, SuperHero]].get_extension_model(
+            "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"
+        )
+        == EnterpriseUser
+    )
+
+    assert User[SuperHero].get_extension_model("EnterpriseUser") is None
+    assert (
+        User[SuperHero].get_extension_model(
+            "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"
+        )
+        is None
+    )
+    assert User.get_extension_model("EnterpriseUser") is None
+    assert (
+        User.get_extension_model(
+            "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"
+        )
+        is None
     )

@@ -1,6 +1,13 @@
 Changelog
 =========
 
+[0.2.9] - Unreleased
+--------------------
+
+Added
+^^^^^
+- Implement :meth:`Resource.get_extension_model <scim2_models.Resource.get_extension_model>`.
+
 [0.2.8] - 2024-12-02
 --------------------
 
@@ -13,7 +20,7 @@ Added
 
 Added
 ^^^^^
-- Implement :meth:`ResourceType.from_resource`.
+- Implement :meth:`ResourceType.from_resource <scim2_models.ResourceType.from_resource>`.
 
 [0.2.6] - 2024-11-29
 --------------------
