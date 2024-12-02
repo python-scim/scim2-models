@@ -11,6 +11,7 @@ from scim2_models.base import Required
 from scim2_models.base import Returned
 from scim2_models.base import validate_attribute_urn
 from scim2_models.rfc7643.enterprise_user import EnterpriseUser
+from scim2_models.rfc7643.resource import Extension
 from scim2_models.rfc7643.resource import Meta
 from scim2_models.rfc7643.resource import Resource
 from scim2_models.rfc7643.user import User
@@ -60,8 +61,8 @@ class Bar(Resource):
     baz: Optional[Baz] = None
 
 
-class Extension(Resource):
-    schemas: Annotated[list[str], Required.true] = ["urn:example:2.0:Extension"]
+class MyExtension(Extension):
+    schemas: Annotated[list[str], Required.true] = ["urn:example:2.0:MyExtension"]
     baz: str
 
 
@@ -106,14 +107,14 @@ def test_validate_attribute_urn():
     )
 
     assert (
-        validate_attribute_urn("urn:example:2.0:Extension:baz", Foo[Extension])
-        == "urn:example:2.0:Extension:baz"
+        validate_attribute_urn("urn:example:2.0:MyExtension:baz", Foo[MyExtension])
+        == "urn:example:2.0:MyExtension:baz"
     )
     assert (
         validate_attribute_urn(
-            "urn:example:2.0:Extension:baz", resource_types=[Foo[Extension]]
+            "urn:example:2.0:MyExtension:baz", resource_types=[Foo[MyExtension]]
         )
-        == "urn:example:2.0:Extension:baz"
+        == "urn:example:2.0:MyExtension:baz"
     )
 
     with pytest.raises(ValueError, match="No default schema and relative URN"):
