@@ -121,3 +121,17 @@ class ListResponse(Message, Generic[AnyResource], metaclass=ListResponseMetaclas
             )
 
         return obj
+
+    @property
+    def start_index_0(self):
+        """The 0 indexed start index."""
+        return self.start_index - 1 if self.start_index is not None else None
+
+    @property
+    def stop_index_0(self):
+        """The 0 indexed stop index."""
+        return (
+            self.start_index_0 + self.count
+            if self.start_index_0 is not None and self.count is not None
+            else None
+        )
