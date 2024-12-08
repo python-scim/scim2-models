@@ -85,3 +85,11 @@ def test_uri_ids():
     Schema(id="urn:ietf:params:scim:schemas:extension:enterprise:2.0:User")
     with pytest.raises(ValidationError):
         Schema(id="invalid\nuri")
+
+
+def test_get_attribute(load_sample):
+    """Test the Schema.get_attribute method."""
+    payload = load_sample("rfc7643-8.7.1-schema-user.json")
+    schema = Schema.model_validate(payload)
+    assert schema.get_attribute("invalid") is None
+    assert isinstance(schema.get_attribute("userName"), Attribute)

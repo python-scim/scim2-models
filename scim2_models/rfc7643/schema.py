@@ -266,3 +266,10 @@ class Schema(Resource):
     def urn_id(cls, value: str) -> str:
         """Ensure that schema ids are URI, as defined in RFC7643 §7."""
         return str(Url(value))
+
+    def get_attribute(self, attribute_name: str) -> Optional[Attribute]:
+        """Find an attribute by its name."""
+        for attribute in self.attributes or []:
+            if attribute.name == attribute_name:
+                return attribute
+        return None
