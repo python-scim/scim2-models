@@ -92,4 +92,9 @@ def test_get_attribute(load_sample):
     payload = load_sample("rfc7643-8.7.1-schema-user.json")
     schema = Schema.model_validate(payload)
     assert schema.get_attribute("invalid") is None
-    assert isinstance(schema.get_attribute("userName"), Attribute)
+
+    assert schema.attributes[0].name == "userName"
+    assert schema.attributes[0].mutability == Mutability.read_write
+    schema.get_attribute("userName").mutability = Mutability.read_only
+
+    assert schema.attributes[0].mutability == Mutability.read_only
