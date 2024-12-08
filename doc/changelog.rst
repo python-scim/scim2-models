@@ -6,9 +6,7 @@ Changelog
 Added
 ^^^^^
 - Implement :meth:`Schema.get_attribute <scim2_models.Schema.get_attribute>`.
-- Implement :meth:`ListResponse.start_index_0 <scim2_models.ListResponse.start_index_0>`
-  and :meth:`ListResponse.start_index_1 <scim2_models.ListResponse.start_index_1>`
-  and :meth:`SearchRequest.start_index_0 <scim2_models.SearchRequest.start_index_0>`
+- Implement :meth:`SearchRequest.start_index_0 <scim2_models.SearchRequest.start_index_0>`
   and :meth:`SearchRequest.start_index_1 <scim2_models.SearchRequest.start_index_1>`.
 
 [0.2.10] - 2024-12-02

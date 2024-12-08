@@ -74,3 +74,9 @@ def test_attributes_or_excluded_attributes():
     }
     with pytest.raises(ValidationError):
         SearchRequest.model_validate(payload)
+
+
+def test_index_0_properties():
+    req = SearchRequest(start_index=1, count=10)
+    assert req.start_index_0 == 0
+    assert req.stop_index_0 == 10
