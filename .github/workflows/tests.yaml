@@ -68,7 +68,7 @@ jobs:
       - name: Install downstream test environment
         run: |
           cd ${{ matrix.downstream }}
-          uv sync
+          uv sync --all-extras
           uv pip install --upgrade --force-reinstall ..
       - name: Run downstream tests
         run: |
