@@ -87,7 +87,7 @@ def test_uri_ids():
         Schema(id="invalid\nuri")
 
 
-def test_get_attribute(load_sample):
+def test_get_schema_attribute(load_sample):
     """Test the Schema.get_attribute method."""
     payload = load_sample("rfc7643-8.7.1-schema-user.json")
     schema = Schema.model_validate(payload)
@@ -98,3 +98,18 @@ def test_get_attribute(load_sample):
     schema.get_attribute("userName").mutability = Mutability.read_only
 
     assert schema.attributes[0].mutability == Mutability.read_only
+
+
+def test_get_attribute_attribute(load_sample):
+    """Test the Schema.get_attribute method."""
+    payload = load_sample("rfc7643-8.7.1-schema-group.json")
+    schema = Schema.model_validate(payload)
+    attribute = schema.get_attribute("members")
+
+    assert attribute.get_attribute("invalid") is None
+
+    assert attribute.sub_attributes[0].name == "value"
+    assert attribute.sub_attributes[0].mutability == Mutability.immutable
+    attribute.get_attribute("value").mutability = Mutability.read_only
+
+    assert attribute.sub_attributes[0].mutability == Mutability.read_only

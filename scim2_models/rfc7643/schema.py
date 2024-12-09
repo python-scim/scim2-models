@@ -238,6 +238,13 @@ class Attribute(ComplexAttribute):
 
         return annotation, field
 
+    def get_attribute(self, attribute_name: str) -> Optional["Attribute"]:
+        """Find an attribute by its name."""
+        for sub_attribute in self.sub_attributes or []:
+            if sub_attribute.name == attribute_name:
+                return sub_attribute
+        return None
+
 
 class Schema(Resource):
     schemas: Annotated[list[str], Required.true] = [

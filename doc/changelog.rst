@@ -1,6 +1,12 @@
 Changelog
 =========
 
+[0.2.12] - Unreleased
+---------------------
+Added
+^^^^^
+- Implement :meth:`Attribute.get_attribute <scim2_models.Attribute.get_attribute>`.
+
 [0.2.11] - 2024-12-08
 ---------------------
 Added
