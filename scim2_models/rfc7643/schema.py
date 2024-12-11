@@ -245,6 +245,12 @@ class Attribute(ComplexAttribute):
                 return sub_attribute
         return None
 
+    def __getitem__(self, name):
+        """Find an attribute by its name."""
+        if attribute := self.get_attribute(name):
+            return attribute
+        raise KeyError(f"This attribute has no '{name}' sub-attribute")
+
 
 class Schema(Resource):
     schemas: Annotated[list[str], Required.true] = [
@@ -280,3 +286,9 @@ class Schema(Resource):
             if attribute.name == attribute_name:
                 return attribute
         return None
+
+    def __getitem__(self, name):
+        """Find an attribute by its name."""
+        if attribute := self.get_attribute(name):
+            return attribute
+        raise KeyError(f"This schema has no '{name}' attribute")

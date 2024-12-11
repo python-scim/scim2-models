@@ -92,12 +92,17 @@ def test_get_schema_attribute(load_sample):
     payload = load_sample("rfc7643-8.7.1-schema-user.json")
     schema = Schema.model_validate(payload)
     assert schema.get_attribute("invalid") is None
+    with pytest.raises(KeyError):
+        schema["invalid"]
 
     assert schema.attributes[0].name == "userName"
     assert schema.attributes[0].mutability == Mutability.read_write
-    schema.get_attribute("userName").mutability = Mutability.read_only
 
+    schema.get_attribute("userName").mutability = Mutability.read_only
     assert schema.attributes[0].mutability == Mutability.read_only
+
+    schema["userName"].mutability = Mutability.read_write
+    assert schema.attributes[0].mutability == Mutability.read_write
 
 
 def test_get_attribute_attribute(load_sample):
@@ -107,9 +112,14 @@ def test_get_attribute_attribute(load_sample):
     attribute = schema.get_attribute("members")
 
     assert attribute.get_attribute("invalid") is None
+    with pytest.raises(KeyError):
+        attribute["invalid"]
 
     assert attribute.sub_attributes[0].name == "value"
     assert attribute.sub_attributes[0].mutability == Mutability.immutable
-    attribute.get_attribute("value").mutability = Mutability.read_only
 
+    attribute.get_attribute("value").mutability = Mutability.read_only
     assert attribute.sub_attributes[0].mutability == Mutability.read_only
+
+    attribute["value"].mutability = Mutability.read_write
+    assert attribute.sub_attributes[0].mutability == Mutability.read_write

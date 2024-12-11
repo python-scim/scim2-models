@@ -4,6 +4,10 @@ Changelog
 [0.3.0] - Unreleased
 --------------------
 
+Added
+^^^^^
+- :meth:`Attribute.get_attribute <scim2_models.Attribute.get_attribute>` can be called with brackets.
+
 Changed
 ^^^^^^^
 - Add a :paramref:`~scim2_models.BaseModel.model_validate.original`
