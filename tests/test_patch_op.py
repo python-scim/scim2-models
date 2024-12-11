@@ -3,7 +3,6 @@ from pydantic import ValidationError
 
 from scim2_models import PatchOp
 from scim2_models import PatchOperation
-from scim2_models.base import Context
 
 
 def test_validate_patchop_case_insensitivith():
@@ -16,7 +15,6 @@ def test_validate_patchop_case_insensitivith():
                 {"op": "ReMove", "path": "userName", "value": "Rivard"},
             ],
         },
-        scim_ctx=Context.RESOURCE_REPLACEMENT_REQUEST,
     ) == PatchOp(
         operations=[
             PatchOperation(
@@ -36,5 +34,4 @@ def test_validate_patchop_case_insensitivith():
             {
                 "operations": [{"op": 42, "path": "userName", "value": "Rivard"}],
             },
-            scim_ctx=Context.RESOURCE_REPLACEMENT_REQUEST,
         )

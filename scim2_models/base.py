@@ -233,9 +233,9 @@ class Context(Enum):
     Should be used for clients building a payload for a resource replacement request,
     and servers validating resource replacement request payloads.
 
-    - When used for serialization, it will not dump attributes annotated with :attr:`~scim2_models.Mutability.read_only` and :attr:`~scim2_models.Mutability.immutable`.
+    - When used for serialization, it will not dump attributes annotated with :attr:`~scim2_models.Mutability.read_only`.
     - When used for validation, it will ignore attributes annotated with :attr:`scim2_models.Mutability.read_only` and raise a :class:`~pydantic.ValidationError`:
-        - when finding attributes annotated with :attr:`~scim2_models.Mutability.immutable`,
+        - when finding attributes annotated with :attr:`~scim2_models.Mutability.immutable` different than :paramref:`~scim2_models.BaseModel.model_validate.original`:
         - when attributes annotated with :attr:`Required.true <scim2_models.Required.true>` are missing on null.
     """
 
@@ -493,12 +493,6 @@ class BaseModel(PydanticBaseModel):
             raise exc
 
         if (
-            context == Context.RESOURCE_REPLACEMENT_REQUEST
-            and mutability == Mutability.immutable
-        ):
-            raise exc
-
-        if (
             context
             in (Context.RESOURCE_CREATION_REQUEST, Context.RESOURCE_REPLACEMENT_REQUEST)
             and mutability == Mutability.read_only
@@ -604,8 +598,55 @@ class BaseModel(PydanticBaseModel):
 
         return value
 
+    @model_validator(mode="wrap")
+    @classmethod
+    def check_replacement_request_mutability(
+        cls, value: Any, handler: ValidatorFunctionWrapHandler, info: ValidationInfo
+    ) -> Self:
+        """Check if 'immutable' attributes have been mutated in replacement requests."""
+        from scim2_models.rfc7643.resource import Resource
+
+        value = handler(value)
+
+        context = info.context.get("scim") if info.context else None
+        original = info.context.get("original") if info.context else None
+        if (
+            context == Context.RESOURCE_REPLACEMENT_REQUEST
+            and issubclass(cls, Resource)
+            and original is not None
+        ):
+            cls.check_mutability_issues(original, value)
+        return value
+
+    @classmethod
+    def check_mutability_issues(cls, original: "BaseModel", replacement: "BaseModel"):
+        """Compare two instances, and check for differences of values on the fields marked as immutable."""
+        model = replacement.__class__
+        for field_name in model.model_fields:
+            mutability = model.get_field_annotation(field_name, Mutability)
+            if mutability == Mutability.immutable and getattr(
+                original, field_name
+            ) != getattr(replacement, field_name):
+                raise PydanticCustomError(
+                    "mutability_error",
+                    "Field '{field_name}' is immutable but the request value is different than the original value.",
+                    {"field_name": field_name},
+                )
+
+            attr_type = model.get_field_root_type(field_name)
+            if is_complex_attribute(attr_type) and not model.get_field_multiplicity(
+                field_name
+            ):
+                original_val = getattr(original, field_name)
+                replacement_value = getattr(replacement, field_name)
+                if original_val is not None and replacement_value is not None:
+                    cls.check_mutability_issues(original_val, replacement_value)
+
     def mark_with_schema(self):
-        """Navigate through attributes and sub-attributes of type ComplexAttribute, and mark them with a '_schema' attribute. '_schema' will later be used by 'get_attribute_urn'."""
+        """Navigate through attributes and sub-attributes of type ComplexAttribute, and mark them with a '_schema' attribute.
+
+        '_schema' will later be used by 'get_attribute_urn'.
+        """
         from scim2_models.rfc7643.resource import Resource
 
         for field_name in self.model_fields:
@@ -653,7 +694,8 @@ class BaseModel(PydanticBaseModel):
         scim_ctx = info.context.get("scim") if info.context else None
 
         if (
-            scim_ctx == Context.RESOURCE_CREATION_REQUEST
+            scim_ctx
+            in (Context.RESOURCE_CREATION_REQUEST, Context.RESOURCE_REPLACEMENT_REQUEST)
             and mutability == Mutability.read_only
         ):
             return None
@@ -665,12 +707,6 @@ class BaseModel(PydanticBaseModel):
                 Context.SEARCH_REQUEST,
             )
             and mutability == Mutability.write_only
-        ):
-            return None
-
-        if scim_ctx == Context.RESOURCE_REPLACEMENT_REQUEST and mutability in (
-            Mutability.immutable,
-            Mutability.read_only,
         ):
             return None
 
@@ -719,10 +755,28 @@ class BaseModel(PydanticBaseModel):
 
     @classmethod
     def model_validate(
-        cls, *args, scim_ctx: Optional[Context] = Context.DEFAULT, **kwargs
+        cls,
+        *args,
+        scim_ctx: Optional[Context] = Context.DEFAULT,
+        original: Optional["BaseModel"] = None,
+        **kwargs,
     ) -> Self:
-        """Validate SCIM payloads and generate model representation by using Pydantic :code:`BaseModel.model_validate`."""
-        kwargs.setdefault("context", {}).setdefault("scim", scim_ctx)
+        """Validate SCIM payloads and generate model representation by using Pydantic :code:`BaseModel.model_validate`.
+
+        :param scim_ctx: The SCIM :class:`~scim2_models.Context` in which the validation happens.
+        :param original: If this parameter is set during :attr:`~Context.RESOURCE_REPLACEMENT_REQUEST`,
+            :attr:`~scim2_models.Mutability.immutable` parameters will be compared against the *original* model value.
+            An exception is raised if values are different.
+        """
+        context = kwargs.setdefault("context", {})
+        context.setdefault("scim", scim_ctx)
+        context.setdefault("original", original)
+
+        if scim_ctx == Context.RESOURCE_REPLACEMENT_REQUEST and original is None:
+            raise ValueError(
+                "Resource queries replacement validation must compare to an original resource"
+            )
+
         return super().model_validate(*args, **kwargs)
 
     def _prepare_model_dump(

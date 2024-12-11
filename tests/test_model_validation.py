@@ -4,6 +4,7 @@ from typing import Optional
 import pytest
 from pydantic import ValidationError
 
+from scim2_models.base import ComplexAttribute
 from scim2_models.base import Context
 from scim2_models.base import Mutability
 from scim2_models.base import Required
@@ -144,31 +145,113 @@ def test_validate_replacement_request_mutability():
     """Test query validation for resource model replacement requests.
 
     Attributes marked as:
-    - Mutability.immutable raise a ValidationError
+    - Mutability.immutable raise a ValidationError if different than the 'original' item.
     - Mutability.read_only are ignored
     """
+    with pytest.raises(
+        ValueError,
+        match="Resource queries replacement validation must compare to an original resource",
+    ):
+        MutResource.model_validate(
+            {
+                "readOnly": "x",
+                "readWrite": "x",
+                "writeOnly": "x",
+            },
+            scim_ctx=Context.RESOURCE_REPLACEMENT_REQUEST,
+        )
+
+    original = MutResource(read_only="y", read_write="y", write_only="y", immutable="y")
     assert MutResource.model_validate(
         {
             "readOnly": "x",
             "readWrite": "x",
             "writeOnly": "x",
+            "immutable": "y",
         },
         scim_ctx=Context.RESOURCE_REPLACEMENT_REQUEST,
+        original=original,
     ) == MutResource(
         schemas=["org:example:MutResource"],
         readWrite="x",
         writeOnly="x",
+        immutable="y",
+    )
+
+    MutResource.model_validate(
+        {
+            "immutable": "y",
+        },
+        scim_ctx=Context.RESOURCE_REPLACEMENT_REQUEST,
+        original=original,
     )
 
     with pytest.raises(
         ValidationError,
-        match="Field 'immutable' has mutability 'immutable' but this in not valid in resource replacement request context",
+        match="Field 'immutable' is immutable but the request value is different than the original value.",
     ):
         MutResource.model_validate(
             {
                 "immutable": "x",
             },
             scim_ctx=Context.RESOURCE_REPLACEMENT_REQUEST,
+            original=original,
+        )
+
+
+def test_validate_replacement_request_mutability_sub_attributes():
+    """Test query validation for resource model replacement requests.
+
+    Sub-attributes marked as:
+    - Mutability.immutable raise a ValidationError if different than the 'original' item.
+    - Mutability.read_only are ignored
+    """
+
+    class Sub(ComplexAttribute):
+        immutable: Annotated[Optional[str], Mutability.immutable] = None
+
+    class Super(Resource):
+        schemas: Annotated[list[str], Required.true] = ["org:example:Super"]
+        sub: Optional[Sub] = None
+
+    original = Super(sub=Sub(immutable="y"))
+    assert Super.model_validate(
+        {
+            "sub": {
+                "immutable": "y",
+            }
+        },
+        scim_ctx=Context.RESOURCE_REPLACEMENT_REQUEST,
+        original=original,
+    ) == Super(
+        schemas=["org:example:Super"],
+        sub=Sub(
+            immutable="y",
+        ),
+    )
+
+    Super.model_validate(
+        {
+            "sub": {
+                "immutable": "y",
+            }
+        },
+        scim_ctx=Context.RESOURCE_REPLACEMENT_REQUEST,
+        original=original,
+    )
+
+    with pytest.raises(
+        ValidationError,
+        match="Field 'immutable' is immutable but the request value is different than the original value.",
+    ):
+        Super.model_validate(
+            {
+                "sub": {
+                    "immutable": "x",
+                }
+            },
+            scim_ctx=Context.RESOURCE_REPLACEMENT_REQUEST,
+            original=original,
         )
 
 
@@ -378,12 +461,14 @@ def test_validate_creation_and_replacement_request_necessity(context):
     Attributes marked as:
     - Required.true and missing raise a ValidationError
     """
+    original = MutResource(read_only="y", read_write="y", write_only="y", immutable="y")
     assert ReqResource.model_validate(
         {
             "required": "x",
             "optional": "x",
         },
         scim_ctx=context,
+        original=original,
     ) == ReqResource(
         schemas=["org:example:ReqResource"],
         required="x",
@@ -395,6 +480,7 @@ def test_validate_creation_and_replacement_request_necessity(context):
             "required": "x",
         },
         scim_ctx=context,
+        original=original,
     ) == ReqResource(
         schemas=["org:example:ReqResource"],
         required="x",
@@ -408,6 +494,7 @@ def test_validate_creation_and_replacement_request_necessity(context):
             {
                 "optional": "x",
             },
+            original=original,
             scim_ctx=context,
         )
 

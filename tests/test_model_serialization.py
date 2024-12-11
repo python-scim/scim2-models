@@ -151,6 +151,7 @@ def test_dump_replacement_request(mut_resource):
         "schemas": ["org:example:MutResource"],
         "readWrite": "x",
         "writeOnly": "x",
+        "immutable": "x",
     }
 
 

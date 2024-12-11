@@ -1,14 +1,28 @@
 Changelog
 =========
 
+[0.3.0] - Unreleased
+--------------------
+
+Changed
+^^^^^^^
+- Add a :paramref:`~scim2_models.BaseModel.model_validate.original`
+  parameter to :meth:`~scim2_models.BaseModel.model_validate`
+  mandatory for :attr:`~scim2_models.Context.RESOURCE_REPLACEMENT_REQUEST`.
+  This *original* value is used to look if :attr:`~scim2_models.Mutability.immutable`
+  parameters have mutated.
+  :issue:`86`
+
 [0.2.12] - 2024-12-09
 ---------------------
+
 Added
 ^^^^^
 - Implement :meth:`Attribute.get_attribute <scim2_models.Attribute.get_attribute>`.
 
 [0.2.11] - 2024-12-08
 ---------------------
+
 Added
 ^^^^^
 - Implement :meth:`Schema.get_attribute <scim2_models.Schema.get_attribute>`.

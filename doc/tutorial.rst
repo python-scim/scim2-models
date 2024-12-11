@@ -102,6 +102,13 @@ fields with unexpected values will raise :class:`~pydantic.ValidationError`:
     ... except pydantic.ValidationError:
     ...    obj = Error(...)
 
+.. note::
+
+   With the :attr:`~scim2_models.Context.RESOURCE_REPLACEMENT_REQUEST` context,
+   :meth:`~scim2_models.BaseModel.model_validate` takes an additional
+   :paramref:`~scim2_models.BaseModel.model_validate.original` argument that is used to compare
+   :attr:`~scim2_models.Mutability.immutable` attributes, and raise an exception when they have mutated.
+
 Attributes inclusions and exclusions
 ====================================
 
