@@ -873,6 +873,7 @@ doc = [
     { name = "shibuya" },
     { name = "sphinx" },
     { name = "sphinx-issues" },
+    { name = "sphinx-paramlinks" },
     { name = "sphinx-togglebutton" },
 ]
 
@@ -893,6 +894,7 @@ doc = [
     { name = "shibuya", specifier = ">=2024.5.15" },
     { name = "sphinx", specifier = ">=7.3.7" },
     { name = "sphinx-issues", specifier = ">=5.0.0" },
+    { name = "sphinx-paramlinks", specifier = ">=0.6.0" },
     { name = "sphinx-togglebutton", specifier = ">=0.3.2" },
 ]
 
@@ -966,6 +968,16 @@ sdist = { url = "https://files.pythonhosted.org/packages/ab/2b/5bc6fac05eba11366
 wheels = [
     { url = "https://files.pythonhosted.org/packages/1d/14/a1b38212db8d327f53f2f56f0ed81c8b80ee2c2160e8819069c0d329d0a9/sphinx_issues-5.0.0-py3-none-any.whl", hash = "sha256:d80704a01c8af3d76586771a67a9e48f2d1a6091a0377458c49908460a6a31ea", size = 8063 },
 ]
+
+[[package]]
+name = "sphinx-paramlinks"
+version = "0.6.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "docutils" },
+    { name = "sphinx" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/ae/21/62d3a58ff7bd02bbb9245a63d1f0d2e0455522a11a78951d16088569fca8/sphinx-paramlinks-0.6.0.tar.gz", hash = "sha256:746a0816860aa3fff5d8d746efcbec4deead421f152687411db1d613d29f915e", size = 12363 }
 
 [[package]]
 name = "sphinx-togglebutton"
