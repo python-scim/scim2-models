@@ -1,4 +1,5 @@
 version = 1
+revision = 1
 requires-python = ">=3.9"
 
 [[package]]
@@ -849,7 +850,7 @@ wheels = [
 
 [[package]]
 name = "scim2-models"
-version = "0.3.0"
+version = "0.3.1"
 source = { editable = "." }
 dependencies = [
     { name = "pydantic", extra = ["email"] },
