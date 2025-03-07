@@ -6,8 +6,8 @@ Changelog
 
 Fixed
 ^^^^^
-- Fix :attr:`~SearchRequest.start_index` and :attr:`~SearchRequest.count` limits. :issue:`84`
-- :attr:`~ListResponse.total_resuls` is required.
+- Fix :attr:`~scim2_models.SearchRequest.start_index` and :attr:`~scim2_models.SearchRequest.count` limits. :issue:`84`
+- :attr:`~scim2_models.ListResponse.total_resuls` is required. :issue:`88`
 
 [0.3.0] - 2024-12-11
 --------------------
