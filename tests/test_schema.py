@@ -19,7 +19,7 @@ def test_group_schema(load_sample):
     assert obj.attributes[0].type == Attribute.Type.string
     assert not obj.attributes[0].multi_valued
     assert obj.attributes[0].description == (
-        "A human-readable name for the Group. " "REQUIRED."
+        "A human-readable name for the Group. REQUIRED."
     )
     assert not obj.attributes[0].required
     assert not obj.attributes[0].case_exact
@@ -48,7 +48,7 @@ def test_group_schema(load_sample):
     assert obj.attributes[1].sub_attributes[1].reference_types == ["User", "Group"]
     assert not obj.attributes[1].sub_attributes[1].multi_valued
     assert obj.attributes[1].sub_attributes[1].description == (
-        "The URI corresponding to a SCIM resource " "that is a member of this Group."
+        "The URI corresponding to a SCIM resource that is a member of this Group."
     )
     assert not obj.attributes[1].sub_attributes[1].required
     assert not obj.attributes[1].sub_attributes[1].case_exact
@@ -59,7 +59,7 @@ def test_group_schema(load_sample):
     assert obj.attributes[1].sub_attributes[2].type == Attribute.Type.string
     assert not obj.attributes[1].sub_attributes[2].multi_valued
     assert obj.attributes[1].sub_attributes[2].description == (
-        "A label indicating the type of resource, " "e.g., 'User' or 'Group'."
+        "A label indicating the type of resource, e.g., 'User' or 'Group'."
     )
     assert not obj.attributes[1].sub_attributes[2].required
     assert not obj.attributes[1].sub_attributes[2].case_exact
