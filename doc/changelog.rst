@@ -7,6 +7,7 @@ Changelog
 Fixed
 ^^^^^
 - Fix :attr:`~SearchRequest.start_index` and :attr:`~SearchRequest.count` limits. :issue:`84`
+- :attr:`~ListResponse.total_resuls` is required.
 
 [0.3.0] - 2024-12-11
 --------------------
