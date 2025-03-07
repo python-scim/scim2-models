@@ -217,3 +217,26 @@ def test_list_response_schema_ordering():
         ],
     }
     ListResponse[Union[User[EnterpriseUser], Group]].model_validate(payload)
+
+
+def test_total_results_required():
+    """ListResponse.total_results is required."""
+    payload = {
+        "Resources": [
+            {
+                "schemas": [
+                    "urn:ietf:params:scim:schemas:core:2.0:User",
+                ],
+                "userName": "bjensen@example.com",
+                "id": "foobar",
+            }
+        ],
+    }
+
+    with pytest.raises(
+        ValidationError,
+        match="Field 'total_results' is required but value is missing or null",
+    ):
+        ListResponse[User].model_validate(
+            payload, scim_ctx=Context.RESOURCE_QUERY_RESPONSE
+        )
