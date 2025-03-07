@@ -1,6 +1,13 @@
 Changelog
 =========
 
+[0.3.1] - Unreleased
+--------------------
+
+Fixed
+^^^^^
+- Fix :attr:`~SearchRequest.start_index` and :attr:`~SearchRequest.count` limits. :issue:`84`
+
 [0.3.0] - 2024-12-11
 --------------------
 
