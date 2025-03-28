@@ -649,14 +649,14 @@ class BaseModel(PydanticBaseModel):
         """
         from scim2_models.rfc7643.resource import Resource
 
-        for field_name in self.model_fields:
+        for field_name in self.__class__.model_fields:
             attr_type = self.get_field_root_type(field_name)
             if not is_complex_attribute(attr_type):
                 continue
 
             main_schema = (
                 getattr(self, "_schema", None)
-                or self.model_fields["schemas"].default[0]
+                or self.__class__.model_fields["schemas"].default[0]
             )
 
             separator = ":" if isinstance(self, Resource) else "."
@@ -847,8 +847,10 @@ class BaseModel(PydanticBaseModel):
 
         See :rfc:`RFC7644 §3.10 <7644#section-3.10>`.
         """
-        main_schema = self.model_fields["schemas"].default[0]
-        alias = self.model_fields[field_name].serialization_alias or field_name
+        main_schema = self.__class__.model_fields["schemas"].default[0]
+        alias = (
+            self.__class__.model_fields[field_name].serialization_alias or field_name
+        )
 
         # if alias contains a ':' this is an extension urn
         full_urn = alias if ":" in alias else f"{main_schema}:{alias}"
@@ -865,7 +867,9 @@ class ComplexAttribute(BaseModel):
 
         See :rfc:`RFC7644 §3.10 <7644#section-3.10>`.
         """
-        alias = self.model_fields[field_name].serialization_alias or field_name
+        alias = (
+            self.__class__.model_fields[field_name].serialization_alias or field_name
+        )
         return f"{self._schema}.{alias}"
 
 
