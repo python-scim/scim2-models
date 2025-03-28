@@ -3,7 +3,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Annotated
 from typing import Any
-from typing import List  # noqa : UP005
+from typing import List  # noqa : UP005,UP035
 from typing import Literal
 from typing import Optional
 from typing import Union
