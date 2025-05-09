@@ -17,6 +17,7 @@ from ..base import Required
 from ..base import Returned
 from ..base import Uniqueness
 from ..utils import Base64Bytes
+from .resource import AnyExtension
 from .resource import Resource
 
 
@@ -213,7 +214,7 @@ class X509Certificate(MultiValuedComplexAttribute):
     """The value of an X.509 certificate."""
 
 
-class User(Resource):
+class User(Resource[AnyExtension]):
     schemas: Annotated[list[str], Required.true] = [
         "urn:ietf:params:scim:schemas:core:2.0:User"
     ]

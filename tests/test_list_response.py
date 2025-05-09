@@ -40,7 +40,7 @@ def test_enterprise_user(load_sample):
     }
     response = ListResponse[User[EnterpriseUser]].model_validate(payload)
     obj = response.resources[0]
-    assert isinstance(obj, User[EnterpriseUser])
+    assert isinstance(obj, User)
 
 
 def test_group(load_sample):
