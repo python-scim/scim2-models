@@ -17,7 +17,7 @@ class PatchOperation(ComplexAttribute):
         remove = "remove"
         add = "add"
 
-    op: Optional[Optional[Op]] = None
+    op: Op
     """Each PATCH operation object MUST have exactly one "op" member, whose
     value indicates the operation to perform and MAY be one of "add", "remove",
     or "replace".
@@ -63,8 +63,16 @@ class PatchOp(Message):
         "urn:ietf:params:scim:api:messages:2.0:PatchOp"
     ]
 
-    operations: Optional[list[PatchOperation]] = Field(
-        None, serialization_alias="Operations"
+    operations: Annotated[Optional[list[PatchOperation]], Required.true] = Field(
+        None, serialization_alias="Operations", min_length=1
     )
     """The body of an HTTP PATCH request MUST contain the attribute
     "Operations", whose value is an array of one or more PATCH operations."""
+
+    @field_validator("schemas")
+    @classmethod
+    def validate_schemas(cls, value):
+        expected = ["urn:ietf:params:scim:api:messages:2.0:PatchOp"]
+        if value != expected:
+            raise ValueError(f"`schemas` must be exactly {expected}")
+        return value
