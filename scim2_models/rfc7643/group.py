@@ -1,10 +1,12 @@
 from typing import Annotated
+from typing import ClassVar
 from typing import Literal
 from typing import Optional
 from typing import Union
 
 from pydantic import Field
 
+from ..base import ComplexAttribute
 from ..base import MultiValuedComplexAttribute
 from ..base import Mutability
 from ..base import Reference
@@ -39,5 +41,6 @@ class Group(Resource):
     display_name: Optional[str] = None
     """A human-readable name for the Group."""
 
+    Members: ClassVar[type[ComplexAttribute]] = GroupMember
     members: Optional[list[GroupMember]] = None
     """A list of members of the Group."""

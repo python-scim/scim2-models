@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import ClassVar
 from typing import Annotated
 from typing import Literal
 from typing import Optional
@@ -223,6 +224,7 @@ class User(Resource[AnyExtension]):
     """Unique identifier for the User, typically used by the user to directly
     authenticate to the service provider."""
 
+    Name: ClassVar[type[ComplexAttribute]] = Name
     name: Optional[Name] = None
     """The components of the user's real name."""
 
@@ -268,32 +270,41 @@ class User(Resource[AnyExtension]):
     password: Annotated[Optional[str], Mutability.write_only, Returned.never] = None
     """The User's cleartext password."""
 
+    Emails: ClassVar[type[ComplexAttribute]] = Email
     emails: Optional[list[Email]] = None
     """Email addresses for the user."""
 
+    PhoneNumbers: ClassVar[type[ComplexAttribute]] = PhoneNumber
     phone_numbers: Optional[list[PhoneNumber]] = None
     """Phone numbers for the User."""
 
+    Ims: ClassVar[type[ComplexAttribute]] = Im
     ims: Optional[list[Im]] = None
     """Instant messaging addresses for the User."""
 
+    Photos: ClassVar[type[ComplexAttribute]] = Photo
     photos: Optional[list[Photo]] = None
     """URLs of photos of the User."""
 
+    Addresses: ClassVar[type[ComplexAttribute]] = Address
     addresses: Optional[list[Address]] = None
     """A physical mailing address for this User."""
 
+    Groups: ClassVar[type[ComplexAttribute]] = GroupMembership
     groups: Annotated[Optional[list[GroupMembership]], Mutability.read_only] = None
     """A list of groups to which the user belongs, either through direct
     membership, through nested groups, or dynamically calculated."""
 
+    Entitlements: ClassVar[type[ComplexAttribute]] = Entitlement
     entitlements: Optional[list[Entitlement]] = None
     """A list of entitlements for the User that represent a thing the User
     has."""
 
+    Roles: ClassVar[type[ComplexAttribute]] = Role
     roles: Optional[list[Role]] = None
     """A list of roles for the User that collectively represent who the User
     is, e.g., 'Student', 'Faculty'."""
 
+    X509Certificates: ClassVar[type[ComplexAttribute]] = X509Certificate
     x509_certificates: Optional[list[X509Certificate]] = None
     """A list of certificates issued to the User."""
