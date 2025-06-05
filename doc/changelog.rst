@@ -1,6 +1,13 @@
 Changelog
 =========
 
+[0.3.4] - Unreleased
+--------------------
+
+Added
+^^^^^
+- Implement User and Group attributes types shortcuts to match dynamically created model types.
+
 [0.3.3] - 2025-05-21
 --------------------
 
