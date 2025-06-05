@@ -41,6 +41,7 @@ class Group(Resource):
     display_name: Optional[str] = None
     """A human-readable name for the Group."""
 
-    Members: ClassVar[type[ComplexAttribute]] = GroupMember
     members: Optional[list[GroupMember]] = None
     """A list of members of the Group."""
+
+    Members: ClassVar[type[ComplexAttribute]] = GroupMember
