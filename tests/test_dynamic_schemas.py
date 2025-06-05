@@ -1,8 +1,12 @@
 import operator
+from typing import Annotated
+from typing import Optional
 
 from scim2_models.base import Context
+from scim2_models.base import Required
 from scim2_models.rfc7643.enterprise_user import EnterpriseUser
 from scim2_models.rfc7643.group import Group
+from scim2_models.rfc7643.resource import Resource
 from scim2_models.rfc7643.resource_type import ResourceType
 from scim2_models.rfc7643.schema import Schema
 from scim2_models.rfc7643.service_provider_config import ServiceProviderConfig
@@ -127,3 +131,49 @@ def test_dump_with_context():
     models = [User, EnterpriseUser, Group, ResourceType, Schema, ServiceProviderConfig]
     for model in models:
         model.to_schema().model_dump(scim_ctx=Context.RESOURCE_QUERY_RESPONSE)
+
+
+def test_inheritance():
+    """Check that parent attributes are included in the schema."""
+
+    class Foo(Resource):
+        schemas: Annotated[list[str], Required.true] = [
+            "urn:ietf:params:scim:schemas:core:2.0:Foo"
+        ]
+
+        foo: Optional[str] = None
+
+    class Bar(Foo):
+        bar: Optional[str] = None
+
+    schema = Bar.to_schema()
+    assert schema.model_dump() == {
+        "attributes": [
+            {
+                "caseExact": False,
+                "multiValued": False,
+                "mutability": "readWrite",
+                "name": "foo",
+                "required": False,
+                "returned": "default",
+                "type": "string",
+                "uniqueness": "none",
+            },
+            {
+                "caseExact": False,
+                "multiValued": False,
+                "mutability": "readWrite",
+                "name": "bar",
+                "required": False,
+                "returned": "default",
+                "type": "string",
+                "uniqueness": "none",
+            },
+        ],
+        "description": "Bar",
+        "id": "urn:ietf:params:scim:schemas:core:2.0:Foo",
+        "name": "Bar",
+        "schemas": [
+            "urn:ietf:params:scim:schemas:core:2.0:Schema",
+        ],
+    }

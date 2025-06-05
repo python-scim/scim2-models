@@ -1,6 +1,13 @@
 Changelog
 =========
 
+[0.3.5] - Unreleased
+--------------------
+
+Added
+^^^^^
+- Fix dynamic schema generation for user defined classes with inheritance.
+
 [0.3.4] - 2025-06-05
 --------------------
 
