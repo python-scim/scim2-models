@@ -17,6 +17,7 @@ from ..base import BaseModelType
 from ..base import CaseExact
 from ..base import ComplexAttribute
 from ..base import ExternalReference
+from ..base import MultiValuedComplexAttribute
 from ..base import Mutability
 from ..base import Required
 from ..base import Returned
@@ -253,8 +254,8 @@ class Resource(BaseModel, Generic[AnyExtension], metaclass=ResourceMetaclass):
 AnyResource = TypeVar("AnyResource", bound="Resource")
 
 
-def dedicated_attributes(model):
-    """Return attributes that are not members of parent classes."""
+def dedicated_attributes(model, excluded_models):
+    """Return attributes that are not members the parent 'excluded_models'."""
 
     def compare_field_infos(fi1, fi2):
         return (
@@ -268,8 +269,8 @@ def dedicated_attributes(model):
 
     parent_field_infos = {
         field_name: field_info
-        for parent in model.__bases__
-        for field_name, field_info in parent.model_fields.items()
+        for excluded_model in excluded_models
+        for field_name, field_info in excluded_model.model_fields.items()
     }
     field_infos = {
         field_name: field_info
@@ -283,7 +284,7 @@ def model_to_schema(model: type[BaseModel]):
     from scim2_models.rfc7643.schema import Schema
 
     schema_urn = model.model_fields["schemas"].default[0]
-    field_infos = dedicated_attributes(model)
+    field_infos = dedicated_attributes(model, [Resource])
     attributes = [
         model_attribute_to_attribute(model, attribute_name)
         for attribute_name in field_infos
@@ -323,7 +324,9 @@ def model_attribute_to_attribute(model, attribute_name):
     sub_attributes = (
         [
             model_attribute_to_attribute(root_type, sub_attribute_name)
-            for sub_attribute_name in dedicated_attributes(root_type)
+            for sub_attribute_name in dedicated_attributes(
+                root_type, [MultiValuedComplexAttribute]
+            )
             if (
                 attribute_name != "sub_attributes"
                 or sub_attribute_name != "sub_attributes"
