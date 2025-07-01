@@ -4,7 +4,6 @@ from typing import Any
 from typing import Generic
 from typing import Optional
 from typing import TypeVar
-from typing import Union
 from typing import get_args
 from typing import get_origin
 
@@ -24,6 +23,7 @@ from ..base import Returned
 from ..base import Uniqueness
 from ..base import URIReference
 from ..base import is_complex_attribute
+from ..utils import UNION_TYPES
 from ..utils import normalize_attribute_name
 
 
@@ -117,7 +117,7 @@ class ResourceMetaclass(BaseModelType):
             extensions = kwargs["__pydantic_generic_metadata__"]["args"][0]
             extensions = (
                 get_args(extensions)
-                if get_origin(extensions) == Union
+                if get_origin(extensions) in UNION_TYPES
                 else [extensions]
             )
             for extension in extensions:
@@ -183,7 +183,8 @@ class Resource(BaseModel, Generic[AnyExtension], metaclass=ResourceMetaclass):
         extension_models = cls.__pydantic_generic_metadata__.get("args", [])
         extension_models = (
             get_args(extension_models[0])
-            if len(extension_models) == 1 and get_origin(extension_models[0]) == Union
+            if len(extension_models) == 1
+            and get_origin(extension_models[0]) in UNION_TYPES
             else extension_models
         )
 
@@ -301,7 +302,7 @@ def model_to_schema(model: type[BaseModel]):
 
 def get_reference_types(type) -> list[str]:
     first_arg = get_args(type)[0]
-    types = get_args(first_arg) if get_origin(first_arg) == Union else [first_arg]
+    types = get_args(first_arg) if get_origin(first_arg) in UNION_TYPES else [first_arg]
 
     def serialize_ref_type(ref_type):
         if ref_type == URIReference:
