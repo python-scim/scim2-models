@@ -20,6 +20,7 @@ from ..base import BaseModelType
 from ..base import Context
 from ..base import Required
 from ..rfc7643.resource import AnyResource
+from ..utils import UNION_TYPES
 from .message import Message
 
 
@@ -29,7 +30,7 @@ class ListResponseMetaclass(BaseModelType):
 
         https://docs.pydantic.dev/latest/concepts/unions/#discriminated-unions
         """
-        if not get_origin(resource_union) == Union:
+        if get_origin(resource_union) not in UNION_TYPES:
             return resource_union
 
         resource_types = get_args(resource_union)
