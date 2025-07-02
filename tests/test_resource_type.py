@@ -1,5 +1,10 @@
+from typing import Annotated
+from typing import Union
+
 from scim2_models import EnterpriseUser
+from scim2_models import Extension
 from scim2_models import Reference
+from scim2_models import Required
 from scim2_models import ResourceType
 from scim2_models import User
 
@@ -61,3 +66,32 @@ def test_from_resource_with_extensions():
         == "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"
     )
     assert not enterprise_user_rt.schema_extensions[0].required
+
+
+def test_from_resource_with_mulitple_extensions():
+    class TestExtension(Extension):
+        schemas: Annotated[list[str], Required.true] = [
+            "urn:ietf:params:scim:schemas:extension:Test:1.0:User"
+        ]
+
+        test: Union[str, None] = None
+        test2: Union[list[str], None] = None
+
+    enterprise_user_rt = ResourceType.from_resource(
+        User[Union[EnterpriseUser, TestExtension]]
+    )
+    assert enterprise_user_rt.id == "User"
+    assert enterprise_user_rt.name == "User"
+    assert enterprise_user_rt.description == "User"
+    assert enterprise_user_rt.endpoint == "/Users"
+    assert enterprise_user_rt.schema_ == "urn:ietf:params:scim:schemas:core:2.0:User"
+    assert (
+        enterprise_user_rt.schema_extensions[0].schema_
+        == "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"
+    )
+    assert not enterprise_user_rt.schema_extensions[0].required
+    assert (
+        enterprise_user_rt.schema_extensions[1].schema_
+        == "urn:ietf:params:scim:schemas:extension:Test:1.0:User"
+    )
+    assert not enterprise_user_rt.schema_extensions[1].required
