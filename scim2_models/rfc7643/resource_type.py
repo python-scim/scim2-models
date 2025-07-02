@@ -1,5 +1,7 @@
 from typing import Annotated
 from typing import Optional
+from typing import get_args
+from typing import get_origin
 
 from pydantic import Field
 from typing_extensions import Self
@@ -11,6 +13,7 @@ from ..base import Reference
 from ..base import Required
 from ..base import Returned
 from ..base import URIReference
+from ..utils import UNION_TYPES
 from .resource import Resource
 
 
@@ -82,7 +85,16 @@ class ResourceType(Resource):
         """Build a naive ResourceType from a resource model."""
         schema = resource_model.model_fields["schemas"].default[0]
         name = schema.split(":")[-1]
-        extensions = resource_model.__pydantic_generic_metadata__["args"]
+        if resource_model.__pydantic_generic_metadata__["args"]:
+            extensions = resource_model.__pydantic_generic_metadata__["args"][0]
+            extensions = (
+                get_args(extensions)
+                if get_origin(extensions) in UNION_TYPES
+                else [extensions]
+            )
+        else:
+            extensions = []
+
         return ResourceType(
             id=name,
             name=name,
