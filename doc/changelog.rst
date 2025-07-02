@@ -1,6 +1,14 @@
 Changelog
 =========
 
+[0.3.6] - Unreleased
+--------------------
+
+Added
+^^^^^
+- Fix :meth:`ResourceType.from_resource <scim2_models.ResourceType.from_resource>`
+  usage for resources with several extensions. #95
+
 [0.3.5] - 2025-06-05
 --------------------
 
