@@ -74,8 +74,8 @@ def test_from_resource_with_mulitple_extensions():
             "urn:ietf:params:scim:schemas:extension:Test:1.0:User"
         ]
 
-        test: str | None = None
-        test2: list[str] | None = None
+        test: Union[str, None] = None
+        test2: Union[list[str], None] = None
 
     enterprise_user_rt = ResourceType.from_resource(
         User[Union[EnterpriseUser, TestExtension]]
