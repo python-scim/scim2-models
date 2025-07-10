@@ -68,11 +68,3 @@ class PatchOp(Message):
     )
     """The body of an HTTP PATCH request MUST contain the attribute
     "Operations", whose value is an array of one or more PATCH operations."""
-
-    @field_validator("schemas")
-    @classmethod
-    def validate_schemas(cls, value):
-        expected = ["urn:ietf:params:scim:api:messages:2.0:PatchOp"]
-        if value != expected:
-            raise ValueError(f"`schemas` must be exactly {expected}")
-        return value
