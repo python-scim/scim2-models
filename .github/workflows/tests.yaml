@@ -34,6 +34,20 @@ jobs:
       - name: Run tests
         run: uv run pytest --showlocals
 
+  coverage:
+    name: py${{ matrix.python }} unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+      - name: Install Python ${{ matrix.python }}
+        run: uv python install ${{ matrix.python }}
+      - name: Run tests
+        run: uv run pytest --cov --cov-fail-under=100
+
   downstream-tests:
     name: py${{ matrix.python }} ${{ matrix.downstream }} downstream unit tests
     runs-on: ubuntu-latest
