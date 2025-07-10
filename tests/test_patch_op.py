@@ -35,3 +35,29 @@ def test_validate_patchop_case_insensitivith():
                 "operations": [{"op": 42, "path": "userName", "value": "Rivard"}],
             },
         )
+
+
+def test_path_required_for_remove_operations():
+    PatchOp.model_validate(
+        {
+            "operations": [
+                {"op": "replace", "value": "foobar"},
+            ],
+        }
+    )
+    PatchOp.model_validate(
+        {
+            "operations": [
+                {"op": "add", "value": "foobar"},
+            ],
+        }
+    )
+
+    with pytest.raises(ValidationError):
+        PatchOp.model_validate(
+            {
+                "operations": [
+                    {"op": "remove", "value": "foobar"},
+                ],
+            }
+        )

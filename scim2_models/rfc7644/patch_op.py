@@ -5,6 +5,8 @@ from typing import Optional
 
 from pydantic import Field
 from pydantic import field_validator
+from pydantic import model_validator
+from typing_extensions import Self
 
 from ..base import ComplexAttribute
 from ..base import Required
@@ -31,6 +33,18 @@ class PatchOperation(ComplexAttribute):
     path: Optional[str] = None
     """The "path" attribute value is a String containing an attribute path
     describing the target of the operation."""
+
+    @model_validator(mode="after")
+    def validate_path(self) -> Self:
+        # The "path" attribute value is a String containing an attribute path
+        # describing the target of the operation. The "path" attribute is
+        # OPTIONAL for "add" and "replace" and is REQUIRED for "remove"
+        # operations. See relevant operation sections below for details.
+
+        if self.path is None and self.op == PatchOperation.Op.remove:
+            raise ValueError("Op.path is required for remove operations")
+
+        return self
 
     value: Optional[Any] = None
 
