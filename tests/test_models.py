@@ -28,7 +28,7 @@ def test_parse_and_serialize_examples(load_sample):
         "list_response": ListResponse[
             Union[User[EnterpriseUser], Group, Schema, ResourceType]
         ],
-        "patch_op": PatchOp,
+        "patch_op": PatchOp[User],
         "bulk_request": BulkRequest,
         "bulk_response": BulkResponse,
         "search_request": SearchRequest,
@@ -149,7 +149,7 @@ def test_everything_is_optional():
         ResourceType,
         ServiceProviderConfig,
         ListResponse[User],
-        PatchOp,
+        PatchOp[User],
         BulkRequest,
         BulkResponse,
         SearchRequest,

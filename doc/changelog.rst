@@ -7,6 +7,7 @@ Changelog
 Added
 ^^^^^
 - Proper path validation for :attr:`~scim2_models.SearchRequest.attributes`, :attr:`~scim2_models.SearchRequest.excluded_attributes` and :attr:`~scim2_models.SearchRequest.sort_by`.
+- Implement :meth:`~scim2_models.PatchOp.patch`
 
 Fixed
 ^^^^^

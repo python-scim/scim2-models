@@ -114,12 +114,6 @@ class GenericMessageMetaclass(ModelMetaclass):
 
 def get_resource_class(obj) -> Optional[type[Resource]]:
     """Extract the resource class from generic type parameter."""
-    metadata = getattr(obj.__class__, "__pydantic_generic_metadata__", None)
-    if not metadata or not metadata.get("args"):
-        return None
-
+    metadata = getattr(obj.__class__, "__pydantic_generic_metadata__", {"args": [None]})
     resource_class = metadata["args"][0]
-    if isinstance(resource_class, type) and issubclass(resource_class, Resource):
-        return resource_class
-
-    return None
+    return resource_class
