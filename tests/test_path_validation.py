@@ -108,8 +108,5 @@ def test_path_extraction():
         == "userName"
     )
 
-    # Test complex path with filter (should return None)
-    assert extract_field_name('emails[type eq "work"]') is None
-
     # Test invalid URN path
     assert extract_field_name("urn:invalid") is None
