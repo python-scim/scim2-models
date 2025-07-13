@@ -68,6 +68,7 @@ exclude_lines = [
     "pragma: no cover",
     "raise NotImplementedError",
     "except ImportError",
+    "if TYPE_CHECKING:",
 ]
 
 [tool.ruff.lint]

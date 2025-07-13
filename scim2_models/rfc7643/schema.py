@@ -47,7 +47,7 @@ def make_python_identifier(identifier: str) -> str:
 def make_python_model(
     obj: Union["Schema", "Attribute"],
     base: Optional[type[BaseModel]] = None,
-    multiple=False,
+    multiple: bool = False,
 ) -> Union[Resource, Extension]:
     """Build a Python model from a Schema or an Attribute object."""
     if isinstance(obj, Attribute):
@@ -95,7 +95,7 @@ class Attribute(ComplexAttribute):
 
         def to_python(
             self,
-            multiple=False,
+            multiple: bool = False,
             reference_types: Optional[list[str]] = None,
         ) -> type:
             if self.value == self.reference and reference_types is not None:
@@ -147,7 +147,7 @@ class Attribute(ComplexAttribute):
     ] = None
     """The attribute's name."""
 
-    type: Annotated[Type, Mutability.read_only, Required.true] = Field(
+    type: Annotated[Optional[Type], Mutability.read_only, Required.true] = Field(
         None, examples=[item.value for item in Type]
     )
     """The attribute's data type."""
@@ -208,13 +208,13 @@ class Attribute(ComplexAttribute):
 
     def to_python(self) -> Optional[tuple[Any, Field]]:
         """Build tuple suited to be passed to pydantic 'create_model'."""
-        if not self.name:
+        if not self.name or not self.type:
             return None
 
-        attr_type = self.type.to_python(self.multi_valued, self.reference_types)
+        attr_type = self.type.to_python(bool(self.multi_valued), self.reference_types)
 
         if attr_type in (ComplexAttribute, MultiValuedComplexAttribute):
-            attr_type = make_python_model(obj=self, multiple=self.multi_valued)
+            attr_type = make_python_model(obj=self, multiple=bool(self.multi_valued))
 
         if self.multi_valued:
             attr_type = list[attr_type]  # type: ignore
@@ -245,7 +245,7 @@ class Attribute(ComplexAttribute):
                 return sub_attribute
         return None
 
-    def __getitem__(self, name):
+    def __getitem__(self, name: str) -> "Attribute":
         """Find an attribute by its name."""
         if attribute := self.get_attribute(name):
             return attribute
@@ -287,7 +287,7 @@ class Schema(Resource):
                 return attribute
         return None
 
-    def __getitem__(self, name):
+    def __getitem__(self, name: str) -> "Attribute":
         """Find an attribute by its name."""
         if attribute := self.get_attribute(name):
             return attribute
