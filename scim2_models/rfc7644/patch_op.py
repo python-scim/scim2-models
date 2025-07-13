@@ -50,7 +50,7 @@ class PatchOperation(ComplexAttribute):
 
     @field_validator("op", mode="before")
     @classmethod
-    def normalize_op(cls, v):
+    def normalize_op(cls, v: Any) -> Any:
         """Ignorecase for op.
 
         This brings

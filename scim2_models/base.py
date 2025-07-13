@@ -14,6 +14,7 @@ from pydantic import AliasGenerator
 from pydantic import BaseModel as PydanticBaseModel
 from pydantic import ConfigDict
 from pydantic import Field
+from pydantic import FieldSerializationInfo
 from pydantic import GetCoreSchemaHandler
 from pydantic import SerializationInfo
 from pydantic import SerializerFunctionWrapHandler
@@ -115,7 +116,9 @@ def validate_attribute_urn(
     return f"{schema}:{attribute_base}"
 
 
-def contains_attribute_or_subattributes(attribute_urns: list[str], attribute_urn: str):
+def contains_attribute_or_subattributes(
+    attribute_urns: list[str], attribute_urn: str
+) -> bool:
     return attribute_urn in attribute_urns or any(
         item.startswith(f"{attribute_urn}.") or item.startswith(f"{attribute_urn}:")
         for item in attribute_urns
@@ -412,7 +415,7 @@ class Required(Enum):
 
     _default = false
 
-    def __bool__(self):
+    def __bool__(self) -> bool:
         return self.value
 
 
@@ -424,7 +427,7 @@ class CaseExact(Enum):
 
     _default = false
 
-    def __bool__(self):
+    def __bool__(self) -> bool:
         return self.value
 
 
@@ -449,7 +452,7 @@ class BaseModel(PydanticBaseModel):
 
         default_value = getattr(annotation_type, "_default", None)
 
-        def annotation_type_filter(item):
+        def annotation_type_filter(item: Any) -> bool:
             return isinstance(item, annotation_type)
 
         field_annotation = next(
@@ -647,7 +650,9 @@ class BaseModel(PydanticBaseModel):
         return value
 
     @classmethod
-    def check_mutability_issues(cls, original: "BaseModel", replacement: "BaseModel"):
+    def check_mutability_issues(
+        cls, original: "BaseModel", replacement: "BaseModel"
+    ) -> None:
         """Compare two instances, and check for differences of values on the fields marked as immutable."""
         model = replacement.__class__
         for field_name in model.model_fields:
@@ -662,15 +667,17 @@ class BaseModel(PydanticBaseModel):
                 )
 
             attr_type = model.get_field_root_type(field_name)
-            if is_complex_attribute(attr_type) and not model.get_field_multiplicity(
-                field_name
+            if (
+                attr_type
+                and is_complex_attribute(attr_type)
+                and not model.get_field_multiplicity(field_name)
             ):
                 original_val = getattr(original, field_name)
                 replacement_value = getattr(replacement, field_name)
                 if original_val is not None and replacement_value is not None:
                     cls.check_mutability_issues(original_val, replacement_value)
 
-    def mark_with_schema(self):
+    def mark_with_schema(self) -> None:
         """Navigate through attributes and sub-attributes of type ComplexAttribute, and mark them with a '_schema' attribute.
 
         '_schema' will later be used by 'get_attribute_urn'.
@@ -679,7 +686,7 @@ class BaseModel(PydanticBaseModel):
 
         for field_name in self.__class__.model_fields:
             attr_type = self.get_field_root_type(field_name)
-            if not is_complex_attribute(attr_type):
+            if not attr_type or not is_complex_attribute(attr_type):
                 continue
 
             main_schema = (
@@ -702,7 +709,7 @@ class BaseModel(PydanticBaseModel):
         self,
         value: Any,
         handler: SerializerFunctionWrapHandler,
-        info: SerializationInfo,
+        info: FieldSerializationInfo,
     ) -> Any:
         """Serialize the fields according to mutability indications passed in the serialization context."""
         value = handler(value)
@@ -716,7 +723,7 @@ class BaseModel(PydanticBaseModel):
 
         return value
 
-    def scim_request_serializer(self, value: Any, info: SerializationInfo) -> Any:
+    def scim_request_serializer(self, value: Any, info: FieldSerializationInfo) -> Any:
         """Serialize the fields according to mutability indications passed in the serialization context."""
         mutability = self.get_field_annotation(info.field_name, Mutability)
         scim_ctx = info.context.get("scim") if info.context else None
@@ -740,7 +747,7 @@ class BaseModel(PydanticBaseModel):
 
         return value
 
-    def scim_response_serializer(self, value: Any, info: SerializationInfo) -> Any:
+    def scim_response_serializer(self, value: Any, info: FieldSerializationInfo) -> Any:
         """Serialize the fields according to returnability indications passed in the serialization context."""
         returnability = self.get_field_annotation(info.field_name, Returned)
         attribute_urn = self.get_attribute_urn(info.field_name)
@@ -774,7 +781,7 @@ class BaseModel(PydanticBaseModel):
 
     @model_serializer(mode="wrap")
     def model_serializer_exclude_none(
-        self, handler, info: SerializationInfo
+        self, handler: SerializerFunctionWrapHandler, info: SerializationInfo
     ) -> dict[str, Any]:
         """Remove `None` values inserted by the :meth:`~scim2_models.base.BaseModel.scim_serializer`."""
         self.mark_with_schema()
@@ -787,7 +794,7 @@ class BaseModel(PydanticBaseModel):
         *args,
         scim_ctx: Optional[Context] = Context.DEFAULT,
         original: Optional["BaseModel"] = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> Self:
         """Validate SCIM payloads and generate model representation by using Pydantic :code:`BaseModel.model_validate`.
 
@@ -812,8 +819,8 @@ class BaseModel(PydanticBaseModel):
         scim_ctx: Optional[Context] = Context.DEFAULT,
         attributes: Optional[list[str]] = None,
         excluded_attributes: Optional[list[str]] = None,
-        **kwargs,
-    ):
+        **kwargs: Any,
+    ) -> dict[str, Any]:
         kwargs.setdefault("context", {}).setdefault("scim", scim_ctx)
         kwargs["context"]["scim_attributes"] = [
             validate_attribute_urn(attribute, self.__class__)
@@ -832,11 +839,11 @@ class BaseModel(PydanticBaseModel):
 
     def model_dump(
         self,
-        *args,
+        *args: Any,
         scim_ctx: Optional[Context] = Context.DEFAULT,
         attributes: Optional[list[str]] = None,
         excluded_attributes: Optional[list[str]] = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> dict:
         """Create a model representation that can be included in SCIM messages by using Pydantic :code:`BaseModel.model_dump`.
 
@@ -853,12 +860,12 @@ class BaseModel(PydanticBaseModel):
 
     def model_dump_json(
         self,
-        *args,
+        *args: Any,
         scim_ctx: Optional[Context] = Context.DEFAULT,
         attributes: Optional[list[str]] = None,
         excluded_attributes: Optional[list[str]] = None,
-        **kwargs,
-    ) -> dict:
+        **kwargs: Any,
+    ) -> str:
         """Create a JSON model representation that can be included in SCIM messages by using Pydantic :code:`BaseModel.model_dump_json`.
 
         :param scim_ctx: If a SCIM context is passed, some default values of
@@ -920,12 +927,12 @@ class MultiValuedComplexAttribute(ComplexAttribute):
     reference."""
 
 
-def is_complex_attribute(type) -> bool:
+def is_complex_attribute(type_: type) -> bool:
     # issubclass raise a TypeError with 'Reference' on python < 3.11
     return (
-        get_origin(type) != Reference
-        and isclass(type)
-        and issubclass(type, (ComplexAttribute, MultiValuedComplexAttribute))
+        get_origin(type_) != Reference
+        and isclass(type_)
+        and issubclass(type_, (ComplexAttribute, MultiValuedComplexAttribute))
     )
 
 

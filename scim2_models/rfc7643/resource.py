@@ -1,15 +1,23 @@
 from datetime import datetime
+from typing import TYPE_CHECKING
 from typing import Annotated
 from typing import Any
 from typing import Generic
 from typing import Optional
 from typing import TypeVar
+from typing import Union
 from typing import get_args
 from typing import get_origin
+
+if TYPE_CHECKING:
+    from scim2_models.rfc7643.schema import Attribute
+    from scim2_models.rfc7643.schema import Schema
 
 from pydantic import Field
 from pydantic import WrapSerializer
 from pydantic import field_serializer
+from pydantic.functional_serializers import SerializationInfo
+from pydantic.functional_serializers import SerializerFunctionWrapHandler
 
 from ..base import BaseModel
 from ..base import BaseModelType
@@ -80,12 +88,12 @@ class Meta(ComplexAttribute):
 
 class Extension(BaseModel):
     @classmethod
-    def to_schema(cls):
+    def to_schema(cls) -> "Schema":
         """Build a :class:`~scim2_models.Schema` from the current extension class."""
         return model_to_schema(cls)
 
     @classmethod
-    def from_schema(cls, schema) -> "Extension":
+    def from_schema(cls, schema: "Schema") -> "Extension":
         """Build a :class:`~scim2_models.Extension` subclass from the schema definition."""
         from .schema import make_python_model
 
@@ -95,13 +103,15 @@ class Extension(BaseModel):
 AnyExtension = TypeVar("AnyExtension", bound="Extension")
 
 
-def extension_serializer(value: Any, handler, info) -> Optional[dict[str, Any]]:
+def extension_serializer(
+    value: Any, handler: SerializerFunctionWrapHandler, info: SerializationInfo
+) -> Optional[dict[str, Any]]:
     """Exclude the Resource attributes from the extension dump.
 
     For instance, attributes 'meta', 'id' or 'schemas' should not be
     dumped when the model is used as an extension for another model.
     """
-    partial_result = handler(value, info)
+    partial_result = handler(value)
     result = {
         attr_name: value
         for attr_name, value in partial_result.items()
@@ -111,7 +121,7 @@ def extension_serializer(value: Any, handler, info) -> Optional[dict[str, Any]]:
 
 
 class ResourceMetaclass(BaseModelType):
-    def __new__(cls, name, bases, attrs, **kwargs):
+    def __new__(cls, name: str, bases: tuple, attrs: dict, **kwargs: Any) -> type:
         """Dynamically add a field for each extension."""
         if "__pydantic_generic_metadata__" in kwargs:
             extensions = kwargs["__pydantic_generic_metadata__"]["args"][0]
@@ -165,13 +175,13 @@ class Resource(BaseModel, Generic[AnyExtension], metaclass=ResourceMetaclass):
     meta: Annotated[Optional[Meta], Mutability.read_only, Returned.default] = None
     """A complex attribute containing resource metadata."""
 
-    def __getitem__(self, item: Any):
+    def __getitem__(self, item: Any) -> Optional[Extension]:
         if not isinstance(item, type) or not issubclass(item, Extension):
             raise KeyError(f"{item} is not a valid extension type")
 
         return getattr(self, item.__name__)
 
-    def __setitem__(self, item: Any, value: "Resource"):
+    def __setitem__(self, item: Any, value: "Resource") -> None:
         if not isinstance(item, type) or not issubclass(item, Extension):
             raise KeyError(f"{item} is not a valid extension type")
 
@@ -180,12 +190,11 @@ class Resource(BaseModel, Generic[AnyExtension], metaclass=ResourceMetaclass):
     @classmethod
     def get_extension_models(cls) -> dict[str, type[Extension]]:
         """Return extension a dict associating extension models with their schemas."""
-        extension_models = cls.__pydantic_generic_metadata__.get("args", [])
+        generic_args: Any = cls.__pydantic_generic_metadata__.get("args", [])
         extension_models = (
-            get_args(extension_models[0])
-            if len(extension_models) == 1
-            and get_origin(extension_models[0]) in UNION_TYPES
-            else extension_models
+            get_args(generic_args[0])
+            if len(generic_args) == 1 and get_origin(generic_args[0]) in UNION_TYPES
+            else generic_args
         )
 
         by_schema = {
@@ -194,7 +203,9 @@ class Resource(BaseModel, Generic[AnyExtension], metaclass=ResourceMetaclass):
         return by_schema
 
     @classmethod
-    def get_extension_model(cls, name_or_schema) -> Optional[type[Extension]]:
+    def get_extension_model(
+        cls, name_or_schema: Union[str, "Schema"]
+    ) -> Optional[type[Extension]]:
         """Return an extension by its name or schema."""
         for schema, extension in cls.get_extension_models().items():
             if schema == name_or_schema or extension.__name__ == name_or_schema:
@@ -203,7 +214,7 @@ class Resource(BaseModel, Generic[AnyExtension], metaclass=ResourceMetaclass):
 
     @staticmethod
     def get_by_schema(
-        resource_types: list[type[BaseModel]], schema: str, with_extensions=True
+        resource_types: list[type[BaseModel]], schema: str, with_extensions: bool = True
     ) -> Optional[type]:
         """Given a resource type list and a schema, find the matching resource type."""
         by_schema = {
@@ -222,7 +233,9 @@ class Resource(BaseModel, Generic[AnyExtension], metaclass=ResourceMetaclass):
         return by_schema.get(schema.lower())
 
     @staticmethod
-    def get_by_payload(resource_types: list[type], payload: dict, **kwargs):
+    def get_by_payload(
+        resource_types: list[type], payload: dict, **kwargs: Any
+    ) -> Optional[type]:
         """Given a resource type list and a payload, find the matching resource type."""
         if not payload or not payload.get("schemas"):
             return None
@@ -231,7 +244,9 @@ class Resource(BaseModel, Generic[AnyExtension], metaclass=ResourceMetaclass):
         return Resource.get_by_schema(resource_types, schema, **kwargs)
 
     @field_serializer("schemas")
-    def set_extension_schemas(self, schemas: Annotated[list[str], Required.true]):
+    def set_extension_schemas(
+        self, schemas: Annotated[list[str], Required.true]
+    ) -> list[str]:
         """Add model extension ids to the 'schemas' attribute."""
         extension_schemas = self.get_extension_models().keys()
         schemas = self.schemas + [
@@ -240,12 +255,12 @@ class Resource(BaseModel, Generic[AnyExtension], metaclass=ResourceMetaclass):
         return schemas
 
     @classmethod
-    def to_schema(cls):
+    def to_schema(cls) -> "Schema":
         """Build a :class:`~scim2_models.Schema` from the current resource class."""
         return model_to_schema(cls)
 
     @classmethod
-    def from_schema(cls, schema) -> "Resource":
+    def from_schema(cls, schema: "Schema") -> "Resource":
         """Build a :class:`scim2_models.Resource` subclass from the schema definition."""
         from .schema import make_python_model
 
@@ -255,10 +270,12 @@ class Resource(BaseModel, Generic[AnyExtension], metaclass=ResourceMetaclass):
 AnyResource = TypeVar("AnyResource", bound="Resource")
 
 
-def dedicated_attributes(model, excluded_models):
+def dedicated_attributes(
+    model: type[BaseModel], excluded_models: list[type[BaseModel]]
+) -> dict:
     """Return attributes that are not members the parent 'excluded_models'."""
 
-    def compare_field_infos(fi1, fi2):
+    def compare_field_infos(fi1: Any, fi2: Any) -> bool:
         return (
             fi1
             and fi2
@@ -281,13 +298,13 @@ def dedicated_attributes(model, excluded_models):
     return field_infos
 
 
-def model_to_schema(model: type[BaseModel]):
+def model_to_schema(model: type[BaseModel]) -> "Schema":
     from scim2_models.rfc7643.schema import Schema
 
     schema_urn = model.model_fields["schemas"].default[0]
     field_infos = dedicated_attributes(model, [Resource])
     attributes = [
-        model_attribute_to_attribute(model, attribute_name)
+        model_attribute_to_scim_attribute(model, attribute_name)
         for attribute_name in field_infos
         if attribute_name != "schemas"
     ]
@@ -304,7 +321,7 @@ def get_reference_types(type) -> list[str]:
     first_arg = get_args(type)[0]
     types = get_args(first_arg) if get_origin(first_arg) in UNION_TYPES else [first_arg]
 
-    def serialize_ref_type(ref_type):
+    def serialize_ref_type(ref_type: type) -> str:
         if ref_type == URIReference:
             return "uri"
 
@@ -316,7 +333,9 @@ def get_reference_types(type) -> list[str]:
     return list(map(serialize_ref_type, types))
 
 
-def model_attribute_to_attribute(model, attribute_name):
+def model_attribute_to_scim_attribute(
+    model: type[BaseModel], attribute_name: str
+) -> "Attribute":
     from scim2_models.rfc7643.schema import Attribute
 
     field_info = model.model_fields[attribute_name]
@@ -324,16 +343,17 @@ def model_attribute_to_attribute(model, attribute_name):
     attribute_type = Attribute.Type.from_python(root_type)
     sub_attributes = (
         [
-            model_attribute_to_attribute(root_type, sub_attribute_name)
+            model_attribute_to_scim_attribute(root_type, sub_attribute_name)
             for sub_attribute_name in dedicated_attributes(
-                root_type, [MultiValuedComplexAttribute]
+                root_type,
+                [MultiValuedComplexAttribute],
             )
             if (
                 attribute_name != "sub_attributes"
                 or sub_attribute_name != "sub_attributes"
             )
         ]
-        if is_complex_attribute(root_type)
+        if root_type and is_complex_attribute(root_type)
         else None
     )
 

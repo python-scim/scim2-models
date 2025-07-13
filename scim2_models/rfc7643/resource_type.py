@@ -95,7 +95,7 @@ class ResourceType(Resource):
         else:
             extensions = []
 
-        return ResourceType(
+        return cls(
             id=name,
             name=name,
             description=name,

@@ -11,7 +11,7 @@ from pydantic.alias_generators import to_snake
 from pydantic_core import PydanticCustomError
 
 try:
-    from types import UnionType  # type: ignore
+    from types import UnionType
 
     UNION_TYPES = [Union, UnionType]
 except ImportError:
