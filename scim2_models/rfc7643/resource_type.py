@@ -9,10 +9,10 @@ from typing_extensions import Self
 from ..base import CaseExact
 from ..base import ComplexAttribute
 from ..base import Mutability
-from ..base import Reference
 from ..base import Required
 from ..base import Returned
-from ..base import URIReference
+from ..reference import Reference
+from ..reference import URIReference
 from ..utils import UNION_TYPES
 from .resource import Resource
 

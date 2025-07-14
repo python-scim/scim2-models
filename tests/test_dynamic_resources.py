@@ -4,14 +4,14 @@ from typing import Union
 
 from scim2_models.base import CaseExact
 from scim2_models.base import ComplexAttribute
-from scim2_models.base import ExternalReference
 from scim2_models.base import MultiValuedComplexAttribute
 from scim2_models.base import Mutability
-from scim2_models.base import Reference
 from scim2_models.base import Required
 from scim2_models.base import Returned
 from scim2_models.base import Uniqueness
-from scim2_models.base import URIReference
+from scim2_models.reference import ExternalReference
+from scim2_models.reference import Reference
+from scim2_models.reference import URIReference
 from scim2_models.rfc7643.resource import Extension
 from scim2_models.rfc7643.resource import Resource
 from scim2_models.rfc7643.schema import Attribute

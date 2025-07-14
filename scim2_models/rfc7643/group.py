@@ -9,8 +9,8 @@ from pydantic import Field
 from ..base import ComplexAttribute
 from ..base import MultiValuedComplexAttribute
 from ..base import Mutability
-from ..base import Reference
 from ..base import Required
+from ..reference import Reference
 from .resource import Resource
 
 

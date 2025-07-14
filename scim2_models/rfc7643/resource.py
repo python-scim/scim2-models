@@ -23,14 +23,14 @@ from ..base import BaseModel
 from ..base import BaseModelType
 from ..base import CaseExact
 from ..base import ComplexAttribute
-from ..base import ExternalReference
 from ..base import MultiValuedComplexAttribute
 from ..base import Mutability
 from ..base import Required
 from ..base import Returned
 from ..base import Uniqueness
-from ..base import URIReference
 from ..base import is_complex_attribute
+from ..reference import ExternalReference
+from ..reference import URIReference
 from ..utils import UNION_TYPES
 from ..utils import normalize_attribute_name
 
