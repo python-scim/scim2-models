@@ -29,8 +29,7 @@ from ..attributes import MultiValuedComplexAttribute
 from ..attributes import is_complex_attribute
 from ..base import BaseModel
 from ..base import BaseModelType
-from ..reference import ExternalReference
-from ..reference import URIReference
+from ..reference import Reference
 from ..utils import UNION_TYPES
 from ..utils import normalize_attribute_name
 
@@ -317,22 +316,6 @@ def model_to_schema(model: type[BaseModel]) -> "Schema":
     return schema
 
 
-def get_reference_types(type) -> list[str]:
-    first_arg = get_args(type)[0]
-    types = get_args(first_arg) if get_origin(first_arg) in UNION_TYPES else [first_arg]
-
-    def serialize_ref_type(ref_type: type) -> str:
-        if ref_type == URIReference:
-            return "uri"
-
-        elif ref_type == ExternalReference:
-            return "external"
-
-        return get_args(ref_type)[0]
-
-    return list(map(serialize_ref_type, types))
-
-
 def model_attribute_to_scim_attribute(
     model: type[BaseModel], attribute_name: str
 ) -> "Attribute":
@@ -369,7 +352,7 @@ def model_attribute_to_scim_attribute(
         returned=model.get_field_annotation(attribute_name, Returned),
         uniqueness=model.get_field_annotation(attribute_name, Uniqueness),
         sub_attributes=sub_attributes,
-        reference_types=get_reference_types(root_type)
+        reference_types=Reference.get_types(root_type)
         if attribute_type == Attribute.Type.reference
         else None,
     )
