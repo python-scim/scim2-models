@@ -6,10 +6,10 @@ from typing import Union
 
 from pydantic import Field
 
-from ..base import ComplexAttribute
-from ..base import MultiValuedComplexAttribute
-from ..base import Mutability
-from ..base import Required
+from ..annotations import Mutability
+from ..annotations import Required
+from ..attributes import ComplexAttribute
+from ..attributes import MultiValuedComplexAttribute
 from ..reference import Reference
 from .resource import Resource
 

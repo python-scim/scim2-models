@@ -3,9 +3,9 @@ from .annotations import Mutability
 from .annotations import Required
 from .annotations import Returned
 from .annotations import Uniqueness
+from .attributes import ComplexAttribute
+from .attributes import MultiValuedComplexAttribute
 from .base import BaseModel
-from .base import ComplexAttribute
-from .base import MultiValuedComplexAttribute
 from .context import Context
 from .reference import ExternalReference
 from .reference import Reference

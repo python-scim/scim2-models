@@ -8,7 +8,7 @@ from ..annotations import Mutability
 from ..annotations import Required
 from ..annotations import Returned
 from ..annotations import Uniqueness
-from ..base import ComplexAttribute
+from ..attributes import ComplexAttribute
 from ..reference import ExternalReference
 from ..reference import Reference
 from .resource import Resource
