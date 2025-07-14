@@ -4,11 +4,11 @@ from typing import Optional
 
 from pydantic import Field
 
+from ..annotations import Mutability
+from ..annotations import Required
+from ..annotations import Returned
+from ..annotations import Uniqueness
 from ..base import ComplexAttribute
-from ..base import Mutability
-from ..base import Required
-from ..base import Returned
-from ..base import Uniqueness
 from ..reference import ExternalReference
 from ..reference import Reference
 from .resource import Resource

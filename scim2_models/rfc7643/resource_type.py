@@ -6,11 +6,11 @@ from typing import get_origin
 from pydantic import Field
 from typing_extensions import Self
 
-from ..base import CaseExact
+from ..annotations import CaseExact
+from ..annotations import Mutability
+from ..annotations import Required
+from ..annotations import Returned
 from ..base import ComplexAttribute
-from ..base import Mutability
-from ..base import Required
-from ..base import Returned
 from ..reference import Reference
 from ..reference import URIReference
 from ..utils import UNION_TYPES

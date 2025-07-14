@@ -2,7 +2,7 @@ import operator
 from typing import Annotated
 from typing import Optional
 
-from scim2_models.base import Required
+from scim2_models.annotations import Required
 from scim2_models.context import Context
 from scim2_models.rfc7643.enterprise_user import EnterpriseUser
 from scim2_models.rfc7643.group import Group
