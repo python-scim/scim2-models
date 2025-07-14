@@ -364,9 +364,9 @@ class BaseModel(PydanticBaseModel):
                     cls.check_mutability_issues(original_val, replacement_value)
 
     def set_complex_attribute_urns(self) -> None:
-        """Navigate through attributes and sub-attributes of type ComplexAttribute, and mark them with a '_schema' attribute.
+        """Navigate through attributes and sub-attributes of type ComplexAttribute, and mark them with a 'attribute_urn' attribute.
 
-        '_schema' will later be used by 'get_attribute_urn'.
+        'attribute_urn' will later be used by 'get_attribute_urn'.
         """
         from scim2_models.rfc7643.resource import Resource
 
@@ -378,7 +378,7 @@ class BaseModel(PydanticBaseModel):
                 continue
 
             main_schema = (
-                getattr(self, "_schema", None)
+                getattr(self, "attribute_urn", None)
                 or self.__class__.model_fields["schemas"].default[0]
             )
 
@@ -388,9 +388,9 @@ class BaseModel(PydanticBaseModel):
             if attr_value := getattr(self, field_name):
                 if isinstance(attr_value, list):
                     for item in attr_value:
-                        item._schema = schema
+                        item.attribute_urn = schema
                 else:
-                    attr_value._schema = schema
+                    attr_value.attribute_urn = schema
 
     @field_serializer("*", mode="wrap")
     def scim_serializer(
