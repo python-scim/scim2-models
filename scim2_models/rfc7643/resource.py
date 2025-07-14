@@ -19,15 +19,15 @@ from pydantic import field_serializer
 from pydantic.functional_serializers import SerializationInfo
 from pydantic.functional_serializers import SerializerFunctionWrapHandler
 
+from ..annotations import CaseExact
+from ..annotations import Mutability
+from ..annotations import Required
+from ..annotations import Returned
+from ..annotations import Uniqueness
 from ..base import BaseModel
 from ..base import BaseModelType
-from ..base import CaseExact
 from ..base import ComplexAttribute
 from ..base import MultiValuedComplexAttribute
-from ..base import Mutability
-from ..base import Required
-from ..base import Returned
-from ..base import Uniqueness
 from ..base import is_complex_attribute
 from ..reference import ExternalReference
 from ..reference import URIReference

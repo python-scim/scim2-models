@@ -16,14 +16,14 @@ from pydantic.alias_generators import to_pascal
 from pydantic.alias_generators import to_snake
 from pydantic_core import Url
 
+from ..annotations import CaseExact
+from ..annotations import Mutability
+from ..annotations import Required
+from ..annotations import Returned
+from ..annotations import Uniqueness
 from ..base import BaseModel
-from ..base import CaseExact
 from ..base import ComplexAttribute
 from ..base import MultiValuedComplexAttribute
-from ..base import Mutability
-from ..base import Required
-from ..base import Returned
-from ..base import Uniqueness
 from ..base import is_complex_attribute
 from ..constants import RESERVED_WORDS
 from ..reference import ExternalReference
