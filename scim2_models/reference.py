@@ -2,10 +2,14 @@ from collections import UserString
 from typing import Any
 from typing import Generic
 from typing import TypeVar
+from typing import get_args
+from typing import get_origin
 
 from pydantic import GetCoreSchemaHandler
 from pydantic_core import core_schema
 from typing_extensions import NewType
+
+from .utils import UNION_TYPES
 
 ReferenceTypes = TypeVar("ReferenceTypes")
 
@@ -48,3 +52,28 @@ class Reference(UserString, Generic[ReferenceTypes]):
     @classmethod
     def _validate(cls, input_value: str, /) -> str:
         return input_value
+
+    @classmethod
+    def get_types(cls, type_annotation: Any) -> list[str]:
+        """Get reference types from a type annotation.
+
+        :param type_annotation: Type annotation to extract reference types from
+        :type type_annotation: Any
+        :return: List of reference type strings
+        :rtype: list[str]
+        """
+        first_arg = get_args(type_annotation)[0]
+        types = (
+            get_args(first_arg) if get_origin(first_arg) in UNION_TYPES else [first_arg]
+        )
+
+        def serialize_ref_type(ref_type: Any) -> str:
+            if ref_type == URIReference:
+                return "uri"
+
+            elif ref_type == ExternalReference:
+                return "external"
+
+            return get_args(ref_type)[0]
+
+        return list(map(serialize_ref_type, types))
