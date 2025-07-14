@@ -8,8 +8,8 @@ from pydantic import field_validator
 from pydantic import model_validator
 from typing_extensions import Self
 
-from ..base import ComplexAttribute
-from ..base import Required
+from ..annotations import Required
+from ..attributes import ComplexAttribute
 from .message import Message
 
 

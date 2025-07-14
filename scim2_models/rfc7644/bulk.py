@@ -6,8 +6,8 @@ from typing import Optional
 from pydantic import Field
 from pydantic import PlainSerializer
 
-from ..base import ComplexAttribute
-from ..base import Required
+from ..annotations import Required
+from ..attributes import ComplexAttribute
 from ..utils import int_to_str
 from .message import Message
 

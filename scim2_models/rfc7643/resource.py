@@ -24,11 +24,11 @@ from ..annotations import Mutability
 from ..annotations import Required
 from ..annotations import Returned
 from ..annotations import Uniqueness
+from ..attributes import ComplexAttribute
+from ..attributes import MultiValuedComplexAttribute
+from ..attributes import is_complex_attribute
 from ..base import BaseModel
 from ..base import BaseModelType
-from ..base import ComplexAttribute
-from ..base import MultiValuedComplexAttribute
-from ..base import is_complex_attribute
 from ..reference import ExternalReference
 from ..reference import URIReference
 from ..utils import UNION_TYPES

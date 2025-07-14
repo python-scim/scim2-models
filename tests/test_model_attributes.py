@@ -6,8 +6,8 @@ import pytest
 
 from scim2_models.annotations import Required
 from scim2_models.annotations import Returned
+from scim2_models.attributes import ComplexAttribute
 from scim2_models.base import BaseModel
-from scim2_models.base import ComplexAttribute
 from scim2_models.base import validate_attribute_urn
 from scim2_models.context import Context
 from scim2_models.rfc7643.enterprise_user import EnterpriseUser

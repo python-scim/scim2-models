@@ -10,7 +10,7 @@ from ..annotations import CaseExact
 from ..annotations import Mutability
 from ..annotations import Required
 from ..annotations import Returned
-from ..base import ComplexAttribute
+from ..attributes import ComplexAttribute
 from ..reference import Reference
 from ..reference import URIReference
 from ..utils import UNION_TYPES

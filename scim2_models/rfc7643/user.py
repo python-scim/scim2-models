@@ -13,8 +13,8 @@ from ..annotations import Mutability
 from ..annotations import Required
 from ..annotations import Returned
 from ..annotations import Uniqueness
-from ..base import ComplexAttribute
-from ..base import MultiValuedComplexAttribute
+from ..attributes import ComplexAttribute
+from ..attributes import MultiValuedComplexAttribute
 from ..reference import ExternalReference
 from ..reference import Reference
 from ..utils import Base64Bytes

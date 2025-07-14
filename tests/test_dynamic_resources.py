@@ -7,8 +7,8 @@ from scim2_models.annotations import Mutability
 from scim2_models.annotations import Required
 from scim2_models.annotations import Returned
 from scim2_models.annotations import Uniqueness
-from scim2_models.base import ComplexAttribute
-from scim2_models.base import MultiValuedComplexAttribute
+from scim2_models.attributes import ComplexAttribute
+from scim2_models.attributes import MultiValuedComplexAttribute
 from scim2_models.reference import ExternalReference
 from scim2_models.reference import Reference
 from scim2_models.reference import URIReference
