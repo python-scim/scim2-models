@@ -5,10 +5,10 @@ import pytest
 from pydantic import ValidationError
 
 from scim2_models.base import ComplexAttribute
-from scim2_models.base import Context
 from scim2_models.base import Mutability
 from scim2_models.base import Required
 from scim2_models.base import Returned
+from scim2_models.context import Context
 from scim2_models.rfc7643.resource import Resource
 
 
