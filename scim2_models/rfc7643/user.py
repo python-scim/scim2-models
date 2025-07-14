@@ -10,13 +10,13 @@ from pydantic import Field
 
 from ..base import CaseExact
 from ..base import ComplexAttribute
-from ..base import ExternalReference
 from ..base import MultiValuedComplexAttribute
 from ..base import Mutability
-from ..base import Reference
 from ..base import Required
 from ..base import Returned
 from ..base import Uniqueness
+from ..reference import ExternalReference
+from ..reference import Reference
 from ..utils import Base64Bytes
 from .resource import AnyExtension
 from .resource import Resource

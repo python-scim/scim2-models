@@ -1,11 +1,8 @@
-from collections import UserString
 from enum import Enum
 from inspect import isclass
 from typing import Annotated
 from typing import Any
-from typing import Generic
 from typing import Optional
-from typing import TypeVar
 from typing import get_args
 from typing import get_origin
 
@@ -14,7 +11,6 @@ from pydantic import BaseModel as PydanticBaseModel
 from pydantic import ConfigDict
 from pydantic import Field
 from pydantic import FieldSerializationInfo
-from pydantic import GetCoreSchemaHandler
 from pydantic import SerializationInfo
 from pydantic import SerializerFunctionWrapHandler
 from pydantic import ValidationInfo
@@ -24,19 +20,14 @@ from pydantic import field_validator
 from pydantic import model_serializer
 from pydantic import model_validator
 from pydantic_core import PydanticCustomError
-from pydantic_core import core_schema
-from typing_extensions import NewType
 from typing_extensions import Self
 
 from scim2_models.context import Context
+from scim2_models.reference import Reference
 from scim2_models.utils import normalize_attribute_name
 from scim2_models.utils import to_camel
 
 from .utils import UNION_TYPES
-
-ReferenceTypes = TypeVar("ReferenceTypes")
-URIReference = NewType("URIReference", str)
-ExternalReference = NewType("ExternalReference", str)
 
 
 def validate_model_attribute(model: type["BaseModel"], attribute_base: str) -> None:
@@ -123,43 +114,6 @@ def contains_attribute_or_subattributes(
         item.startswith(f"{attribute_urn}.") or item.startswith(f"{attribute_urn}:")
         for item in attribute_urns
     )
-
-
-class Reference(UserString, Generic[ReferenceTypes]):
-    """Reference type as defined in :rfc:`RFC7643 §2.3.7 <7643#section-2.3.7>`.
-
-    References can take different type parameters:
-
-        - Any :class:`~scim2_models.Resource` subtype, or :class:`~typing.ForwardRef` of a Resource subtype, or :data:`~typing.Union` of those,
-        - :data:`~scim2_models.ExternalReference`
-        - :data:`~scim2_models.URIReference`
-
-    Examples
-    --------
-
-    .. code-block:: python
-
-        class Foobar(Resource):
-            bff: Reference[User]
-            managers: Reference[Union["User", "Group"]]
-            photo: Reference[ExternalReference]
-            website: Reference[URIReference]
-
-    """
-
-    @classmethod
-    def __get_pydantic_core_schema__(
-        cls,
-        _source: type[Any],
-        _handler: GetCoreSchemaHandler,
-    ) -> core_schema.CoreSchema:
-        return core_schema.no_info_after_validator_function(
-            cls._validate, core_schema.str_schema()
-        )
-
-    @classmethod
-    def _validate(cls, input_value: str, /) -> str:
-        return input_value
 
 
 class Mutability(str, Enum):

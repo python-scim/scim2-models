@@ -5,12 +5,12 @@ from typing import Optional
 from pydantic import Field
 
 from ..base import ComplexAttribute
-from ..base import ExternalReference
 from ..base import Mutability
-from ..base import Reference
 from ..base import Required
 from ..base import Returned
 from ..base import Uniqueness
+from ..reference import ExternalReference
+from ..reference import Reference
 from .resource import Resource
 
 
