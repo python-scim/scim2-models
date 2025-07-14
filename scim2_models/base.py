@@ -363,7 +363,7 @@ class BaseModel(PydanticBaseModel):
                 if original_val is not None and replacement_value is not None:
                     cls.check_mutability_issues(original_val, replacement_value)
 
-    def mark_with_schema(self) -> None:
+    def set_complex_attribute_urns(self) -> None:
         """Navigate through attributes and sub-attributes of type ComplexAttribute, and mark them with a '_schema' attribute.
 
         '_schema' will later be used by 'get_attribute_urn'.
@@ -472,7 +472,7 @@ class BaseModel(PydanticBaseModel):
         self, handler: SerializerFunctionWrapHandler, info: SerializationInfo
     ) -> dict[str, Any]:
         """Remove `None` values inserted by the :meth:`~scim2_models.base.BaseModel.scim_serializer`."""
-        self.mark_with_schema()
+        self.set_complex_attribute_urns()
         result = handler(self)
         return {key: value for key, value in result.items() if value is not None}
 
