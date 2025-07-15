@@ -6,6 +6,7 @@ from typing import Any
 from typing import List  # noqa : UP005,UP035
 from typing import Literal
 from typing import Optional
+from typing import TypeVar
 from typing import Union
 from typing import get_origin
 
@@ -31,8 +32,9 @@ from ..reference import Reference
 from ..reference import URIReference
 from ..utils import Base64Bytes
 from ..utils import normalize_attribute_name
-from .resource import Extension
 from .resource import Resource
+
+T = TypeVar("T", bound=BaseModel)
 
 
 def make_python_identifier(identifier: str) -> str:
@@ -46,9 +48,9 @@ def make_python_identifier(identifier: str) -> str:
 
 def make_python_model(
     obj: Union["Schema", "Attribute"],
-    base: Optional[type[BaseModel]] = None,
+    base: type[T],
     multiple: bool = False,
-) -> Union[Resource, Extension]:
+) -> type[T]:
     """Build a Python model from a Schema or an Attribute object."""
     if isinstance(obj, Attribute):
         pydantic_attributes = {
@@ -56,7 +58,6 @@ def make_python_model(
             for attr in (obj.sub_attributes or [])
             if attr.name
         }
-        base = MultiValuedComplexAttribute if multiple else ComplexAttribute
 
     else:
         pydantic_attributes = {
@@ -214,7 +215,9 @@ class Attribute(ComplexAttribute):
         attr_type = self.type.to_python(bool(self.multi_valued), self.reference_types)
 
         if attr_type in (ComplexAttribute, MultiValuedComplexAttribute):
-            attr_type = make_python_model(obj=self, multiple=bool(self.multi_valued))
+            attr_type = make_python_model(
+                obj=self, base=attr_type, multiple=bool(self.multi_valued)
+            )
 
         if self.multi_valued:
             attr_type = list[attr_type]  # type: ignore

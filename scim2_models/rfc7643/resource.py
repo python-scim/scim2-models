@@ -92,7 +92,7 @@ class Extension(BaseModel):
         return model_to_schema(cls)
 
     @classmethod
-    def from_schema(cls, schema: "Schema") -> "Extension":
+    def from_schema(cls, schema: "Schema") -> type["Extension"]:
         """Build a :class:`~scim2_models.Extension` subclass from the schema definition."""
         from .schema import make_python_model
 
@@ -259,7 +259,7 @@ class Resource(BaseModel, Generic[AnyExtension], metaclass=ResourceMetaclass):
         return model_to_schema(cls)
 
     @classmethod
-    def from_schema(cls, schema: "Schema") -> "Resource":
+    def from_schema(cls, schema: "Schema") -> type["Resource"]:
         """Build a :class:`scim2_models.Resource` subclass from the schema definition."""
         from .schema import make_python_model
 
