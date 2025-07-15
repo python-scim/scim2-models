@@ -26,7 +26,6 @@ from ..attributes import is_complex_attribute
 from ..base import BaseModel
 from ..base import BaseModelType
 from ..reference import Reference
-from ..scim_object import SchemaObject
 from ..scim_object import ScimObject
 from ..utils import UNION_TYPES
 from ..utils import normalize_attribute_name
@@ -87,7 +86,7 @@ class Meta(ComplexAttribute):
     """
 
 
-class Extension(SchemaObject):
+class Extension(ScimObject):
     @classmethod
     def to_schema(cls) -> "Schema":
         """Build a :class:`~scim2_models.Schema` from the current extension class."""
