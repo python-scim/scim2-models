@@ -9,10 +9,6 @@ from typing import Union
 from typing import get_args
 from typing import get_origin
 
-if TYPE_CHECKING:
-    from scim2_models.rfc7643.schema import Attribute
-    from scim2_models.rfc7643.schema import Schema
-
 from pydantic import Field
 from pydantic import WrapSerializer
 from pydantic import field_serializer
@@ -30,8 +26,14 @@ from ..attributes import is_complex_attribute
 from ..base import BaseModel
 from ..base import BaseModelType
 from ..reference import Reference
+from ..scim_object import SchemaObject
+from ..scim_object import ScimObject
 from ..utils import UNION_TYPES
 from ..utils import normalize_attribute_name
+
+if TYPE_CHECKING:
+    from .schema import Attribute
+    from .schema import Schema
 
 
 class Meta(ComplexAttribute):
@@ -85,7 +87,7 @@ class Meta(ComplexAttribute):
     """
 
 
-class Extension(BaseModel):
+class Extension(SchemaObject):
     @classmethod
     def to_schema(cls) -> "Schema":
         """Build a :class:`~scim2_models.Schema` from the current extension class."""
@@ -145,13 +147,7 @@ class ResourceMetaclass(BaseModelType):
         return klass
 
 
-class Resource(BaseModel, Generic[AnyExtension], metaclass=ResourceMetaclass):
-    schemas: Annotated[list[str], Required.true]
-    """The "schemas" attribute is a REQUIRED attribute and is an array of
-    Strings containing URIs that are used to indicate the namespaces of the
-    SCIM schemas that define the attributes present in the current JSON
-    structure."""
-
+class Resource(ScimObject, Generic[AnyExtension], metaclass=ResourceMetaclass):
     # Common attributes as defined by
     # https://www.rfc-editor.org/rfc/rfc7643#section-3.1
 

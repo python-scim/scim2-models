@@ -11,14 +11,12 @@ from pydantic import Tag
 
 from ..base import BaseModel
 from ..base import BaseModelType
-from ..base import Required
+from ..scim_object import ScimObject
 from ..utils import UNION_TYPES
 
 
-class Message(BaseModel):
+class Message(ScimObject):
     """SCIM protocol messages as defined by :rfc:`RFC7644 §3.1 <7644#section-3.1>`."""
-
-    schemas: Annotated[list[str], Required.true]
 
 
 def create_schema_discriminator(
