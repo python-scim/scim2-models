@@ -371,17 +371,17 @@ class BaseModel(PydanticBaseModel):
         from .attributes import ComplexAttribute
         from .attributes import is_complex_attribute
 
+        if isinstance(self, ComplexAttribute):
+            main_schema = self.attribute_urn
+            separator = "."
+        else:
+            main_schema = self.__class__.model_fields["schemas"].default[0]
+            separator = ":"
+
         for field_name in self.__class__.model_fields:
             attr_type = self.get_field_root_type(field_name)
             if not attr_type or not is_complex_attribute(attr_type):
                 continue
-
-            if isinstance(self, ComplexAttribute):
-                main_schema = self.attribute_urn
-                separator = "."
-            else:
-                main_schema = self.__class__.model_fields["schemas"].default[0]
-                separator = ":"
 
             schema = f"{main_schema}{separator}{field_name}"
 
@@ -505,65 +505,15 @@ class BaseModel(PydanticBaseModel):
     def _prepare_model_dump(
         self,
         scim_ctx: Optional[Context] = Context.DEFAULT,
-        attributes: Optional[list[str]] = None,
-        excluded_attributes: Optional[list[str]] = None,
         **kwargs: Any,
     ) -> dict[str, Any]:
         kwargs.setdefault("context", {}).setdefault("scim", scim_ctx)
-        kwargs["context"]["scim_attributes"] = [
-            validate_attribute_urn(attribute, self.__class__)
-            for attribute in (attributes or [])
-        ]
-        kwargs["context"]["scim_excluded_attributes"] = [
-            validate_attribute_urn(attribute, self.__class__)
-            for attribute in (excluded_attributes or [])
-        ]
 
         if scim_ctx:
             kwargs.setdefault("exclude_none", True)
             kwargs.setdefault("by_alias", True)
 
         return kwargs
-
-    def model_dump(
-        self,
-        *args: Any,
-        scim_ctx: Optional[Context] = Context.DEFAULT,
-        attributes: Optional[list[str]] = None,
-        excluded_attributes: Optional[list[str]] = None,
-        **kwargs: Any,
-    ) -> dict:
-        """Create a model representation that can be included in SCIM messages by using Pydantic :code:`BaseModel.model_dump`.
-
-        :param scim_ctx: If a SCIM context is passed, some default values of
-            Pydantic :code:`BaseModel.model_dump` are tuned to generate valid SCIM
-            messages. Pass :data:`None` to get the default Pydantic behavior.
-        """
-        dump_kwargs = self._prepare_model_dump(
-            scim_ctx, attributes, excluded_attributes, **kwargs
-        )
-        if scim_ctx:
-            dump_kwargs.setdefault("mode", "json")
-        return super().model_dump(*args, **dump_kwargs)
-
-    def model_dump_json(
-        self,
-        *args: Any,
-        scim_ctx: Optional[Context] = Context.DEFAULT,
-        attributes: Optional[list[str]] = None,
-        excluded_attributes: Optional[list[str]] = None,
-        **kwargs: Any,
-    ) -> str:
-        """Create a JSON model representation that can be included in SCIM messages by using Pydantic :code:`BaseModel.model_dump_json`.
-
-        :param scim_ctx: If a SCIM context is passed, some default values of
-            Pydantic :code:`BaseModel.model_dump` are tuned to generate valid SCIM
-            messages. Pass :data:`None` to get the default Pydantic behavior.
-        """
-        dump_kwargs = self._prepare_model_dump(
-            scim_ctx, attributes, excluded_attributes, **kwargs
-        )
-        return super().model_dump_json(*args, **dump_kwargs)
 
     def get_attribute_urn(self, field_name: str) -> str:
         """Build the full URN of the attribute.
