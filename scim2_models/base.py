@@ -368,8 +368,7 @@ class BaseModel(PydanticBaseModel):
 
         'attribute_urn' will later be used by 'get_attribute_urn'.
         """
-        from scim2_models.rfc7643.resource import Resource
-
+        from .attributes import ComplexAttribute
         from .attributes import is_complex_attribute
 
         for field_name in self.__class__.model_fields:
@@ -377,12 +376,13 @@ class BaseModel(PydanticBaseModel):
             if not attr_type or not is_complex_attribute(attr_type):
                 continue
 
-            main_schema = (
-                getattr(self, "attribute_urn", None)
-                or self.__class__.model_fields["schemas"].default[0]
-            )
+            if isinstance(self, ComplexAttribute):
+                main_schema = self.attribute_urn
+                separator = "."
+            else:
+                main_schema = self.__class__.model_fields["schemas"].default[0]
+                separator = ":"
 
-            separator = ":" if isinstance(self, Resource) else "."
             schema = f"{main_schema}{separator}{field_name}"
 
             if attr_value := getattr(self, field_name):
