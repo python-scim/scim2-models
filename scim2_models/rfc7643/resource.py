@@ -10,10 +10,10 @@ from typing import get_args
 from typing import get_origin
 
 from pydantic import Field
+from pydantic import SerializationInfo
+from pydantic import SerializerFunctionWrapHandler
 from pydantic import WrapSerializer
 from pydantic import field_serializer
-from pydantic.functional_serializers import SerializationInfo
-from pydantic.functional_serializers import SerializerFunctionWrapHandler
 
 from ..annotations import CaseExact
 from ..annotations import Mutability
