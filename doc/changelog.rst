@@ -1,6 +1,13 @@
 Changelog
 =========
 
+[0.3.7] - 2025-07-17
+--------------------
+
+Fixed
+^^^^^
+- All non strict mypy type annotations are fixed.
+
 [0.3.6] - 2025-07-02
 --------------------
 
