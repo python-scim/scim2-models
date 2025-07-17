@@ -19,6 +19,8 @@ repos:
     rev: v1.15.0
     hooks:
       - id: mypy
+        additional_dependencies:
+          - pydantic[email]>=2.7.0
   - repo: https://github.com/codespell-project/codespell
     rev: v2.4.1
     hooks:

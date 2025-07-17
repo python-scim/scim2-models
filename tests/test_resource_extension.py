@@ -320,3 +320,31 @@ def test_class_getitem():
 
     with pytest.raises(TypeError, match="is not a valid Extension type"):
         User[int]
+
+
+def test_model_attribute_to_scim_attribute_error():
+    """Test error case where get_field_root_type returns None."""
+    from typing import Optional
+
+    from pydantic import Field
+
+    from scim2_models.base import BaseModel
+    from scim2_models.rfc7643.resource import model_attribute_to_scim_attribute
+
+    # Create a model with a field that has no clear root type
+    class TestModel(BaseModel):
+        problematic_field: Optional[str] = Field(default=None)
+
+    # Mock get_field_root_type to return None
+    original_method = TestModel.get_field_root_type
+    TestModel.get_field_root_type = classmethod(lambda cls, attr: None)
+
+    try:
+        with pytest.raises(
+            ValueError,
+            match="Could not determine root type for attribute problematic_field",
+        ):
+            model_attribute_to_scim_attribute(TestModel, "problematic_field")
+    finally:
+        # Restore the original method
+        TestModel.get_field_root_type = original_method

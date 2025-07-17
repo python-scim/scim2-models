@@ -126,25 +126,25 @@ class Attribute(ComplexAttribute):
             return attr_types[self.value]
 
         @classmethod
-        def from_python(cls, pytype) -> str:
+        def from_python(cls, pytype: type) -> "Attribute.Type":
             if get_origin(pytype) == Reference:
-                return cls.reference.value
+                return cls.reference
 
-            if is_complex_attribute(pytype):
-                return cls.complex.value
+            if pytype and is_complex_attribute(pytype):
+                return cls.complex
 
             if pytype in (Required, CaseExact):
-                return cls.boolean.value
+                return cls.boolean
 
             attr_types = {
-                str: cls.string.value,
-                bool: cls.boolean.value,
-                float: cls.decimal.value,
-                int: cls.integer.value,
-                datetime: cls.date_time.value,
-                Base64Bytes: cls.binary.value,
+                str: cls.string,
+                bool: cls.boolean,
+                float: cls.decimal,
+                int: cls.integer,
+                datetime: cls.date_time,
+                Base64Bytes: cls.binary,
             }
-            return attr_types.get(pytype, cls.string.value)
+            return attr_types.get(pytype, cls.string)
 
     name: Annotated[
         Optional[str], Mutability.read_only, Required.true, CaseExact.true
