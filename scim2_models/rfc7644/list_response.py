@@ -51,6 +51,7 @@ class ListResponse(Message, Generic[AnyResource], metaclass=GenericMessageMetacl
         - 'resources' must be set if 'totalResults' is non-zero.
         """
         obj = handler(value)
+        assert isinstance(obj, cls)
 
         if (
             not info.context

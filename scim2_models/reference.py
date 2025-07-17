@@ -54,9 +54,7 @@ class Reference(UserString, Generic[ReferenceTypes]):
 
     @classmethod
     def _validate(cls, input_value: Any, /) -> str:
-        if isinstance(input_value, cls):
-            return str(input_value)
-        return input_value
+        return str(input_value)
 
     @classmethod
     def get_types(cls, type_annotation: Any) -> list[str]:
@@ -79,6 +77,6 @@ class Reference(UserString, Generic[ReferenceTypes]):
             elif ref_type == ExternalReference:
                 return "external"
 
-            return get_args(ref_type)[0]
+            return str(get_args(ref_type)[0])
 
         return list(map(serialize_ref_type, types))

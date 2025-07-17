@@ -115,7 +115,7 @@ class ScimObject(BaseModel):
         *args: Any,
         scim_ctx: Optional[Context] = Context.DEFAULT,
         **kwargs: Any,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Create a model representation that can be included in SCIM messages by using Pydantic :code:`BaseModel.model_dump`.
 
         :param scim_ctx: If a SCIM context is passed, some default values of

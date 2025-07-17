@@ -110,6 +110,10 @@ plugins = [
   "pydantic.mypy"
 ]
 warn_unused_ignores = true
+exclude = [
+  "tests/",
+  "conftest.py",
+]
 
 [tool.pydantic-mypy]
 init_forbid_extra = true

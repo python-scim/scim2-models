@@ -8,9 +8,9 @@ from typing import get_origin
 
 from pydantic import Discriminator
 from pydantic import Tag
+from pydantic._internal._model_construction import ModelMetaclass
 
 from ..base import BaseModel
-from ..base import BaseModelType
 from ..scim_object import ScimObject
 from ..utils import UNION_TYPES
 
@@ -91,10 +91,12 @@ def create_tagged_resource_union(resource_union: Any) -> Any:
     return Annotated[union, discriminator]
 
 
-class GenericMessageMetaclass(BaseModelType):
+class GenericMessageMetaclass(ModelMetaclass):
     """Metaclass for SCIM generic types with discriminated unions."""
 
-    def __new__(cls, name: str, bases: tuple, attrs: dict, **kwargs: Any) -> type:
+    def __new__(
+        cls, name: str, bases: tuple[type, ...], attrs: dict[str, Any], **kwargs: Any
+    ) -> type:
         """Create class with tagged resource unions for generic parameters."""
         if kwargs.get("__pydantic_generic_metadata__") and kwargs[
             "__pydantic_generic_metadata__"
