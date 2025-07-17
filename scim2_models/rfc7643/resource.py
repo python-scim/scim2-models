@@ -24,7 +24,6 @@ from ..attributes import ComplexAttribute
 from ..attributes import MultiValuedComplexAttribute
 from ..attributes import is_complex_attribute
 from ..base import BaseModel
-from ..base import BaseModelType
 from ..context import Context
 from ..reference import Reference
 from ..scim_object import ScimObject
@@ -104,6 +103,8 @@ class Extension(ScimObject):
 
 AnyExtension = TypeVar("AnyExtension", bound="Extension")
 
+_PARAMETERIZED_CLASSES: dict[tuple[type, tuple], type] = {}
+
 
 def extension_serializer(
     value: Any, handler: SerializerFunctionWrapHandler, info: SerializationInfo
@@ -122,33 +123,7 @@ def extension_serializer(
     return result or None
 
 
-class ResourceMetaclass(BaseModelType):
-    def __new__(cls, name: str, bases: tuple, attrs: dict, **kwargs: Any) -> type:
-        """Dynamically add a field for each extension."""
-        if "__pydantic_generic_metadata__" in kwargs:
-            extensions = kwargs["__pydantic_generic_metadata__"]["args"][0]
-            extensions = (
-                get_args(extensions)
-                if get_origin(extensions) in UNION_TYPES
-                else [extensions]
-            )
-            for extension in extensions:
-                schema = extension.model_fields["schemas"].default[0]
-                attrs.setdefault("__annotations__", {})[extension.__name__] = Annotated[
-                    Optional[extension],
-                    WrapSerializer(extension_serializer),
-                ]
-                attrs[extension.__name__] = Field(
-                    None,
-                    serialization_alias=schema,
-                    validation_alias=normalize_attribute_name(schema),
-                )
-
-        klass = super().__new__(cls, name, bases, attrs, **kwargs)
-        return klass
-
-
-class Resource(ScimObject, Generic[AnyExtension], metaclass=ResourceMetaclass):
+class Resource(ScimObject, Generic[AnyExtension]):
     # Common attributes as defined by
     # https://www.rfc-editor.org/rfc/rfc7643#section-3.1
 
@@ -171,6 +146,71 @@ class Resource(ScimObject, Generic[AnyExtension], metaclass=ResourceMetaclass):
     meta: Annotated[Optional[Meta], Mutability.read_only, Returned.default] = None
     """A complex attribute containing resource metadata."""
 
+    @classmethod
+    def __class_getitem__(cls, item: Any) -> type["Resource"]:
+        """Create a Resource class with extension fields dynamically added."""
+        if hasattr(cls, "__scim_extension_metadata__"):
+            return cls
+
+        extensions = get_args(item) if get_origin(item) in UNION_TYPES else [item]
+
+        # Skip TypeVar parameters (used for generic class definitions)
+        valid_extensions = [
+            extension for extension in extensions if not isinstance(extension, TypeVar)
+        ]
+
+        if not valid_extensions:
+            return cls
+
+        cache_key = (cls, tuple(valid_extensions))
+        if cache_key in _PARAMETERIZED_CLASSES:
+            return _PARAMETERIZED_CLASSES[cache_key]
+
+        for extension in valid_extensions:
+            if not (isinstance(extension, type) and issubclass(extension, Extension)):
+                raise TypeError(f"{extension} is not a valid Extension type")
+
+        class_name = (
+            f"{cls.__name__}[{', '.join(ext.__name__ for ext in valid_extensions)}]"
+        )
+
+        class_attrs = {
+            "__scim_extension_metadata__": {
+                "args": (item,),
+                "origin": cls,
+                "extensions": valid_extensions,
+            }
+        }
+
+        for extension in valid_extensions:
+            schema = extension.model_fields["schemas"].default[0]
+            class_attrs[extension.__name__] = Field(
+                None,
+                serialization_alias=schema,
+                validation_alias=normalize_attribute_name(schema),
+            )
+
+        new_annotations = {
+            extension.__name__: Annotated[
+                Optional[extension],
+                WrapSerializer(extension_serializer),
+            ]
+            for extension in valid_extensions
+        }
+
+        new_class = type(
+            class_name,
+            (cls,),
+            {
+                "__annotations__": new_annotations,
+                **class_attrs,
+            },
+        )
+
+        _PARAMETERIZED_CLASSES[cache_key] = new_class
+
+        return new_class
+
     def __getitem__(self, item: Any) -> Optional[Extension]:
         if not isinstance(item, type) or not issubclass(item, Extension):
             raise KeyError(f"{item} is not a valid extension type")
@@ -186,13 +226,7 @@ class Resource(ScimObject, Generic[AnyExtension], metaclass=ResourceMetaclass):
     @classmethod
     def get_extension_models(cls) -> dict[str, type[Extension]]:
         """Return extension a dict associating extension models with their schemas."""
-        generic_args: Any = cls.__pydantic_generic_metadata__.get("args", [])
-        extension_models = (
-            get_args(generic_args[0])
-            if len(generic_args) == 1 and get_origin(generic_args[0]) in UNION_TYPES
-            else generic_args
-        )
-
+        extension_models = getattr(cls, "__scim_extension_metadata__", [])
         by_schema = {
             ext.model_fields["schemas"].default[0]: ext for ext in extension_models
         }
