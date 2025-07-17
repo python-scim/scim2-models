@@ -2,13 +2,17 @@ import operator
 from typing import Annotated
 from typing import Optional
 
+import pytest
+
 from scim2_models.annotations import Required
 from scim2_models.context import Context
 from scim2_models.rfc7643.enterprise_user import EnterpriseUser
 from scim2_models.rfc7643.group import Group
 from scim2_models.rfc7643.resource import Resource
 from scim2_models.rfc7643.resource_type import ResourceType
+from scim2_models.rfc7643.schema import Attribute
 from scim2_models.rfc7643.schema import Schema
+from scim2_models.rfc7643.schema import make_python_model
 from scim2_models.rfc7643.service_provider_config import ServiceProviderConfig
 from scim2_models.rfc7643.user import User
 
@@ -177,3 +181,20 @@ def test_inheritance():
             "urn:ietf:params:scim:schemas:core:2.0:Schema",
         ],
     }
+
+
+def test_make_python_model_validates_name():
+    """Test that make_python_model raises an exception when obj.name is not defined."""
+    # Test with Schema object without name
+    schema = Schema(id="urn:example:schema")
+    schema.name = None
+
+    with pytest.raises(ValueError, match="Schema or Attribute 'name' must be defined"):
+        make_python_model(schema, Resource)
+
+    # Test with Attribute object without name
+    attribute = Attribute(type=Attribute.Type.string)
+    attribute.name = None
+
+    with pytest.raises(ValueError, match="Schema or Attribute 'name' must be defined"):
+        make_python_model(attribute, Resource)
