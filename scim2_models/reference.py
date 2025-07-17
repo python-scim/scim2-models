@@ -46,11 +46,16 @@ class Reference(UserString, Generic[ReferenceTypes]):
         _handler: GetCoreSchemaHandler,
     ) -> core_schema.CoreSchema:
         return core_schema.no_info_after_validator_function(
-            cls._validate, core_schema.str_schema()
+            cls._validate,
+            core_schema.union_schema(
+                [core_schema.str_schema(), core_schema.is_instance_schema(cls)]
+            ),
         )
 
     @classmethod
-    def _validate(cls, input_value: str, /) -> str:
+    def _validate(cls, input_value: Any, /) -> str:
+        if isinstance(input_value, cls):
+            return str(input_value)
         return input_value
 
     @classmethod
