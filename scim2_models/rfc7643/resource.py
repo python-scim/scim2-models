@@ -174,18 +174,12 @@ class Resource(ScimObject, Generic[AnyExtension]):
             f"{cls.__name__}[{', '.join(ext.__name__ for ext in valid_extensions)}]"
         )
 
-        class_attrs = {
-            "__scim_extension_metadata__": {
-                "args": (item,),
-                "origin": cls,
-                "extensions": valid_extensions,
-            }
-        }
+        class_attrs = {"__scim_extension_metadata__": valid_extensions}
 
         for extension in valid_extensions:
             schema = extension.model_fields["schemas"].default[0]
             class_attrs[extension.__name__] = Field(
-                None,
+                default=None,  # type: ignore[arg-type]
                 serialization_alias=schema,
                 validation_alias=normalize_attribute_name(schema),
             )
@@ -424,6 +418,10 @@ def model_attribute_to_scim_attribute(
 
     field_info = model.model_fields[attribute_name]
     root_type = model.get_field_root_type(attribute_name)
+    if root_type is None:
+        raise ValueError(
+            f"Could not determine root type for attribute {attribute_name}"
+        )
     attribute_type = Attribute.Type.from_python(root_type)
     sub_attributes = (
         [
@@ -443,7 +441,7 @@ def model_attribute_to_scim_attribute(
 
     return Attribute(
         name=field_info.serialization_alias or attribute_name,
-        type=attribute_type,
+        type=Attribute.Type(attribute_type),
         multi_valued=model.get_field_multiplicity(attribute_name),
         description=field_info.description,
         canonical_values=field_info.examples,

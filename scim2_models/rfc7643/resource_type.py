@@ -84,16 +84,13 @@ class ResourceType(Resource):
         name = schema.split(":")[-1]
 
         # Get extensions from the metadata system
-        if hasattr(resource_model, "__scim_extension_metadata__"):
-            extensions = resource_model.__scim_extension_metadata__["extensions"]
-        else:
-            extensions = []
+        extensions = getattr(resource_model, "__scim_extension_metadata__", [])
 
         return cls(
             id=name,
             name=name,
             description=name,
-            endpoint=f"/{name}s",
+            endpoint=f"/{name}s",  # type: ignore[arg-type]
             schema_=schema,
             schema_extensions=[
                 SchemaExtension(
