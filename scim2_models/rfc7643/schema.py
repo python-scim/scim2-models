@@ -70,14 +70,17 @@ def make_python_model(
             Field(default=[obj.id]),
         )
 
+    if not obj.name:
+        raise ValueError("Schema or Attribute 'name' must be defined")
+
     model_name = to_pascal(to_snake(obj.name))
-    model = create_model(model_name, __base__=base, **pydantic_attributes)
+    model: type[T] = create_model(model_name, __base__=base, **pydantic_attributes)  # type: ignore[call-overload]
 
     # Set the ComplexType class as a member of the model
     # e.g. make Member an attribute of Group
     for attr_name in model.model_fields:
         attr_type = model.get_field_root_type(attr_name)
-        if is_complex_attribute(attr_type):
+        if attr_type and is_complex_attribute(attr_type):
             setattr(model, attr_type.__name__, attr_type)
 
     return model
@@ -207,7 +210,7 @@ class Attribute(ComplexAttribute):
     """When an attribute is of type "complex", "subAttributes" defines a set of
     sub-attributes."""
 
-    def to_python(self) -> Optional[tuple[Any, Field]]:
+    def to_python(self) -> Optional[tuple[Any, Any]]:
         """Build tuple suited to be passed to pydantic 'create_model'."""
         if not self.name or not self.type:
             return None
@@ -290,7 +293,7 @@ class Schema(Resource):
                 return attribute
         return None
 
-    def __getitem__(self, name: str) -> "Attribute":
+    def __getitem__(self, name: str) -> "Attribute":  # type: ignore[override]
         """Find an attribute by its name."""
         if attribute := self.get_attribute(name):
             return attribute

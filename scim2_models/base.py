@@ -111,6 +111,7 @@ class BaseModel(PydanticBaseModel):
         """Check and fix that the field mutability is expected according to the requests validation context, as defined in :rfc:`RFC7643 §7 <7653#section-7>`."""
         if (
             not info.context
+            or not info.field_name
             or not info.context.get("scim")
             or not Context.is_request(info.context["scim"])
         ):
