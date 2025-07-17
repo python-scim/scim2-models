@@ -307,3 +307,16 @@ def test_get_extension_model():
         )
         is None
     )
+
+
+def test_class_getitem():
+    UserEnt = User[EnterpriseUser]
+    UserEnt2 = UserEnt[EnterpriseUser]
+    assert UserEnt is UserEnt2
+
+    # Test line 178: invalid extension type raises TypeError
+    with pytest.raises(TypeError, match="is not a valid Extension type"):
+        User[str]
+
+    with pytest.raises(TypeError, match="is not a valid Extension type"):
+        User[int]
