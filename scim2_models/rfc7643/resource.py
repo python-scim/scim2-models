@@ -25,8 +25,10 @@ from ..attributes import MultiValuedComplexAttribute
 from ..attributes import is_complex_attribute
 from ..base import BaseModel
 from ..base import BaseModelType
+from ..context import Context
 from ..reference import Reference
 from ..scim_object import ScimObject
+from ..scim_object import validate_attribute_urn
 from ..utils import UNION_TYPES
 from ..utils import normalize_attribute_name
 
@@ -208,15 +210,17 @@ class Resource(ScimObject, Generic[AnyExtension], metaclass=ResourceMetaclass):
 
     @staticmethod
     def get_by_schema(
-        resource_types: list[type[BaseModel]], schema: str, with_extensions: bool = True
-    ) -> Optional[type]:
+        resource_types: list[type["Resource"]],
+        schema: str,
+        with_extensions: bool = True,
+    ) -> Optional[Union[type["Resource"], type["Extension"]]]:
         """Given a resource type list and a schema, find the matching resource type."""
-        by_schema = {
+        by_schema: dict[str, Union[type[Resource], type[Extension]]] = {
             resource_type.model_fields["schemas"].default[0].lower(): resource_type
             for resource_type in (resource_types or [])
         }
         if with_extensions:
-            for resource_type in list(by_schema.values()):
+            for resource_type in resource_types:
                 by_schema.update(
                     {
                         schema.lower(): extension
@@ -228,7 +232,7 @@ class Resource(ScimObject, Generic[AnyExtension], metaclass=ResourceMetaclass):
 
     @staticmethod
     def get_by_payload(
-        resource_types: list[type], payload: dict, **kwargs: Any
+        resource_types: list[type["Resource"]], payload: dict, **kwargs: Any
     ) -> Optional[type]:
         """Given a resource type list and a payload, find the matching resource type."""
         if not payload or not payload.get("schemas"):
@@ -259,6 +263,74 @@ class Resource(ScimObject, Generic[AnyExtension], metaclass=ResourceMetaclass):
         from .schema import make_python_model
 
         return make_python_model(schema, cls)
+
+    def _prepare_model_dump(
+        self,
+        scim_ctx: Optional[Context] = Context.DEFAULT,
+        attributes: Optional[list[str]] = None,
+        excluded_attributes: Optional[list[str]] = None,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        kwargs = super()._prepare_model_dump(scim_ctx, **kwargs)
+        kwargs["context"]["scim_attributes"] = [
+            validate_attribute_urn(attribute, self.__class__)
+            for attribute in (attributes or [])
+        ]
+        kwargs["context"]["scim_excluded_attributes"] = [
+            validate_attribute_urn(attribute, self.__class__)
+            for attribute in (excluded_attributes or [])
+        ]
+        return kwargs
+
+    def model_dump(
+        self,
+        *args: Any,
+        scim_ctx: Optional[Context] = Context.DEFAULT,
+        attributes: Optional[list[str]] = None,
+        excluded_attributes: Optional[list[str]] = None,
+        **kwargs: Any,
+    ) -> dict:
+        """Create a model representation that can be included in SCIM messages by using Pydantic :code:`BaseModel.model_dump`.
+
+        :param scim_ctx: If a SCIM context is passed, some default values of
+            Pydantic :code:`BaseModel.model_dump` are tuned to generate valid SCIM
+            messages. Pass :data:`None` to get the default Pydantic behavior.
+        :param attributes: A multi-valued list of strings indicating the names of resource
+            attributes to return in the response, overriding the set of attributes that
+            would be returned by default.
+        :param excluded_attributes: A multi-valued list of strings indicating the names of resource
+            attributes to be removed from the default set of attributes to return.
+        """
+        dump_kwargs = self._prepare_model_dump(
+            scim_ctx, attributes, excluded_attributes, **kwargs
+        )
+        if scim_ctx:
+            dump_kwargs.setdefault("mode", "json")
+        return super(ScimObject, self).model_dump(*args, **dump_kwargs)
+
+    def model_dump_json(
+        self,
+        *args: Any,
+        scim_ctx: Optional[Context] = Context.DEFAULT,
+        attributes: Optional[list[str]] = None,
+        excluded_attributes: Optional[list[str]] = None,
+        **kwargs: Any,
+    ) -> str:
+        """Create a JSON model representation that can be included in SCIM messages by using Pydantic :code:`BaseModel.model_dump_json`.
+
+        :param scim_ctx: If a SCIM context is passed, some default values of
+            Pydantic :code:`BaseModel.model_dump` are tuned to generate valid SCIM
+            messages. Pass :data:`None` to get the default Pydantic behavior.
+        :param attributes: A multi-valued list of strings indicating the names of resource
+            attributes to return in the response, overriding the set of attributes that
+            would be returned by default.
+        :param excluded_attributes: A multi-valued list of strings indicating the names of resource
+            attributes to be removed from the default set of attributes to return.
+        """
+        dump_kwargs = self._prepare_model_dump(
+            scim_ctx, attributes, excluded_attributes, **kwargs
+        )
+        return super(ScimObject, self).model_dump_json(*args, **dump_kwargs)
 
 
 AnyResource = TypeVar("AnyResource", bound="Resource")
