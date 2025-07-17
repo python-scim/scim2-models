@@ -90,7 +90,7 @@ class ResourceType(Resource):
             id=name,
             name=name,
             description=name,
-            endpoint=f"/{name}s",  # type: ignore[arg-type]
+            endpoint=Reference[URIReference](f"/{name}s"),
             schema_=schema,
             schema_extensions=[
                 SchemaExtension(
