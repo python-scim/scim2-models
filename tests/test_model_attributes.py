@@ -8,13 +8,14 @@ from scim2_models.annotations import Required
 from scim2_models.annotations import Returned
 from scim2_models.attributes import ComplexAttribute
 from scim2_models.base import BaseModel
-from scim2_models.base import validate_attribute_urn
 from scim2_models.context import Context
 from scim2_models.rfc7643.enterprise_user import EnterpriseUser
 from scim2_models.rfc7643.resource import Extension
 from scim2_models.rfc7643.resource import Meta
 from scim2_models.rfc7643.resource import Resource
 from scim2_models.rfc7643.user import User
+from scim2_models.rfc7644.error import Error
+from scim2_models.scim_object import validate_attribute_urn
 
 
 class Sub(ComplexAttribute):
@@ -325,3 +326,15 @@ def test_binary_attributes():
     )
     assert user.x509_certificates[0].value == decoded
     assert user.model_dump()["x509Certificates"][0]["value"] == encoded
+
+
+def test_scim_object_model_dump_coverage():
+    """Test ScimObject.model_dump for coverage of mode setting."""
+    # Test with scim_ctx=None (no mode setting)
+    error = Error(status="400", detail="Test error")
+    result = error.model_dump(scim_ctx=None)
+    assert isinstance(result, dict)
+
+    # Test model_dump_json coverage
+    json_result = error.model_dump_json(scim_ctx=None)
+    assert isinstance(json_result, str)
