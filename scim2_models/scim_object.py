@@ -97,6 +97,19 @@ class ScimObject(BaseModel):
     SCIM schemas that define the attributes present in the current JSON
     structure."""
 
+    def _prepare_model_dump(
+        self,
+        scim_ctx: Optional[Context] = Context.DEFAULT,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        kwargs.setdefault("context", {}).setdefault("scim", scim_ctx)
+
+        if scim_ctx:
+            kwargs.setdefault("exclude_none", True)
+            kwargs.setdefault("by_alias", True)
+
+        return kwargs
+
     def model_dump(
         self,
         *args: Any,
