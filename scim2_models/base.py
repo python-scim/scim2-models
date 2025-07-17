@@ -1,5 +1,4 @@
 from inspect import isclass
-from typing import TYPE_CHECKING
 from typing import Any
 from typing import Optional
 from typing import get_args
@@ -28,9 +27,6 @@ from scim2_models.utils import normalize_attribute_name
 from scim2_models.utils import to_camel
 
 from .utils import UNION_TYPES
-
-if TYPE_CHECKING:
-    pass
 
 
 def contains_attribute_or_subattributes(
@@ -448,13 +444,17 @@ class BaseModel(PydanticBaseModel):
 
         See :rfc:`RFC7644 §3.10 <7644#section-3.10>`.
         """
-        main_schema = self.__class__.model_fields["schemas"].default[0]
-        alias = (
-            self.__class__.model_fields[field_name].serialization_alias or field_name
-        )
+        from scim2_models.rfc7643.resource import Extension
 
-        # if alias contains a ':' this is an extension urn
-        full_urn = alias if ":" in alias else f"{main_schema}:{alias}"
+        main_schema = self.__class__.model_fields["schemas"].default[0]
+        field = self.__class__.model_fields[field_name]
+        alias = field.serialization_alias or field_name
+        field_type = self.get_field_root_type(field_name)
+        full_urn = (
+            alias
+            if isclass(field_type) and issubclass(field_type, Extension)
+            else f"{main_schema}:{alias}"
+        )
         return full_urn
 
 
