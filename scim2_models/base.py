@@ -426,19 +426,6 @@ class BaseModel(PydanticBaseModel):
 
         return super().model_validate(*args, **kwargs)
 
-    def _prepare_model_dump(
-        self,
-        scim_ctx: Optional[Context] = Context.DEFAULT,
-        **kwargs: Any,
-    ) -> dict[str, Any]:
-        kwargs.setdefault("context", {}).setdefault("scim", scim_ctx)
-
-        if scim_ctx:
-            kwargs.setdefault("exclude_none", True)
-            kwargs.setdefault("by_alias", True)
-
-        return kwargs
-
     def get_attribute_urn(self, field_name: str) -> str:
         """Build the full URN of the attribute.
 
