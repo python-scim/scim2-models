@@ -3,7 +3,7 @@ from typing import Optional
 
 from pydantic import PlainSerializer
 
-from ..base import Required
+from ..annotations import Required
 from ..utils import int_to_str
 from .message import Message
 

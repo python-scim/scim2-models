@@ -10,8 +10,8 @@ from pydantic import model_validator
 from pydantic_core import PydanticCustomError
 from typing_extensions import Self
 
-from ..base import Context
-from ..base import Required
+from ..annotations import Required
+from ..context import Context
 from ..rfc7643.resource import AnyResource
 from .message import GenericMessageMetaclass
 from .message import Message

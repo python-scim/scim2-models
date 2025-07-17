@@ -5,7 +5,7 @@ from typing import Optional
 from pydantic import field_validator
 from pydantic import model_validator
 
-from ..base import Required
+from ..annotations import Required
 from .message import Message
 
 
