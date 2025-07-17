@@ -6,6 +6,7 @@ from typing import Generic
 from typing import Optional
 from typing import TypeVar
 from typing import Union
+from typing import cast
 from typing import get_args
 from typing import get_origin
 
@@ -103,7 +104,7 @@ class Extension(ScimObject):
 
 AnyExtension = TypeVar("AnyExtension", bound="Extension")
 
-_PARAMETERIZED_CLASSES: dict[tuple[type, tuple], type] = {}
+_PARAMETERIZED_CLASSES: dict[tuple[type, tuple[Any, ...]], type] = {}
 
 
 def extension_serializer(
@@ -154,9 +155,11 @@ class Resource(ScimObject, Generic[AnyExtension]):
 
         extensions = get_args(item) if get_origin(item) in UNION_TYPES else [item]
 
-        # Skip TypeVar parameters (used for generic class definitions)
+        # Skip TypeVar parameters and Any (used for generic class definitions)
         valid_extensions = [
-            extension for extension in extensions if not isinstance(extension, TypeVar)
+            extension
+            for extension in extensions
+            if not isinstance(extension, TypeVar) and extension is not Any
         ]
 
         if not valid_extensions:
@@ -209,9 +212,9 @@ class Resource(ScimObject, Generic[AnyExtension]):
         if not isinstance(item, type) or not issubclass(item, Extension):
             raise KeyError(f"{item} is not a valid extension type")
 
-        return getattr(self, item.__name__)
+        return cast(Optional[Extension], getattr(self, item.__name__))
 
-    def __setitem__(self, item: Any, value: "Resource") -> None:
+    def __setitem__(self, item: Any, value: "Extension") -> None:
         if not isinstance(item, type) or not issubclass(item, Extension):
             raise KeyError(f"{item} is not a valid extension type")
 
@@ -260,7 +263,9 @@ class Resource(ScimObject, Generic[AnyExtension]):
 
     @staticmethod
     def get_by_payload(
-        resource_types: list[type["Resource"]], payload: dict, **kwargs: Any
+        resource_types: list[type["Resource"]],
+        payload: dict[str, Any],
+        **kwargs: Any,
     ) -> Optional[type]:
         """Given a resource type list and a payload, find the matching resource type."""
         if not payload or not payload.get("schemas"):
@@ -317,7 +322,7 @@ class Resource(ScimObject, Generic[AnyExtension]):
         attributes: Optional[list[str]] = None,
         excluded_attributes: Optional[list[str]] = None,
         **kwargs: Any,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Create a model representation that can be included in SCIM messages by using Pydantic :code:`BaseModel.model_dump`.
 
         :param scim_ctx: If a SCIM context is passed, some default values of
@@ -366,7 +371,7 @@ AnyResource = TypeVar("AnyResource", bound="Resource")
 
 def dedicated_attributes(
     model: type[BaseModel], excluded_models: list[type[BaseModel]]
-) -> dict:
+) -> dict[str, Any]:
     """Return attributes that are not members the parent 'excluded_models'."""
 
     def compare_field_infos(fi1: Any, fi2: Any) -> bool:

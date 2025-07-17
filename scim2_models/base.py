@@ -161,7 +161,9 @@ class BaseModel(PydanticBaseModel):
             return value
 
         normalized_value = normalize_value(value)
-        return handler(normalized_value)
+        obj = handler(normalized_value)
+        assert isinstance(obj, cls)
+        return obj
 
     @model_validator(mode="wrap")
     @classmethod
@@ -169,19 +171,20 @@ class BaseModel(PydanticBaseModel):
         cls, value: Any, handler: ValidatorFunctionWrapHandler, info: ValidationInfo
     ) -> Self:
         """Check that the fields returnability is expected according to the responses validation context, as defined in :rfc:`RFC7643 §7 <7653#section-7>`."""
-        value = handler(value)
+        obj = handler(value)
+        assert isinstance(obj, cls)
 
         if (
             not info.context
             or not info.context.get("scim")
             or not Context.is_response(info.context["scim"])
         ):
-            return value
+            return obj
 
         for field_name in cls.model_fields:
             returnability = cls.get_field_annotation(field_name, Returned)
 
-            if returnability == Returned.always and getattr(value, field_name) is None:
+            if returnability == Returned.always and getattr(obj, field_name) is None:
                 raise PydanticCustomError(
                     "returned_error",
                     "Field '{field_name}' has returnability 'always' but value is missing or null",
@@ -190,10 +193,7 @@ class BaseModel(PydanticBaseModel):
                     },
                 )
 
-            if (
-                returnability == Returned.never
-                and getattr(value, field_name) is not None
-            ):
+            if returnability == Returned.never and getattr(obj, field_name) is not None:
                 raise PydanticCustomError(
                     "returned_error",
                     "Field '{field_name}' has returnability 'never' but value is set",
@@ -202,7 +202,7 @@ class BaseModel(PydanticBaseModel):
                     },
                 )
 
-        return value
+        return obj
 
     @model_validator(mode="wrap")
     @classmethod
@@ -210,7 +210,8 @@ class BaseModel(PydanticBaseModel):
         cls, value: Any, handler: ValidatorFunctionWrapHandler, info: ValidationInfo
     ) -> Self:
         """Check that the required attributes are present in creations and replacement requests."""
-        value = handler(value)
+        obj = handler(value)
+        assert isinstance(obj, cls)
 
         if (
             not info.context
@@ -221,12 +222,12 @@ class BaseModel(PydanticBaseModel):
                 Context.RESOURCE_REPLACEMENT_REQUEST,
             )
         ):
-            return value
+            return obj
 
         for field_name in cls.model_fields:
             necessity = cls.get_field_annotation(field_name, Required)
 
-            if necessity == Required.true and getattr(value, field_name) is None:
+            if necessity == Required.true and getattr(obj, field_name) is None:
                 raise PydanticCustomError(
                     "required_error",
                     "Field '{field_name}' is required but value is missing or null",
@@ -235,7 +236,7 @@ class BaseModel(PydanticBaseModel):
                     },
                 )
 
-        return value
+        return obj
 
     @model_validator(mode="wrap")
     @classmethod
@@ -245,7 +246,8 @@ class BaseModel(PydanticBaseModel):
         """Check if 'immutable' attributes have been mutated in replacement requests."""
         from scim2_models.rfc7643.resource import Resource
 
-        value = handler(value)
+        obj = handler(value)
+        assert isinstance(obj, cls)
 
         context = info.context.get("scim") if info.context else None
         original = info.context.get("original") if info.context else None
@@ -254,8 +256,8 @@ class BaseModel(PydanticBaseModel):
             and issubclass(cls, Resource)
             and original is not None
         ):
-            cls.check_mutability_issues(original, value)
-        return value
+            cls.check_mutability_issues(original, obj)
+        return obj
 
     @classmethod
     def check_mutability_issues(
@@ -403,7 +405,7 @@ class BaseModel(PydanticBaseModel):
     @classmethod
     def model_validate(
         cls,
-        *args,
+        *args: Any,
         scim_ctx: Optional[Context] = Context.DEFAULT,
         original: Optional["BaseModel"] = None,
         **kwargs: Any,
@@ -443,6 +445,3 @@ class BaseModel(PydanticBaseModel):
             else f"{main_schema}:{alias}"
         )
         return full_urn
-
-
-BaseModelType: type = type(BaseModel)
