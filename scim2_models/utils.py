@@ -156,3 +156,30 @@ def validate_scim_urn_syntax(path: str) -> bool:
         return False
 
     return True
+
+
+def extract_field_name(path: str) -> Optional[str]:
+    """Extract the field name from a path.
+
+    For now, only handle simple paths (no filters, no complex expressions).
+    Returns None for complex paths that require filter parsing.
+
+    """
+    # Handle URN paths
+    if path.startswith("urn:"):
+        # First validate it's a proper URN
+        if not validate_scim_urn_syntax(path):
+            return None
+        parts = path.rsplit(":", 1)
+        return parts[1]
+
+    # Handle simple paths (no brackets, no filters)
+    if "[" in path or "]" in path:
+        return None  # Complex filter path, not handled
+
+    # Simple attribute path (may have dots for sub-attributes)
+    # For now, just take the first part before any dot
+    if "." in path:
+        return path.split(".")[0]
+
+    return path

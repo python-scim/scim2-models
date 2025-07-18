@@ -10,6 +10,8 @@ from pydantic import Discriminator
 from pydantic import Tag
 from pydantic._internal._model_construction import ModelMetaclass
 
+from scim2_models.rfc7643.resource import Resource
+
 from ..base import BaseModel
 from ..scim_object import ScimObject
 from ..utils import UNION_TYPES
@@ -108,3 +110,16 @@ class GenericMessageMetaclass(ModelMetaclass):
 
         klass = super().__new__(cls, name, bases, attrs, **kwargs)
         return klass
+
+
+def get_resource_class(obj) -> Optional[type[Resource]]:
+    """Extract the resource class from generic type parameter."""
+    metadata = getattr(obj.__class__, "__pydantic_generic_metadata__", None)
+    if not metadata or not metadata.get("args"):
+        return None
+
+    resource_class = metadata["args"][0]
+    if isinstance(resource_class, type) and issubclass(resource_class, Resource):
+        return resource_class
+
+    return None
