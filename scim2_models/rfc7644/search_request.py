@@ -6,6 +6,8 @@ from pydantic import field_validator
 from pydantic import model_validator
 
 from ..annotations import Required
+from ..utils import validate_scim_path_syntax
+from .error import Error
 from .message import Message
 
 
@@ -24,9 +26,37 @@ class SearchRequest(Message):
     attributes to return in the response, overriding the set of attributes that
     would be returned by default."""
 
+    @field_validator("attributes")
+    @classmethod
+    def validate_attributes_syntax(cls, v: Optional[list[str]]) -> Optional[list[str]]:
+        """Validate syntax of attribute paths."""
+        if v is None:
+            return v
+
+        for attr in v:
+            if not validate_scim_path_syntax(attr):
+                raise ValueError(Error.make_invalid_path_error().detail)
+
+        return v
+
     excluded_attributes: Optional[list[str]] = None
     """A multi-valued list of strings indicating the names of resource
     attributes to be removed from the default set of attributes to return."""
+
+    @field_validator("excluded_attributes")
+    @classmethod
+    def validate_excluded_attributes_syntax(
+        cls, v: Optional[list[str]]
+    ) -> Optional[list[str]]:
+        """Validate syntax of excluded attribute paths."""
+        if v is None:
+            return v
+
+        for attr in v:
+            if not validate_scim_path_syntax(attr):
+                raise ValueError(Error.make_invalid_path_error().detail)
+
+        return v
 
     filter: Optional[str] = None
     """The filter string used to request a subset of resources."""
@@ -34,6 +64,25 @@ class SearchRequest(Message):
     sort_by: Optional[str] = None
     """A string indicating the attribute whose value SHALL be used to order the
     returned responses."""
+
+    @field_validator("sort_by")
+    @classmethod
+    def validate_sort_by_syntax(cls, v: Optional[str]) -> Optional[str]:
+        """Validate syntax of sort_by attribute path.
+
+        :param v: The sort_by attribute path to validate
+        :type v: Optional[str]
+        :return: The validated sort_by attribute path
+        :rtype: Optional[str]
+        :raises ValueError: If sort_by attribute path has invalid syntax
+        """
+        if v is None:
+            return v
+
+        if not validate_scim_path_syntax(v):
+            raise ValueError(Error.make_invalid_path_error().detail)
+
+        return v
 
     class SortOrder(str, Enum):
         ascending = "ascending"
@@ -48,7 +97,7 @@ class SearchRequest(Message):
 
     @field_validator("start_index")
     @classmethod
-    def start_index_floor(cls, value: int) -> int:
+    def start_index_floor(cls, value: Optional[int]) -> Optional[int]:
         """According to :rfc:`RFC7644 §3.4.2 <7644#section-3.4.2.4>, start_index values less than 1 are interpreted as 1.
 
         A value less than 1 SHALL be interpreted as 1.
@@ -61,7 +110,7 @@ class SearchRequest(Message):
 
     @field_validator("count")
     @classmethod
-    def count_floor(cls, value: int) -> int:
+    def count_floor(cls, value: Optional[int]) -> Optional[int]:
         """According to :rfc:`RFC7644 §3.4.2 <7644#section-3.4.2.4>, count values less than 0 are interpreted as 0.
 
         A negative value SHALL be interpreted as 0.

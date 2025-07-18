@@ -1,6 +1,13 @@
 Changelog
 =========
 
+[0.4.0] - Unreleased
+--------------------
+
+Added
+^^^^^
+- Proper path validation for :attr:`~scim2_models.SearchRequest.attributes`, :attr:`~scim2_models.SearchRequest.excluded_attributes` and :attr:`~scim2_models.SearchRequest.sort_by`.
+
 [0.3.7] - 2025-07-17
 --------------------
 
