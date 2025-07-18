@@ -1,5 +1,6 @@
 """Tests for SCIM path validation utilities."""
 
+from scim2_models.utils import extract_field_name
 from scim2_models.utils import validate_scim_path_syntax
 from scim2_models.utils import validate_scim_urn_syntax
 
@@ -91,3 +92,24 @@ def test_validate_scim_urn_syntax_edge_cases():
     assert not validate_scim_urn_syntax("urn:a:b:c:")  # Empty attribute
     assert not validate_scim_urn_syntax("urn:a:b:")  # Missing resource
     assert not validate_scim_urn_syntax("urn:")  # Just urn:
+
+
+def test_path_extraction():
+    """Test path extraction logic."""
+    # Test simple path
+    assert extract_field_name("simple_field") == "simple_field"
+
+    # Test dotted path (should return first part)
+    assert extract_field_name("name.familyName") == "name"
+
+    # Test URN path
+    assert (
+        extract_field_name("urn:ietf:params:scim:schemas:core:2.0:User:userName")
+        == "userName"
+    )
+
+    # Test complex path with filter (should return None)
+    assert extract_field_name('emails[type eq "work"]') is None
+
+    # Test invalid URN path
+    assert extract_field_name("urn:invalid") is None
