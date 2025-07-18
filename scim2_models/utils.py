@@ -97,3 +97,62 @@ def normalize_attribute_name(attribute_name: str) -> str:
         attribute_name = re.sub(r"[\W_]+", "", attribute_name)
 
     return attribute_name.lower()
+
+
+def validate_scim_path_syntax(path: str) -> bool:
+    """Check if path syntax is valid according to RFC 7644 simplified rules.
+
+    :param path: The path to validate
+    :type path: str
+    :return: True if path syntax is valid, False otherwise
+    :rtype: bool
+    """
+    if not path or not path.strip():
+        return False
+
+    # Cannot start with a digit
+    if path[0].isdigit():
+        return False
+
+    # Cannot contain double dots
+    if ".." in path:
+        return False
+
+    # Cannot contain invalid characters (basic check)
+    # Allow alphanumeric, dots, underscores, hyphens, colons (for URNs), brackets
+    if not re.match(r'^[a-zA-Z][a-zA-Z0-9._:\-\[\]"=\s]*$', path):
+        return False
+
+    # If it contains a colon, validate it's a proper URN format
+    if ":" in path:
+        if not validate_scim_urn_syntax(path):
+            return False
+
+    return True
+
+
+def validate_scim_urn_syntax(path: str) -> bool:
+    """Validate URN-based path format.
+
+    :param path: The URN path to validate
+    :type path: str
+    :return: True if URN path format is valid, False otherwise
+    :rtype: bool
+    """
+    # Basic URN validation: should start with urn:
+    if not path.startswith("urn:"):
+        return False
+
+    # Split on the last colon to separate URN from attribute
+    urn_part, attr_part = path.rsplit(":", 1)
+
+    # URN part should have at least 4 parts (urn:namespace:specific:resource)
+    urn_segments = urn_part.split(":")
+    if len(urn_segments) < 4:
+        return False
+
+    # Attribute part should be valid
+    if not attr_part or attr_part[0].isdigit():
+        return False
+
+    return True
