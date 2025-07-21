@@ -13,6 +13,7 @@ from scim2_models.rfc7643.resource import Meta
 from scim2_models.rfc7643.resource import Resource
 from scim2_models.rfc7643.user import User
 from scim2_models.rfc7644.error import Error
+from scim2_models.rfc7644.patch_op import PatchOp
 from scim2_models.urn import validate_attribute_urn
 
 
@@ -303,3 +304,47 @@ def test_scim_object_model_dump_coverage():
     # Test model_dump_json coverage
     json_result = error.model_dump_json(scim_ctx=None)
     assert isinstance(json_result, str)
+
+
+def test_patch_op_preserves_case_in_value_fields():
+    """Test that PatchOp preserves original case in operation values."""
+    # Test data from the GitHub issue
+    patch_data = {
+        "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+        "Operations": [
+            {
+                "op": "replace",
+                "value": {
+                    "streetAddress": "911 Universal City Plaza",
+                },
+            }
+        ],
+    }
+
+    patch_op = PatchOp[User].model_validate(patch_data)
+    result = patch_op.model_dump()
+
+    value = result["Operations"][0]["value"]
+    assert value["streetAddress"] == "911 Universal City Plaza"
+
+
+def test_patch_op_preserves_case_in_sub_value_fields():
+    """Test that nested objects within Any fields are still normalized according to their schema."""
+    patch_data = {
+        "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+        "Operations": [
+            {
+                "op": "replace",
+                "value": {
+                    "name": {"givenName": "John"},
+                },
+            }
+        ],
+    }
+
+    patch_op = PatchOp[User].model_validate(patch_data)
+    result = patch_op.model_dump()
+
+    value = result["Operations"][0]["value"]
+
+    assert value["name"]["givenName"] == "John"
