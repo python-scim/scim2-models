@@ -191,6 +191,51 @@ def test_dump_default_response(ret_resource):
     }
 
 
+def test_invalid_attributes():
+    """Test error handling for invalid attributes parameter."""
+    resource = SupRetResource(id="id", always_returned="x", default_returned="x")
+
+    with pytest.raises(ValueError):
+        resource.model_dump(
+            scim_ctx=Context.RESOURCE_QUERY_RESPONSE, attributes={"invalidAttribute"}
+        )
+
+    with pytest.raises(ValueError):
+        resource.model_dump(
+            scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
+            attributes={"org:example:SupRetResource:invalidAttribute"},
+        )
+
+    with pytest.raises(ValueError):
+        resource.model_dump(
+            scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
+            attributes={"urn:invalid:schema:invalidAttribute"},
+        )
+
+
+def test_invalid_excluded_attributes():
+    """Test error handling for invalid excluded_attributes parameter."""
+    resource = SupRetResource(id="id", always_returned="x", default_returned="x")
+
+    with pytest.raises(ValueError):
+        resource.model_dump(
+            scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
+            excluded_attributes={"invalidAttribute"},
+        )
+
+    with pytest.raises(ValueError):
+        resource.model_dump(
+            scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
+            excluded_attributes={"org:example:SupRetResource:invalidAttribute"},
+        )
+
+    with pytest.raises(ValueError):
+        resource.model_dump(
+            scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
+            excluded_attributes={"urn:invalid:schema:invalidAttribute"},
+        )
+
+
 @pytest.mark.parametrize(
     "context",
     [
