@@ -2,8 +2,6 @@ import uuid
 from typing import Annotated
 from typing import Optional
 
-import pytest
-
 from scim2_models.annotations import Required
 from scim2_models.annotations import Returned
 from scim2_models.attributes import ComplexAttribute
@@ -15,7 +13,7 @@ from scim2_models.rfc7643.resource import Meta
 from scim2_models.rfc7643.resource import Resource
 from scim2_models.rfc7643.user import User
 from scim2_models.rfc7644.error import Error
-from scim2_models.scim_object import validate_attribute_urn
+from scim2_models.urn import validate_attribute_urn
 
 
 class Sub(ComplexAttribute):
@@ -74,30 +72,16 @@ def test_validate_attribute_urn():
         validate_attribute_urn("urn:example:2.0:Foo:bar", Foo)
         == "urn:example:2.0:Foo:bar"
     )
-    assert (
-        validate_attribute_urn("urn:example:2.0:Foo:bar", User, resource_types=[Foo])
-        == "urn:example:2.0:Foo:bar"
-    )
 
     assert validate_attribute_urn("sub", Foo) == "urn:example:2.0:Foo:sub"
     assert (
         validate_attribute_urn("urn:example:2.0:Foo:sub", Foo)
         == "urn:example:2.0:Foo:sub"
     )
-    assert (
-        validate_attribute_urn("urn:example:2.0:Foo:sub", User, resource_types=[Foo])
-        == "urn:example:2.0:Foo:sub"
-    )
 
     assert validate_attribute_urn("sub.always", Foo) == "urn:example:2.0:Foo:sub.always"
     assert (
         validate_attribute_urn("urn:example:2.0:Foo:sub.always", Foo)
-        == "urn:example:2.0:Foo:sub.always"
-    )
-    assert (
-        validate_attribute_urn(
-            "urn:example:2.0:Foo:sub.always", User, resource_types=[Foo]
-        )
         == "urn:example:2.0:Foo:sub.always"
     )
 
@@ -111,36 +95,17 @@ def test_validate_attribute_urn():
         validate_attribute_urn("urn:example:2.0:MyExtension:baz", Foo[MyExtension])
         == "urn:example:2.0:MyExtension:baz"
     )
+
+    assert validate_attribute_urn("urn:InvalidResource:bar", Foo) is None
+
+    assert validate_attribute_urn("urn:example:2.0:Foo:invalid", Foo) is None
+
+    assert validate_attribute_urn("bar.invalid", Foo) is None
+
     assert (
-        validate_attribute_urn(
-            "urn:example:2.0:MyExtension:baz", resource_types=[Foo[MyExtension]]
-        )
-        == "urn:example:2.0:MyExtension:baz"
+        validate_attribute_urn("urn:example:2.0:MyExtension:invalid", Foo[MyExtension])
+        is None
     )
-
-    with pytest.raises(ValueError, match="No default schema and relative URN"):
-        validate_attribute_urn("bar", resource_types=[Foo])
-
-    with pytest.raises(
-        ValueError, match="No resource matching schema 'urn:InvalidResource'"
-    ):
-        validate_attribute_urn("urn:InvalidResource:bar", Foo)
-
-    with pytest.raises(
-        ValueError, match="No resource matching schema 'urn:example:2.0:Foo'"
-    ):
-        validate_attribute_urn("urn:example:2.0:Foo:bar")
-
-    with pytest.raises(
-        ValueError, match="Model 'Foo' has no attribute named 'invalid'"
-    ):
-        validate_attribute_urn("urn:example:2.0:Foo:invalid", Foo)
-
-    with pytest.raises(
-        ValueError,
-        match="Attribute 'bar' is not a complex attribute, and cannot have a 'invalid' sub-attribute",
-    ):
-        validate_attribute_urn("bar.invalid", Foo)
 
 
 def test_payload_attribute_case_sensitivity():
