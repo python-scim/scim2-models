@@ -10,15 +10,32 @@ if TYPE_CHECKING:
     from .rfc7643.resource import Resource
 
 
-def normalize_path(model: type["BaseModel"], path: str) -> tuple[str, str]:
+def _get_or_create_extension_instance(
+    model: "Resource", extension_class: type
+) -> "BaseModel":
+    """Get existing extension instance or create a new one."""
+    extension_instance = model[extension_class]
+    if extension_instance is None:
+        extension_instance = extension_class()
+        model[extension_class] = extension_instance
+    return extension_instance
+
+
+def normalize_path(model: Optional[type["BaseModel"]], path: str) -> tuple[str, str]:
     """Resolve a path to (schema_urn, attribute_path)."""
+    from .rfc7643.resource import Resource
+
     # Absolute URN
     if ":" in path:
         parts = path.rsplit(":", 1)
         return parts[0], parts[1]
 
-    schemas_field = model.model_fields.get("schemas")
-    return schemas_field.default[0], path  # type: ignore
+    # Relative URN with a schema
+    elif model and issubclass(model, Resource) and hasattr(model, "model_fields"):
+        schemas_field = model.model_fields.get("schemas")
+        return schemas_field.default[0], path  # type: ignore
+
+    return "", path
 
 
 def validate_model_attribute(model: type["BaseModel"], attribute_base: str) -> None:
@@ -67,3 +84,26 @@ def validate_attribute_urn(
         return None
 
     return f"{schema}:{attribute_base}"
+
+
+def resolve_path_to_target(
+    resource: "Resource", path: str
+) -> tuple[Optional["BaseModel"], str]:
+    """Resolve a path to a target and an attribute_path.
+
+    The target can be the resource itself, or an extension object.
+    """
+    schema_urn, attr_path = normalize_path(type(resource), path)
+
+    if not schema_urn:
+        return resource, attr_path
+
+    if schema_urn in resource.schemas:
+        return resource, attr_path
+
+    extension_class = resource.get_extension_model(schema_urn)
+    if not extension_class:
+        return (None, "")
+
+    extension_instance = _get_or_create_extension_instance(resource, extension_class)
+    return extension_instance, attr_path
