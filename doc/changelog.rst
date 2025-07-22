@@ -8,6 +8,11 @@ Added
 ^^^^^
 - Proper path validation for :attr:`~scim2_models.SearchRequest.attributes`, :attr:`~scim2_models.SearchRequest.excluded_attributes` and :attr:`~scim2_models.SearchRequest.sort_by`.
 
+Fixed
+^^^^^
+- When using ``model_dump``, ignore invalid ``attributes`` and ``excluded_attributes``
+  as suggested by RFC7644.
+
 [0.3.7] - 2025-07-17
 --------------------
 
