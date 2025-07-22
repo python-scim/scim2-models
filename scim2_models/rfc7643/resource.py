@@ -336,9 +336,9 @@ class Resource(ScimObject, Generic[AnyExtension]):
             messages. Pass :data:`None` to get the default Pydantic behavior.
         :param attributes: A multi-valued list of strings indicating the names of resource
             attributes to return in the response, overriding the set of attributes that
-            would be returned by default.
+            would be returned by default. Invalid values are ignored.
         :param excluded_attributes: A multi-valued list of strings indicating the names of resource
-            attributes to be removed from the default set of attributes to return.
+            attributes to be removed from the default set of attributes to return. Invalid values are ignored.
         """
         dump_kwargs = self._prepare_model_dump(
             scim_ctx, attributes, excluded_attributes, **kwargs
@@ -362,9 +362,9 @@ class Resource(ScimObject, Generic[AnyExtension]):
             messages. Pass :data:`None` to get the default Pydantic behavior.
         :param attributes: A multi-valued list of strings indicating the names of resource
             attributes to return in the response, overriding the set of attributes that
-            would be returned by default.
+            would be returned by default. Invalid values are ignored.
         :param excluded_attributes: A multi-valued list of strings indicating the names of resource
-            attributes to be removed from the default set of attributes to return.
+            attributes to be removed from the default set of attributes to return. Invalid values are ignored.
         """
         dump_kwargs = self._prepare_model_dump(
             scim_ctx, attributes, excluded_attributes, **kwargs
