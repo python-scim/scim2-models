@@ -28,7 +28,7 @@ from ..base import BaseModel
 from ..context import Context
 from ..reference import Reference
 from ..scim_object import ScimObject
-from ..scim_object import validate_attribute_urn
+from ..urn import validate_attribute_urn
 from ..utils import UNION_TYPES
 from ..utils import normalize_attribute_name
 
@@ -305,13 +305,19 @@ class Resource(ScimObject, Generic[AnyExtension]):
         **kwargs: Any,
     ) -> dict[str, Any]:
         kwargs = super()._prepare_model_dump(scim_ctx, **kwargs)
+
+        # RFC 7644: "SHOULD ignore any query parameters they do not recognize"
         kwargs["context"]["scim_attributes"] = [
-            validate_attribute_urn(attribute, self.__class__)
+            valid_attr
             for attribute in (attributes or [])
+            if (valid_attr := validate_attribute_urn(attribute, self.__class__))
+            is not None
         ]
         kwargs["context"]["scim_excluded_attributes"] = [
-            validate_attribute_urn(attribute, self.__class__)
+            valid_attr
             for attribute in (excluded_attributes or [])
+            if (valid_attr := validate_attribute_urn(attribute, self.__class__))
+            is not None
         ]
         return kwargs
 
