@@ -173,13 +173,29 @@ def extract_field_name(path: str) -> Optional[str]:
         parts = path.rsplit(":", 1)
         return parts[1]
 
-    # Handle simple paths (no brackets, no filters)
-    if "[" in path or "]" in path:
-        return None  # Complex filter path, not handled
-
     # Simple attribute path (may have dots for sub-attributes)
     # For now, just take the first part before any dot
     if "." in path:
         return path.split(".")[0]
 
     return path
+
+
+def find_field_name(resource_class, attr_name: str) -> Optional[str]:
+    """Find the actual field name in a resource class from an attribute name.
+
+    Args:
+        resource_class: The resource class to search in
+        attr_name: The attribute name to find (e.g., "nickName")
+
+    Returns:
+        The actual field name if found (e.g., "nick_name"), None otherwise
+
+    """
+    normalized_attr_name = normalize_attribute_name(attr_name)
+
+    for field_key in resource_class.model_fields:
+        if normalize_attribute_name(field_key) == normalized_attr_name:
+            return field_key
+
+    return None

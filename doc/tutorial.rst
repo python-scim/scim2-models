@@ -403,9 +403,49 @@ This can be used by client applications that intends to dynamically discover ser
           :language: json
           :caption: schema-group.json
 
-Bulk and Patch operations
-=========================
+Patch operations
+================
+
+:class:`~scim2_models.PatchOp` allows you to apply patch operations to modify SCIM resources.
+The :meth:`~scim2_models.PatchOp.patch` method applies operations in sequence and returns whether the resource was modified. The return code is a boolean indicating whether the object have been modified by the operations.
+
+.. note::
+   :class:`~scim2_models.PatchOp` takes a type parameter that should be the class of the resource
+   that is expected to be patched.
+
+.. code-block:: python
+
+    >>> from scim2_models import User, PatchOp, PatchOperation
+    >>> user = User(user_name="john.doe", nick_name="Johnny")
+
+    >>> payload = {
+    ...   "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+    ...   "Operations": [
+    ...     {"op": "replace", "path": "nickName", "value": "John" },
+    ...     {"op": "add", "path": "emails", "value": [{"value": "john@example.com"}]},
+    ...   ]
+    ... }
+    >>> patch = PatchOp[User].model_validate(
+    ...     payload, scim_ctx=Context.RESOURCE_PATCH_REQUEST
+    ... )
+
+    >>> modified = patch.patch(user)
+    >>> print(modified)
+    True
+    >>> print(user.nick_name)
+    John
+    >>> print(user.emails[0].value)
+    john@example.com
+
+.. warning::
+
+   Patch operations are validated in the :attr:`~scim2_models.Context.RESOURCE_PATCH_REQUEST`
+   context. Make sure to validate patch operations with the correct context to
+   ensure proper validation of mutability and required constraints.
+
+Bulk operations
+===============
 
 .. todo::
 
-   Bulk and Patch operations are not implemented yet, but any help is welcome!
+   Bulk operations are not implemented yet, but any help is welcome!
