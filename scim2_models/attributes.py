@@ -16,7 +16,7 @@ from .reference import Reference
 class ComplexAttribute(BaseModel):
     """A complex attribute as defined in :rfc:`RFC7643 §2.3.8 <7643#section-2.3.8>`."""
 
-    attribute_urn: Optional[str] = Field(None, exclude=True)
+    _attribute_urn: Optional[str] = None
 
     def get_attribute_urn(self, field_name: str) -> str:
         """Build the full URN of the attribute.
@@ -26,7 +26,7 @@ class ComplexAttribute(BaseModel):
         alias = (
             self.__class__.model_fields[field_name].serialization_alias or field_name
         )
-        return f"{self.attribute_urn}.{alias}"
+        return f"{self._attribute_urn}.{alias}"
 
 
 class MultiValuedComplexAttribute(ComplexAttribute):

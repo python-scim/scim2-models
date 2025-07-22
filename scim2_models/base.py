@@ -290,15 +290,15 @@ class BaseModel(PydanticBaseModel):
                     cls.check_mutability_issues(original_val, replacement_value)
 
     def set_complex_attribute_urns(self) -> None:
-        """Navigate through attributes and sub-attributes of type ComplexAttribute, and mark them with a 'attribute_urn' attribute.
+        """Navigate through attributes and sub-attributes of type ComplexAttribute, and mark them with a '_attribute_urn' attribute.
 
-        'attribute_urn' will later be used by 'get_attribute_urn'.
+        '_attribute_urn' will later be used by 'get_attribute_urn'.
         """
         from .attributes import ComplexAttribute
         from .attributes import is_complex_attribute
 
         if isinstance(self, ComplexAttribute):
-            main_schema = self.attribute_urn
+            main_schema = self._attribute_urn
             separator = "."
         else:
             main_schema = self.__class__.model_fields["schemas"].default[0]
@@ -314,9 +314,9 @@ class BaseModel(PydanticBaseModel):
             if attr_value := getattr(self, field_name):
                 if isinstance(attr_value, list):
                     for item in attr_value:
-                        item.attribute_urn = schema
+                        item._attribute_urn = schema
                 else:
-                    attr_value.attribute_urn = schema
+                    attr_value._attribute_urn = schema
 
     @field_serializer("*", mode="wrap")
     def scim_serializer(
