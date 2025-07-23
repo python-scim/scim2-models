@@ -23,7 +23,7 @@ from scim2_models.annotations import Mutability
 from scim2_models.annotations import Required
 from scim2_models.annotations import Returned
 from scim2_models.context import Context
-from scim2_models.utils import _UNION_TYPES
+from scim2_models.utils import UNION_TYPES
 from scim2_models.utils import _find_field_name
 from scim2_models.utils import _normalize_attribute_name
 from scim2_models.utils import _to_camel
@@ -77,7 +77,7 @@ class BaseModel(PydanticBaseModel):
         attribute_type = cls.model_fields[attribute_name].annotation
 
         # extract 'x' from 'Optional[x]'
-        if get_origin(attribute_type) in _UNION_TYPES:
+        if get_origin(attribute_type) in UNION_TYPES:
             attribute_type = get_args(attribute_type)[0]
 
         # extract 'x' from 'List[x]'
@@ -93,7 +93,7 @@ class BaseModel(PydanticBaseModel):
         attribute_type = cls.model_fields[attribute_name].annotation
 
         # extract 'x' from 'Optional[x]'
-        if get_origin(attribute_type) in _UNION_TYPES:
+        if get_origin(attribute_type) in UNION_TYPES:
             attribute_type = get_args(attribute_type)[0]
 
         origin = get_origin(attribute_type)
@@ -104,7 +104,7 @@ class BaseModel(PydanticBaseModel):
     def check_request_attributes_mutability(
         cls, value: Any, info: ValidationInfo
     ) -> Any:
-        """Check and fix that the field mutability is expected according to the requests validation context, as defined in :rfc:`RFC7643 §7 <7653#section-7>`."""
+        """Check and fix that the field mutability is expected according to the requests validation context, as defined in :rfc:`RFC7643 §7 <7643#section-7>`."""
         if (
             not info.context
             or not info.field_name
@@ -147,7 +147,7 @@ class BaseModel(PydanticBaseModel):
     ) -> Self:
         """Normalize payload attribute names.
 
-        :rfc:`RFC7643 §2.1 <7653#section-2.1>` indicate that attribute
+        :rfc:`RFC7643 §2.1 <7643#section-2.1>` indicate that attribute
         names should be case-insensitive. Any attribute name is
         transformed in lowercase so any case is handled the same way.
         """
@@ -199,7 +199,7 @@ class BaseModel(PydanticBaseModel):
     def check_response_attributes_returnability(
         cls, value: Any, handler: ValidatorFunctionWrapHandler, info: ValidationInfo
     ) -> Self:
-        """Check that the fields returnability is expected according to the responses validation context, as defined in :rfc:`RFC7643 §7 <7653#section-7>`."""
+        """Check that the fields returnability is expected according to the responses validation context, as defined in :rfc:`RFC7643 §7 <7643#section-7>`."""
         obj = handler(value)
         assert isinstance(obj, cls)
 

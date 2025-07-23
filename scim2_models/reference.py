@@ -9,7 +9,7 @@ from pydantic import GetCoreSchemaHandler
 from pydantic_core import core_schema
 from typing_extensions import NewType
 
-from .utils import _UNION_TYPES
+from .utils import UNION_TYPES
 
 ReferenceTypes = TypeVar("ReferenceTypes")
 
@@ -67,9 +67,7 @@ class Reference(UserString, Generic[ReferenceTypes]):
         """
         first_arg = get_args(type_annotation)[0]
         types = (
-            get_args(first_arg)
-            if get_origin(first_arg) in _UNION_TYPES
-            else [first_arg]
+            get_args(first_arg) if get_origin(first_arg) in UNION_TYPES else [first_arg]
         )
 
         def serialize_ref_type(ref_type: Any) -> str:
