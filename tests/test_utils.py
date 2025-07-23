@@ -1,5 +1,5 @@
-from scim2_models.rfc7643.enterprise_user import EnterpriseUser
-from scim2_models.rfc7643.user import User
+from scim2_models.resources.enterprise_user import EnterpriseUser
+from scim2_models.resources.user import User
 from scim2_models.utils import to_camel
 
 

@@ -9,7 +9,7 @@ from scim2_models import PatchOp
 from scim2_models import PatchOperation
 from scim2_models import User
 from scim2_models.base import Context
-from scim2_models.rfc7643.resource import Resource
+from scim2_models.resources.resource import Resource
 
 
 def test_patch_op_without_type_parameter():

@@ -12,10 +12,10 @@ from scim2_models.attributes import MultiValuedComplexAttribute
 from scim2_models.reference import ExternalReference
 from scim2_models.reference import Reference
 from scim2_models.reference import URIReference
-from scim2_models.rfc7643.resource import Extension
-from scim2_models.rfc7643.resource import Resource
-from scim2_models.rfc7643.schema import Attribute
-from scim2_models.rfc7643.schema import Schema
+from scim2_models.resources.resource import Extension
+from scim2_models.resources.resource import Resource
+from scim2_models.resources.schema import Attribute
+from scim2_models.resources.schema import Schema
 from scim2_models.utils import Base64Bytes
 
 

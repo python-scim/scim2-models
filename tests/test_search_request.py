@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from scim2_models.rfc7644.search_request import SearchRequest
+from scim2_models.messages.search_request import SearchRequest
 
 
 def test_search_request():

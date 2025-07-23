@@ -329,7 +329,7 @@ def test_model_attribute_to_scim_attribute_error():
     from pydantic import Field
 
     from scim2_models.base import BaseModel
-    from scim2_models.rfc7643.resource import model_attribute_to_scim_attribute
+    from scim2_models.resources.resource import model_attribute_to_scim_attribute
 
     # Create a model with a field that has no clear root type
     class TestModel(BaseModel):
