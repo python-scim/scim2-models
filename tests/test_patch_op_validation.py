@@ -379,6 +379,41 @@ def test_patch_error_handling_type_mismatch():
 
 
 T = TypeVar("T", bound=Resource)
+UserT = TypeVar("UserT", bound=User)
+UnboundT = TypeVar("UnboundT")
+
+
+def test_patch_op_with_typevar_bound_to_resource():
+    """Test that PatchOp accepts TypeVar bound to Resource."""
+    # Should not raise any exception
+    patch_type = PatchOp[T]
+    assert patch_type is not None
+
+
+def test_patch_op_with_typevar_bound_to_resource_subclass():
+    """Test that PatchOp accepts TypeVar bound to Resource subclass."""
+    # Should not raise any exception
+    patch_type = PatchOp[UserT]
+    assert patch_type is not None
+
+
+def test_patch_op_with_unbound_typevar():
+    """Test that PatchOp rejects unbound TypeVar."""
+    with pytest.raises(
+        TypeError,
+        match="PatchOp TypeVar must be bound to Resource or its subclass, got ~UnboundT",
+    ):
+        PatchOp[UnboundT]
+
+
+def test_patch_op_with_typevar_bound_to_non_resource():
+    """Test that PatchOp rejects TypeVar bound to non-Resource class."""
+    NonResourceT = TypeVar("NonResourceT", bound=str)
+    with pytest.raises(
+        TypeError,
+        match="PatchOp TypeVar must be bound to Resource or its subclass, got ~NonResourceT",
+    ):
+        PatchOp[NonResourceT]
 
 
 def test_create_parent_object_return_none():

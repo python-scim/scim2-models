@@ -1,6 +1,13 @@
 Changelog
 =========
 
+[0.4.1] - Unreleased
+--------------------
+
+Fixed
+^^^^^
+- Allow ``TypeVar`` as type parameters for :class:`~scim2_models.PatchOp`.
+
 [0.4.0] - 2025-07-23
 --------------------
 
