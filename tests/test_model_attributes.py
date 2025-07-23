@@ -14,7 +14,7 @@ from scim2_models.resources.resource import Extension
 from scim2_models.resources.resource import Meta
 from scim2_models.resources.resource import Resource
 from scim2_models.resources.user import User
-from scim2_models.urn import validate_attribute_urn
+from scim2_models.urn import _validate_attribute_urn
 
 
 class Sub(ComplexAttribute):
@@ -68,43 +68,45 @@ class MyExtension(Extension):
 
 def test_validate_attribute_urn():
     """Test the method that validates and normalizes attribute URNs."""
-    assert validate_attribute_urn("bar", Foo) == "urn:example:2.0:Foo:bar"
+    assert _validate_attribute_urn("bar", Foo) == "urn:example:2.0:Foo:bar"
     assert (
-        validate_attribute_urn("urn:example:2.0:Foo:bar", Foo)
+        _validate_attribute_urn("urn:example:2.0:Foo:bar", Foo)
         == "urn:example:2.0:Foo:bar"
     )
 
-    assert validate_attribute_urn("sub", Foo) == "urn:example:2.0:Foo:sub"
+    assert _validate_attribute_urn("sub", Foo) == "urn:example:2.0:Foo:sub"
     assert (
-        validate_attribute_urn("urn:example:2.0:Foo:sub", Foo)
+        _validate_attribute_urn("urn:example:2.0:Foo:sub", Foo)
         == "urn:example:2.0:Foo:sub"
     )
 
-    assert validate_attribute_urn("sub.always", Foo) == "urn:example:2.0:Foo:sub.always"
     assert (
-        validate_attribute_urn("urn:example:2.0:Foo:sub.always", Foo)
+        _validate_attribute_urn("sub.always", Foo) == "urn:example:2.0:Foo:sub.always"
+    )
+    assert (
+        _validate_attribute_urn("urn:example:2.0:Foo:sub.always", Foo)
         == "urn:example:2.0:Foo:sub.always"
     )
 
-    assert validate_attribute_urn("snakeCase", Foo) == "urn:example:2.0:Foo:snakeCase"
+    assert _validate_attribute_urn("snakeCase", Foo) == "urn:example:2.0:Foo:snakeCase"
     assert (
-        validate_attribute_urn("urn:example:2.0:Foo:snakeCase", Foo)
+        _validate_attribute_urn("urn:example:2.0:Foo:snakeCase", Foo)
         == "urn:example:2.0:Foo:snakeCase"
     )
 
     assert (
-        validate_attribute_urn("urn:example:2.0:MyExtension:baz", Foo[MyExtension])
+        _validate_attribute_urn("urn:example:2.0:MyExtension:baz", Foo[MyExtension])
         == "urn:example:2.0:MyExtension:baz"
     )
 
-    assert validate_attribute_urn("urn:InvalidResource:bar", Foo) is None
+    assert _validate_attribute_urn("urn:InvalidResource:bar", Foo) is None
 
-    assert validate_attribute_urn("urn:example:2.0:Foo:invalid", Foo) is None
+    assert _validate_attribute_urn("urn:example:2.0:Foo:invalid", Foo) is None
 
-    assert validate_attribute_urn("bar.invalid", Foo) is None
+    assert _validate_attribute_urn("bar.invalid", Foo) is None
 
     assert (
-        validate_attribute_urn("urn:example:2.0:MyExtension:invalid", Foo[MyExtension])
+        _validate_attribute_urn("urn:example:2.0:MyExtension:invalid", Foo[MyExtension])
         is None
     )
 

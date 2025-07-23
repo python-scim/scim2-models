@@ -8,7 +8,7 @@ from pydantic import PlainSerializer
 
 from ..annotations import Required
 from ..attributes import ComplexAttribute
-from ..utils import int_to_str
+from ..utils import _int_to_str
 from .message import Message
 
 
@@ -42,7 +42,7 @@ class BulkOperation(ComplexAttribute):
     response: Optional[Any] = None
     """The HTTP response body for the specified request operation."""
 
-    status: Annotated[Optional[int], PlainSerializer(int_to_str)] = None
+    status: Annotated[Optional[int], PlainSerializer(_int_to_str)] = None
     """The HTTP response status code for the requested operation."""
 
 

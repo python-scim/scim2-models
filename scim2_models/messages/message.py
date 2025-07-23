@@ -14,14 +14,14 @@ from scim2_models.resources.resource import Resource
 
 from ..base import BaseModel
 from ..scim_object import ScimObject
-from ..utils import UNION_TYPES
+from ..utils import _UNION_TYPES
 
 
 class Message(ScimObject):
     """SCIM protocol messages as defined by :rfc:`RFC7644 §3.1 <7644#section-3.1>`."""
 
 
-def create_schema_discriminator(
+def _create_schema_discriminator(
     resource_types_schemas: list[str],
 ) -> Callable[[Any], Optional[str]]:
     """Create a schema discriminator function for the given resource schemas.
@@ -51,7 +51,7 @@ def create_schema_discriminator(
     return get_schema_from_payload
 
 
-def get_tag(resource_type: type[BaseModel]) -> Tag:
+def _get_tag(resource_type: type[BaseModel]) -> Tag:
     """Create Pydantic tag from resource type schema.
 
     :param resource_type: SCIM resource type
@@ -60,7 +60,7 @@ def get_tag(resource_type: type[BaseModel]) -> Tag:
     return Tag(resource_type.model_fields["schemas"].default[0])
 
 
-def create_tagged_resource_union(resource_union: Any) -> Any:
+def _create_tagged_resource_union(resource_union: Any) -> Any:
     """Build Discriminated Unions for SCIM resources.
 
     Creates discriminated unions so Pydantic can determine which class to instantiate
@@ -69,7 +69,7 @@ def create_tagged_resource_union(resource_union: Any) -> Any:
     :param resource_union: Union type of SCIM resources
     :return: Annotated discriminated union or original type
     """
-    if get_origin(resource_union) not in UNION_TYPES:
+    if get_origin(resource_union) not in _UNION_TYPES:
         return resource_union
 
     resource_types = get_args(resource_union)
@@ -81,11 +81,11 @@ def create_tagged_resource_union(resource_union: Any) -> Any:
     ]
 
     # Create discriminator function with schemas captured in closure
-    schema_discriminator = create_schema_discriminator(resource_types_schemas)
+    schema_discriminator = _create_schema_discriminator(resource_types_schemas)
     discriminator = Discriminator(schema_discriminator)
 
     tagged_resources = [
-        Annotated[resource_type, get_tag(resource_type)]
+        Annotated[resource_type, _get_tag(resource_type)]
         for resource_type in resource_types
     ]
     # Dynamic union construction from tuple - MyPy can't validate this at compile time
@@ -93,7 +93,7 @@ def create_tagged_resource_union(resource_union: Any) -> Any:
     return Annotated[union, discriminator]
 
 
-class GenericMessageMetaclass(ModelMetaclass):
+class _GenericMessageMetaclass(ModelMetaclass):
     """Metaclass for SCIM generic types with discriminated unions."""
 
     def __new__(
@@ -103,7 +103,7 @@ class GenericMessageMetaclass(ModelMetaclass):
         if kwargs.get("__pydantic_generic_metadata__") and kwargs[
             "__pydantic_generic_metadata__"
         ].get("args"):
-            tagged_union = create_tagged_resource_union(
+            tagged_union = _create_tagged_resource_union(
                 kwargs["__pydantic_generic_metadata__"]["args"][0]
             )
             kwargs["__pydantic_generic_metadata__"]["args"] = (tagged_union,)
@@ -112,7 +112,7 @@ class GenericMessageMetaclass(ModelMetaclass):
         return klass
 
 
-def get_resource_class(obj) -> Optional[type[Resource]]:
+def _get_resource_class(obj) -> Optional[type[Resource]]:
     """Extract the resource class from generic type parameter."""
     metadata = getattr(obj.__class__, "__pydantic_generic_metadata__", {"args": [None]})
     resource_class = metadata["args"][0]

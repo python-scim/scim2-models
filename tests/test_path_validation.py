@@ -1,8 +1,8 @@
 """Tests for SCIM path validation utilities."""
 
-from scim2_models.utils import extract_field_name
-from scim2_models.utils import validate_scim_path_syntax
-from scim2_models.utils import validate_scim_urn_syntax
+from scim2_models.utils import _extract_field_name
+from scim2_models.utils import _validate_scim_path_syntax
+from scim2_models.utils import _validate_scim_urn_syntax
 
 
 def test_validate_scim_path_syntax_valid_paths():
@@ -20,7 +20,7 @@ def test_validate_scim_path_syntax_valid_paths():
     ]
 
     for path in valid_paths:
-        assert validate_scim_path_syntax(path), f"Path should be valid: {path}"
+        assert _validate_scim_path_syntax(path), f"Path should be valid: {path}"
 
 
 def test_validate_scim_path_syntax_invalid_paths():
@@ -36,7 +36,7 @@ def test_validate_scim_path_syntax_invalid_paths():
     ]
 
     for path in invalid_paths:
-        assert not validate_scim_path_syntax(path), f"Path should be invalid: {path}"
+        assert not _validate_scim_path_syntax(path), f"Path should be invalid: {path}"
 
 
 def test_validate_scim_urn_syntax_valid_urns():
@@ -49,7 +49,7 @@ def test_validate_scim_urn_syntax_valid_urns():
     ]
 
     for urn in valid_urns:
-        assert validate_scim_urn_syntax(urn), f"URN should be valid: {urn}"
+        assert _validate_scim_urn_syntax(urn), f"URN should be valid: {urn}"
 
 
 def test_validate_scim_urn_syntax_invalid_urns():
@@ -64,49 +64,49 @@ def test_validate_scim_urn_syntax_invalid_urns():
     ]
 
     for urn in invalid_urns:
-        assert not validate_scim_urn_syntax(urn), f"URN should be invalid: {urn}"
+        assert not _validate_scim_urn_syntax(urn), f"URN should be invalid: {urn}"
 
 
 def test_validate_scim_path_syntax_edge_cases():
     """Test edge cases for path validation."""
     # Test None handling (shouldn't happen in practice but defensive)
-    assert not validate_scim_path_syntax("")
+    assert not _validate_scim_path_syntax("")
 
     # Test borderline valid cases
-    assert validate_scim_path_syntax("a")  # Single character
-    assert validate_scim_path_syntax("a.b")  # Simple dotted
-    assert validate_scim_path_syntax("a_b")  # Underscore
-    assert validate_scim_path_syntax("a-b")  # Hyphen
+    assert _validate_scim_path_syntax("a")  # Single character
+    assert _validate_scim_path_syntax("a.b")  # Simple dotted
+    assert _validate_scim_path_syntax("a_b")  # Underscore
+    assert _validate_scim_path_syntax("a-b")  # Hyphen
 
     # Test borderline invalid cases
-    assert not validate_scim_path_syntax("9invalid")  # Starts with digit
-    assert not validate_scim_path_syntax("a..b")  # Double dots
+    assert not _validate_scim_path_syntax("9invalid")  # Starts with digit
+    assert not _validate_scim_path_syntax("a..b")  # Double dots
 
 
 def test_validate_scim_urn_syntax_edge_cases():
     """Test edge cases for URN validation."""
     # Test minimal valid URN
-    assert validate_scim_urn_syntax("urn:a:b:c:d")
+    assert _validate_scim_urn_syntax("urn:a:b:c:d")
 
     # Test boundary cases
-    assert not validate_scim_urn_syntax("urn:a:b:c:")  # Empty attribute
-    assert not validate_scim_urn_syntax("urn:a:b:")  # Missing resource
-    assert not validate_scim_urn_syntax("urn:")  # Just urn:
+    assert not _validate_scim_urn_syntax("urn:a:b:c:")  # Empty attribute
+    assert not _validate_scim_urn_syntax("urn:a:b:")  # Missing resource
+    assert not _validate_scim_urn_syntax("urn:")  # Just urn:
 
 
 def test_path_extraction():
     """Test path extraction logic."""
     # Test simple path
-    assert extract_field_name("simple_field") == "simple_field"
+    assert _extract_field_name("simple_field") == "simple_field"
 
     # Test dotted path (should return first part)
-    assert extract_field_name("name.familyName") == "name"
+    assert _extract_field_name("name.familyName") == "name"
 
     # Test URN path
     assert (
-        extract_field_name("urn:ietf:params:scim:schemas:core:2.0:User:userName")
+        _extract_field_name("urn:ietf:params:scim:schemas:core:2.0:User:userName")
         == "userName"
     )
 
     # Test invalid URN path
-    assert extract_field_name("urn:invalid") is None
+    assert _extract_field_name("urn:invalid") is None

@@ -31,13 +31,13 @@ from ..reference import ExternalReference
 from ..reference import Reference
 from ..reference import URIReference
 from ..utils import Base64Bytes
-from ..utils import normalize_attribute_name
+from ..utils import _normalize_attribute_name
 from .resource import Resource
 
 T = TypeVar("T", bound=BaseModel)
 
 
-def make_python_identifier(identifier: str) -> str:
+def _make_python_identifier(identifier: str) -> str:
     """Sanitize string to be a suitable Python/Pydantic class attribute name."""
     sanitized = re.sub(r"\W|^(?=\d)", "", identifier)
     if sanitized in RESERVED_WORDS:
@@ -46,7 +46,7 @@ def make_python_identifier(identifier: str) -> str:
     return sanitized
 
 
-def make_python_model(
+def _make_python_model(
     obj: Union["Schema", "Attribute"],
     base: type[T],
     multiple: bool = False,
@@ -54,14 +54,14 @@ def make_python_model(
     """Build a Python model from a Schema or an Attribute object."""
     if isinstance(obj, Attribute):
         pydantic_attributes = {
-            to_snake(make_python_identifier(attr.name)): attr.to_python()
+            to_snake(_make_python_identifier(attr.name)): attr._to_python()
             for attr in (obj.sub_attributes or [])
             if attr.name
         }
 
     else:
         pydantic_attributes = {
-            to_snake(make_python_identifier(attr.name)): attr.to_python()
+            to_snake(_make_python_identifier(attr.name)): attr._to_python()
             for attr in (obj.attributes or [])
             if attr.name
         }
@@ -97,7 +97,7 @@ class Attribute(ComplexAttribute):
         reference = "reference"
         binary = "binary"
 
-        def to_python(
+        def _to_python(
             self,
             multiple: bool = False,
             reference_types: Optional[list[str]] = None,
@@ -210,15 +210,15 @@ class Attribute(ComplexAttribute):
     """When an attribute is of type "complex", "subAttributes" defines a set of
     sub-attributes."""
 
-    def to_python(self) -> Optional[tuple[Any, Any]]:
+    def _to_python(self) -> Optional[tuple[Any, Any]]:
         """Build tuple suited to be passed to pydantic 'create_model'."""
         if not self.name or not self.type:
             return None
 
-        attr_type = self.type.to_python(bool(self.multi_valued), self.reference_types)
+        attr_type = self.type._to_python(bool(self.multi_valued), self.reference_types)
 
         if attr_type in (ComplexAttribute, MultiValuedComplexAttribute):
-            attr_type = make_python_model(
+            attr_type = _make_python_model(
                 obj=self, base=attr_type, multiple=bool(self.multi_valued)
             )
 
@@ -238,7 +238,7 @@ class Attribute(ComplexAttribute):
             description=self.description,
             examples=self.canonical_values,
             serialization_alias=self.name,
-            validation_alias=normalize_attribute_name(self.name),
+            validation_alias=_normalize_attribute_name(self.name),
             default=None,
         )
 

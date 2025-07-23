@@ -23,13 +23,13 @@ from scim2_models.annotations import Mutability
 from scim2_models.annotations import Required
 from scim2_models.annotations import Returned
 from scim2_models.context import Context
-from scim2_models.utils import UNION_TYPES
-from scim2_models.utils import find_field_name
-from scim2_models.utils import normalize_attribute_name
-from scim2_models.utils import to_camel
+from scim2_models.utils import _UNION_TYPES
+from scim2_models.utils import _find_field_name
+from scim2_models.utils import _normalize_attribute_name
+from scim2_models.utils import _to_camel
 
 
-def contains_attribute_or_subattributes(
+def _contains_attribute_or_subattributes(
     attribute_urns: list[str], attribute_urn: str
 ) -> bool:
     return attribute_urn in attribute_urns or any(
@@ -43,8 +43,8 @@ class BaseModel(PydanticBaseModel):
 
     model_config = ConfigDict(
         alias_generator=AliasGenerator(
-            validation_alias=normalize_attribute_name,
-            serialization_alias=to_camel,
+            validation_alias=_normalize_attribute_name,
+            serialization_alias=_to_camel,
         ),
         validate_assignment=True,
         populate_by_name=True,
@@ -77,7 +77,7 @@ class BaseModel(PydanticBaseModel):
         attribute_type = cls.model_fields[attribute_name].annotation
 
         # extract 'x' from 'Optional[x]'
-        if get_origin(attribute_type) in UNION_TYPES:
+        if get_origin(attribute_type) in _UNION_TYPES:
             attribute_type = get_args(attribute_type)[0]
 
         # extract 'x' from 'List[x]'
@@ -93,7 +93,7 @@ class BaseModel(PydanticBaseModel):
         attribute_type = cls.model_fields[attribute_name].annotation
 
         # extract 'x' from 'Optional[x]'
-        if get_origin(attribute_type) in UNION_TYPES:
+        if get_origin(attribute_type) in _UNION_TYPES:
             attribute_type = get_args(attribute_type)[0]
 
         origin = get_origin(attribute_type)
@@ -159,7 +159,7 @@ class BaseModel(PydanticBaseModel):
             result = {}
 
             for key, val in input_dict.items():
-                field_name = find_field_name(model_class, key)
+                field_name = _find_field_name(model_class, key)
                 field_type = (
                     model_class.get_field_root_type(field_name) if field_name else None
                 )
@@ -170,7 +170,7 @@ class BaseModel(PydanticBaseModel):
                 if field_name and field_type == Any:
                     result[key] = normalize_value(val)
                 else:
-                    result[normalize_attribute_name(key)] = normalize_value(
+                    result[_normalize_attribute_name(key)] = normalize_value(
                         val, field_type
                     )
 
@@ -285,11 +285,11 @@ class BaseModel(PydanticBaseModel):
             and issubclass(cls, Resource)
             and original is not None
         ):
-            cls.check_mutability_issues(original, obj)
+            cls._check_mutability_issues(original, obj)
         return obj
 
     @classmethod
-    def check_mutability_issues(
+    def _check_mutability_issues(
         cls, original: "BaseModel", replacement: "BaseModel"
     ) -> None:
         """Compare two instances, and check for differences of values on the fields marked as immutable."""
@@ -316,9 +316,9 @@ class BaseModel(PydanticBaseModel):
                 original_val = getattr(original, field_name)
                 replacement_value = getattr(replacement, field_name)
                 if original_val is not None and replacement_value is not None:
-                    cls.check_mutability_issues(original_val, replacement_value)
+                    cls._check_mutability_issues(original_val, replacement_value)
 
-    def set_complex_attribute_urns(self) -> None:
+    def _set_complex_attribute_urns(self) -> None:
         """Navigate through attributes and sub-attributes of type ComplexAttribute, and mark them with a '_attribute_urn' attribute.
 
         '_attribute_urn' will later be used by 'get_attribute_urn'.
@@ -359,14 +359,14 @@ class BaseModel(PydanticBaseModel):
         scim_ctx = info.context.get("scim") if info.context else None
 
         if scim_ctx and Context.is_request(scim_ctx):
-            value = self.scim_request_serializer(value, info)
+            value = self._scim_request_serializer(value, info)
 
         if scim_ctx and Context.is_response(scim_ctx):
-            value = self.scim_response_serializer(value, info)
+            value = self._scim_response_serializer(value, info)
 
         return value
 
-    def scim_request_serializer(self, value: Any, info: FieldSerializationInfo) -> Any:
+    def _scim_request_serializer(self, value: Any, info: FieldSerializationInfo) -> Any:
         """Serialize the fields according to mutability indications passed in the serialization context."""
         mutability = self.get_field_annotation(info.field_name, Mutability)
         scim_ctx = info.context.get("scim") if info.context else None
@@ -390,7 +390,9 @@ class BaseModel(PydanticBaseModel):
 
         return value
 
-    def scim_response_serializer(self, value: Any, info: FieldSerializationInfo) -> Any:
+    def _scim_response_serializer(
+        self, value: Any, info: FieldSerializationInfo
+    ) -> Any:
         """Serialize the fields according to returnability indications passed in the serialization context."""
         returnability = self.get_field_annotation(info.field_name, Returned)
         attribute_urn = self.get_attribute_urn(info.field_name)
@@ -399,9 +401,9 @@ class BaseModel(PydanticBaseModel):
             info.context.get("scim_excluded_attributes", []) if info.context else []
         )
 
-        attribute_urn = normalize_attribute_name(attribute_urn)
-        included_urns = [normalize_attribute_name(urn) for urn in included_urns]
-        excluded_urns = [normalize_attribute_name(urn) for urn in excluded_urns]
+        attribute_urn = _normalize_attribute_name(attribute_urn)
+        included_urns = [_normalize_attribute_name(urn) for urn in included_urns]
+        excluded_urns = [_normalize_attribute_name(urn) for urn in excluded_urns]
 
         if returnability == Returned.never:
             return None
@@ -409,7 +411,7 @@ class BaseModel(PydanticBaseModel):
         if returnability == Returned.default and (
             (
                 included_urns
-                and not contains_attribute_or_subattributes(
+                and not _contains_attribute_or_subattributes(
                     included_urns, attribute_urn
                 )
             )
@@ -427,7 +429,7 @@ class BaseModel(PydanticBaseModel):
         self, handler: SerializerFunctionWrapHandler, info: SerializationInfo
     ) -> dict[str, Any]:
         """Remove `None` values inserted by the :meth:`~scim2_models.base.BaseModel.scim_serializer`."""
-        self.set_complex_attribute_urns()
+        self._set_complex_attribute_urns()
         result = handler(self)
         return {key: value for key, value in result.items() if value is not None}
 
