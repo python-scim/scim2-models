@@ -143,7 +143,7 @@ class PatchOp(Message, Generic[T]):
         - Using PatchOp without a type parameter raises TypeError
     """
 
-    def __new__(cls, *args, **kwargs):
+    def __new__(cls, *args: Any, **kwargs: Any):
         """Create new PatchOp instance with type parameter validation.
 
         Only handles the case of direct instantiation without type parameter (PatchOp()).
@@ -165,9 +165,23 @@ class PatchOp(Message, Generic[T]):
     def __class_getitem__(cls, item):
         """Validate type parameter when creating parameterized type.
 
-        Ensures the type parameter is a concrete Resource subclass (not Resource itself).
-        Rejects invalid types (str, int, etc.) and Union types.
+        Ensures the type parameter is a concrete Resource subclass (not Resource itself)
+        or a TypeVar bound to Resource. Rejects invalid types (str, int, etc.) and Union types.
         """
+        # Allow TypeVar as type parameter
+        if isinstance(item, TypeVar):
+            # Check if TypeVar is bound to Resource or its subclass
+            if item.__bound__ is not None and (
+                item.__bound__ is Resource
+                or (isclass(item.__bound__) and issubclass(item.__bound__, Resource))
+            ):
+                return super().__class_getitem__(item)
+            else:
+                raise TypeError(
+                    f"PatchOp TypeVar must be bound to Resource or its subclass, got {item}. "
+                    "Example: T = TypeVar('T', bound=Resource)"
+                )
+
         # Check if type parameter is a concrete Resource subclass (not Resource itself)
         if item is Resource:
             raise TypeError(
@@ -176,7 +190,7 @@ class PatchOp(Message, Generic[T]):
             )
         if not (isclass(item) and issubclass(item, Resource) and item is not Resource):
             raise TypeError(
-                f"PatchOp type parameter must be a concrete Resource subclass, got {item}. "
+                f"PatchOp type parameter must be a concrete Resource subclass or TypeVar, got {item}. "
                 "Use PatchOp[User], PatchOp[Group], etc."
             )
 
