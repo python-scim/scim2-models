@@ -1,3 +1,4 @@
+import sys
 from datetime import datetime
 from typing import TYPE_CHECKING
 from typing import Annotated
@@ -102,7 +103,11 @@ class Extension(ScimObject):
         return _make_python_model(schema, cls)
 
 
-AnyExtension = TypeVar("AnyExtension", bound="Extension")
+# TypeVar with default parameter is available in Python 3.13+
+if sys.version_info >= (3, 13):
+    AnyExtension = TypeVar("AnyExtension", bound="Extension", default="Extension")
+else:  # pragma: no cover
+    AnyExtension = TypeVar("AnyExtension", bound="Extension")
 
 _PARAMETERIZED_CLASSES: dict[tuple[type, tuple[Any, ...]], type] = {}
 
