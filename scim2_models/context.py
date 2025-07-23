@@ -78,7 +78,7 @@ class Context(Enum):
 
     - When used for serialization, it will not dump attributes annotated with :attr:`~scim2_models.Mutability.read_only`.
     - When used for validation, it will ignore attributes annotated with :attr:`scim2_models.Mutability.read_only` and raise a :class:`~pydantic.ValidationError`:
-        - when finding attributes annotated with :attr:`~scim2_models.Mutability.immutable` different than :paramref:`~scim2_models.BaseModel.model_validate.original`:
+        - when finding attributes annotated with :attr:`~scim2_models.Mutability.immutable` different than the ``original`` parameter passed to :meth:`~scim2_models.BaseModel.model_validate`;
         - when attributes annotated with :attr:`Required.true <scim2_models.Required.true>` are missing on null.
     """
 

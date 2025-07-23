@@ -14,7 +14,7 @@ from scim2_models.resources.resource import Resource
 
 from ..base import BaseModel
 from ..scim_object import ScimObject
-from ..utils import _UNION_TYPES
+from ..utils import UNION_TYPES
 
 
 class Message(ScimObject):
@@ -69,7 +69,7 @@ def _create_tagged_resource_union(resource_union: Any) -> Any:
     :param resource_union: Union type of SCIM resources
     :return: Annotated discriminated union or original type
     """
-    if get_origin(resource_union) not in _UNION_TYPES:
+    if get_origin(resource_union) not in UNION_TYPES:
         return resource_union
 
     resource_types = get_args(resource_union)

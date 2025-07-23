@@ -13,10 +13,10 @@ from pydantic_core import PydanticCustomError
 try:
     from types import UnionType
 
-    _UNION_TYPES = [Union, UnionType]
+    UNION_TYPES = [Union, UnionType]
 except ImportError:
     # Python 3.9 has no UnionType
-    _UNION_TYPES = [Union]
+    UNION_TYPES = [Union]
 
 
 def _int_to_str(status: Optional[int]) -> Optional[str]:

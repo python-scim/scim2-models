@@ -29,7 +29,7 @@ from ..context import Context
 from ..reference import Reference
 from ..scim_object import ScimObject
 from ..urn import _validate_attribute_urn
-from ..utils import _UNION_TYPES
+from ..utils import UNION_TYPES
 from ..utils import _normalize_attribute_name
 
 if TYPE_CHECKING:
@@ -153,7 +153,7 @@ class Resource(ScimObject, Generic[AnyExtension]):
         if hasattr(cls, "__scim_extension_metadata__"):
             return cls
 
-        extensions = get_args(item) if get_origin(item) in _UNION_TYPES else [item]
+        extensions = get_args(item) if get_origin(item) in UNION_TYPES else [item]
 
         # Skip TypeVar parameters and Any (used for generic class definitions)
         valid_extensions = [
