@@ -61,9 +61,7 @@ class Reference(UserString, Generic[ReferenceTypes]):
         """Get reference types from a type annotation.
 
         :param type_annotation: Type annotation to extract reference types from
-        :type type_annotation: Any
         :return: List of reference type strings
-        :rtype: list[str]
         """
         first_arg = get_args(type_annotation)[0]
         types = (
