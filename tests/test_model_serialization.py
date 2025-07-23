@@ -8,7 +8,7 @@ from scim2_models.annotations import Required
 from scim2_models.annotations import Returned
 from scim2_models.attributes import ComplexAttribute
 from scim2_models.context import Context
-from scim2_models.rfc7643.resource import Resource
+from scim2_models.resources.resource import Resource
 
 
 class SubRetModel(ComplexAttribute):

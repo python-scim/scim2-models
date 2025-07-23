@@ -7,13 +7,13 @@ from scim2_models.annotations import Returned
 from scim2_models.attributes import ComplexAttribute
 from scim2_models.base import BaseModel
 from scim2_models.context import Context
-from scim2_models.rfc7643.enterprise_user import EnterpriseUser
-from scim2_models.rfc7643.resource import Extension
-from scim2_models.rfc7643.resource import Meta
-from scim2_models.rfc7643.resource import Resource
-from scim2_models.rfc7643.user import User
-from scim2_models.rfc7644.error import Error
-from scim2_models.rfc7644.patch_op import PatchOp
+from scim2_models.messages.error import Error
+from scim2_models.messages.patch_op import PatchOp
+from scim2_models.resources.enterprise_user import EnterpriseUser
+from scim2_models.resources.resource import Extension
+from scim2_models.resources.resource import Meta
+from scim2_models.resources.resource import Resource
+from scim2_models.resources.user import User
 from scim2_models.urn import validate_attribute_urn
 
 

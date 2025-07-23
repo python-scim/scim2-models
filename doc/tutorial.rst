@@ -204,9 +204,9 @@ If a response resource type cannot be found, a ``pydantic.ValidationError`` will
     >>> response = ListResponse[Union[User, Group]].model_validate(payload)
     >>> user, group = response.resources
     >>> type(user)
-    <class 'scim2_models.rfc7643.user.User'>
+    <class 'scim2_models.resources.user.User'>
     >>> type(group)
-    <class 'scim2_models.rfc7643.group.Group'>
+    <class 'scim2_models.resources.group.Group'>
 
 
 Schema extensions

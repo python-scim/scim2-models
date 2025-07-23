@@ -10,7 +10,7 @@ from pydantic import Discriminator
 from pydantic import Tag
 from pydantic._internal._model_construction import ModelMetaclass
 
-from scim2_models.rfc7643.resource import Resource
+from scim2_models.resources.resource import Resource
 
 from ..base import BaseModel
 from ..scim_object import ScimObject

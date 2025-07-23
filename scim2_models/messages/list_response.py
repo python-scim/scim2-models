@@ -12,7 +12,7 @@ from typing_extensions import Self
 
 from ..annotations import Required
 from ..context import Context
-from ..rfc7643.resource import AnyResource
+from ..resources.resource import AnyResource
 from .message import GenericMessageMetaclass
 from .message import Message
 

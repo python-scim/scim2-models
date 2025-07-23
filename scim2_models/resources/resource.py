@@ -404,7 +404,7 @@ def dedicated_attributes(
 
 
 def model_to_schema(model: type[BaseModel]) -> "Schema":
-    from scim2_models.rfc7643.schema import Schema
+    from scim2_models.resources.schema import Schema
 
     schema_urn = model.model_fields["schemas"].default[0]
     field_infos = dedicated_attributes(model, [Resource])
@@ -425,7 +425,7 @@ def model_to_schema(model: type[BaseModel]) -> "Schema":
 def model_attribute_to_scim_attribute(
     model: type[BaseModel], attribute_name: str
 ) -> "Attribute":
-    from scim2_models.rfc7643.schema import Attribute
+    from scim2_models.resources.schema import Attribute
 
     field_info = model.model_fields[attribute_name]
     root_type = model.get_field_root_type(attribute_name)

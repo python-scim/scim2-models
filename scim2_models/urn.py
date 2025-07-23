@@ -7,7 +7,7 @@ from .utils import normalize_attribute_name
 
 if TYPE_CHECKING:
     from .base import BaseModel
-    from .rfc7643.resource import Resource
+    from .resources.resource import Resource
 
 
 def _get_or_create_extension_instance(
@@ -23,7 +23,7 @@ def _get_or_create_extension_instance(
 
 def normalize_path(model: Optional[type["BaseModel"]], path: str) -> tuple[str, str]:
     """Resolve a path to (schema_urn, attribute_path)."""
-    from .rfc7643.resource import Resource
+    from .resources.resource import Resource
 
     # Absolute URN
     if ":" in path:
@@ -69,7 +69,7 @@ def validate_attribute_urn(
     :param attribute_name: The attribute urn to check.
     :return: The normalized attribute URN.
     """
-    from .rfc7643.resource import Resource
+    from .resources.resource import Resource
 
     schema: Optional[Any]
     schema, attribute_base = normalize_path(resource, attribute_name)

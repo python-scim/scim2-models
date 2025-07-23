@@ -273,7 +273,7 @@ class BaseModel(PydanticBaseModel):
         cls, value: Any, handler: ValidatorFunctionWrapHandler, info: ValidationInfo
     ) -> Self:
         """Check if 'immutable' attributes have been mutated in replacement requests."""
-        from scim2_models.rfc7643.resource import Resource
+        from scim2_models.resources.resource import Resource
 
         obj = handler(value)
         assert isinstance(obj, cls)
@@ -462,7 +462,7 @@ class BaseModel(PydanticBaseModel):
 
         See :rfc:`RFC7644 §3.10 <7644#section-3.10>`.
         """
-        from scim2_models.rfc7643.resource import Extension
+        from scim2_models.resources.resource import Extension
 
         main_schema = self.__class__.model_fields["schemas"].default[0]
         field = self.__class__.model_fields[field_name]

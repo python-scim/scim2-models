@@ -9,8 +9,8 @@ from scim2_models import GroupMember
 from scim2_models import PatchOp
 from scim2_models import PatchOperation
 from scim2_models import User
-from scim2_models.rfc7643.enterprise_user import EnterpriseUser
-from scim2_models.rfc7643.resource import Resource
+from scim2_models.resources.enterprise_user import EnterpriseUser
+from scim2_models.resources.resource import Resource
 
 
 def test_patch_operation_extension_simple_attribute():

@@ -1,4 +1,4 @@
-from scim2_models.rfc7644.error import Error
+from scim2_models.messages.error import Error
 
 
 def test_predefined_errors():

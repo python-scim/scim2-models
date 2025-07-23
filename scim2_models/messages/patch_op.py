@@ -17,7 +17,7 @@ from ..annotations import Required
 from ..attributes import ComplexAttribute
 from ..base import BaseModel
 from ..context import Context
-from ..rfc7643.resource import Resource
+from ..resources.resource import Resource
 from ..urn import resolve_path_to_target
 from ..utils import extract_field_name
 from ..utils import find_field_name
