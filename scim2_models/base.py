@@ -54,7 +54,35 @@ class BaseModel(PydanticBaseModel):
 
     @classmethod
     def get_field_annotation(cls, field_name: str, annotation_type: type) -> Any:
-        """Return the annotation of type 'annotation_type' of the field 'field_name'."""
+        """Return the annotation of type 'annotation_type' of the field 'field_name'.
+
+        This method extracts SCIM-specific annotations from a field's metadata,
+        such as :class:`~scim2_models.Mutability`, :class:`~scim2_models.Required`,
+        or :class:`~scim2_models.Returned` annotations.
+
+        :return: The annotation instance if found, otherwise the annotation type's default value
+
+        >>> from scim2_models.resources.user import User
+        >>> from scim2_models.annotations import Mutability, Required
+
+        Get the mutability annotation of the 'id' field:
+
+        >>> mutability = User.get_field_annotation("id", Mutability)
+        >>> mutability
+        <Mutability.read_only: 'readOnly'>
+
+        Get the required annotation of the 'user_name' field:
+
+        >>> required = User.get_field_annotation("user_name", Required)
+        >>> required
+        <Required.true: True>
+
+        If no annotation is found, returns the default value:
+
+        >>> missing = User.get_field_annotation("display_name", Required)
+        >>> missing
+        <Required.false: False>
+        """
         field_metadata = cls.model_fields[field_name].metadata
 
         default_value = getattr(annotation_type, "_default", None)
@@ -71,8 +99,34 @@ class BaseModel(PydanticBaseModel):
     def get_field_root_type(cls, attribute_name: str) -> Optional[type]:
         """Extract the root type from a model field.
 
-        For example, return 'GroupMember' for
-        'Optional[List[GroupMember]]'
+        This method unwraps complex type annotations to find the underlying
+        type, removing Optional and List wrappers to get to the actual type
+        of the field's content.
+
+        :return: The root type of the field, or None if not found
+
+        >>> from scim2_models.resources.user import User
+        >>> from scim2_models.resources.group import Group
+
+        Simple type:
+
+        >>> User.get_field_root_type("user_name")
+        <class 'str'>
+
+        ``Optional`` type unwraps to the underlying type:
+
+        >>> User.get_field_root_type("display_name")
+        <class 'str'>
+
+        ``List`` type unwraps to the element type:
+
+        >>> User.get_field_root_type("emails")  # doctest: +ELLIPSIS
+        <class 'scim2_models.resources.user.Email'>
+
+        ``Optional[List[T]]`` unwraps to ``T``:
+
+        >>> Group.get_field_root_type("members")  # doctest: +ELLIPSIS
+        <class 'scim2_models.resources.group.GroupMember'>
         """
         attribute_type = cls.model_fields[attribute_name].annotation
 
@@ -89,7 +143,20 @@ class BaseModel(PydanticBaseModel):
 
     @classmethod
     def get_field_multiplicity(cls, attribute_name: str) -> bool:
-        """Indicate whether a field holds multiple values."""
+        """Indicate whether a field holds multiple values.
+
+        This method determines if a field is defined as a list type,
+        which indicates it can contain multiple values. It handles
+        Optional wrappers correctly.
+
+        :return: True if the field holds multiple values (is a list), False otherwise
+
+        >>> from scim2_models.resources.user import User
+        >>> User.get_field_multiplicity("user_name")
+        False
+        >>> User.get_field_multiplicity("emails")
+        True
+        """
         attribute_type = cls.model_fields[attribute_name].annotation
 
         # extract 'x' from 'Optional[x]'
