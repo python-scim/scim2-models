@@ -28,9 +28,9 @@ from ..base import BaseModel
 from ..context import Context
 from ..reference import Reference
 from ..scim_object import ScimObject
-from ..urn import validate_attribute_urn
-from ..utils import UNION_TYPES
-from ..utils import normalize_attribute_name
+from ..urn import _validate_attribute_urn
+from ..utils import _UNION_TYPES
+from ..utils import _normalize_attribute_name
 
 if TYPE_CHECKING:
     from .schema import Attribute
@@ -92,14 +92,14 @@ class Extension(ScimObject):
     @classmethod
     def to_schema(cls) -> "Schema":
         """Build a :class:`~scim2_models.Schema` from the current extension class."""
-        return model_to_schema(cls)
+        return _model_to_schema(cls)
 
     @classmethod
     def from_schema(cls, schema: "Schema") -> type["Extension"]:
         """Build a :class:`~scim2_models.Extension` subclass from the schema definition."""
-        from .schema import make_python_model
+        from .schema import _make_python_model
 
-        return make_python_model(schema, cls)
+        return _make_python_model(schema, cls)
 
 
 AnyExtension = TypeVar("AnyExtension", bound="Extension")
@@ -107,7 +107,7 @@ AnyExtension = TypeVar("AnyExtension", bound="Extension")
 _PARAMETERIZED_CLASSES: dict[tuple[type, tuple[Any, ...]], type] = {}
 
 
-def extension_serializer(
+def _extension_serializer(
     value: Any, handler: SerializerFunctionWrapHandler, info: SerializationInfo
 ) -> Optional[dict[str, Any]]:
     """Exclude the Resource attributes from the extension dump.
@@ -153,7 +153,7 @@ class Resource(ScimObject, Generic[AnyExtension]):
         if hasattr(cls, "__scim_extension_metadata__"):
             return cls
 
-        extensions = get_args(item) if get_origin(item) in UNION_TYPES else [item]
+        extensions = get_args(item) if get_origin(item) in _UNION_TYPES else [item]
 
         # Skip TypeVar parameters and Any (used for generic class definitions)
         valid_extensions = [
@@ -184,13 +184,13 @@ class Resource(ScimObject, Generic[AnyExtension]):
             class_attrs[extension.__name__] = Field(
                 default=None,  # type: ignore[arg-type]
                 serialization_alias=schema,
-                validation_alias=normalize_attribute_name(schema),
+                validation_alias=_normalize_attribute_name(schema),
             )
 
         new_annotations = {
             extension.__name__: Annotated[
                 Optional[extension],
-                WrapSerializer(extension_serializer),
+                WrapSerializer(_extension_serializer),
             ]
             for extension in valid_extensions
         }
@@ -288,14 +288,14 @@ class Resource(ScimObject, Generic[AnyExtension]):
     @classmethod
     def to_schema(cls) -> "Schema":
         """Build a :class:`~scim2_models.Schema` from the current resource class."""
-        return model_to_schema(cls)
+        return _model_to_schema(cls)
 
     @classmethod
     def from_schema(cls, schema: "Schema") -> type["Resource"]:
         """Build a :class:`scim2_models.Resource` subclass from the schema definition."""
-        from .schema import make_python_model
+        from .schema import _make_python_model
 
-        return make_python_model(schema, cls)
+        return _make_python_model(schema, cls)
 
     def _prepare_model_dump(
         self,
@@ -310,13 +310,13 @@ class Resource(ScimObject, Generic[AnyExtension]):
         kwargs["context"]["scim_attributes"] = [
             valid_attr
             for attribute in (attributes or [])
-            if (valid_attr := validate_attribute_urn(attribute, self.__class__))
+            if (valid_attr := _validate_attribute_urn(attribute, self.__class__))
             is not None
         ]
         kwargs["context"]["scim_excluded_attributes"] = [
             valid_attr
             for attribute in (excluded_attributes or [])
-            if (valid_attr := validate_attribute_urn(attribute, self.__class__))
+            if (valid_attr := _validate_attribute_urn(attribute, self.__class__))
             is not None
         ]
         return kwargs
@@ -375,7 +375,7 @@ class Resource(ScimObject, Generic[AnyExtension]):
 AnyResource = TypeVar("AnyResource", bound="Resource")
 
 
-def dedicated_attributes(
+def _dedicated_attributes(
     model: type[BaseModel], excluded_models: list[type[BaseModel]]
 ) -> dict[str, Any]:
     """Return attributes that are not members the parent 'excluded_models'."""
@@ -403,13 +403,13 @@ def dedicated_attributes(
     return field_infos
 
 
-def model_to_schema(model: type[BaseModel]) -> "Schema":
+def _model_to_schema(model: type[BaseModel]) -> "Schema":
     from scim2_models.resources.schema import Schema
 
     schema_urn = model.model_fields["schemas"].default[0]
-    field_infos = dedicated_attributes(model, [Resource])
+    field_infos = _dedicated_attributes(model, [Resource])
     attributes = [
-        model_attribute_to_scim_attribute(model, attribute_name)
+        _model_attribute_to_scim_attribute(model, attribute_name)
         for attribute_name in field_infos
         if attribute_name != "schemas"
     ]
@@ -422,7 +422,7 @@ def model_to_schema(model: type[BaseModel]) -> "Schema":
     return schema
 
 
-def model_attribute_to_scim_attribute(
+def _model_attribute_to_scim_attribute(
     model: type[BaseModel], attribute_name: str
 ) -> "Attribute":
     from scim2_models.resources.schema import Attribute
@@ -436,8 +436,8 @@ def model_attribute_to_scim_attribute(
     attribute_type = Attribute.Type.from_python(root_type)
     sub_attributes = (
         [
-            model_attribute_to_scim_attribute(root_type, sub_attribute_name)
-            for sub_attribute_name in dedicated_attributes(
+            _model_attribute_to_scim_attribute(root_type, sub_attribute_name)
+            for sub_attribute_name in _dedicated_attributes(
                 root_type,
                 [MultiValuedComplexAttribute],
             )

@@ -13,18 +13,18 @@ from pydantic_core import PydanticCustomError
 try:
     from types import UnionType
 
-    UNION_TYPES = [Union, UnionType]
+    _UNION_TYPES = [Union, UnionType]
 except ImportError:
     # Python 3.9 has no UnionType
-    UNION_TYPES = [Union]
+    _UNION_TYPES = [Union]
 
 
-def int_to_str(status: Optional[int]) -> Optional[str]:
+def _int_to_str(status: Optional[int]) -> Optional[str]:
     return None if status is None else str(status)
 
 
 # Copied from Pydantic 2.10 repository
-class Base64Encoder(EncoderProtocol):  # pragma: no cover
+class _Base64Encoder(EncoderProtocol):  # pragma: no cover
     """Standard (non-URL-safe) Base64 encoder."""
 
     @classmethod
@@ -71,10 +71,10 @@ class Base64Encoder(EncoderProtocol):  # pragma: no cover
 
 # Compatibility with Pydantic <2.10
 # https://pydantic.dev/articles/pydantic-v2-10-release#use-b64decode-and-b64encode-for-base64bytes-and-base64str-types
-Base64Bytes = Annotated[bytes, EncodedBytes(encoder=Base64Encoder)]
+Base64Bytes = Annotated[bytes, EncodedBytes(encoder=_Base64Encoder)]
 
 
-def to_camel(string: str) -> str:
+def _to_camel(string: str) -> str:
     """Transform strings to camelCase.
 
     This method is used for attribute name serialization. This is more
@@ -87,7 +87,7 @@ def to_camel(string: str) -> str:
     return camel
 
 
-def normalize_attribute_name(attribute_name: str) -> str:
+def _normalize_attribute_name(attribute_name: str) -> str:
     """Remove all non-alphabetical characters and lowerise a string.
 
     This method is used for attribute name validation.
@@ -99,7 +99,7 @@ def normalize_attribute_name(attribute_name: str) -> str:
     return attribute_name.lower()
 
 
-def validate_scim_path_syntax(path: str) -> bool:
+def _validate_scim_path_syntax(path: str) -> bool:
     """Check if path syntax is valid according to RFC 7644 simplified rules.
 
     :param path: The path to validate
@@ -125,13 +125,13 @@ def validate_scim_path_syntax(path: str) -> bool:
 
     # If it contains a colon, validate it's a proper URN format
     if ":" in path:
-        if not validate_scim_urn_syntax(path):
+        if not _validate_scim_urn_syntax(path):
             return False
 
     return True
 
 
-def validate_scim_urn_syntax(path: str) -> bool:
+def _validate_scim_urn_syntax(path: str) -> bool:
     """Validate URN-based path format.
 
     :param path: The URN path to validate
@@ -158,7 +158,7 @@ def validate_scim_urn_syntax(path: str) -> bool:
     return True
 
 
-def extract_field_name(path: str) -> Optional[str]:
+def _extract_field_name(path: str) -> Optional[str]:
     """Extract the field name from a path.
 
     For now, only handle simple paths (no filters, no complex expressions).
@@ -168,7 +168,7 @@ def extract_field_name(path: str) -> Optional[str]:
     # Handle URN paths
     if path.startswith("urn:"):
         # First validate it's a proper URN
-        if not validate_scim_urn_syntax(path):
+        if not _validate_scim_urn_syntax(path):
             return None
         parts = path.rsplit(":", 1)
         return parts[1]
@@ -181,7 +181,7 @@ def extract_field_name(path: str) -> Optional[str]:
     return path
 
 
-def find_field_name(resource_class, attr_name: str) -> Optional[str]:
+def _find_field_name(resource_class, attr_name: str) -> Optional[str]:
     """Find the actual field name in a resource class from an attribute name.
 
     Args:
@@ -192,10 +192,10 @@ def find_field_name(resource_class, attr_name: str) -> Optional[str]:
         The actual field name if found (e.g., "nick_name"), None otherwise
 
     """
-    normalized_attr_name = normalize_attribute_name(attr_name)
+    normalized_attr_name = _normalize_attribute_name(attr_name)
 
     for field_key in resource_class.model_fields:
-        if normalize_attribute_name(field_key) == normalized_attr_name:
+        if _normalize_attribute_name(field_key) == normalized_attr_name:
             return field_key
 
     return None

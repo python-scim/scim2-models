@@ -13,11 +13,11 @@ from typing_extensions import Self
 from ..annotations import Required
 from ..context import Context
 from ..resources.resource import AnyResource
-from .message import GenericMessageMetaclass
 from .message import Message
+from .message import _GenericMessageMetaclass
 
 
-class ListResponse(Message, Generic[AnyResource], metaclass=GenericMessageMetaclass):
+class ListResponse(Message, Generic[AnyResource], metaclass=_GenericMessageMetaclass):
     schemas: Annotated[list[str], Required.true] = [
         "urn:ietf:params:scim:api:messages:2.0:ListResponse"
     ]

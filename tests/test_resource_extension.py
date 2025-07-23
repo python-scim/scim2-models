@@ -329,7 +329,7 @@ def test_model_attribute_to_scim_attribute_error():
     from pydantic import Field
 
     from scim2_models.base import BaseModel
-    from scim2_models.resources.resource import model_attribute_to_scim_attribute
+    from scim2_models.resources.resource import _model_attribute_to_scim_attribute
 
     # Create a model with a field that has no clear root type
     class TestModel(BaseModel):
@@ -344,7 +344,7 @@ def test_model_attribute_to_scim_attribute_error():
             ValueError,
             match="Could not determine root type for attribute problematic_field",
         ):
-            model_attribute_to_scim_attribute(TestModel, "problematic_field")
+            _model_attribute_to_scim_attribute(TestModel, "problematic_field")
     finally:
         # Restore the original method
         TestModel.get_field_root_type = original_method

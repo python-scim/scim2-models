@@ -18,13 +18,13 @@ from ..attributes import ComplexAttribute
 from ..base import BaseModel
 from ..context import Context
 from ..resources.resource import Resource
-from ..urn import resolve_path_to_target
-from ..utils import extract_field_name
-from ..utils import find_field_name
-from ..utils import validate_scim_path_syntax
+from ..urn import _resolve_path_to_target
+from ..utils import _extract_field_name
+from ..utils import _find_field_name
+from ..utils import _validate_scim_path_syntax
 from .error import Error
 from .message import Message
-from .message import get_resource_class
+from .message import _get_resource_class
 
 T = TypeVar("T", bound=Resource)
 
@@ -98,7 +98,7 @@ class PatchOperation(ComplexAttribute):
             return self
 
         # RFC 7644 Section 3.5.2: "Path syntax validation according to ABNF grammar"
-        if self.path is not None and not validate_scim_path_syntax(self.path):
+        if self.path is not None and not _validate_scim_path_syntax(self.path):
             raise ValueError(Error.make_invalid_path_error().detail)
 
         # RFC 7644 Section 3.5.2.3: "Path is required for remove operations"
@@ -199,7 +199,7 @@ class PatchOp(Message, Generic[T]):
         When PatchOp is used with a specific resource type (e.g., PatchOp[User]),
         this validator will automatically check mutability and required constraints.
         """
-        resource_class = get_resource_class(self)
+        resource_class = _get_resource_class(self)
         if resource_class is None or not self.operations:
             return self
 
@@ -208,7 +208,7 @@ class PatchOp(Message, Generic[T]):
             if operation.path is None:
                 continue
 
-            field_name = extract_field_name(operation.path)
+            field_name = _extract_field_name(operation.path)
             operation._validate_mutability(resource_class, field_name)  # type: ignore[arg-type]
             operation._validate_required_attribute(resource_class, field_name)  # type: ignore[arg-type]
 
@@ -287,7 +287,7 @@ class PatchOp(Message, Generic[T]):
 
         modified = False
         for attr_name, val in value.items():
-            field_name = find_field_name(type(resource), attr_name)
+            field_name = _find_field_name(type(resource), attr_name)
             if not field_name:
                 continue
 
@@ -302,7 +302,7 @@ class PatchOp(Message, Generic[T]):
         self, resource: Resource, path: str, value: Any, is_add: bool
     ) -> bool:
         """Set a value at a specific path."""
-        target, attr_path = resolve_path_to_target(resource, path)
+        target, attr_path = _resolve_path_to_target(resource, path)
 
         if not attr_path or not target:
             raise ValueError(Error.make_invalid_path_error().detail)
@@ -317,7 +317,7 @@ class PatchOp(Message, Generic[T]):
         self, resource: BaseModel, attr_name: str, value: Any, is_add: bool
     ) -> bool:
         """Set a value on a simple (non-nested) attribute."""
-        field_name = find_field_name(type(resource), attr_name)
+        field_name = _find_field_name(type(resource), attr_name)
         if not field_name:
             raise ValueError(Error.make_no_target_error().detail)
 
@@ -339,7 +339,7 @@ class PatchOp(Message, Generic[T]):
         parent_attr = path_parts[0]
         sub_path = ".".join(path_parts[1:])
 
-        parent_field_name = find_field_name(type(resource), parent_attr)
+        parent_field_name = _find_field_name(type(resource), parent_attr)
         if not parent_field_name:
             raise ValueError(Error.make_no_target_error().detail)
 
@@ -413,14 +413,14 @@ class PatchOp(Message, Generic[T]):
 
     def _remove_value_at_path(self, resource: Resource, path: str) -> bool:
         """Remove a value at a specific path."""
-        target, attr_path = resolve_path_to_target(resource, path)
+        target, attr_path = _resolve_path_to_target(resource, path)
 
         # RFC 7644 Section 3.5.2.3: "Path must resolve to a valid attribute"
         if not attr_path or not target:
             raise ValueError(Error.make_invalid_path_error().detail)
 
         parent_attr, *path_parts = attr_path.split(".")
-        field_name = find_field_name(type(target), parent_attr)
+        field_name = _find_field_name(type(target), parent_attr)
         if not field_name:
             raise ValueError(Error.make_no_target_error().detail)
         parent_obj = getattr(target, field_name)
@@ -440,13 +440,13 @@ class PatchOp(Message, Generic[T]):
         self, resource: Resource, path: str, value_to_remove: Any
     ) -> bool:
         """Remove a specific value from a multi-valued attribute."""
-        target, attr_path = resolve_path_to_target(resource, path)
+        target, attr_path = _resolve_path_to_target(resource, path)
 
         # RFC 7644 Section 3.5.2.3: "Path must resolve to a valid attribute"
         if not attr_path or not target:
             raise ValueError(Error.make_invalid_path_error().detail)
 
-        field_name = find_field_name(type(target), attr_path)
+        field_name = _find_field_name(type(target), attr_path)
         if not field_name:
             raise ValueError(Error.make_no_target_error().detail)
 

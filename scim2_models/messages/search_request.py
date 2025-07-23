@@ -6,7 +6,7 @@ from pydantic import field_validator
 from pydantic import model_validator
 
 from ..annotations import Required
-from ..utils import validate_scim_path_syntax
+from ..utils import _validate_scim_path_syntax
 from .error import Error
 from .message import Message
 
@@ -34,7 +34,7 @@ class SearchRequest(Message):
             return v
 
         for attr in v:
-            if not validate_scim_path_syntax(attr):
+            if not _validate_scim_path_syntax(attr):
                 raise ValueError(Error.make_invalid_path_error().detail)
 
         return v
@@ -53,7 +53,7 @@ class SearchRequest(Message):
             return v
 
         for attr in v:
-            if not validate_scim_path_syntax(attr):
+            if not _validate_scim_path_syntax(attr):
                 raise ValueError(Error.make_invalid_path_error().detail)
 
         return v
@@ -79,7 +79,7 @@ class SearchRequest(Message):
         if v is None:
             return v
 
-        if not validate_scim_path_syntax(v):
+        if not _validate_scim_path_syntax(v):
             raise ValueError(Error.make_invalid_path_error().detail)
 
         return v

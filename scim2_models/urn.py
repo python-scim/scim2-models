@@ -3,7 +3,7 @@ from typing import Any
 from typing import Optional
 
 from .base import BaseModel
-from .utils import normalize_attribute_name
+from .utils import _normalize_attribute_name
 
 if TYPE_CHECKING:
     from .base import BaseModel
@@ -21,7 +21,7 @@ def _get_or_create_extension_instance(
     return extension_instance
 
 
-def normalize_path(model: Optional[type["BaseModel"]], path: str) -> tuple[str, str]:
+def _normalize_path(model: Optional[type["BaseModel"]], path: str) -> tuple[str, str]:
     """Resolve a path to (schema_urn, attribute_path)."""
     from .resources.resource import Resource
 
@@ -38,14 +38,14 @@ def normalize_path(model: Optional[type["BaseModel"]], path: str) -> tuple[str, 
     return "", path
 
 
-def validate_model_attribute(model: type["BaseModel"], attribute_base: str) -> None:
+def _validate_model_attribute(model: type["BaseModel"], attribute_base: str) -> None:
     """Validate that an attribute name or a sub-attribute path exist for a given model."""
     attribute_name, *sub_attribute_blocks = attribute_base.split(".")
     sub_attribute_base = ".".join(sub_attribute_blocks)
 
     aliases = {field.validation_alias for field in model.model_fields.values()}
 
-    if normalize_attribute_name(attribute_name) not in aliases:
+    if _normalize_attribute_name(attribute_name) not in aliases:
         raise ValueError(
             f"Model '{model.__name__}' has no attribute named '{attribute_name}'"
         )
@@ -58,10 +58,10 @@ def validate_model_attribute(model: type["BaseModel"], attribute_base: str) -> N
                 f"Attribute '{attribute_name}' is not a complex attribute, and cannot have a '{sub_attribute_base}' sub-attribute"
             )
 
-        validate_model_attribute(attribute_type, sub_attribute_base)
+        _validate_model_attribute(attribute_type, sub_attribute_base)
 
 
-def validate_attribute_urn(
+def _validate_attribute_urn(
     attribute_name: str, resource: type["Resource"]
 ) -> Optional[str]:
     """Validate that an attribute urn is valid or not.
@@ -72,28 +72,28 @@ def validate_attribute_urn(
     from .resources.resource import Resource
 
     schema: Optional[Any]
-    schema, attribute_base = normalize_path(resource, attribute_name)
+    schema, attribute_base = _normalize_path(resource, attribute_name)
 
     validated_resource = Resource.get_by_schema([resource], schema)
     if not validated_resource:
         return None
 
     try:
-        validate_model_attribute(validated_resource, attribute_base)
+        _validate_model_attribute(validated_resource, attribute_base)
     except ValueError:
         return None
 
     return f"{schema}:{attribute_base}"
 
 
-def resolve_path_to_target(
+def _resolve_path_to_target(
     resource: "Resource", path: str
 ) -> tuple[Optional["BaseModel"], str]:
     """Resolve a path to a target and an attribute_path.
 
     The target can be the resource itself, or an extension object.
     """
-    schema_urn, attr_path = normalize_path(type(resource), path)
+    schema_urn, attr_path = _normalize_path(type(resource), path)
 
     if not schema_urn:
         return resource, attr_path
