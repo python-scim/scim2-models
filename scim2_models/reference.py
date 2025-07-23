@@ -1,3 +1,4 @@
+import sys
 from collections import UserString
 from typing import Any
 from typing import Generic
@@ -11,7 +12,11 @@ from typing_extensions import NewType
 
 from .utils import UNION_TYPES
 
-ReferenceTypes = TypeVar("ReferenceTypes")
+# TypeVar with default parameter is available in Python 3.13+
+if sys.version_info >= (3, 13):
+    ReferenceTypes = TypeVar("ReferenceTypes", default=Any)
+else:  # pragma: no cover
+    ReferenceTypes = TypeVar("ReferenceTypes")
 
 URIReference = NewType("URIReference", str)
 ExternalReference = NewType("ExternalReference", str)
