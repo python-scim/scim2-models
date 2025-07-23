@@ -23,10 +23,10 @@ from scim2_models.annotations import Mutability
 from scim2_models.annotations import Required
 from scim2_models.annotations import Returned
 from scim2_models.context import Context
+from scim2_models.utils import UNION_TYPES
+from scim2_models.utils import find_field_name
 from scim2_models.utils import normalize_attribute_name
 from scim2_models.utils import to_camel
-
-from .utils import UNION_TYPES
 
 
 def contains_attribute_or_subattributes(
@@ -152,15 +152,44 @@ class BaseModel(PydanticBaseModel):
         transformed in lowercase so any case is handled the same way.
         """
 
-        def normalize_value(value: Any) -> Any:
-            if isinstance(value, dict):
-                return {
-                    normalize_attribute_name(k): normalize_value(v)
-                    for k, v in value.items()
-                }
-            return value
+        def normalize_dict_keys(
+            input_dict: dict, model_class: type["BaseModel"]
+        ) -> dict:
+            """Normalize dictionary keys, preserving case for Any fields."""
+            result = {}
 
-        normalized_value = normalize_value(value)
+            for key, val in input_dict.items():
+                field_name = find_field_name(model_class, key)
+                field_type = (
+                    model_class.get_field_root_type(field_name) if field_name else None
+                )
+
+                # Don't normalize keys for attributes typed with Any
+                # This way, agnostic dicts such as PatchOp.operations.value
+                # are preserved
+                if field_name and field_type == Any:
+                    result[key] = normalize_value(val)
+                else:
+                    result[normalize_attribute_name(key)] = normalize_value(
+                        val, field_type
+                    )
+
+            return result
+
+        def normalize_value(
+            val: Any, model_class: Optional[type["BaseModel"]] = None
+        ) -> Any:
+            """Normalize input value based on model class."""
+            if not isinstance(val, dict):
+                return val
+
+            # If no model_class, preserve original keys
+            if not model_class:
+                return {k: normalize_value(v) for k, v in val.items()}
+
+            return normalize_dict_keys(val, model_class)
+
+        normalized_value = normalize_value(value, cls)
         obj = handler(normalized_value)
         assert isinstance(obj, cls)
         return obj

@@ -13,6 +13,7 @@ Fixed
 ^^^^^
 - When using ``model_dump``, ignore invalid ``attributes`` and ``excluded_attributes``
   as suggested by RFC7644.
+- Don't normalize attributes typed with :data:`Any`. :issue:`20`
 
 [0.3.7] - 2025-07-17
 --------------------
