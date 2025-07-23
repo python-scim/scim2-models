@@ -71,9 +71,7 @@ class SearchRequest(Message):
         """Validate syntax of sort_by attribute path.
 
         :param v: The sort_by attribute path to validate
-        :type v: Optional[str]
         :return: The validated sort_by attribute path
-        :rtype: Optional[str]
         :raises ValueError: If sort_by attribute path has invalid syntax
         """
         if v is None:

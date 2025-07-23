@@ -103,9 +103,7 @@ def _validate_scim_path_syntax(path: str) -> bool:
     """Check if path syntax is valid according to RFC 7644 simplified rules.
 
     :param path: The path to validate
-    :type path: str
     :return: True if path syntax is valid, False otherwise
-    :rtype: bool
     """
     if not path or not path.strip():
         return False
@@ -135,9 +133,7 @@ def _validate_scim_urn_syntax(path: str) -> bool:
     """Validate URN-based path format.
 
     :param path: The URN path to validate
-    :type path: str
     :return: True if URN path format is valid, False otherwise
-    :rtype: bool
     """
     # Basic URN validation: should start with urn:
     if not path.startswith("urn:"):
