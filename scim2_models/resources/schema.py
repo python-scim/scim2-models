@@ -258,7 +258,7 @@ class Attribute(ComplexAttribute):
         raise KeyError(f"This attribute has no '{name}' sub-attribute")
 
 
-class Schema(Resource):
+class Schema(Resource[Any]):
     schemas: Annotated[list[str], Required.true] = [
         "urn:ietf:params:scim:schemas:core:2.0:Schema"
     ]

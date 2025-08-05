@@ -19,6 +19,7 @@ repos:
     rev: v1.17.0
     hooks:
       - id: mypy
+        exclude: ^(tests/|conftest.py)
         additional_dependencies:
           - pydantic[email]>=2.7.0
   - repo: https://github.com/codespell-project/codespell

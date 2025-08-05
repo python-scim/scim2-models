@@ -220,8 +220,8 @@ class BaseModel(PydanticBaseModel):
         """
 
         def normalize_dict_keys(
-            input_dict: dict, model_class: type["BaseModel"]
-        ) -> dict:
+            input_dict: dict[str, Any], model_class: type["BaseModel"]
+        ) -> dict[str, Any]:
             """Normalize dictionary keys, preserving case for Any fields."""
             result = {}
 

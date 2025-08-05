@@ -112,8 +112,8 @@ class _GenericMessageMetaclass(ModelMetaclass):
         return klass
 
 
-def _get_resource_class(obj) -> Optional[type[Resource]]:
+def _get_resource_class(obj: BaseModel) -> type[Resource[Any]]:
     """Extract the resource class from generic type parameter."""
     metadata = getattr(obj.__class__, "__pydantic_generic_metadata__", {"args": [None]})
     resource_class = metadata["args"][0]
-    return resource_class
+    return resource_class  # type: ignore[no-any-return]

@@ -43,7 +43,7 @@ class MultiValuedComplexAttribute(ComplexAttribute):
     value: Optional[Any] = None
     """The value of an entitlement."""
 
-    ref: Optional[Reference] = Field(None, serialization_alias="$ref")
+    ref: Optional[Reference[Any]] = Field(None, serialization_alias="$ref")
     """The reference URI of a target resource, if the attribute is a
     reference."""
 

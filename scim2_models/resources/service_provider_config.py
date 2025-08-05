@@ -1,5 +1,6 @@
 from enum import Enum
 from typing import Annotated
+from typing import Any
 from typing import Optional
 
 from pydantic import Field
@@ -93,7 +94,7 @@ class AuthenticationScheme(ComplexAttribute):
     address."""
 
 
-class ServiceProviderConfig(Resource):
+class ServiceProviderConfig(Resource[Any]):
     schemas: Annotated[list[str], Required.true] = [
         "urn:ietf:params:scim:schemas:core:2.0:ServiceProviderConfig"
     ]
