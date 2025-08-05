@@ -308,7 +308,8 @@ class PatchOp(Message, Generic[T]):
 
         return self._remove_value_at_path(resource, operation.path)
 
-    def _apply_root_attributes(self, resource: BaseModel, value: Any) -> bool:
+    @classmethod
+    def _apply_root_attributes(cls, resource: BaseModel, value: Any) -> bool:
         """Apply attributes to the resource root."""
         if not isinstance(value, dict):
             return False
@@ -326,8 +327,9 @@ class PatchOp(Message, Generic[T]):
 
         return modified
 
+    @classmethod
     def _set_value_at_path(
-        self, resource: Resource[Any], path: str, value: Any, is_add: bool
+        cls, resource: Resource[Any], path: str, value: Any, is_add: bool
     ) -> bool:
         """Set a value at a specific path."""
         target, attr_path = _resolve_path_to_target(resource, path)
@@ -337,12 +339,13 @@ class PatchOp(Message, Generic[T]):
 
         path_parts = attr_path.split(".")
         if len(path_parts) == 1:
-            return self._set_simple_attribute(target, path_parts[0], value, is_add)
+            return cls._set_simple_attribute(target, path_parts[0], value, is_add)
 
-        return self._set_complex_attribute(target, path_parts, value, is_add)
+        return cls._set_complex_attribute(target, path_parts, value, is_add)
 
+    @classmethod
     def _set_simple_attribute(
-        self, resource: BaseModel, attr_name: str, value: Any, is_add: bool
+        cls, resource: BaseModel, attr_name: str, value: Any, is_add: bool
     ) -> bool:
         """Set a value on a simple (non-nested) attribute."""
         field_name = _find_field_name(type(resource), attr_name)
@@ -350,8 +353,8 @@ class PatchOp(Message, Generic[T]):
             raise ValueError(Error.make_no_target_error().detail)
 
         # RFC 7644 Section 3.5.2.1: "For multi-valued attributes, add operation appends values"
-        if is_add and self._is_multivalued_field(resource, field_name):
-            return self._handle_multivalued_add(resource, field_name, value)
+        if is_add and cls._is_multivalued_field(resource, field_name):
+            return cls._handle_multivalued_add(resource, field_name, value)
 
         old_value = getattr(resource, field_name)
         if old_value == value:
@@ -360,8 +363,9 @@ class PatchOp(Message, Generic[T]):
         setattr(resource, field_name, value)
         return True
 
+    @classmethod
     def _set_complex_attribute(
-        self, resource: BaseModel, path_parts: list[str], value: Any, is_add: bool
+        cls, resource: BaseModel, path_parts: list[str], value: Any, is_add: bool
     ) -> bool:
         """Set a value on a complex (nested) attribute."""
         parent_attr = path_parts[0]
@@ -373,32 +377,35 @@ class PatchOp(Message, Generic[T]):
 
         parent_obj = getattr(resource, parent_field_name)
         if parent_obj is None:
-            parent_obj = self._create_parent_object(resource, parent_field_name)
+            parent_obj = cls._create_parent_object(resource, parent_field_name)
             if parent_obj is None:
                 return False
 
-        return self._set_value_at_path(parent_obj, sub_path, value, is_add)
+        return cls._set_value_at_path(parent_obj, sub_path, value, is_add)
 
-    def _is_multivalued_field(self, resource: BaseModel, field_name: str) -> bool:
+    @classmethod
+    def _is_multivalued_field(cls, resource: BaseModel, field_name: str) -> bool:
         """Check if a field is multi-valued."""
         return hasattr(resource, field_name) and type(resource).get_field_multiplicity(
             field_name
         )
 
+    @classmethod
     def _handle_multivalued_add(
-        self, resource: BaseModel, field_name: str, value: Any
+        cls, resource: BaseModel, field_name: str, value: Any
     ) -> bool:
         """Handle adding values to a multi-valued attribute."""
         current_list = getattr(resource, field_name) or []
 
         # RFC 7644 Section 3.5.2.1: "Add operation appends values to multi-valued attributes"
         if isinstance(value, list):
-            return self._add_multiple_values(resource, field_name, current_list, value)
+            return cls._add_multiple_values(resource, field_name, current_list, value)
 
-        return self._add_single_value(resource, field_name, current_list, value)
+        return cls._add_single_value(resource, field_name, current_list, value)
 
+    @classmethod
     def _add_multiple_values(
-        self,
+        cls,
         resource: BaseModel,
         field_name: str,
         current_list: list[Any],
@@ -408,7 +415,7 @@ class PatchOp(Message, Generic[T]):
         new_values = []
         # RFC 7644 Section 3.5.2.1: "Do not add duplicate values"
         for new_val in values:
-            if not self._value_exists_in_list(current_list, new_val):
+            if not cls._value_exists_in_list(current_list, new_val):
                 new_values.append(new_val)
 
         if not new_values:
@@ -417,23 +424,26 @@ class PatchOp(Message, Generic[T]):
         setattr(resource, field_name, current_list + new_values)
         return True
 
+    @classmethod
     def _add_single_value(
-        self, resource: BaseModel, field_name: str, current_list: list[Any], value: Any
+        cls, resource: BaseModel, field_name: str, current_list: list[Any], value: Any
     ) -> bool:
         """Add a single value to a multi-valued attribute."""
         # RFC 7644 Section 3.5.2.1: "Do not add duplicate values"
-        if self._value_exists_in_list(current_list, value):
+        if cls._value_exists_in_list(current_list, value):
             return False
 
         current_list.append(value)
         setattr(resource, field_name, current_list)
         return True
 
-    def _value_exists_in_list(self, current_list: list[Any], new_value: Any) -> bool:
+    @classmethod
+    def _value_exists_in_list(cls, current_list: list[Any], new_value: Any) -> bool:
         """Check if a value already exists in a list."""
-        return any(self._values_match(item, new_value) for item in current_list)
+        return any(cls._values_match(item, new_value) for item in current_list)
 
-    def _create_parent_object(self, resource: BaseModel, parent_field_name: str) -> Any:
+    @classmethod
+    def _create_parent_object(cls, resource: BaseModel, parent_field_name: str) -> Any:
         """Create a parent object if it doesn't exist."""
         parent_class = type(resource).get_field_root_type(parent_field_name)
         if not parent_class or not isclass(parent_class):
@@ -443,7 +453,8 @@ class PatchOp(Message, Generic[T]):
         setattr(resource, parent_field_name, parent_obj)
         return parent_obj
 
-    def _remove_value_at_path(self, resource: Resource[Any], path: str) -> bool:
+    @classmethod
+    def _remove_value_at_path(cls, resource: Resource[Any], path: str) -> bool:
         """Remove a value at a specific path."""
         target, attr_path = _resolve_path_to_target(resource, path)
 
@@ -466,10 +477,11 @@ class PatchOp(Message, Generic[T]):
             return True
 
         sub_path = ".".join(path_parts)
-        return self._remove_value_at_path(parent_obj, sub_path)
+        return cls._remove_value_at_path(parent_obj, sub_path)
 
+    @classmethod
     def _remove_specific_value(
-        self, resource: Resource[Any], path: str, value_to_remove: Any
+        cls, resource: Resource[Any], path: str, value_to_remove: Any
     ) -> bool:
         """Remove a specific value from a multi-valued attribute."""
         target, attr_path = _resolve_path_to_target(resource, path)
@@ -490,7 +502,7 @@ class PatchOp(Message, Generic[T]):
         modified = False
         # RFC 7644 Section 3.5.2.3: "Remove matching values from multi-valued attributes"
         for item in current_list:
-            if not self._values_match(item, value_to_remove):
+            if not cls._values_match(item, value_to_remove):
                 new_list.append(item)
             else:
                 modified = True
@@ -501,7 +513,8 @@ class PatchOp(Message, Generic[T]):
 
         return False
 
-    def _values_match(self, value1: Any, value2: Any) -> bool:
+    @classmethod
+    def _values_match(cls, value1: Any, value2: Any) -> bool:
         """Check if two values match, converting BaseModel to dict for comparison."""
 
         def to_dict(value: Any) -> dict[str, Any]:
