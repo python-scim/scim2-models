@@ -1,18 +1,20 @@
 from typing import TYPE_CHECKING
 from typing import Any
 from typing import Optional
+from typing import Union
 
 from .base import BaseModel
 from .utils import _normalize_attribute_name
 
 if TYPE_CHECKING:
     from .base import BaseModel
+    from .resources.resource import Extension
     from .resources.resource import Resource
 
 
 def _get_or_create_extension_instance(
-    model: "Resource", extension_class: type
-) -> "BaseModel":
+    model: "Resource[Any]", extension_class: type
+) -> "Extension":
     """Get existing extension instance or create a new one."""
     extension_instance = model[extension_class]
     if extension_instance is None:
@@ -62,7 +64,7 @@ def _validate_model_attribute(model: type["BaseModel"], attribute_base: str) -> 
 
 
 def _validate_attribute_urn(
-    attribute_name: str, resource: type["Resource"]
+    attribute_name: str, resource: type["Resource[Any]"]
 ) -> Optional[str]:
     """Validate that an attribute urn is valid or not.
 
@@ -87,8 +89,8 @@ def _validate_attribute_urn(
 
 
 def _resolve_path_to_target(
-    resource: "Resource", path: str
-) -> tuple[Optional["BaseModel"], str]:
+    resource: "Resource[Any]", path: str
+) -> tuple[Optional[Union["Resource[Any]", "Extension"]], str]:
     """Resolve a path to a target and an attribute_path.
 
     The target can be the resource itself, or an extension object.

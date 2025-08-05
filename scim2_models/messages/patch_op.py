@@ -5,6 +5,7 @@ from typing import Any
 from typing import Generic
 from typing import Optional
 from typing import TypeVar
+from typing import Union
 
 from pydantic import Field
 from pydantic import ValidationInfo
@@ -26,7 +27,7 @@ from .error import Error
 from .message import Message
 from .message import _get_resource_class
 
-T = TypeVar("T", bound=Resource)
+T = TypeVar("T", bound=Resource[Any])
 
 
 class PatchOperation(ComplexAttribute):
@@ -143,7 +144,7 @@ class PatchOp(Message, Generic[T]):
         - Using PatchOp without a type parameter raises TypeError
     """
 
-    def __new__(cls, *args: Any, **kwargs: Any):
+    def __new__(cls, *args: Any, **kwargs: Any) -> Self:
         """Create new PatchOp instance with type parameter validation.
 
         Only handles the case of direct instantiation without type parameter (PatchOp()).
@@ -162,39 +163,48 @@ class PatchOp(Message, Generic[T]):
 
         return super().__new__(cls)
 
-    def __class_getitem__(cls, item):
+    def __class_getitem__(
+        cls, typevar_values: Union[type[Resource[Any]], tuple[type[Resource[Any]], ...]]
+    ) -> Any:
         """Validate type parameter when creating parameterized type.
 
         Ensures the type parameter is a concrete Resource subclass (not Resource itself)
         or a TypeVar bound to Resource. Rejects invalid types (str, int, etc.) and Union types.
         """
-        # Allow TypeVar as type parameter
-        if isinstance(item, TypeVar):
+        if isinstance(typevar_values, TypeVar):
             # Check if TypeVar is bound to Resource or its subclass
-            if item.__bound__ is not None and (
-                item.__bound__ is Resource
-                or (isclass(item.__bound__) and issubclass(item.__bound__, Resource))
+            if typevar_values.__bound__ is not None and (
+                typevar_values.__bound__ is Resource
+                or (
+                    isclass(typevar_values.__bound__)
+                    and issubclass(typevar_values.__bound__, Resource)
+                )
             ):
-                return super().__class_getitem__(item)
+                return super().__class_getitem__(typevar_values)
             else:
                 raise TypeError(
-                    f"PatchOp TypeVar must be bound to Resource or its subclass, got {item}. "
+                    f"PatchOp TypeVar must be bound to Resource or its subclass, got {typevar_values}. "
                     "Example: T = TypeVar('T', bound=Resource)"
                 )
 
         # Check if type parameter is a concrete Resource subclass (not Resource itself)
-        if item is Resource:
+        if typevar_values is Resource:
             raise TypeError(
                 "PatchOp requires a concrete Resource subclass, not Resource itself. "
                 "Use PatchOp[User], PatchOp[Group], etc. instead of PatchOp[Resource]."
             )
-        if not (isclass(item) and issubclass(item, Resource) and item is not Resource):
+
+        if not (
+            isclass(typevar_values)
+            and issubclass(typevar_values, Resource)
+            and typevar_values is not Resource
+        ):
             raise TypeError(
-                f"PatchOp type parameter must be a concrete Resource subclass or TypeVar, got {item}. "
+                f"PatchOp type parameter must be a concrete Resource subclass or TypeVar, got {typevar_values}. "
                 "Use PatchOp[User], PatchOp[Group], etc."
             )
 
-        return super().__class_getitem__(item)
+        return super().__class_getitem__(typevar_values)
 
     schemas: Annotated[list[str], Required.true] = [
         "urn:ietf:params:scim:api:messages:2.0:PatchOp"
@@ -254,7 +264,9 @@ class PatchOp(Message, Generic[T]):
 
         return modified
 
-    def _apply_operation(self, resource: Resource, operation: PatchOperation) -> bool:
+    def _apply_operation(
+        self, resource: Resource[Any], operation: PatchOperation
+    ) -> bool:
         """Apply a single patch operation to a resource.
 
         :return: :data:`True` if the resource was modified, else :data:`False`.
@@ -266,7 +278,9 @@ class PatchOp(Message, Generic[T]):
 
         raise ValueError(Error.make_invalid_value_error().detail)
 
-    def _apply_add_replace(self, resource: Resource, operation: PatchOperation) -> bool:
+    def _apply_add_replace(
+        self, resource: Resource[Any], operation: PatchOperation
+    ) -> bool:
         """Apply an add or replace operation."""
         # RFC 7644 Section 3.5.2.1: "If path is specified, add/replace at that path"
         if operation.path is not None:
@@ -280,7 +294,7 @@ class PatchOp(Message, Generic[T]):
         # RFC 7644 Section 3.5.2.1: "If no path specified, add/replace at root level"
         return self._apply_root_attributes(resource, operation.value)
 
-    def _apply_remove(self, resource: Resource, operation: PatchOperation) -> bool:
+    def _apply_remove(self, resource: Resource[Any], operation: PatchOperation) -> bool:
         """Apply a remove operation."""
         # RFC 7644 Section 3.5.2.3: "Path is required for remove operations"
         if operation.path is None:
@@ -313,7 +327,7 @@ class PatchOp(Message, Generic[T]):
         return modified
 
     def _set_value_at_path(
-        self, resource: Resource, path: str, value: Any, is_add: bool
+        self, resource: Resource[Any], path: str, value: Any, is_add: bool
     ) -> bool:
         """Set a value at a specific path."""
         target, attr_path = _resolve_path_to_target(resource, path)
@@ -384,7 +398,11 @@ class PatchOp(Message, Generic[T]):
         return self._add_single_value(resource, field_name, current_list, value)
 
     def _add_multiple_values(
-        self, resource: BaseModel, field_name: str, current_list: list, values: list
+        self,
+        resource: BaseModel,
+        field_name: str,
+        current_list: list[Any],
+        values: list[Any],
     ) -> bool:
         """Add multiple values to a multi-valued attribute."""
         new_values = []
@@ -400,7 +418,7 @@ class PatchOp(Message, Generic[T]):
         return True
 
     def _add_single_value(
-        self, resource: BaseModel, field_name: str, current_list: list, value: Any
+        self, resource: BaseModel, field_name: str, current_list: list[Any], value: Any
     ) -> bool:
         """Add a single value to a multi-valued attribute."""
         # RFC 7644 Section 3.5.2.1: "Do not add duplicate values"
@@ -411,7 +429,7 @@ class PatchOp(Message, Generic[T]):
         setattr(resource, field_name, current_list)
         return True
 
-    def _value_exists_in_list(self, current_list: list, new_value: Any) -> bool:
+    def _value_exists_in_list(self, current_list: list[Any], new_value: Any) -> bool:
         """Check if a value already exists in a list."""
         return any(self._values_match(item, new_value) for item in current_list)
 
@@ -425,7 +443,7 @@ class PatchOp(Message, Generic[T]):
         setattr(resource, parent_field_name, parent_obj)
         return parent_obj
 
-    def _remove_value_at_path(self, resource: Resource, path: str) -> bool:
+    def _remove_value_at_path(self, resource: Resource[Any], path: str) -> bool:
         """Remove a value at a specific path."""
         target, attr_path = _resolve_path_to_target(resource, path)
 
@@ -451,7 +469,7 @@ class PatchOp(Message, Generic[T]):
         return self._remove_value_at_path(parent_obj, sub_path)
 
     def _remove_specific_value(
-        self, resource: Resource, path: str, value_to_remove: Any
+        self, resource: Resource[Any], path: str, value_to_remove: Any
     ) -> bool:
         """Remove a specific value from a multi-valued attribute."""
         target, attr_path = _resolve_path_to_target(resource, path)
@@ -486,7 +504,7 @@ class PatchOp(Message, Generic[T]):
     def _values_match(self, value1: Any, value2: Any) -> bool:
         """Check if two values match, converting BaseModel to dict for comparison."""
 
-        def to_dict(value):
+        def to_dict(value: Any) -> dict[str, Any]:
             return value.model_dump() if isinstance(value, BaseModel) else value
 
         return to_dict(value1) == to_dict(value2)

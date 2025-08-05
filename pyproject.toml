@@ -114,6 +114,7 @@ exclude = [
   "tests/",
   "conftest.py",
 ]
+strict=true
 
 [tool.pydantic-mypy]
 init_forbid_extra = true

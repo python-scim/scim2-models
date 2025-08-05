@@ -148,7 +148,7 @@ class Resource(ScimObject, Generic[AnyExtension]):
     """A complex attribute containing resource metadata."""
 
     @classmethod
-    def __class_getitem__(cls, item: Any) -> type["Resource"]:
+    def __class_getitem__(cls, item: Any) -> type["Resource[Any]"]:
         """Create a Resource class with extension fields dynamically added."""
         if hasattr(cls, "__scim_extension_metadata__"):
             return cls
@@ -241,12 +241,12 @@ class Resource(ScimObject, Generic[AnyExtension]):
 
     @staticmethod
     def get_by_schema(
-        resource_types: list[type["Resource"]],
+        resource_types: list[type["Resource[Any]"]],
         schema: str,
         with_extensions: bool = True,
-    ) -> Optional[Union[type["Resource"], type["Extension"]]]:
+    ) -> Optional[Union[type["Resource[Any]"], type["Extension"]]]:
         """Given a resource type list and a schema, find the matching resource type."""
-        by_schema: dict[str, Union[type[Resource], type[Extension]]] = {
+        by_schema: dict[str, Union[type[Resource[Any]], type[Extension]]] = {
             resource_type.model_fields["schemas"].default[0].lower(): resource_type
             for resource_type in (resource_types or [])
         }
@@ -263,7 +263,7 @@ class Resource(ScimObject, Generic[AnyExtension]):
 
     @staticmethod
     def get_by_payload(
-        resource_types: list[type["Resource"]],
+        resource_types: list[type["Resource[Any]"]],
         payload: dict[str, Any],
         **kwargs: Any,
     ) -> Optional[type]:
@@ -291,7 +291,7 @@ class Resource(ScimObject, Generic[AnyExtension]):
         return _model_to_schema(cls)
 
     @classmethod
-    def from_schema(cls, schema: "Schema") -> type["Resource"]:
+    def from_schema(cls, schema: "Schema") -> type["Resource[Any]"]:
         """Build a :class:`scim2_models.Resource` subclass from the schema definition."""
         from .schema import _make_python_model
 
@@ -372,7 +372,7 @@ class Resource(ScimObject, Generic[AnyExtension]):
         return super(ScimObject, self).model_dump_json(*args, **dump_kwargs)
 
 
-AnyResource = TypeVar("AnyResource", bound="Resource")
+AnyResource = TypeVar("AnyResource", bound="Resource[Any]")
 
 
 def _dedicated_attributes(

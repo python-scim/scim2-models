@@ -1,4 +1,5 @@
 from typing import Annotated
+from typing import Any
 from typing import ClassVar
 from typing import Literal
 from typing import Optional
@@ -33,7 +34,7 @@ class GroupMember(MultiValuedComplexAttribute):
     display: Annotated[Optional[str], Mutability.read_only] = None
 
 
-class Group(Resource):
+class Group(Resource[Any]):
     schemas: Annotated[list[str], Required.true] = [
         "urn:ietf:params:scim:schemas:core:2.0:Group"
     ]

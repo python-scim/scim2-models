@@ -1,4 +1,5 @@
 from typing import Annotated
+from typing import Any
 from typing import Optional
 
 from pydantic import Field
@@ -34,7 +35,7 @@ class SchemaExtension(ComplexAttribute):
     """
 
 
-class ResourceType(Resource):
+class ResourceType(Resource[Any]):
     schemas: Annotated[list[str], Required.true] = [
         "urn:ietf:params:scim:schemas:core:2.0:ResourceType"
     ]
@@ -78,7 +79,7 @@ class ResourceType(Resource):
     """A list of URIs of the resource type's schema extensions."""
 
     @classmethod
-    def from_resource(cls, resource_model: type[Resource]) -> Self:
+    def from_resource(cls, resource_model: type[Resource[Any]]) -> Self:
         """Build a naive ResourceType from a resource model."""
         schema = resource_model.model_fields["schemas"].default[0]
         name = schema.split(":")[-1]
