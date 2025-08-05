@@ -52,7 +52,7 @@ class PatchOperation(ComplexAttribute):
     describing the target of the operation."""
 
     def _validate_mutability(
-        self, resource_class: type[BaseModel], field_name: str
+        self, resource_class: type[Resource[Any]], field_name: str
     ) -> None:
         """Validate mutability constraints."""
         # RFC 7644 Section 3.5.2: "Servers should be tolerant of schema extensions"
@@ -73,7 +73,7 @@ class PatchOperation(ComplexAttribute):
             raise ValueError(Error.make_mutability_error().detail)
 
     def _validate_required_attribute(
-        self, resource_class: type[BaseModel], field_name: str
+        self, resource_class: type[Resource[Any]], field_name: str
     ) -> None:
         """Validate required attribute constraints for remove operations."""
         # RFC 7644 Section 3.5.2.3: Only validate for remove operations
