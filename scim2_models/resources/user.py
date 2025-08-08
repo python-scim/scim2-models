@@ -1,4 +1,3 @@
-from enum import Enum
 from typing import Annotated
 from typing import ClassVar
 from typing import Literal
@@ -14,6 +13,7 @@ from ..annotations import Required
 from ..annotations import Returned
 from ..annotations import Uniqueness
 from ..attributes import ComplexAttribute
+from ..attributes import ExtensibleStringEnum
 from ..attributes import MultiValuedComplexAttribute
 from ..reference import ExternalReference
 from ..reference import Reference
@@ -49,7 +49,7 @@ class Name(ComplexAttribute):
 
 
 class Email(MultiValuedComplexAttribute):
-    class Type(str, Enum):
+    class Type(ExtensibleStringEnum):
         work = "work"
         home = "home"
         other = "other"
@@ -70,7 +70,7 @@ class Email(MultiValuedComplexAttribute):
 
 
 class PhoneNumber(MultiValuedComplexAttribute):
-    class Type(str, Enum):
+    class Type(ExtensibleStringEnum):
         work = "work"
         home = "home"
         mobile = "mobile"
@@ -97,7 +97,7 @@ class PhoneNumber(MultiValuedComplexAttribute):
 
 
 class Im(MultiValuedComplexAttribute):
-    class Type(str, Enum):
+    class Type(ExtensibleStringEnum):
         aim = "aim"
         gtalk = "gtalk"
         icq = "icq"
@@ -125,7 +125,7 @@ class Im(MultiValuedComplexAttribute):
 
 
 class Photo(MultiValuedComplexAttribute):
-    class Type(str, Enum):
+    class Type(ExtensibleStringEnum):
         photo = "photo"
         thumbnail = "thumbnail"
 
@@ -145,7 +145,7 @@ class Photo(MultiValuedComplexAttribute):
 
 
 class Address(MultiValuedComplexAttribute):
-    class Type(str, Enum):
+    class Type(ExtensibleStringEnum):
         work = "work"
         home = "home"
         other = "other"

@@ -1,5 +1,7 @@
 import datetime
 
+import pytest
+
 from scim2_models import Address
 from scim2_models import Email
 from scim2_models import Im
@@ -7,6 +9,7 @@ from scim2_models import PhoneNumber
 from scim2_models import Photo
 from scim2_models import Reference
 from scim2_models import User
+from scim2_models.attributes import ExtensibleStringEnum
 
 
 def test_minimal_user(load_sample):
@@ -124,3 +127,64 @@ def test_full_user(load_sample):
         obj.meta.location
         == "https://example.com/v2/Users/2819c223-7f76-453a-919d-413861904646"
     )
+
+
+def test_extensible_enum_canonical_values():
+    """Test that canonical enum values work as expected."""
+
+    class TestEnum(ExtensibleStringEnum):
+        foo = "foo"
+        bar = "bar"
+
+    assert TestEnum.foo == "foo"
+    assert TestEnum.bar == "bar"
+    assert str(TestEnum.foo) == "foo"
+
+
+def test_extensible_enum_arbitrary_values():
+    """Test that arbitrary string values are accepted."""
+
+    class TestEnum(ExtensibleStringEnum):
+        foo = "foo"
+        bar = "bar"
+
+    # Create instances with arbitrary values
+    custom = TestEnum("custom_value")
+    another = TestEnum("another_value")
+
+    assert str(custom) == "custom_value"
+    assert str(another) == "another_value"
+    assert custom == "custom_value"
+    assert another == "another_value"
+
+
+def test_extensible_enum_non_string_rejected():
+    """Test that non-string values are rejected."""
+
+    class TestEnum(ExtensibleStringEnum):
+        foo = "foo"
+
+    with pytest.raises(ValueError, match="is not a valid string value"):
+        TestEnum(123)
+
+    with pytest.raises(ValueError, match="is not a valid string value"):
+        TestEnum(None)
+
+
+def test_complex_attribute_extensible_types():
+    """Test that complex attribute types support RFC 7643 extensibility."""
+    # Test with Email - canonical and arbitrary types
+    email_canonical = Email(value="test@example.com", type=Email.Type.work)
+    assert str(email_canonical.type) == "work"
+
+    email_custom = Email(value="john.doe@example.com", type="company")  # Issue #34 case
+    assert str(email_custom.type) == "company"
+
+    # Test serialization works correctly
+    data = email_custom.model_dump()
+    assert data["type"] == "company"
+
+    # Test round-trip serialization
+    restored = Email.model_validate(data)
+    assert str(restored.type) == "company"
+    assert restored.value == "john.doe@example.com"

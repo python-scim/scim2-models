@@ -1,8 +1,14 @@
+from enum import Enum
 from inspect import isclass
 from typing import Annotated
 from typing import Any
 from typing import Optional
 from typing import get_origin
+
+try:
+    from typing import Self
+except ImportError:
+    from typing_extensions import Self
 
 from pydantic import Field
 
@@ -11,6 +17,35 @@ from .annotations import Mutability
 # This import will work because we'll import this module after BaseModel is defined
 from .base import BaseModel
 from .reference import Reference
+
+
+class ExtensibleStringEnum(str, Enum):
+    """String enum that accepts arbitrary values while preserving canonical ones.
+
+    This enum allows both predefined canonical values and arbitrary string values,
+    conforming to :rfc:`RFC 7643 <7643>` which permits service providers to accept
+    additional type values beyond the recommended set.
+    """
+
+    def __str__(self) -> str:
+        """Return just the string value, not the enum representation."""
+        return str(self.value)
+
+    @classmethod
+    def _missing_(cls, value: Any) -> Self:
+        """Handle unknown enum values by creating dynamic instances.
+
+        :param value: The value to create an enum instance for
+        :return: A new enum instance for the given value
+        :raises ValueError: If value is not a string
+        """
+        if isinstance(value, str):
+            # Create a pseudo enum member for unknown string values
+            obj = str.__new__(cls, value)
+            obj._name_ = value
+            obj._value_ = value
+            return obj
+        raise ValueError(f"{value} is not a valid string value for {cls.__name__}")
 
 
 class ComplexAttribute(BaseModel):

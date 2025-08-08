@@ -1,6 +1,13 @@
 Changelog
 =========
 
+[0.4.3] - Unreleased
+--------------------
+
+Fixed
+^^^^^
+- Allow non canonical values for enums. :issue:`34`
+
 [0.4.2] - 2025-08-05
 --------------------
 
