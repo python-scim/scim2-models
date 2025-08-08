@@ -355,6 +355,55 @@ class BaseModel(PydanticBaseModel):
             cls._check_mutability_issues(original, obj)
         return obj
 
+    @model_validator(mode="after")
+    def check_primary_attribute_uniqueness(self, info: ValidationInfo) -> Self:
+        """Validate that only one attribute can be marked as primary in multi-valued lists.
+
+        Per RFC 7643 Section 2.4: The primary attribute value 'true' MUST appear no more than once.
+        """
+        from scim2_models.attributes import MultiValuedComplexAttribute
+
+        scim_context = info.context.get("scim") if info.context else None
+        if not scim_context:
+            return self
+
+        for field_name in self.__class__.model_fields:
+            # Check if field is multi-valued (list type)
+            if not self.get_field_multiplicity(field_name):
+                continue
+
+            field_value = getattr(self, field_name)
+            if field_value is None:
+                continue
+
+            # Check if items in the list have a 'primary' attribute
+            element_type = self.get_field_root_type(field_name)
+            if (
+                element_type is None
+                or not isclass(element_type)
+                or not issubclass(element_type, MultiValuedComplexAttribute)
+            ):
+                continue
+
+            primary_count = sum(
+                1
+                for item in field_value
+                if isinstance(item, PydanticBaseModel)
+                and getattr(item, "primary", None) is True
+            )
+
+            if primary_count > 1:
+                raise PydanticCustomError(
+                    "primary_uniqueness_error",
+                    "Field '{field_name}' has {count} items marked as primary, but only one is allowed per RFC 7643",
+                    {
+                        "field_name": field_name,
+                        "count": primary_count,
+                    },
+                )
+
+        return self
+
     @classmethod
     def _check_mutability_issues(
         cls, original: "BaseModel", replacement: "BaseModel"
