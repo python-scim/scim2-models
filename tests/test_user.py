@@ -124,3 +124,65 @@ def test_full_user(load_sample):
         obj.meta.location
         == "https://example.com/v2/Users/2819c223-7f76-453a-919d-413861904646"
     )
+
+
+def test_primary_attribute_validation_valid_cases():
+    """Test primary attribute validation for valid cases (0 or 1 primary)."""
+    from scim2_models.context import Context
+
+    # Case 1: No primary attributes
+    user_data = {
+        "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+        "userName": "testuser",
+        "emails": [
+            {"value": "test1@example.com", "type": "work"},
+            {"value": "test2@example.com", "type": "home"},
+        ],
+    }
+    user = User.model_validate(
+        user_data, context={"scim": Context.RESOURCE_CREATION_REQUEST}
+    )
+    assert user.user_name == "testuser"
+
+    # Case 2: Exactly one primary attribute
+    user_data_with_primary = {
+        "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+        "userName": "testuser2",
+        "emails": [
+            {"value": "primary@example.com", "type": "work", "primary": True},
+            {"value": "secondary@example.com", "type": "home", "primary": False},
+        ],
+    }
+    user_with_primary = User.model_validate(
+        user_data_with_primary, context={"scim": Context.RESOURCE_CREATION_REQUEST}
+    )
+    assert user_with_primary.emails[0].primary is True
+    assert user_with_primary.emails[1].primary is False
+
+
+def test_primary_attribute_validation_invalid_case():
+    """Test primary attribute validation for invalid case (multiple primary)."""
+    import pytest
+    from pydantic import ValidationError
+
+    from scim2_models.context import Context
+
+    # Case: Multiple primary attributes (should fail)
+    user_data_invalid = {
+        "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+        "userName": "testuser3",
+        "emails": [
+            {"value": "primary1@example.com", "type": "work", "primary": True},
+            {"value": "primary2@example.com", "type": "home", "primary": True},
+        ],
+    }
+
+    with pytest.raises(ValidationError) as exc_info:
+        User.model_validate(
+            user_data_invalid, context={"scim": Context.RESOURCE_CREATION_REQUEST}
+        )
+
+    error = exc_info.value.errors()[0]
+    assert error["type"] == "primary_uniqueness_error"
+    assert "emails" in error["ctx"]["field_name"]
+    assert error["ctx"]["count"] == 2

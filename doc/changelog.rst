@@ -1,6 +1,13 @@
 Changelog
 =========
 
+[0.4.3] - Unreleased
+--------------------
+
+Fixed
+^^^^^
+- Only allow one primary complex attribute value to be true. :issue:`10`
+
 [0.4.2] - 2025-08-05
 --------------------
 
