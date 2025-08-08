@@ -364,6 +364,49 @@ class BaseModel(PydanticBaseModel):
             cls._check_mutability_issues(original, obj)
         return obj
 
+    @model_validator(mode="after")
+    def check_primary_attribute_uniqueness(self, info: ValidationInfo) -> Self:
+        """Validate that only one attribute can be marked as primary in multi-valued lists.
+
+        Per RFC 7643 Section 2.4: The primary attribute value 'true' MUST appear no more than once.
+        """
+        scim_context = info.context.get("scim") if info.context else None
+        if not scim_context or scim_context == Context.DEFAULT:
+            return self
+
+        for field_name in self.__class__.model_fields:
+            if not self.get_field_multiplicity(field_name):
+                continue
+
+            field_value = getattr(self, field_name)
+            if field_value is None:
+                continue
+
+            element_type = self.get_field_root_type(field_name)
+            if (
+                element_type is None
+                or not isclass(element_type)
+                or not issubclass(element_type, PydanticBaseModel)
+                or "primary" not in element_type.model_fields
+            ):
+                continue
+
+            primary_count = sum(
+                1 for item in field_value if getattr(item, "primary", None) is True
+            )
+
+            if primary_count > 1:
+                raise PydanticCustomError(
+                    "primary_uniqueness_error",
+                    "Field '{field_name}' has {count} items marked as primary, but only one is allowed per RFC 7643",
+                    {
+                        "field_name": field_name,
+                        "count": primary_count,
+                    },
+                )
+
+        return self
+
     @classmethod
     def _check_mutability_issues(
         cls, original: "BaseModel", replacement: "BaseModel"
