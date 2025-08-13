@@ -36,6 +36,9 @@ repository = "https://github.com/python-scim/scim2-models"
 changelog = "https://scim2-models.readthedocs.io/en/latest/changelog.html"
 funding = "https://github.com/sponsors/python-scim"
 
+[tool.uv.build-backend]
+module-root = ""
+
 [dependency-groups]
 dev = [
     "mypy>=1.13.0",
