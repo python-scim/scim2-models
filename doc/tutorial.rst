@@ -363,7 +363,7 @@ To disable an attribute in a custom resource subclass, annotate it with type ``N
 
     >>> class CustomUser(User):
     ...     # This attribute will be excluded from schema generation
-    ...     external_id: None = None
+    ...     foobar: None = None
 
 Dynamic models from schemas
 ===========================
