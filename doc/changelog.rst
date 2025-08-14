@@ -1,6 +1,13 @@
 Changelog
 =========
 
+[0.4.3] - Unreleased
+--------------------
+
+Fixed
+^^^^^
+- Attributes with ``None`` type are excluded from Schema generation.
+
 [0.4.2] - 2025-08-05
 --------------------
 

@@ -1,3 +1,5 @@
+from typing import Optional
+
 import pytest
 from pydantic import ValidationError
 
@@ -6,6 +8,8 @@ from scim2_models import Mutability
 from scim2_models import Returned
 from scim2_models import Schema
 from scim2_models import Uniqueness
+from scim2_models.resources.resource import Resource
+from scim2_models.resources.resource import _model_to_schema
 
 
 def test_group_schema(load_sample):
@@ -123,3 +127,22 @@ def test_get_attribute_attribute(load_sample):
 
     attribute["value"].mutability = Mutability.read_write
     assert attribute.sub_attributes[0].mutability == Mutability.read_write
+
+
+def test_model_to_schema_excludes_none_type_attributes():
+    """Test that _model_to_schema excludes attributes with None type from schema."""
+
+    class TestResource(Resource):
+        schemas: list[str] = ["urn:test:schema"]
+        valid_attr: Optional[str] = None
+        none_attr: None = None
+
+    schema = _model_to_schema(TestResource)
+
+    assert schema.id == "urn:test:schema"
+    assert schema.name == "TestResource"
+
+    attribute_names = [attr.name for attr in schema.attributes]
+
+    assert "validAttr" in attribute_names
+    assert "noneAttr" not in attribute_names

@@ -412,6 +412,7 @@ def _model_to_schema(model: type[BaseModel]) -> "Schema":
         _model_attribute_to_scim_attribute(model, attribute_name)
         for attribute_name in field_infos
         if attribute_name != "schemas"
+        and model.get_field_root_type(attribute_name) is not type(None)
     ]
     schema = Schema(
         name=model.__name__,
