@@ -334,8 +334,17 @@ class PatchOp(Message, Generic[T]):
         """Set a value at a specific path."""
         target, attr_path = _resolve_path_to_target(resource, path)
 
-        if not attr_path or not target:
+        if not target:
             raise ValueError(Error.make_invalid_path_error().detail)
+
+        if not attr_path:
+            if not isinstance(value, dict):
+                raise ValueError(Error.make_invalid_path_error().detail)
+
+            updated_data = {**target.model_dump(), **value}
+            updated_target = type(target).model_validate(updated_data)
+            target.__dict__.update(updated_target.__dict__)
+            return True
 
         path_parts = attr_path.split(".")
         if len(path_parts) == 1:

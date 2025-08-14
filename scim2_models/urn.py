@@ -29,6 +29,16 @@ def _normalize_path(model: Optional[type["BaseModel"]], path: str) -> tuple[str,
 
     # Absolute URN
     if ":" in path:
+        if (
+            model
+            and issubclass(model, Resource)
+            and (
+                path in model.get_extension_models()
+                or path == model.model_fields["schemas"].default[0]
+            )
+        ):
+            return path, ""
+
         parts = path.rsplit(":", 1)
         return parts[0], parts[1]
 
@@ -100,12 +110,13 @@ def _resolve_path_to_target(
     if not schema_urn:
         return resource, attr_path
 
+    if extension_class := resource.get_extension_model(schema_urn):
+        extension_instance = _get_or_create_extension_instance(
+            resource, extension_class
+        )
+        return extension_instance, attr_path
+
     if schema_urn in resource.schemas:
         return resource, attr_path
 
-    extension_class = resource.get_extension_model(schema_urn)
-    if not extension_class:
-        return (None, "")
-
-    extension_instance = _get_or_create_extension_instance(resource, extension_class)
-    return extension_instance, attr_path
+    return (None, "")
