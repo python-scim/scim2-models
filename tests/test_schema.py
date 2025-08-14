@@ -1,10 +1,13 @@
+from typing import Annotated
 from typing import Optional
 
 import pytest
 from pydantic import ValidationError
 
 from scim2_models import Attribute
+from scim2_models import CaseExact
 from scim2_models import Mutability
+from scim2_models import Required
 from scim2_models import Returned
 from scim2_models import Schema
 from scim2_models import Uniqueness
@@ -137,7 +140,7 @@ def test_model_to_schema_excludes_none_type_attributes():
         valid_attr: Optional[str] = None
         none_attr: None = None
 
-    schema = _model_to_schema(TestResource)
+    schema = TestResource.to_schema()
 
     assert schema.id == "urn:test:schema"
     assert schema.name == "TestResource"
@@ -146,3 +149,31 @@ def test_model_to_schema_excludes_none_type_attributes():
 
     assert "validAttr" in attribute_names
     assert "noneAttr" not in attribute_names
+
+
+def test_external_id_redefined_in_subclass_is_exported():
+    class CustomResource(Resource):
+        schemas: list[str] = ["urn:custom:schema"]
+
+        external_id: Annotated[
+            Optional[str],
+            Mutability.immutable,
+            Returned.always,
+            Required.true,
+            CaseExact.false,
+        ] = None
+
+    schema = CustomResource.to_schema()
+
+    attribute_names = [attr.name for attr in schema.attributes]
+    assert "externalId" in attribute_names
+
+
+def test_external_id_not_exported_when_not_redefined():
+    class SimpleResource(Resource):
+        schemas: list[str] = ["urn:simple:schema"]
+
+    schema = _model_to_schema(SimpleResource)
+
+    attribute_names = [attr.name for attr in schema.attributes]
+    assert "externalId" not in attribute_names
