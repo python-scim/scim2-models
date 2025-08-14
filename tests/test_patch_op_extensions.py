@@ -333,3 +333,76 @@ def test_complex_object_creation_and_basemodel_matching():
 
     result = patch.patch(group)
     assert result is True
+
+
+def test_patch_extension_schema_path_without_attribute():
+    """Test PATCH with extension schema URN as path (no specific attribute)."""
+    user = User[EnterpriseUser](
+        user_name="test",
+        schemas=[
+            "urn:ietf:params:scim:schemas:core:2.0:User",
+            "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User",
+        ],
+    )
+    user[EnterpriseUser] = EnterpriseUser()
+
+    patch = PatchOp[User](
+        operations=[
+            PatchOperation(
+                op=PatchOperation.Op.add,
+                path="urn:ietf:params:scim:schemas:extension:enterprise:2.0:User",
+                value={
+                    "costCenter": "Engineering",
+                    "department": "IT",
+                    "employeeNumber": "12345",
+                },
+            )
+        ]
+    )
+
+    result = patch.patch(user)
+    assert result is True
+    assert user[EnterpriseUser].cost_center == "Engineering"
+
+
+def test_patch_main_schema_path_without_attribute():
+    """Test PATCH with main schema URN as path (no specific attribute)."""
+    user = User(user_name="original")
+
+    patch = PatchOp[User](
+        operations=[
+            PatchOperation(
+                op=PatchOperation.Op.add,
+                path="urn:ietf:params:scim:schemas:core:2.0:User",
+                value={
+                    "displayName": "Updated Name",
+                    "nickName": "Nick",
+                    "title": "Manager",
+                },
+            )
+        ]
+    )
+
+    result = patch.patch(user)
+    assert result is True
+    assert user.display_name == "Updated Name"
+    assert user.nick_name == "Nick"
+    assert user.title == "Manager"
+
+
+def test_patch_schema_path_with_invalid_value_type():
+    """Test PATCH with schema URN path and invalid value type (non-dict)."""
+    user = User(user_name="test")
+
+    patch = PatchOp[User](
+        operations=[
+            PatchOperation(
+                op=PatchOperation.Op.add,
+                path="urn:ietf:params:scim:schemas:core:2.0:User",
+                value="invalid string value",
+            )
+        ]
+    )
+
+    with pytest.raises(ValueError, match="path.*invalid.*malformed"):
+        patch.patch(user)

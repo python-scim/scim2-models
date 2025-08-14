@@ -7,6 +7,7 @@ Changelog
 Fixed
 ^^^^^
 - Attributes with ``None`` type are excluded from Schema generation.
+- Allow PATCH operations on resources and extensions root path.
 
 [0.4.2] - 2025-08-05
 --------------------
