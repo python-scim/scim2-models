@@ -357,6 +357,14 @@ This is useful for server implementations, so custom models or models provided b
     ...     ],
     ... }
 
+To disable an attribute in a custom resource subclass, annotate it with type ``None``:
+
+.. code-block:: python
+
+    >>> class CustomUser(User):
+    ...     # This attribute will be excluded from schema generation
+    ...     external_id: None = None
+
 Dynamic models from schemas
 ===========================
 
