@@ -155,6 +155,7 @@ commands = [
 [tool.tox.env.minversions]
 runner = "uv-venv-runner"
 uv_resolution = "lowest-direct"
+base_python = ["3.10"]
 
 [tool.tox.env.doc]
 dependency_groups = ["doc"]
