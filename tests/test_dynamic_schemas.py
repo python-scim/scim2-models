@@ -55,23 +55,6 @@ def test_dynamic_user_schema(load_sample):
 
     canonic_schema(schema)
     canonic_schema(sample)
-
-    # Remove attributes that are redefined from implicit complexattributes
-    for i, attr in enumerate(sample["attributes"]):
-        if attr["name"] in ("roles", "entitlements"):
-            sample["attributes"][i]["subAttributes"] = [
-                subattr
-                for subattr in attr["subAttributes"]
-                if subattr["name"] not in ("type", "primary", "value", "display")
-            ]
-
-        if attr["name"] == "x509Certificates":
-            sample["attributes"][i]["subAttributes"] = [
-                subattr
-                for subattr in attr["subAttributes"]
-                if subattr["name"] not in ("type", "primary", "display")
-            ]
-
     assert sample == schema
 
 
@@ -109,13 +92,6 @@ def test_dynamic_service_provider_config_schema(load_sample):
     schema["attributes"] = [
         attr for attr in schema["attributes"] if attr["name"] != "id"
     ]
-    for i, attr in enumerate(schema["attributes"]):
-        if attr["name"] == "authenticationSchemes":
-            schema["attributes"][i]["subAttributes"] = [
-                subattr
-                for subattr in attr["subAttributes"]
-                if subattr["name"] not in ("type", "primary")
-            ]
 
     assert sample == schema
 
