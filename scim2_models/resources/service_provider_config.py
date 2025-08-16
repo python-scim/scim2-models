@@ -38,7 +38,7 @@ class Filter(ComplexAttribute):
     """A Boolean value specifying whether or not the operation is supported."""
 
     max_results: Annotated[Optional[int], Mutability.read_only, Required.true] = None
-    """A Boolean value specifying whether or not the operation is supported."""
+    """An integer value specifying the maximum number of resources returned in a response."""
 
 
 class ChangePassword(ComplexAttribute):
@@ -66,7 +66,7 @@ class AuthenticationScheme(ComplexAttribute):
 
     type: Annotated[Optional[Type], Mutability.read_only, Required.true] = Field(
         None,
-        examples=["oauth", "oauth2", "oauthbreakertoken", "httpbasic", "httpdigest"],
+        examples=["oauth", "oauth2", "oauthbearertoken", "httpbasic", "httpdigest"],
     )
     """The authentication scheme."""
 
