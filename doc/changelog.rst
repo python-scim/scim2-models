@@ -8,6 +8,7 @@ Fixed
 ^^^^^
 - Attributes with ``None`` type are excluded from Schema generation.
 - Allow PATCH operations on resources and extensions root path.
+- Multiple ComplexAttribute do not inherit from MultiValuedComplexAttribute by default. :issue:`72` :issue:`73`
 
 [0.4.2] - 2025-08-05
 --------------------

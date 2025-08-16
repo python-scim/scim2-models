@@ -14,7 +14,6 @@ from ..annotations import Required
 from ..annotations import Returned
 from ..annotations import Uniqueness
 from ..attributes import ComplexAttribute
-from ..attributes import MultiValuedComplexAttribute
 from ..reference import ExternalReference
 from ..reference import Reference
 from ..utils import Base64Bytes
@@ -48,7 +47,7 @@ class Name(ComplexAttribute):
     languages (e.g., 'III' given the full name 'Ms. Barbara J Jensen, III')."""
 
 
-class Email(MultiValuedComplexAttribute):
+class Email(ComplexAttribute):
     class Type(str, Enum):
         work = "work"
         home = "home"
@@ -69,7 +68,7 @@ class Email(MultiValuedComplexAttribute):
     address."""
 
 
-class PhoneNumber(MultiValuedComplexAttribute):
+class PhoneNumber(ComplexAttribute):
     class Type(str, Enum):
         work = "work"
         home = "home"
@@ -96,7 +95,7 @@ class PhoneNumber(MultiValuedComplexAttribute):
     number."""
 
 
-class Im(MultiValuedComplexAttribute):
+class Im(ComplexAttribute):
     class Type(str, Enum):
         aim = "aim"
         gtalk = "gtalk"
@@ -124,7 +123,7 @@ class Im(MultiValuedComplexAttribute):
     for this attribute, e.g., the preferred messenger or primary messenger."""
 
 
-class Photo(MultiValuedComplexAttribute):
+class Photo(ComplexAttribute):
     class Type(str, Enum):
         photo = "photo"
         thumbnail = "thumbnail"
@@ -144,7 +143,7 @@ class Photo(MultiValuedComplexAttribute):
     for this attribute, e.g., the preferred photo or thumbnail."""
 
 
-class Address(MultiValuedComplexAttribute):
+class Address(ComplexAttribute):
     class Type(str, Enum):
         work = "work"
         home = "home"
@@ -181,11 +180,22 @@ class Address(MultiValuedComplexAttribute):
     for this attribute, e.g., the preferred photo or thumbnail."""
 
 
-class Entitlement(MultiValuedComplexAttribute):
-    pass
+class Entitlement(ComplexAttribute):
+    value: Optional[str] = None
+    """The value of an entitlement."""
+
+    display: Optional[str] = None
+    """A human-readable name, primarily used for display purposes."""
+
+    type: Optional[str] = None
+    """A label indicating the attribute's function."""
+
+    primary: Optional[bool] = None
+    """A Boolean value indicating the 'primary' or preferred attribute value
+    for this attribute."""
 
 
-class GroupMembership(MultiValuedComplexAttribute):
+class GroupMembership(ComplexAttribute):
     value: Annotated[Optional[str], Mutability.read_only] = None
     """The identifier of the User's group."""
 
@@ -206,13 +216,34 @@ class GroupMembership(MultiValuedComplexAttribute):
     'indirect'."""
 
 
-class Role(MultiValuedComplexAttribute):
-    pass
+class Role(ComplexAttribute):
+    value: Optional[str] = None
+    """The value of a role."""
+
+    display: Optional[str] = None
+    """A human-readable name, primarily used for display purposes."""
+
+    type: Optional[str] = None
+    """A label indicating the attribute's function."""
+
+    primary: Optional[bool] = None
+    """A Boolean value indicating the 'primary' or preferred attribute value
+    for this attribute."""
 
 
-class X509Certificate(MultiValuedComplexAttribute):
+class X509Certificate(ComplexAttribute):
     value: Annotated[Optional[Base64Bytes], CaseExact.true] = None
     """The value of an X.509 certificate."""
+
+    display: Optional[str] = None
+    """A human-readable name, primarily used for display purposes."""
+
+    type: Optional[str] = None
+    """A label indicating the attribute's function."""
+
+    primary: Optional[bool] = None
+    """A Boolean value indicating the 'primary' or preferred attribute value
+    for this attribute."""
 
 
 class User(Resource[AnyExtension]):
