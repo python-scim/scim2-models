@@ -53,5 +53,5 @@ def is_complex_attribute(type_: type) -> bool:
     return (
         get_origin(type_) != Reference
         and isclass(type_)
-        and issubclass(type_, (ComplexAttribute, MultiValuedComplexAttribute))
+        and issubclass(type_, ComplexAttribute)
     )

@@ -23,7 +23,6 @@ from ..annotations import Required
 from ..annotations import Returned
 from ..annotations import Uniqueness
 from ..attributes import ComplexAttribute
-from ..attributes import MultiValuedComplexAttribute
 from ..attributes import is_complex_attribute
 from ..base import BaseModel
 from ..constants import RESERVED_WORDS
@@ -49,7 +48,6 @@ def _make_python_identifier(identifier: str) -> str:
 def _make_python_model(
     obj: Union["Schema", "Attribute"],
     base: type[T],
-    multiple: bool = False,
 ) -> type[T]:
     """Build a Python model from a Schema or an Attribute object."""
     if isinstance(obj, Attribute):
@@ -99,7 +97,6 @@ class Attribute(ComplexAttribute):
 
         def _to_python(
             self,
-            multiple: bool = False,
             reference_types: Optional[list[str]] = None,
         ) -> type:
             if self.value == self.reference and reference_types is not None:
@@ -119,9 +116,7 @@ class Attribute(ComplexAttribute):
                 self.integer: int,
                 self.date_time: datetime,
                 self.binary: Base64Bytes,
-                self.complex: MultiValuedComplexAttribute
-                if multiple
-                else ComplexAttribute,
+                self.complex: ComplexAttribute,
             }
             return attr_types[self.value]
 
@@ -215,12 +210,10 @@ class Attribute(ComplexAttribute):
         if not self.name or not self.type:
             return None
 
-        attr_type = self.type._to_python(bool(self.multi_valued), self.reference_types)
+        attr_type = self.type._to_python(self.reference_types)
 
-        if attr_type in (ComplexAttribute, MultiValuedComplexAttribute):
-            attr_type = _make_python_model(
-                obj=self, base=attr_type, multiple=bool(self.multi_valued)
-            )
+        if attr_type == ComplexAttribute:
+            attr_type = _make_python_model(obj=self, base=attr_type)
 
         if self.multi_valued:
             attr_type = list[attr_type]  # type: ignore

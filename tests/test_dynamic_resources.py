@@ -8,7 +8,6 @@ from scim2_models.annotations import Required
 from scim2_models.annotations import Returned
 from scim2_models.annotations import Uniqueness
 from scim2_models.attributes import ComplexAttribute
-from scim2_models.attributes import MultiValuedComplexAttribute
 from scim2_models.reference import ExternalReference
 from scim2_models.reference import Reference
 from scim2_models.reference import URIReference
@@ -408,7 +407,7 @@ def test_make_user_model_from_schema(load_sample):
     # emails
     Emails = User.get_field_root_type("emails")
     assert Emails == User.Emails
-    assert issubclass(Emails, MultiValuedComplexAttribute)
+    assert issubclass(Emails, ComplexAttribute)
     assert User.get_field_multiplicity("emails")
     assert (
         User.model_fields["emails"].description
@@ -476,7 +475,7 @@ def test_make_user_model_from_schema(load_sample):
     # phone_numbers
     PhoneNumbers = User.get_field_root_type("phone_numbers")
     assert PhoneNumbers == User.PhoneNumbers
-    assert issubclass(PhoneNumbers, MultiValuedComplexAttribute)
+    assert issubclass(PhoneNumbers, ComplexAttribute)
     assert User.get_field_multiplicity("phone_numbers")
     assert (
         User.model_fields["phone_numbers"].description
@@ -560,7 +559,7 @@ def test_make_user_model_from_schema(load_sample):
     # ims
     Ims = User.get_field_root_type("ims")
     assert Ims == User.Ims
-    assert issubclass(Ims, MultiValuedComplexAttribute)
+    assert issubclass(Ims, ComplexAttribute)
     assert User.get_field_multiplicity("ims")
     assert (
         User.model_fields["ims"].description
@@ -637,7 +636,7 @@ def test_make_user_model_from_schema(load_sample):
     # photos
     Photos = User.get_field_root_type("photos")
     assert Photos == User.Photos
-    assert issubclass(Photos, MultiValuedComplexAttribute)
+    assert issubclass(Photos, ComplexAttribute)
     assert User.get_field_multiplicity("photos")
     assert User.model_fields["photos"].description == "URLs of photos of the User."
     assert User.get_field_annotation("photos", Required) == Required.false
@@ -699,7 +698,7 @@ def test_make_user_model_from_schema(load_sample):
     # addresses
     Addresses = User.get_field_root_type("addresses")
     assert Addresses == User.Addresses
-    assert issubclass(Addresses, MultiValuedComplexAttribute)
+    assert issubclass(Addresses, ComplexAttribute)
     assert User.get_field_multiplicity("addresses")
     assert (
         User.model_fields["addresses"].description
@@ -837,7 +836,7 @@ def test_make_user_model_from_schema(load_sample):
     # groups
     Groups = User.get_field_root_type("groups")
     assert Groups == User.Groups
-    assert issubclass(Groups, MultiValuedComplexAttribute)
+    assert issubclass(Groups, ComplexAttribute)
     assert User.get_field_multiplicity("groups")
     assert (
         User.model_fields["groups"].description
@@ -911,7 +910,7 @@ def test_make_user_model_from_schema(load_sample):
     # entitlements
     Entitlements = User.get_field_root_type("entitlements")
     assert Entitlements == User.Entitlements
-    assert issubclass(Entitlements, MultiValuedComplexAttribute)
+    assert issubclass(Entitlements, ComplexAttribute)
     assert User.get_field_multiplicity("entitlements")
     assert (
         User.model_fields["entitlements"].description
@@ -989,7 +988,7 @@ def test_make_user_model_from_schema(load_sample):
     # roles
     Roles = User.get_field_root_type("roles")
     assert Roles == User.Roles
-    assert issubclass(Roles, MultiValuedComplexAttribute)
+    assert issubclass(Roles, ComplexAttribute)
     assert User.get_field_multiplicity("roles")
     assert (
         User.model_fields["roles"].description
@@ -1053,7 +1052,7 @@ def test_make_user_model_from_schema(load_sample):
     # x_509_certificates
     X509Certificates = User.get_field_root_type("x_509_certificates")
     assert X509Certificates == User.X509Certificates
-    assert issubclass(X509Certificates, MultiValuedComplexAttribute)
+    assert issubclass(X509Certificates, ComplexAttribute)
     assert User.get_field_multiplicity("x_509_certificates")
     assert (
         User.model_fields["x_509_certificates"].description
@@ -2210,7 +2209,7 @@ def test_make_schema_model_from_schema(load_sample):
     # attributes
     Attributes = Schema_.get_field_root_type("attributes")
     assert Attributes == Schema_.Attributes
-    assert issubclass(Attributes, MultiValuedComplexAttribute)
+    assert issubclass(Attributes, ComplexAttribute)
     assert Schema_.get_field_multiplicity("attributes")
     assert (
         Schema_.model_fields["attributes"].description
@@ -2440,7 +2439,7 @@ def test_make_schema_model_from_schema(load_sample):
     # sub_attributes
     SubAttributes = Attributes.get_field_root_type("sub_attributes")
     assert SubAttributes == Attributes.SubAttributes
-    assert issubclass(SubAttributes, MultiValuedComplexAttribute)
+    assert issubclass(SubAttributes, ComplexAttribute)
     assert Attributes.get_field_multiplicity("sub_attributes")
     assert (
         Attributes.model_fields["sub_attributes"].description

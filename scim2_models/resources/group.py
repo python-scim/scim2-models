@@ -10,12 +10,11 @@ from pydantic import Field
 from ..annotations import Mutability
 from ..annotations import Required
 from ..attributes import ComplexAttribute
-from ..attributes import MultiValuedComplexAttribute
 from ..reference import Reference
 from .resource import Resource
 
 
-class GroupMember(MultiValuedComplexAttribute):
+class GroupMember(ComplexAttribute):
     value: Annotated[Optional[str], Mutability.immutable] = None
     """Identifier of the member of this Group."""
 
