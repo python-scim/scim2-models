@@ -178,6 +178,24 @@
             "mutability": "readOnly",
             "subAttributes": [
                 {
+                    "name": "type",
+                    "type": "string",
+                    "multiValued": false,
+                    "description": "The authentication scheme.",
+                    "required": true,
+                    "canonicalValues": [
+                        "oauth",
+                        "oauth2",
+                        "oauthbearertoken",
+                        "httpbasic",
+                        "httpdigest"
+                    ],
+                    "caseExact": false,
+                    "mutability": "readOnly",
+                    "returned": "default",
+                    "uniqueness": "none"
+                },
+                {
                     "name": "name",
                     "type": "string",
                     "multiValued": false,
@@ -221,6 +239,17 @@
                     ],
                     "multiValued": false,
                     "description": "An HTTP-addressable URL pointing to the authentication scheme's usage documentation.",
+                    "required": false,
+                    "caseExact": false,
+                    "mutability": "readOnly",
+                    "returned": "default",
+                    "uniqueness": "none"
+                },
+                {
+                    "name": "primary",
+                    "type": "boolean",
+                    "multiValued": false,
+                    "description": "A Boolean value indicating the 'primary' or preferred attribute value for this attribute.",
                     "required": false,
                     "caseExact": false,
                     "mutability": "readOnly",
