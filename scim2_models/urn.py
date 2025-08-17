@@ -4,6 +4,7 @@ from typing import Optional
 from typing import Union
 
 from .base import BaseModel
+from .utils import _get_path_parts
 from .utils import _normalize_attribute_name
 
 if TYPE_CHECKING:
@@ -52,7 +53,7 @@ def _normalize_path(model: Optional[type["BaseModel"]], path: str) -> tuple[str,
 
 def _validate_model_attribute(model: type["BaseModel"], attribute_base: str) -> None:
     """Validate that an attribute name or a sub-attribute path exist for a given model."""
-    attribute_name, *sub_attribute_blocks = attribute_base.split(".")
+    attribute_name, *sub_attribute_blocks = _get_path_parts(attribute_base)
     sub_attribute_base = ".".join(sub_attribute_blocks)
 
     aliases = {field.validation_alias for field in model.model_fields.values()}

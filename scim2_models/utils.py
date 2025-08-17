@@ -195,3 +195,7 @@ def _find_field_name(model_class: type["BaseModel"], attr_name: str) -> Optional
             return field_key
 
     return None
+
+
+def _get_path_parts(path: str) -> list[str]:
+    return path.split(".")
