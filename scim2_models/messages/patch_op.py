@@ -22,6 +22,7 @@ from ..resources.resource import Resource
 from ..urn import _resolve_path_to_target
 from ..utils import _extract_field_name
 from ..utils import _find_field_name
+from ..utils import _get_path_parts
 from ..utils import _validate_scim_path_syntax
 from .error import Error
 from .message import Message
@@ -346,7 +347,7 @@ class PatchOp(Message, Generic[T]):
             target.__dict__.update(updated_target.__dict__)
             return True
 
-        path_parts = attr_path.split(".")
+        path_parts = _get_path_parts(attr_path)
         if len(path_parts) == 1:
             return cls._set_simple_attribute(target, path_parts[0], value, is_add)
 
@@ -471,7 +472,7 @@ class PatchOp(Message, Generic[T]):
         if not attr_path or not target:
             raise ValueError(Error.make_invalid_path_error().detail)
 
-        parent_attr, *path_parts = attr_path.split(".")
+        parent_attr, *path_parts = _get_path_parts(attr_path)
         field_name = _find_field_name(type(target), parent_attr)
         if not field_name:
             raise ValueError(Error.make_no_target_error().detail)
