@@ -1,14 +1,17 @@
 Changelog
 =========
 
-[0.4.3] - Unreleased
+[0.5.0] - 2025-08-18
 --------------------
+
+Added
+^^^^^
+- Validation that forbid :class:`~scim2_models.PatchOp` with zero ``operations``.
 
 Fixed
 ^^^^^
 - Allow PATCH operations on resources and extensions root path.
 - Multiple ComplexAttribute do not inherit from MultiValuedComplexAttribute by default. :issue:`72` :issue:`73`
-- Forbid :class:`~scim2_models.PatchOp` with zero ``operations``.
 
 [0.4.2] - 2025-08-05
 --------------------
