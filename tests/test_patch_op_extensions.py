@@ -406,3 +406,35 @@ def test_patch_schema_path_with_invalid_value_type():
 
     with pytest.raises(ValueError, match="path.*invalid.*malformed"):
         patch.patch(user)
+
+
+def test_patch_delete_extension_root():
+    """Test PATCH remove operation targeting the root of an extension."""
+    user = User[EnterpriseUser].model_validate(
+        {
+            "userName": "test.user",
+            "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User": {
+                "employeeNumber": "12345",
+                "costCenter": "Engineering",
+                "department": "IT",
+                "manager": {"value": "manager-123", "displayName": "John Smith"},
+            },
+        }
+    )
+
+    assert user[EnterpriseUser] is not None
+    assert user[EnterpriseUser].employee_number == "12345"
+    assert user[EnterpriseUser].cost_center == "Engineering"
+
+    patch = PatchOp[User](
+        operations=[
+            PatchOperation(
+                op=PatchOperation.Op.remove,
+                path="urn:ietf:params:scim:schemas:extension:enterprise:2.0:User",
+            )
+        ]
+    )
+
+    result = patch.patch(user)
+    assert result is True
+    assert user[EnterpriseUser] is None
