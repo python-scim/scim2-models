@@ -497,3 +497,29 @@ def test_remove_specific_value_invalid_field():
     # This should raise ValueError for invalid field name
     with pytest.raises(ValueError, match="no match|did not yield"):
         patch.patch(user)
+
+
+def test_patch_op_operations_attribute_required_in_patch_context():
+    """Test that Operations attribute is required in PATCH request context per RFC 7644."""
+    # Operations attribute must be present in PATCH request context
+    with pytest.raises(ValidationError, match="required value was missing"):
+        PatchOp[User].model_validate(
+            {"schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"]},
+            context={"scim": Context.RESOURCE_PATCH_REQUEST},
+        )
+
+    # Operations can be None when not in PATCH request context
+    patch_op = PatchOp[User].model_validate(
+        {"schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"]}
+    )
+    assert patch_op.operations is None
+
+    # Operations with at least one operation is valid in PATCH request context
+    patch_op = PatchOp[User].model_validate(
+        {
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+            "operations": [{"op": "add", "path": "userName", "value": "test"}],
+        },
+        context={"scim": Context.RESOURCE_PATCH_REQUEST},
+    )
+    assert len(patch_op.operations) == 1

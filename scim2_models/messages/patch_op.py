@@ -218,12 +218,17 @@ class PatchOp(Message, Generic[T]):
     "Operations", whose value is an array of one or more PATCH operations."""
 
     @model_validator(mode="after")
-    def validate_operations(self) -> Self:
+    def validate_operations(self, info: ValidationInfo) -> Self:
         """Validate operations against resource type metadata if available.
 
         When PatchOp is used with a specific resource type (e.g., PatchOp[User]),
         this validator will automatically check mutability and required constraints.
         """
+        # RFC 7644: The body of an HTTP PATCH request MUST contain the attribute "Operations"
+        scim_ctx = info.context.get("scim") if info.context else None
+        if scim_ctx == Context.RESOURCE_PATCH_REQUEST and self.operations is None:
+            raise ValueError(Error.make_invalid_value_error().detail)
+
         resource_class = _get_resource_class(self)
         if resource_class is None or not self.operations:
             return self
