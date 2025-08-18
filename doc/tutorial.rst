@@ -357,15 +357,6 @@ This is useful for server implementations, so custom models or models provided b
     ...     ],
     ... }
 
-To disable an attribute in a custom resource subclass, annotate it with type ``None``:
-
-.. code-block:: python
-   :caption: Disabling a field inherited from a parent resource
-
-    >>> class CustomUser(User):
-    ...     # This attribute will be excluded from schema generation
-    ...     display_name: None = None
-
 Dynamic models from schemas
 ===========================
 
