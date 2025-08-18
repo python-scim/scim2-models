@@ -112,6 +112,10 @@ def _resolve_path_to_target(
         return resource, attr_path
 
     if extension_class := resource.get_extension_model(schema_urn):
+        # Points to the extension root
+        if not attr_path:
+            return resource, extension_class.__name__
+
         extension_instance = _get_or_create_extension_instance(
             resource, extension_class
         )
