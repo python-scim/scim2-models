@@ -5,7 +5,6 @@ from typing import Any
 from typing import Generic
 from typing import TypeVar
 from typing import Union
-from typing import cast
 from typing import get_args
 from typing import get_origin
 
@@ -24,9 +23,10 @@ from ..attributes import ComplexAttribute
 from ..attributes import is_complex_attribute
 from ..base import BaseModel
 from ..context import Context
+from ..path import Path
+from ..path import PathError
 from ..reference import Reference
 from ..scim_object import ScimObject
-from ..urn import _validate_attribute_urn
 from ..utils import UNION_TYPES
 from ..utils import _normalize_attribute_name
 
@@ -206,17 +206,72 @@ class Resource(ScimObject, Generic[AnyExtension]):
 
         return new_class
 
-    def __getitem__(self, item: Any) -> Extension | None:
-        if not isinstance(item, type) or not issubclass(item, Extension):
-            raise KeyError(f"{item} is not a valid extension type")
+    def __getitem__(self, item: Any) -> Any:
+        """Get a value by extension type or path.
 
-        return cast(Extension | None, getattr(self, item.__name__))
+        :param item: An Extension subclass or a path (string or Path).
+        :returns: The extension instance or the value at the path.
+        :raises KeyError: If the path references a non-existent field.
 
-    def __setitem__(self, item: Any, value: "Extension") -> None:
-        if not isinstance(item, type) or not issubclass(item, Extension):
-            raise KeyError(f"{item} is not a valid extension type")
+        Examples::
 
-        setattr(self, item.__name__, value)
+            user[EnterpriseUser]  # Get extension
+            user["userName"]  # Get attribute
+            user["name.familyName"]  # Get nested attribute
+        """
+        if isinstance(item, type) and issubclass(item, Extension):
+            item = item.model_fields["schemas"].default[0]
+
+        bound_path = Path.__class_getitem__(type(self))
+        path = item if isinstance(item, Path) else bound_path(str(item))
+        try:
+            return path.get(self)
+        except PathError as exc:
+            raise KeyError(str(item)) from exc
+
+    def __setitem__(self, item: Any, value: Any) -> None:
+        """Set a value by extension type or path.
+
+        :param item: An Extension subclass or a path (string or Path).
+        :param value: The value to set.
+        :raises KeyError: If the path references a non-existent field.
+
+        Examples::
+
+            user[EnterpriseUser] = EnterpriseUser(employee_number="123")
+            user["displayName"] = "John Doe"
+            user["name.familyName"] = "Doe"
+        """
+        if isinstance(item, type) and issubclass(item, Extension):
+            item = item.model_fields["schemas"].default[0]
+
+        bound_path = Path.__class_getitem__(type(self))
+        path = item if isinstance(item, Path) else bound_path(str(item))
+        try:
+            path.set(self, value)
+        except PathError as exc:
+            raise KeyError(str(item)) from exc
+
+    def __delitem__(self, item: Any) -> None:
+        """Delete a value by extension type or path.
+
+        :param item: An Extension subclass or a path (string or Path).
+        :raises KeyError: If the path references a non-existent field.
+
+        Examples::
+
+            del user[EnterpriseUser]  # Remove extension
+            del user["displayName"]  # Remove attribute
+        """
+        if isinstance(item, type) and issubclass(item, Extension):
+            item = item.model_fields["schemas"].default[0]
+
+        bound_path = Path.__class_getitem__(type(self))
+        path = item if isinstance(item, Path) else bound_path(str(item))
+        try:
+            path.delete(self)
+        except PathError as exc:
+            raise KeyError(str(item)) from exc
 
     @classmethod
     def get_extension_models(cls) -> dict[str, type[Extension]]:
@@ -305,17 +360,16 @@ class Resource(ScimObject, Generic[AnyExtension]):
         kwargs = super()._prepare_model_dump(scim_ctx, **kwargs)
 
         # RFC 7644: "SHOULD ignore any query parameters they do not recognize"
+        bound_path = Path.__class_getitem__(type(self))
         kwargs["context"]["scim_attributes"] = [
-            valid_attr
+            urn
             for attribute in (attributes or [])
-            if (valid_attr := _validate_attribute_urn(attribute, self.__class__))
-            is not None
+            if (urn := bound_path(attribute).urn) is not None
         ]
         kwargs["context"]["scim_excluded_attributes"] = [
-            valid_attr
+            urn
             for attribute in (excluded_attributes or [])
-            if (valid_attr := _validate_attribute_urn(attribute, self.__class__))
-            is not None
+            if (urn := bound_path(attribute).urn) is not None
         ]
         return kwargs
 

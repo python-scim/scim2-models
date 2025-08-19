@@ -16,6 +16,11 @@ from .messages.message import Message
 from .messages.patch_op import PatchOp
 from .messages.patch_op import PatchOperation
 from .messages.search_request import SearchRequest
+from .path import URN
+from .path import InvalidPathError
+from .path import Path
+from .path import PathError
+from .path import PathNotFoundError
 from .reference import ExternalReference
 from .reference import Reference
 from .reference import URIReference
@@ -79,6 +84,7 @@ __all__ = [
     "GroupMember",
     "GroupMembership",
     "Im",
+    "InvalidPathError",
     "ListResponse",
     "Manager",
     "Message",
@@ -86,6 +92,9 @@ __all__ = [
     "Mutability",
     "MultiValuedComplexAttribute",
     "Name",
+    "Path",
+    "PathError",
+    "PathNotFoundError",
     "Patch",
     "PatchOp",
     "PatchOperation",
@@ -104,6 +113,7 @@ __all__ = [
     "Sort",
     "Uniqueness",
     "URIReference",
+    "URN",
     "User",
     "X509Certificate",
 ]

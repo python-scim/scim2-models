@@ -23,7 +23,6 @@ except ImportError:
 
 _UNDERSCORE_ALPHANUMERIC = re.compile(r"_+([0-9A-Za-z]+)")
 _NON_WORD_UNDERSCORE = re.compile(r"[\W_]+")
-_VALID_PATH_PATTERN = re.compile(r'^[a-zA-Z][a-zA-Z0-9._:\-\[\]"=\s]*$')
 
 
 def _int_to_str(status: int | None) -> str | None:
@@ -106,84 +105,6 @@ def _normalize_attribute_name(attribute_name: str) -> str:
     return attribute_name.lower()
 
 
-def _validate_scim_path_syntax(path: str) -> bool:
-    """Check if path syntax is valid according to RFC 7644 simplified rules.
-
-    :param path: The path to validate
-    :return: True if path syntax is valid, False otherwise
-    """
-    if not path or not path.strip():
-        return False
-
-    # Cannot start with a digit
-    if path[0].isdigit():
-        return False
-
-    # Cannot contain double dots
-    if ".." in path:
-        return False
-
-    # Cannot contain invalid characters (basic check)
-    # Allow alphanumeric, dots, underscores, hyphens, colons (for URNs), brackets
-    if not _VALID_PATH_PATTERN.match(path):
-        return False
-
-    # If it contains a colon, validate it's a proper URN format
-    if ":" in path:
-        if not _validate_scim_urn_syntax(path):
-            return False
-
-    return True
-
-
-def _validate_scim_urn_syntax(path: str) -> bool:
-    """Validate URN-based path format.
-
-    :param path: The URN path to validate
-    :return: True if URN path format is valid, False otherwise
-    """
-    # Basic URN validation: should start with urn:
-    if not path.startswith("urn:"):
-        return False
-
-    # Split on the last colon to separate URN from attribute
-    urn_part, attr_part = path.rsplit(":", 1)
-
-    # URN part should have at least 4 parts (urn:namespace:specific:resource)
-    urn_segments = urn_part.split(":")
-    if len(urn_segments) < 4:
-        return False
-
-    # Attribute part should be valid
-    if not attr_part or attr_part[0].isdigit():
-        return False
-
-    return True
-
-
-def _extract_field_name(path: str) -> str | None:
-    """Extract the field name from a path.
-
-    For now, only handle simple paths (no filters, no complex expressions).
-    Returns None for complex paths that require filter parsing.
-
-    """
-    # Handle URN paths
-    if path.startswith("urn:"):
-        # First validate it's a proper URN
-        if not _validate_scim_urn_syntax(path):
-            return None
-        parts = path.rsplit(":", 1)
-        return parts[1]
-
-    # Simple attribute path (may have dots for sub-attributes)
-    # For now, just take the first part before any dot
-    if "." in path:
-        return path.split(".")[0]
-
-    return path
-
-
 def _find_field_name(model_class: type["BaseModel"], attr_name: str) -> str | None:
     """Find the actual field name in a resource class from an attribute name.
 
@@ -198,7 +119,3 @@ def _find_field_name(model_class: type["BaseModel"], attr_name: str) -> str | No
             return field_key
 
     return None
-
-
-def _get_path_parts(path: str) -> list[str]:
-    return path.split(".")

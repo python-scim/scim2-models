@@ -1,11 +1,33 @@
 Tutorial
 --------
 
+Attribute access
+================
+
+SCIM resources support two ways to access and modify attributes.
+The standard Python dot notation uses snake_case attribute names, while the bracket notation accepts SCIM paths as defined in :rfc:`RFC7644 §3.10 <7644#section-3.10>`.
+
+.. doctest::
+
+    >>> from scim2_models import User
+
+    >>> user = User(user_name="bjensen")
+    >>> user.display_name = "Barbara Jensen"
+    >>> user["nickName"] = "Babs"
+    >>> user["name.familyName"] = "Jensen"
+
+Attributes can be removed with ``del``.
+
+.. doctest::
+
+    >>> del user["nickName"]
+    >>> user.nick_name is None
+    True
+
 Model parsing
 =============
 
 Pydantic :func:`~scim2_models.BaseModel.model_validate` method can be used to parse and validate SCIM2 payloads.
-Python models have generally the same name than in the SCIM specifications, they are simply snake cased.
 
 
 .. code-block:: python
