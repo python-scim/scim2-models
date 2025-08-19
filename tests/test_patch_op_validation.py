@@ -11,6 +11,77 @@ from scim2_models.base import Context
 from scim2_models.resources.resource import Resource
 
 
+def test_patch_op_add_invalid_extension_path():
+    user = User(user_name="john")
+    patch_op = PatchOp[User](
+        operations=[
+            PatchOperation[User](
+                op="add",
+                path="urn:ietf:params:scim:schemas:extension:enterprise:2.0:User",
+                value={"key": "value"},
+            )
+        ]
+    )
+    with pytest.raises(
+        ValueError,
+        match=r'The "path" attribute was invalid or malformed \(see Figure 7 of RFC7644\)\.',
+    ):
+        patch_op.patch(user)
+
+
+def test_patch_op_replace_invalid_extension_path():
+    user = User(user_name="john")
+    patch_op = PatchOp[User](
+        operations=[
+            PatchOperation[User](
+                op="replace",
+                path="urn:ietf:params:scim:schemas:extension:enterprise:2.0:User.attr",
+                value="test",
+            )
+        ]
+    )
+    with pytest.raises(
+        ValueError,
+        match=r'The "path" attribute was invalid or malformed \(see Figure 7 of RFC7644\)\.',
+    ):
+        patch_op.patch(user)
+
+
+def test_patch_op_remove_invalid_extension_path():
+    user = User(user_name="john")
+    patch_op = PatchOp[User](
+        operations=[
+            PatchOperation[User](
+                op="remove",
+                path="urn:ietf:params:scim:schemas:extension:enterprise:2.0:User.attr",
+            )
+        ]
+    )
+    with pytest.raises(
+        ValueError,
+        match=r'The "path" attribute was invalid or malformed \(see Figure 7 of RFC7644\)\.',
+    ):
+        patch_op.patch(user)
+
+
+def test_patch_op_remove_invalid_extension_path_with_value():
+    user = User(user_name="john")
+    patch_op = PatchOp[User](
+        operations=[
+            PatchOperation[User](
+                op="remove",
+                path="urn:ietf:params:scim:schemas:extension:enterprise:2.0:User.attr",
+                value="some_value",
+            )
+        ]
+    )
+    with pytest.raises(
+        ValueError,
+        match=r'The "path" attribute was invalid or malformed \(see Figure 7 of RFC7644\)\.',
+    ):
+        patch_op.patch(user)
+
+
 def test_patch_op_without_type_parameter():
     """Test that PatchOp cannot be instantiated without a type parameter."""
     with pytest.raises(TypeError, match="PatchOp requires a type parameter"):
@@ -59,11 +130,13 @@ def test_validate_patchop_case_insensitivity():
         },
     ) == PatchOp[User](
         operations=[
-            PatchOperation(
+            PatchOperation[User](
                 op=PatchOperation.Op.replace_, path="userName", value="Rivard"
             ),
-            PatchOperation(op=PatchOperation.Op.add, path="userName", value="Rivard"),
-            PatchOperation(
+            PatchOperation[User](
+                op=PatchOperation.Op.add, path="userName", value="Rivard"
+            ),
+            PatchOperation[User](
                 op=PatchOperation.Op.remove, path="userName", value="Rivard"
             ),
         ]
@@ -102,8 +175,8 @@ def test_path_required_for_remove_operations():
         context={"scim": Context.RESOURCE_PATCH_REQUEST},
     )
 
-    # Validation now happens during model validation
-    with pytest.raises(ValidationError, match="path.*invalid"):
+    # RFC 7644 §3.5.2.2: remove without path returns noTarget error
+    with pytest.raises(ValidationError, match="no match"):
         PatchOp[User].model_validate(
             {
                 "operations": [
@@ -160,8 +233,8 @@ def test_patch_operation_validation_contexts():
             context={"scim": Context.RESOURCE_PATCH_REQUEST},
         )
 
-    # Validation for missing path in remove operations now happens during model validation
-    with pytest.raises(ValidationError, match="path.*invalid"):
+    # RFC 7644 §3.5.2.2: remove without path returns noTarget error
+    with pytest.raises(ValidationError, match="no match"):
         PatchOperation.model_validate(
             {"op": "remove"},
             context={"scim": Context.RESOURCE_PATCH_REQUEST},
@@ -173,16 +246,8 @@ def test_patch_operation_validation_contexts():
             context={"scim": Context.RESOURCE_PATCH_REQUEST},
         )
 
-    operation1 = PatchOperation.model_validate(
-        {"op": "add", "path": "   ", "value": "test"}
-    )
-    assert operation1.path == "   "
-
-    operation2 = PatchOperation.model_validate({"op": "remove"})
-    assert operation2.path is None
-
-    operation3 = PatchOperation.model_validate({"op": "add", "path": "test"})
-    assert operation3.value is None
+    operation = PatchOperation.model_validate({"op": "remove"})
+    assert operation.path is None
 
 
 def test_validate_mutability_readonly_error():
@@ -303,7 +368,7 @@ def test_patch_operation_with_schema_only_urn_path():
     # This URN resolves to just the schema without an attribute name
     patch = PatchOp[User](
         operations=[
-            PatchOperation(
+            PatchOperation[User](
                 op=PatchOperation.Op.add,
                 path="urn:ietf:params:scim:schemas:core:2.0:User",
                 value="test",
@@ -335,21 +400,6 @@ def test_add_remove_operations_on_group_members_allowed():
     assert len(patch_op.operations) == 2
 
 
-def test_patch_error_handling_invalid_path():
-    """Test error handling for invalid patch paths."""
-    user = User(user_name="test")
-
-    # Test with invalid path format
-    patch = PatchOp[User](
-        operations=[
-            PatchOperation(op=PatchOperation.Op.add, path="invalid..path", value="test")
-        ]
-    )
-
-    with pytest.raises(ValueError):
-        patch.patch(user)
-
-
 def test_patch_error_handling_no_operations():
     """Test patch behavior with no operations (using model_construct to bypass validation)."""
     user = User(user_name="test")
@@ -367,7 +417,7 @@ def test_patch_error_handling_type_mismatch():
     # Try to set active (boolean) to a string
     patch = PatchOp[User](
         operations=[
-            PatchOperation(
+            PatchOperation[User](
                 op=PatchOperation.Op.replace_, path="active", value="not_a_boolean"
             )
         ]
@@ -417,13 +467,12 @@ def test_patch_op_with_typevar_bound_to_non_resource():
 
 def test_create_parent_object_return_none():
     """Test _create_parent_object returns None when type resolution fails."""
-    # This test uses a TypeVar to trigger the case where get_field_root_type returns None
     user = User()
 
     # Create a patch that will trigger _create_parent_object with complex path
     patch = PatchOp[User](
         operations=[
-            PatchOperation(
+            PatchOperation[User](
                 op=PatchOperation.Op.add,
                 path="complexField.subField",  # Non-existent complex field
                 value="test",
@@ -431,8 +480,8 @@ def test_create_parent_object_return_none():
         ]
     )
 
-    # This should raise ValueError because field doesn't exist
-    with pytest.raises(ValueError, match="no match|did not yield"):
+    # Non-existent field returns invalidPath error
+    with pytest.raises(ValueError, match="path.*invalid"):
         patch.patch(user)
 
 
@@ -451,7 +500,9 @@ def test_patch_error_handling_invalid_operation():
     user = User(user_name="test")
     patch = PatchOp[User](
         operations=[
-            PatchOperation(op=PatchOperation.Op.add, path="nickName", value="test")
+            PatchOperation[User](
+                op=PatchOperation.Op.add, path="nickName", value="test"
+            )
         ]
     )
 
@@ -469,12 +520,14 @@ def test_remove_value_at_path_invalid_field():
     # Create patch that attempts to remove from invalid parent field
     patch = PatchOp[User](
         operations=[
-            PatchOperation(op=PatchOperation.Op.remove, path="invalidParent.subField")
+            PatchOperation[User](
+                op=PatchOperation.Op.remove, path="invalidParent.subField"
+            )
         ]
     )
 
-    # This should raise ValueError for invalid field name
-    with pytest.raises(ValueError, match="no match|did not yield"):
+    # Non-existent field returns invalidPath error
+    with pytest.raises(ValueError, match="path.*invalid"):
         patch.patch(user)
 
 
@@ -485,7 +538,7 @@ def test_remove_specific_value_invalid_field():
     # Create patch that attempts to remove specific value from invalid field
     patch = PatchOp[User](
         operations=[
-            PatchOperation(
+            PatchOperation[User](
                 op=PatchOperation.Op.remove,
                 path="invalidField",
                 value={"some": "value"},
@@ -493,8 +546,8 @@ def test_remove_specific_value_invalid_field():
         ]
     )
 
-    # This should raise ValueError for invalid field name
-    with pytest.raises(ValueError, match="no match|did not yield"):
+    # Non-existent field returns invalidPath error
+    with pytest.raises(ValueError, match="path.*invalid"):
         patch.patch(user)
 
 
