@@ -44,7 +44,7 @@ dev = [
     "mypy>=1.13.0",
     "pytest>=8.2.1",
     "pytest-cov>=6.0.0",
-    "pre-commit-uv>=4.1.4",
+    "prek>=0.1.0",
     "tox-uv>=1.16.0",
 ]
 doc = [
@@ -149,7 +149,7 @@ commands = [
 skip_install = true
 runner = "uv-venv-runner"
 commands = [
-    ["pre-commit", "run", "--all-files", "--show-diff-on-failure"],
+    ["prek", "run", "--all-files", "--show-diff-on-failure"],
 ]
 
 [tool.tox.env.minversions]
