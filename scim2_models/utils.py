@@ -3,7 +3,6 @@ import re
 from typing import TYPE_CHECKING
 from typing import Annotated
 from typing import Literal
-from typing import Optional
 from typing import Union
 
 from pydantic import EncodedBytes
@@ -23,7 +22,7 @@ except ImportError:
     UNION_TYPES = [Union]
 
 
-def _int_to_str(status: Optional[int]) -> Optional[str]:
+def _int_to_str(status: int | None) -> str | None:
     return None if status is None else str(status)
 
 
@@ -158,7 +157,7 @@ def _validate_scim_urn_syntax(path: str) -> bool:
     return True
 
 
-def _extract_field_name(path: str) -> Optional[str]:
+def _extract_field_name(path: str) -> str | None:
     """Extract the field name from a path.
 
     For now, only handle simple paths (no filters, no complex expressions).
@@ -181,7 +180,7 @@ def _extract_field_name(path: str) -> Optional[str]:
     return path
 
 
-def _find_field_name(model_class: type["BaseModel"], attr_name: str) -> Optional[str]:
+def _find_field_name(model_class: type["BaseModel"], attr_name: str) -> str | None:
     """Find the actual field name in a resource class from an attribute name.
 
     :param resource_class: The resource class to search in

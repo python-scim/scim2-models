@@ -1,5 +1,4 @@
 from typing import TypeVar
-from typing import Union
 
 import pytest
 from pydantic import ValidationError
@@ -40,7 +39,7 @@ def test_patch_op_union_types_not_supported():
     with pytest.raises(
         TypeError, match="PatchOp type parameter must be a concrete Resource subclass"
     ):
-        PatchOp[Union[User, Group]]
+        PatchOp[User | Group]
 
 
 def test_validate_patchop_case_insensitivity():

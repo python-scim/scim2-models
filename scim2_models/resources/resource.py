@@ -3,7 +3,6 @@ from typing import TYPE_CHECKING
 from typing import Annotated
 from typing import Any
 from typing import Generic
-from typing import Optional
 from typing import TypeVar
 from typing import Union
 from typing import cast
@@ -42,20 +41,20 @@ class Meta(ComplexAttribute):
     This attribute SHALL be ignored when provided by clients.  "meta" contains the following sub-attributes:
     """
 
-    resource_type: Optional[str] = None
+    resource_type: str | None = None
     """The name of the resource type of the resource.
 
     This attribute has a mutability of "readOnly" and "caseExact" as
     "true".
     """
 
-    created: Optional[datetime] = None
+    created: datetime | None = None
     """The "DateTime" that the resource was added to the service provider.
 
     This attribute MUST be a DateTime.
     """
 
-    last_modified: Optional[datetime] = None
+    last_modified: datetime | None = None
     """The most recent DateTime that the details of this resource were updated
     at the service provider.
 
@@ -63,14 +62,14 @@ class Meta(ComplexAttribute):
     the value MUST be the same as the value of "created".
     """
 
-    location: Optional[str] = None
+    location: str | None = None
     """The URI of the resource being returned.
 
     This value MUST be the same as the "Content-Location" HTTP response
     header (see Section 3.1.4.2 of [RFC7231]).
     """
 
-    version: Optional[str] = None
+    version: str | None = None
     """The version of the resource being returned.
 
     This value must be the same as the entity-tag (ETag) HTTP response
@@ -108,7 +107,7 @@ _PARAMETERIZED_CLASSES: dict[tuple[type, tuple[Any, ...]], type] = {}
 
 def _extension_serializer(
     value: Any, handler: SerializerFunctionWrapHandler, info: SerializationInfo
-) -> Optional[dict[str, Any]]:
+) -> dict[str, Any] | None:
     """Exclude the Resource attributes from the extension dump.
 
     For instance, attributes 'meta', 'id' or 'schemas' should not be
@@ -128,7 +127,7 @@ class Resource(ScimObject, Generic[AnyExtension]):
     # https://www.rfc-editor.org/rfc/rfc7643#section-3.1
 
     id: Annotated[
-        Optional[str], Mutability.read_only, Returned.always, Uniqueness.global_
+        str | None, Mutability.read_only, Returned.always, Uniqueness.global_
     ] = None
     """A unique identifier for a SCIM resource as defined by the service
     provider.
@@ -138,12 +137,12 @@ class Resource(ScimObject, Generic[AnyExtension]):
     """
 
     external_id: Annotated[
-        Optional[str], Mutability.read_write, Returned.default, CaseExact.true
+        str | None, Mutability.read_write, Returned.default, CaseExact.true
     ] = None
     """A String that is an identifier for the resource as defined by the
     provisioning client."""
 
-    meta: Annotated[Optional[Meta], Mutability.read_only, Returned.default] = None
+    meta: Annotated[Meta | None, Mutability.read_only, Returned.default] = None
     """A complex attribute containing resource metadata."""
 
     @classmethod
@@ -188,7 +187,7 @@ class Resource(ScimObject, Generic[AnyExtension]):
 
         new_annotations = {
             extension.__name__: Annotated[
-                Optional[extension],
+                extension | None,
                 WrapSerializer(_extension_serializer),
             ]
             for extension in valid_extensions
@@ -207,11 +206,11 @@ class Resource(ScimObject, Generic[AnyExtension]):
 
         return new_class
 
-    def __getitem__(self, item: Any) -> Optional[Extension]:
+    def __getitem__(self, item: Any) -> Extension | None:
         if not isinstance(item, type) or not issubclass(item, Extension):
             raise KeyError(f"{item} is not a valid extension type")
 
-        return cast(Optional[Extension], getattr(self, item.__name__))
+        return cast(Extension | None, getattr(self, item.__name__))
 
     def __setitem__(self, item: Any, value: "Extension") -> None:
         if not isinstance(item, type) or not issubclass(item, Extension):
@@ -231,7 +230,7 @@ class Resource(ScimObject, Generic[AnyExtension]):
     @classmethod
     def get_extension_model(
         cls, name_or_schema: Union[str, "Schema"]
-    ) -> Optional[type[Extension]]:
+    ) -> type[Extension] | None:
         """Return an extension by its name or schema."""
         for schema, extension in cls.get_extension_models().items():
             if schema == name_or_schema or extension.__name__ == name_or_schema:
@@ -243,9 +242,9 @@ class Resource(ScimObject, Generic[AnyExtension]):
         resource_types: list[type["Resource[Any]"]],
         schema: str,
         with_extensions: bool = True,
-    ) -> Optional[Union[type["Resource[Any]"], type["Extension"]]]:
+    ) -> type["Resource[Any]"] | type["Extension"] | None:
         """Given a resource type list and a schema, find the matching resource type."""
-        by_schema: dict[str, Union[type[Resource[Any]], type[Extension]]] = {
+        by_schema: dict[str, type[Resource[Any]] | type[Extension]] = {
             resource_type.model_fields["schemas"].default[0].lower(): resource_type
             for resource_type in (resource_types or [])
         }
@@ -265,7 +264,7 @@ class Resource(ScimObject, Generic[AnyExtension]):
         resource_types: list[type["Resource[Any]"]],
         payload: dict[str, Any],
         **kwargs: Any,
-    ) -> Optional[type]:
+    ) -> type | None:
         """Given a resource type list and a payload, find the matching resource type."""
         if not payload or not payload.get("schemas"):
             return None
@@ -298,9 +297,9 @@ class Resource(ScimObject, Generic[AnyExtension]):
 
     def _prepare_model_dump(
         self,
-        scim_ctx: Optional[Context] = Context.DEFAULT,
-        attributes: Optional[list[str]] = None,
-        excluded_attributes: Optional[list[str]] = None,
+        scim_ctx: Context | None = Context.DEFAULT,
+        attributes: list[str] | None = None,
+        excluded_attributes: list[str] | None = None,
         **kwargs: Any,
     ) -> dict[str, Any]:
         kwargs = super()._prepare_model_dump(scim_ctx, **kwargs)
@@ -323,9 +322,9 @@ class Resource(ScimObject, Generic[AnyExtension]):
     def model_dump(
         self,
         *args: Any,
-        scim_ctx: Optional[Context] = Context.DEFAULT,
-        attributes: Optional[list[str]] = None,
-        excluded_attributes: Optional[list[str]] = None,
+        scim_ctx: Context | None = Context.DEFAULT,
+        attributes: list[str] | None = None,
+        excluded_attributes: list[str] | None = None,
         **kwargs: Any,
     ) -> dict[str, Any]:
         """Create a model representation that can be included in SCIM messages by using Pydantic :code:`BaseModel.model_dump`.
@@ -349,9 +348,9 @@ class Resource(ScimObject, Generic[AnyExtension]):
     def model_dump_json(
         self,
         *args: Any,
-        scim_ctx: Optional[Context] = Context.DEFAULT,
-        attributes: Optional[list[str]] = None,
-        excluded_attributes: Optional[list[str]] = None,
+        scim_ctx: Context | None = Context.DEFAULT,
+        attributes: list[str] | None = None,
+        excluded_attributes: list[str] | None = None,
         **kwargs: Any,
     ) -> str:
         """Create a JSON model representation that can be included in SCIM messages by using Pydantic :code:`BaseModel.model_dump_json`.

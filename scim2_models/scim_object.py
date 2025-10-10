@@ -3,7 +3,6 @@
 from typing import TYPE_CHECKING
 from typing import Annotated
 from typing import Any
-from typing import Optional
 
 from .annotations import Required
 from .base import BaseModel
@@ -22,7 +21,7 @@ class ScimObject(BaseModel):
 
     def _prepare_model_dump(
         self,
-        scim_ctx: Optional[Context] = Context.DEFAULT,
+        scim_ctx: Context | None = Context.DEFAULT,
         **kwargs: Any,
     ) -> dict[str, Any]:
         kwargs.setdefault("context", {}).setdefault("scim", scim_ctx)
@@ -36,7 +35,7 @@ class ScimObject(BaseModel):
     def model_dump(
         self,
         *args: Any,
-        scim_ctx: Optional[Context] = Context.DEFAULT,
+        scim_ctx: Context | None = Context.DEFAULT,
         **kwargs: Any,
     ) -> dict[str, Any]:
         """Create a model representation that can be included in SCIM messages by using Pydantic :code:`BaseModel.model_dump`.
@@ -53,7 +52,7 @@ class ScimObject(BaseModel):
     def model_dump_json(
         self,
         *args: Any,
-        scim_ctx: Optional[Context] = Context.DEFAULT,
+        scim_ctx: Context | None = Context.DEFAULT,
         **kwargs: Any,
     ) -> str:
         """Create a JSON model representation that can be included in SCIM messages by using Pydantic :code:`BaseModel.model_dump_json`.

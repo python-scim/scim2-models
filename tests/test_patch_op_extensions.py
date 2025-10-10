@@ -1,5 +1,4 @@
 from typing import TypeVar
-from typing import Union
 
 import pytest
 from pydantic import Field
@@ -247,7 +246,7 @@ def test_generic_patchop_rejects_union():
     with pytest.raises(
         TypeError, match="PatchOp type parameter must be a concrete Resource subclass"
     ):
-        PatchOp[Union[User, Group]]
+        PatchOp[User | Group]
 
 
 def test_generic_patchop_with_single_type():

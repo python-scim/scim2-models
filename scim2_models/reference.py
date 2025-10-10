@@ -1,13 +1,13 @@
 from collections import UserString
 from typing import Any
 from typing import Generic
+from typing import NewType
 from typing import TypeVar
 from typing import get_args
 from typing import get_origin
 
 from pydantic import GetCoreSchemaHandler
 from pydantic_core import core_schema
-from typing_extensions import NewType
 
 from .utils import UNION_TYPES
 

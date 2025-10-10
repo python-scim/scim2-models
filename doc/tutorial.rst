@@ -30,8 +30,8 @@ Python models have generally the same name than in the SCIM specifications, they
     >>> user = User.model_validate(payload)
     >>> user.user_name
     'bjensen@example.com'
-    >>> user.meta.created
-    datetime.datetime(2010, 1, 23, 4, 56, 22, tzinfo=TzInfo(UTC))
+    >>> user.meta.created  # doctest: +ELLIPSIS
+    datetime.datetime(2010, 1, 23, 4, 56, 22, tzinfo=...)
 
 
 Model serialization

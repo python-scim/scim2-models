@@ -1,6 +1,5 @@
 import operator
 from typing import Annotated
-from typing import Optional
 
 import pytest
 
@@ -121,10 +120,10 @@ def test_inheritance():
             "urn:ietf:params:scim:schemas:core:2.0:Foo"
         ]
 
-        foo: Optional[str] = None
+        foo: str | None = None
 
     class Bar(Foo):
-        bar: Optional[str] = None
+        bar: str | None = None
 
     schema = Bar.to_schema()
     assert schema.model_dump() == {

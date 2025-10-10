@@ -1,7 +1,6 @@
 from enum import Enum
 from typing import Annotated
 from typing import Any
-from typing import Optional
 
 from pydantic import Field
 from pydantic import PlainSerializer
@@ -19,30 +18,30 @@ class BulkOperation(ComplexAttribute):
         patch = "PATCH"
         delete = "DELETE"
 
-    method: Optional[Method] = None
+    method: Method | None = None
     """The HTTP method of the current operation."""
 
-    bulk_id: Optional[str] = None
+    bulk_id: str | None = None
     """The transient identifier of a newly created resource, unique within a
     bulk request and created by the client."""
 
-    version: Optional[str] = None
+    version: str | None = None
     """The current resource version."""
 
-    path: Optional[str] = None
+    path: str | None = None
     """The resource's relative path to the SCIM service provider's root."""
 
-    data: Optional[Any] = None
+    data: Any | None = None
     """The resource data as it would appear for a single SCIM POST, PUT, or
     PATCH operation."""
 
-    location: Optional[str] = None
+    location: str | None = None
     """The resource endpoint URL."""
 
-    response: Optional[Any] = None
+    response: Any | None = None
     """The HTTP response body for the specified request operation."""
 
-    status: Annotated[Optional[int], PlainSerializer(_int_to_str)] = None
+    status: Annotated[int | None, PlainSerializer(_int_to_str)] = None
     """The HTTP response status code for the requested operation."""
 
 
@@ -58,12 +57,12 @@ class BulkRequest(Message):
         "urn:ietf:params:scim:api:messages:2.0:BulkRequest"
     ]
 
-    fail_on_errors: Optional[int] = None
+    fail_on_errors: int | None = None
     """An integer specifying the number of errors that the service provider
     will accept before the operation is terminated and an error response is
     returned."""
 
-    operations: Optional[list[BulkOperation]] = Field(
+    operations: list[BulkOperation] | None = Field(
         None, serialization_alias="Operations"
     )
     """Defines operations within a bulk job."""
@@ -81,7 +80,7 @@ class BulkResponse(Message):
         "urn:ietf:params:scim:api:messages:2.0:BulkResponse"
     ]
 
-    operations: Optional[list[BulkOperation]] = Field(
+    operations: list[BulkOperation] | None = Field(
         None, serialization_alias="Operations"
     )
     """Defines operations within a bulk job."""
