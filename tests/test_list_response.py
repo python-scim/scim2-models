@@ -1,5 +1,4 @@
 from typing import Annotated
-from typing import Union
 
 import pytest
 from pydantic import ValidationError
@@ -101,7 +100,7 @@ def test_mixed_types(load_sample):
         "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
         "Resources": [user_payload, group_payload],
     }
-    response = ListResponse[Union[User, Group]].model_validate(payload)
+    response = ListResponse[User | Group].model_validate(payload)
     user, group = response.resources
     assert isinstance(user, User)
     assert isinstance(group, Group)
@@ -124,10 +123,10 @@ def test_mixed_types_type_missing(load_sample):
         "Resources": [user_payload, group_payload],
     }
 
-    ListResponse[Union[User, Group]].model_validate(payload)
+    ListResponse[User | Group].model_validate(payload)
 
     with pytest.raises(ValidationError):
-        ListResponse[Union[User, Foobar]].model_validate(payload)
+        ListResponse[User | Foobar].model_validate(payload)
 
     with pytest.raises(ValidationError):
         ListResponse[User].model_validate(payload)
@@ -144,7 +143,7 @@ def test_missing_resource_payload(load_sample):
     }
 
     with pytest.raises(ValidationError):
-        ListResponse[Union[User, Group]].model_validate(payload, strict=True)
+        ListResponse[User | Group].model_validate(payload, strict=True)
 
     # TODO: This should raise a ValidationError
     ListResponse[User].model_validate(payload, strict=True)
@@ -161,7 +160,7 @@ def test_missing_resource_schema(load_sample):
     }
 
     with pytest.raises(ValidationError):
-        ListResponse[Union[User, Group]].model_validate(payload, strict=True)
+        ListResponse[User | Group].model_validate(payload, strict=True)
 
     # TODO: This should raise a ValidationError
     ListResponse[User].model_validate(payload, strict=True)
@@ -216,7 +215,7 @@ def test_list_response_schema_ordering():
             }
         ],
     }
-    ListResponse[Union[User[EnterpriseUser], Group]].model_validate(payload)
+    ListResponse[User[EnterpriseUser] | Group].model_validate(payload)
 
 
 def test_total_results_required():

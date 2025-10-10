@@ -3,9 +3,7 @@ from inspect import isclass
 from typing import Annotated
 from typing import Any
 from typing import Generic
-from typing import Optional
 from typing import TypeVar
-from typing import Union
 
 from pydantic import Field
 from pydantic import ValidationInfo
@@ -48,7 +46,7 @@ class PatchOperation(ComplexAttribute):
         despite :rfc:`RFC7644 §3.5.2 <7644#section-3.5.2>`, op is case-insensitive.
     """
 
-    path: Optional[str] = None
+    path: str | None = None
     """The "path" attribute value is a String containing an attribute path
     describing the target of the operation."""
 
@@ -113,7 +111,7 @@ class PatchOperation(ComplexAttribute):
 
         return self
 
-    value: Optional[Any] = None
+    value: Any | None = None
 
     @field_validator("op", mode="before")
     @classmethod
@@ -165,7 +163,7 @@ class PatchOp(Message, Generic[T]):
         return super().__new__(cls)
 
     def __class_getitem__(
-        cls, typevar_values: Union[type[Resource[Any]], tuple[type[Resource[Any]], ...]]
+        cls, typevar_values: type[Resource[Any]] | tuple[type[Resource[Any]], ...]
     ) -> Any:
         """Validate type parameter when creating parameterized type.
 
@@ -211,7 +209,7 @@ class PatchOp(Message, Generic[T]):
         "urn:ietf:params:scim:api:messages:2.0:PatchOp"
     ]
 
-    operations: Annotated[Optional[list[PatchOperation]], Required.true] = Field(
+    operations: Annotated[list[PatchOperation] | None, Required.true] = Field(
         None, serialization_alias="Operations", min_length=1
     )
     """The body of an HTTP PATCH request MUST contain the attribute
