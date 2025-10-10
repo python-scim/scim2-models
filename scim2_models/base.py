@@ -96,7 +96,7 @@ class BaseModel(PydanticBaseModel):
         return field_annotation
 
     @classmethod
-    def get_field_root_type(cls, attribute_name: str) -> Optional[type]:
+    def get_field_root_type(cls, attribute_name: str) -> type | None:
         """Extract the root type from a model field.
 
         This method unwraps complex type annotations to find the underlying
@@ -244,7 +244,7 @@ class BaseModel(PydanticBaseModel):
             return result
 
         def normalize_value(
-            val: Any, model_class: Optional[type["BaseModel"]] = None
+            val: Any, model_class: type["BaseModel"] | None = None
         ) -> Any:
             """Normalize input value based on model class."""
             if not isinstance(val, dict):
@@ -504,7 +504,7 @@ class BaseModel(PydanticBaseModel):
     def model_validate(
         cls,
         *args: Any,
-        scim_ctx: Optional[Context] = Context.DEFAULT,
+        scim_ctx: Context | None = Context.DEFAULT,
         original: Optional["BaseModel"] = None,
         **kwargs: Any,
     ) -> Self:

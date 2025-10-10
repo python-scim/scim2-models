@@ -1,6 +1,5 @@
 from typing import TYPE_CHECKING
 from typing import Any
-from typing import Optional
 from typing import Union
 
 from .base import BaseModel
@@ -24,7 +23,7 @@ def _get_or_create_extension_instance(
     return extension_instance
 
 
-def _normalize_path(model: Optional[type["BaseModel"]], path: str) -> tuple[str, str]:
+def _normalize_path(model: type["BaseModel"] | None, path: str) -> tuple[str, str]:
     """Resolve a path to (schema_urn, attribute_path)."""
     from .resources.resource import Resource
 
@@ -76,7 +75,7 @@ def _validate_model_attribute(model: type["BaseModel"], attribute_base: str) -> 
 
 def _validate_attribute_urn(
     attribute_name: str, resource: type["Resource[Any]"]
-) -> Optional[str]:
+) -> str | None:
     """Validate that an attribute urn is valid or not.
 
     :param attribute_name: The attribute urn to check.
@@ -84,7 +83,7 @@ def _validate_attribute_urn(
     """
     from .resources.resource import Resource
 
-    schema: Optional[Any]
+    schema: Any | None
     schema, attribute_base = _normalize_path(resource, attribute_name)
 
     validated_resource = Resource.get_by_schema([resource], schema)
@@ -101,7 +100,7 @@ def _validate_attribute_urn(
 
 def _resolve_path_to_target(
     resource: "Resource[Any]", path: str
-) -> tuple[Optional[Union["Resource[Any]", "Extension"]], str]:
+) -> tuple[Union["Resource[Any]", "Extension"] | None, str]:
     """Resolve a path to a target and an attribute_path.
 
     The target can be the resource itself, or an extension object.

@@ -97,7 +97,7 @@ class Attribute(ComplexAttribute):
 
         def _to_python(
             self,
-            reference_types: Optional[list[str]] = None,
+            reference_types: list[str] | None = None,
         ) -> type:
             if self.value == self.reference and reference_types is not None:
                 if reference_types == ["external"]:
@@ -107,7 +107,7 @@ class Attribute(ComplexAttribute):
                     return Reference[URIReference]
 
                 types = tuple(Literal[t] for t in reference_types)
-                return Reference[Union[types]]  # type: ignore
+                return Reference[Union[types]]  # type: ignore  # noqa: UP007
 
             attr_types = {
                 self.string: str,
@@ -118,7 +118,7 @@ class Attribute(ComplexAttribute):
                 self.binary: Base64Bytes,
                 self.complex: ComplexAttribute,
             }
-            return attr_types[self.value]
+            return attr_types[self]
 
         @classmethod
         def from_python(cls, pytype: type) -> "Attribute.Type":
@@ -141,21 +141,21 @@ class Attribute(ComplexAttribute):
             }
             return attr_types.get(pytype, cls.string)
 
-    name: Annotated[
-        Optional[str], Mutability.read_only, Required.true, CaseExact.true
-    ] = None
+    name: Annotated[str | None, Mutability.read_only, Required.true, CaseExact.true] = (
+        None
+    )
     """The attribute's name."""
 
-    type: Annotated[Optional[Type], Mutability.read_only, Required.true] = Field(
+    type: Annotated[Type | None, Mutability.read_only, Required.true] = Field(
         None, examples=[item.value for item in Type]
     )
     """The attribute's data type."""
 
-    multi_valued: Annotated[Optional[bool], Mutability.read_only, Required.true] = None
+    multi_valued: Annotated[bool | None, Mutability.read_only, Required.true] = None
     """A Boolean value indicating the attribute's plurality."""
 
     description: Annotated[
-        Optional[str], Mutability.read_only, Required.false, CaseExact.true
+        str | None, Mutability.read_only, Required.false, CaseExact.true
     ] = None
     """The attribute's human-readable description."""
 
@@ -164,7 +164,7 @@ class Attribute(ComplexAttribute):
     required."""
 
     canonical_values: Annotated[
-        Optional[list[str]], Mutability.read_only, CaseExact.true
+        list[str] | None, Mutability.read_only, CaseExact.true
     ] = None
     """A collection of suggested canonical values that MAY be used (e.g.,
     "work" and "home")."""
@@ -195,17 +195,17 @@ class Attribute(ComplexAttribute):
     uniqueness of attribute values."""
 
     reference_types: Annotated[
-        Optional[list[str]], Mutability.read_only, Required.false, CaseExact.true
+        list[str] | None, Mutability.read_only, Required.false, CaseExact.true
     ] = None
     """A multi-valued array of JSON strings that indicate the SCIM resource
     types that may be referenced."""
 
     # for python 3.9 and 3.10 compatibility, this should be 'list' and not 'List'
-    sub_attributes: Annotated[Optional[List["Attribute"]], Mutability.read_only] = None  # noqa: UP006
+    sub_attributes: Annotated[List["Attribute"] | None, Mutability.read_only] = None  # noqa: UP006
     """When an attribute is of type "complex", "subAttributes" defines a set of
     sub-attributes."""
 
-    def _to_python(self) -> Optional[tuple[Any, Any]]:
+    def _to_python(self) -> tuple[Any, Any] | None:
         """Build tuple suited to be passed to pydantic 'create_model'."""
         if not self.name or not self.type:
             return None
@@ -219,7 +219,7 @@ class Attribute(ComplexAttribute):
             attr_type = list[attr_type]  # type: ignore
 
         annotation = Annotated[
-            Optional[attr_type],  # type: ignore
+            attr_type | None,  # type: ignore
             self.required,
             self.case_exact,
             self.mutability,
@@ -256,19 +256,19 @@ class Schema(Resource[Any]):
         "urn:ietf:params:scim:schemas:core:2.0:Schema"
     ]
 
-    id: Annotated[Optional[str], Mutability.read_only, Required.true] = None
+    id: Annotated[str | None, Mutability.read_only, Required.true] = None
     """The unique URI of the schema."""
 
     name: Annotated[
-        Optional[str], Mutability.read_only, Returned.default, Required.true
+        str | None, Mutability.read_only, Returned.default, Required.true
     ] = None
     """The schema's human-readable name."""
 
-    description: Annotated[Optional[str], Mutability.read_only, Returned.default] = None
+    description: Annotated[str | None, Mutability.read_only, Returned.default] = None
     """The schema's human-readable description."""
 
     attributes: Annotated[
-        Optional[list[Attribute]], Mutability.read_only, Required.true
+        list[Attribute] | None, Mutability.read_only, Required.true
     ] = None
     """A complex type that defines service provider attributes and their
     qualities via the following set of sub-attributes."""
@@ -279,7 +279,7 @@ class Schema(Resource[Any]):
         """Ensure that schema ids are URI, as defined in RFC7643 §7."""
         return str(Url(value))
 
-    def get_attribute(self, attribute_name: str) -> Optional[Attribute]:
+    def get_attribute(self, attribute_name: str) -> Attribute | None:
         """Find an attribute by its name."""
         for attribute in self.attributes or []:
             if attribute.name == attribute_name:

@@ -1,6 +1,5 @@
 import datetime
 from typing import Literal
-from typing import Union
 
 from scim2_models.annotations import CaseExact
 from scim2_models.annotations import Mutability
@@ -72,7 +71,7 @@ def test_make_group_model_from_schema(load_sample):
     # Members.ref
     assert (
         Members.get_field_root_type("ref")
-        == Reference[Union[Literal["User"], Literal["Group"]]]
+        == Reference[Literal["User"] | Literal["Group"]]
     )
     assert not Members.get_field_multiplicity("ref")
     assert (
@@ -864,7 +863,7 @@ def test_make_user_model_from_schema(load_sample):
     # group.ref
     assert (
         Groups.get_field_root_type("ref")
-        == Reference[Union[Literal["User"], Literal["Group"]]]
+        == Reference[Literal["User"] | Literal["Group"]]
     )
     assert not Groups.get_field_multiplicity("ref")
     assert (

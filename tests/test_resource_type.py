@@ -1,5 +1,4 @@
 from typing import Annotated
-from typing import Union
 
 from scim2_models import EnterpriseUser
 from scim2_models import Extension
@@ -74,11 +73,11 @@ def test_from_resource_with_mulitple_extensions():
             "urn:ietf:params:scim:schemas:extension:Test:1.0:User"
         ]
 
-        test: Union[str, None] = None
-        test2: Union[list[str], None] = None
+        test: str | None = None
+        test2: list[str] | None = None
 
     enterprise_user_rt = ResourceType.from_resource(
-        User[Union[EnterpriseUser, TestExtension]]
+        User[EnterpriseUser | TestExtension]
     )
     assert enterprise_user_rt.id == "User"
     assert enterprise_user_rt.name == "User"

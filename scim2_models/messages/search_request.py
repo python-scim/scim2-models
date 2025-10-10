@@ -1,6 +1,5 @@
 from enum import Enum
 from typing import Annotated
-from typing import Optional
 
 from pydantic import field_validator
 from pydantic import model_validator
@@ -21,14 +20,14 @@ class SearchRequest(Message):
         "urn:ietf:params:scim:api:messages:2.0:SearchRequest"
     ]
 
-    attributes: Optional[list[str]] = None
+    attributes: list[str] | None = None
     """A multi-valued list of strings indicating the names of resource
     attributes to return in the response, overriding the set of attributes that
     would be returned by default."""
 
     @field_validator("attributes")
     @classmethod
-    def validate_attributes_syntax(cls, v: Optional[list[str]]) -> Optional[list[str]]:
+    def validate_attributes_syntax(cls, v: list[str] | None) -> list[str] | None:
         """Validate syntax of attribute paths."""
         if v is None:
             return v
@@ -39,15 +38,15 @@ class SearchRequest(Message):
 
         return v
 
-    excluded_attributes: Optional[list[str]] = None
+    excluded_attributes: list[str] | None = None
     """A multi-valued list of strings indicating the names of resource
     attributes to be removed from the default set of attributes to return."""
 
     @field_validator("excluded_attributes")
     @classmethod
     def validate_excluded_attributes_syntax(
-        cls, v: Optional[list[str]]
-    ) -> Optional[list[str]]:
+        cls, v: list[str] | None
+    ) -> list[str] | None:
         """Validate syntax of excluded attribute paths."""
         if v is None:
             return v
@@ -58,16 +57,16 @@ class SearchRequest(Message):
 
         return v
 
-    filter: Optional[str] = None
+    filter: str | None = None
     """The filter string used to request a subset of resources."""
 
-    sort_by: Optional[str] = None
+    sort_by: str | None = None
     """A string indicating the attribute whose value SHALL be used to order the
     returned responses."""
 
     @field_validator("sort_by")
     @classmethod
-    def validate_sort_by_syntax(cls, v: Optional[str]) -> Optional[str]:
+    def validate_sort_by_syntax(cls, v: str | None) -> str | None:
         """Validate syntax of sort_by attribute path.
 
         :param v: The sort_by attribute path to validate
@@ -86,29 +85,29 @@ class SearchRequest(Message):
         ascending = "ascending"
         descending = "descending"
 
-    sort_order: Optional[SortOrder] = None
+    sort_order: SortOrder | None = None
     """A string indicating the order in which the "sortBy" parameter is
     applied."""
 
-    start_index: Optional[int] = None
+    start_index: int | None = None
     """An integer indicating the 1-based index of the first query result."""
 
     @field_validator("start_index")
     @classmethod
-    def start_index_floor(cls, value: Optional[int]) -> Optional[int]:
+    def start_index_floor(cls, value: int | None) -> int | None:
         """According to :rfc:`RFC7644 §3.4.2 <7644#section-3.4.2.4>, start_index values less than 1 are interpreted as 1.
 
         A value less than 1 SHALL be interpreted as 1.
         """
         return None if value is None else max(1, value)
 
-    count: Optional[int] = None
+    count: int | None = None
     """An integer indicating the desired maximum number of query results per
     page."""
 
     @field_validator("count")
     @classmethod
-    def count_floor(cls, value: Optional[int]) -> Optional[int]:
+    def count_floor(cls, value: int | None) -> int | None:
         """According to :rfc:`RFC7644 §3.4.2 <7644#section-3.4.2.4>, count values less than 0 are interpreted as 0.
 
         A negative value SHALL be interpreted as 0.
@@ -125,12 +124,12 @@ class SearchRequest(Message):
         return self
 
     @property
-    def start_index_0(self) -> Optional[int]:
+    def start_index_0(self) -> int | None:
         """The 0 indexed start index."""
         return self.start_index - 1 if self.start_index is not None else None
 
     @property
-    def stop_index_0(self) -> Optional[int]:
+    def stop_index_0(self) -> int | None:
         """The 0 indexed stop index."""
         return (
             self.start_index_0 + self.count

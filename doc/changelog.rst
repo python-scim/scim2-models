@@ -1,6 +1,17 @@
 Changelog
 =========
 
+[0.5.1] - Unreleased
+--------------------
+
+Added
+^^^^^
+- Support for Python 3.14.
+
+Removed
+^^^^^^^
+- Support for Python 3.9.
+
 [0.5.0] - 2025-08-18
 --------------------
 

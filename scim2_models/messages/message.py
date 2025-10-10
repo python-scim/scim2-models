@@ -1,7 +1,6 @@
+from collections.abc import Callable
 from typing import Annotated
 from typing import Any
-from typing import Callable
-from typing import Optional
 from typing import Union
 from typing import get_args
 from typing import get_origin
@@ -23,14 +22,14 @@ class Message(ScimObject):
 
 def _create_schema_discriminator(
     resource_types_schemas: list[str],
-) -> Callable[[Any], Optional[str]]:
+) -> Callable[[Any], str | None]:
     """Create a schema discriminator function for the given resource schemas.
 
     :param resource_types_schemas: List of valid resource schemas
     :return: Discriminator function for Pydantic
     """
 
-    def get_schema_from_payload(payload: Any) -> Optional[str]:
+    def get_schema_from_payload(payload: Any) -> str | None:
         """Extract schema from SCIM payload for discrimination.
 
         :param payload: SCIM payload dict or object
@@ -89,7 +88,7 @@ def _create_tagged_resource_union(resource_union: Any) -> Any:
         for resource_type in resource_types
     ]
     # Dynamic union construction from tuple - MyPy can't validate this at compile time
-    union = Union[tuple(tagged_resources)]  # type: ignore
+    union = Union[tuple(tagged_resources)]  # type: ignore  # noqa: UP007
     return Annotated[union, discriminator]
 
 

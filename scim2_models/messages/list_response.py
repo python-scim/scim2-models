@@ -1,7 +1,6 @@
 from typing import Annotated
 from typing import Any
 from typing import Generic
-from typing import Optional
 
 from pydantic import Field
 from pydantic import ValidationInfo
@@ -22,19 +21,17 @@ class ListResponse(Message, Generic[AnyResource], metaclass=_GenericMessageMetac
         "urn:ietf:params:scim:api:messages:2.0:ListResponse"
     ]
 
-    total_results: Optional[int] = None
+    total_results: int | None = None
     """The total number of results returned by the list or query operation."""
 
-    start_index: Optional[int] = None
+    start_index: int | None = None
     """The 1-based index of the first result in the current set of list
     results."""
 
-    items_per_page: Optional[int] = None
+    items_per_page: int | None = None
     """The number of resources returned in a list response page."""
 
-    resources: Optional[list[AnyResource]] = Field(
-        None, serialization_alias="Resources"
-    )
+    resources: list[AnyResource] | None = Field(None, serialization_alias="Resources")
     """A multi-valued list of complex objects containing the requested
     resources."""
 

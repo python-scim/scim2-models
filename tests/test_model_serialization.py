@@ -1,5 +1,4 @@
 from typing import Annotated
-from typing import Optional
 
 import pytest
 
@@ -12,30 +11,30 @@ from scim2_models.resources.resource import Resource
 
 
 class SubRetModel(ComplexAttribute):
-    always_returned: Annotated[Optional[str], Returned.always] = None
-    never_returned: Annotated[Optional[str], Returned.never] = None
-    default_returned: Annotated[Optional[str], Returned.default] = None
-    request_returned: Annotated[Optional[str], Returned.request] = None
+    always_returned: Annotated[str | None, Returned.always] = None
+    never_returned: Annotated[str | None, Returned.never] = None
+    default_returned: Annotated[str | None, Returned.default] = None
+    request_returned: Annotated[str | None, Returned.request] = None
 
 
 class SupRetResource(Resource):
     schemas: Annotated[list[str], Required.true] = ["org:example:SupRetResource"]
 
-    always_returned: Annotated[Optional[str], Returned.always] = None
-    never_returned: Annotated[Optional[str], Returned.never] = None
-    default_returned: Annotated[Optional[str], Returned.default] = None
-    request_returned: Annotated[Optional[str], Returned.request] = None
+    always_returned: Annotated[str | None, Returned.always] = None
+    never_returned: Annotated[str | None, Returned.never] = None
+    default_returned: Annotated[str | None, Returned.default] = None
+    request_returned: Annotated[str | None, Returned.request] = None
 
-    sub: Optional[SubRetModel] = None
+    sub: SubRetModel | None = None
 
 
 class MutResource(Resource):
     schemas: Annotated[list[str], Required.true] = ["org:example:MutResource"]
 
-    read_only: Annotated[Optional[str], Mutability.read_only] = None
-    read_write: Annotated[Optional[str], Mutability.read_write] = None
-    immutable: Annotated[Optional[str], Mutability.immutable] = None
-    write_only: Annotated[Optional[str], Mutability.write_only] = None
+    read_only: Annotated[str | None, Mutability.read_only] = None
+    read_write: Annotated[str | None, Mutability.read_write] = None
+    immutable: Annotated[str | None, Mutability.immutable] = None
+    write_only: Annotated[str | None, Mutability.write_only] = None
 
 
 @pytest.fixture
