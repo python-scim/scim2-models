@@ -1,6 +1,5 @@
 from typing import Annotated
 from typing import Literal
-from typing import Optional
 
 from pydantic import Field
 
@@ -12,16 +11,16 @@ from .resource import Extension
 
 
 class Manager(ComplexAttribute):
-    value: Annotated[Optional[str], Required.true] = None
+    value: Annotated[str | None, Required.true] = None
     """The id of the SCIM resource representing the User's manager."""
 
-    ref: Annotated[Optional[Reference[Literal["User"]]], Required.true] = Field(
+    ref: Annotated[Reference[Literal["User"]] | None, Required.true] = Field(
         None,
         serialization_alias="$ref",
     )
     """The URI of the SCIM resource representing the User's manager."""
 
-    display_name: Annotated[Optional[str], Mutability.read_only] = None
+    display_name: Annotated[str | None, Mutability.read_only] = None
     """The displayName of the User's manager."""
 
 
@@ -30,24 +29,24 @@ class EnterpriseUser(Extension):
         "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"
     ]
 
-    employee_number: Optional[str] = None
+    employee_number: str | None = None
     """Numeric or alphanumeric identifier assigned to a person, typically based
     on order of hire or association with an organization."""
 
-    cost_center: Optional[str] = None
+    cost_center: str | None = None
     """"Identifies the name of a cost center."""
 
-    organization: Optional[str] = None
+    organization: str | None = None
     """Identifies the name of an organization."""
 
-    division: Optional[str] = None
+    division: str | None = None
     """Identifies the name of a division."""
 
-    department: Optional[str] = None
+    department: str | None = None
     """Numeric or alphanumeric identifier assigned to a person, typically based
     on order of hire or association with an organization."""
 
-    manager: Optional[Manager] = None
+    manager: Manager | None = None
     """The User's manager.
 
     A complex type that optionally allows service providers to represent

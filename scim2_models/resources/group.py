@@ -2,8 +2,6 @@ from typing import Annotated
 from typing import Any
 from typing import ClassVar
 from typing import Literal
-from typing import Optional
-from typing import Union
 
 from pydantic import Field
 
@@ -15,22 +13,22 @@ from .resource import Resource
 
 
 class GroupMember(ComplexAttribute):
-    value: Annotated[Optional[str], Mutability.immutable] = None
+    value: Annotated[str | None, Mutability.immutable] = None
     """Identifier of the member of this Group."""
 
     ref: Annotated[
-        Optional[Reference[Union[Literal["User"], Literal["Group"]]]],
+        Reference[Literal["User"] | Literal["Group"]] | None,
         Mutability.immutable,
     ] = Field(None, serialization_alias="$ref")
     """The reference URI of a target resource, if the attribute is a
     reference."""
 
-    type: Annotated[Optional[str], Mutability.immutable] = Field(
+    type: Annotated[str | None, Mutability.immutable] = Field(
         None, examples=["User", "Group"]
     )
     """A label indicating the attribute's function, e.g., "work" or "home"."""
 
-    display: Annotated[Optional[str], Mutability.read_only] = None
+    display: Annotated[str | None, Mutability.read_only] = None
 
 
 class Group(Resource[Any]):
@@ -38,10 +36,10 @@ class Group(Resource[Any]):
         "urn:ietf:params:scim:schemas:core:2.0:Group"
     ]
 
-    display_name: Optional[str] = None
+    display_name: str | None = None
     """A human-readable name for the Group."""
 
-    members: Optional[list[GroupMember]] = None
+    members: list[GroupMember] | None = None
     """A list of members of the Group."""
 
     Members: ClassVar[type[ComplexAttribute]] = GroupMember

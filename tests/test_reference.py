@@ -1,7 +1,6 @@
 """Test Reference constructor functionality."""
 
 from typing import Annotated
-from typing import Optional
 
 import pytest
 
@@ -16,8 +15,8 @@ class ReferenceTestModel(BaseModel):
     """Test model with Reference fields."""
 
     schemas: Annotated[list[str], Required.true] = ["urn:example:test"]
-    uri_ref: Optional[Reference[URIReference]] = None
-    ext_ref: Optional[Reference[ExternalReference]] = None
+    uri_ref: Reference[URIReference] | None = None
+    ext_ref: Reference[ExternalReference] | None = None
 
 
 def test_reference_uri_string_assignment():

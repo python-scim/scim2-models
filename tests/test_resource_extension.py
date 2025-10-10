@@ -1,7 +1,5 @@
 import datetime
 from typing import Annotated
-from typing import Optional
-from typing import Union
 
 import pytest
 
@@ -205,13 +203,13 @@ def test_invalid_setitem():
 class SuperHero(Extension):
     schemas: Annotated[list[str], Required.true] = ["example:extensions:SuperHero"]
 
-    superpower: Optional[str] = None
+    superpower: str | None = None
     """The superhero superpower."""
 
 
 def test_multiple_extensions_union():
     """Test that multiple extensions can be used by using Union."""
-    user_model = User[Union[EnterpriseUser, SuperHero]]
+    user_model = User[EnterpriseUser | SuperHero]
     instance = user_model()
     instance[SuperHero] = SuperHero(superpower="flight")
     assert instance[SuperHero].superpower == "flight"
@@ -283,11 +281,11 @@ def test_get_extension_model():
     )
 
     assert (
-        User[Union[EnterpriseUser, SuperHero]].get_extension_model("EnterpriseUser")
+        User[EnterpriseUser | SuperHero].get_extension_model("EnterpriseUser")
         == EnterpriseUser
     )
     assert (
-        User[Union[EnterpriseUser, SuperHero]].get_extension_model(
+        User[EnterpriseUser | SuperHero].get_extension_model(
             "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"
         )
         == EnterpriseUser
@@ -324,8 +322,6 @@ def test_class_getitem():
 
 def test_model_attribute_to_scim_attribute_error():
     """Test error case where get_field_root_type returns None."""
-    from typing import Optional
-
     from pydantic import Field
 
     from scim2_models.base import BaseModel
@@ -333,7 +329,7 @@ def test_model_attribute_to_scim_attribute_error():
 
     # Create a model with a field that has no clear root type
     class TestModel(BaseModel):
-        problematic_field: Optional[str] = Field(default=None)
+        problematic_field: str | None = Field(default=None)
 
     # Mock get_field_root_type to return None
     original_method = TestModel.get_field_root_type

@@ -1,6 +1,5 @@
 import uuid
 from typing import Annotated
-from typing import Optional
 
 from scim2_models.annotations import Required
 from scim2_models.annotations import Returned
@@ -35,10 +34,10 @@ def test_guess_root_type():
 
 
 class ReturnedModel(BaseModel):
-    always: Annotated[Optional[str], Returned.always] = None
-    never: Annotated[Optional[str], Returned.never] = None
-    default: Annotated[Optional[str], Returned.default] = None
-    request: Annotated[Optional[str], Returned.request] = None
+    always: Annotated[str | None, Returned.always] = None
+    never: Annotated[str | None, Returned.never] = None
+    default: Annotated[str | None, Returned.default] = None
+    request: Annotated[str | None, Returned.request] = None
 
 
 class Baz(ComplexAttribute):
@@ -50,7 +49,7 @@ class Foo(Resource):
     sub: Annotated[ReturnedModel, Returned.default]
     bar: str
     snake_case: str
-    baz: Optional[Baz] = None
+    baz: Baz | None = None
 
 
 class Bar(Resource):
@@ -58,7 +57,7 @@ class Bar(Resource):
     sub: Annotated[ReturnedModel, Returned.default]
     bar: str
     snake_case: str
-    baz: Optional[Baz] = None
+    baz: Baz | None = None
 
 
 class MyExtension(Extension):

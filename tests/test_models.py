@@ -1,5 +1,4 @@
 import os
-from typing import Union
 
 from scim2_models import BulkRequest
 from scim2_models import BulkResponse
@@ -26,7 +25,7 @@ def test_parse_and_serialize_examples(load_sample):
         "resource_type": ResourceType,
         "service_provider_configuration": ServiceProviderConfig,
         "list_response": ListResponse[
-            Union[User[EnterpriseUser], Group, Schema, ResourceType]
+            User[EnterpriseUser] | Group | Schema | ResourceType
         ],
         "patch_op": PatchOp[User],
         "bulk_request": BulkRequest,

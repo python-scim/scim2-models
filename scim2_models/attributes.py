@@ -1,7 +1,6 @@
 from inspect import isclass
 from typing import Annotated
 from typing import Any
-from typing import Optional
 from typing import get_origin
 
 from pydantic import Field
@@ -16,7 +15,7 @@ from .reference import Reference
 class ComplexAttribute(BaseModel):
     """A complex attribute as defined in :rfc:`RFC7643 §2.3.8 <7643#section-2.3.8>`."""
 
-    _attribute_urn: Optional[str] = None
+    _attribute_urn: str | None = None
 
     def get_attribute_urn(self, field_name: str) -> str:
         """Build the full URN of the attribute.
@@ -30,20 +29,20 @@ class ComplexAttribute(BaseModel):
 
 
 class MultiValuedComplexAttribute(ComplexAttribute):
-    type: Optional[str] = None
+    type: str | None = None
     """A label indicating the attribute's function."""
 
-    primary: Optional[bool] = None
+    primary: bool | None = None
     """A Boolean value indicating the 'primary' or preferred attribute value
     for this attribute."""
 
-    display: Annotated[Optional[str], Mutability.immutable] = None
+    display: Annotated[str | None, Mutability.immutable] = None
     """A human-readable name, primarily used for display purposes."""
 
-    value: Optional[Any] = None
+    value: Any | None = None
     """The value of an entitlement."""
 
-    ref: Optional[Reference[Any]] = Field(None, serialization_alias="$ref")
+    ref: Reference[Any] | None = Field(None, serialization_alias="$ref")
     """The reference URI of a target resource, if the attribute is a
     reference."""
 

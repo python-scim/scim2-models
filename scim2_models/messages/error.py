@@ -1,5 +1,4 @@
 from typing import Annotated
-from typing import Optional
 
 from pydantic import PlainSerializer
 
@@ -15,14 +14,14 @@ class Error(Message):
         "urn:ietf:params:scim:api:messages:2.0:Error"
     ]
 
-    status: Annotated[Optional[int], PlainSerializer(_int_to_str)] = None
+    status: Annotated[int | None, PlainSerializer(_int_to_str)] = None
     """The HTTP status code (see Section 6 of [RFC7231]) expressed as a JSON
     string."""
 
-    scim_type: Optional[str] = None
+    scim_type: str | None = None
     """A SCIM detail error keyword."""
 
-    detail: Optional[str] = None
+    detail: str | None = None
     """A detailed human-readable message."""
 
     @classmethod
