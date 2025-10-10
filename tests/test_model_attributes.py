@@ -8,6 +8,7 @@ from scim2_models.base import BaseModel
 from scim2_models.context import Context
 from scim2_models.messages.error import Error
 from scim2_models.messages.patch_op import PatchOp
+from scim2_models.reference import Reference
 from scim2_models.resources.enterprise_user import EnterpriseUser
 from scim2_models.resources.resource import Extension
 from scim2_models.resources.resource import Meta
@@ -25,12 +26,16 @@ class Sup(Resource):
     dummy: str
     sub: Sub
     subs: list[Sub]
+    ref: Reference[Sub]
+    refunion: Reference[Sub | User]
 
 
 def test_guess_root_type():
     assert Sup.get_field_root_type("dummy") is str
     assert Sup.get_field_root_type("sub") == Sub
     assert Sup.get_field_root_type("subs") == Sub
+    assert Sup.get_field_root_type("ref") == Reference[Sub]
+    assert Sup.get_field_root_type("refunion") == Reference[Sub | User]
 
 
 class ReturnedModel(BaseModel):
