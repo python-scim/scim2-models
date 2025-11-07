@@ -35,10 +35,12 @@ from .resource import Resource
 
 T = TypeVar("T", bound=BaseModel)
 
+_NON_WORD_OR_LEADING_DIGIT = re.compile(r"\W|^(?=\d)")
+
 
 def _make_python_identifier(identifier: str) -> str:
     """Sanitize string to be a suitable Python/Pydantic class attribute name."""
-    sanitized = re.sub(r"\W|^(?=\d)", "", identifier)
+    sanitized = _NON_WORD_OR_LEADING_DIGIT.sub("", identifier)
     if sanitized in RESERVED_WORDS:
         sanitized = f"{sanitized}_"
 

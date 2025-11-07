@@ -7,6 +7,7 @@ Changelog
 Added
 ^^^^^
 - Support for Python 3.14.
+- Compile regexes.
 
 Removed
 ^^^^^^^
