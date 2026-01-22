@@ -327,6 +327,7 @@ def test_dump_response(context, ret_resource):
         "alwaysReturned": "x",
         "sub": {
             "alwaysReturned": "x",
+            "defaultReturned": "x",
         },
     }
 
