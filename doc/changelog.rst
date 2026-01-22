@@ -1,6 +1,13 @@
 Changelog
 =========
 
+[0.5.2] - 2026-01-22
+--------------------
+
+Fixed
+^^^^^
+- Sub-attributes of requested complex attributes are now included in responses. :issue:`114`
+
 [0.5.1] - 2025-11-07
 --------------------
 
@@ -8,10 +15,6 @@ Added
 ^^^^^
 - Support for Python 3.14.
 - Compile regexes.
-
-Fixed
-^^^^^
-- Sub-attributes of requested complex attributes are now included in responses. :issue:`114`
 
 Removed
 ^^^^^^^
