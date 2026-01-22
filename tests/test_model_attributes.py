@@ -10,6 +10,8 @@ from scim2_models.messages.error import Error
 from scim2_models.messages.patch_op import PatchOp
 from scim2_models.reference import Reference
 from scim2_models.resources.enterprise_user import EnterpriseUser
+from scim2_models.resources.group import Group
+from scim2_models.resources.group import GroupMember
 from scim2_models.resources.resource import Extension
 from scim2_models.resources.resource import Meta
 from scim2_models.resources.resource import Resource
@@ -354,3 +356,36 @@ def test_patch_op_preserves_case_in_sub_value_fields():
     value = result["Operations"][0]["value"]
 
     assert value["name"]["givenName"] == "John"
+
+
+def test_complex_attribute_inclusion_includes_sub_attributes():
+    """When a complex attribute is requested, its sub-attributes should be included."""
+    user = User(
+        user_name="bjensen",
+        name={"given_name": "Barbara", "family_name": "Jensen"},
+    )
+    result = user.model_dump(
+        scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
+        attributes=["name"],
+    )
+    assert result["name"] == {"givenName": "Barbara", "familyName": "Jensen"}
+
+
+def test_multivalued_complex_attribute_inclusion_includes_sub_attributes():
+    """When a multi-valued complex attribute is requested, its sub-attributes should be included."""
+    group = Group(
+        id="group-123",
+        display_name="Engineering",
+        members=[
+            GroupMember(value="user-1", type="User"),
+            GroupMember(value="user-2", type="User"),
+        ],
+    )
+    result = group.model_dump(
+        scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
+        attributes=["members"],
+    )
+    assert result["members"] == [
+        {"value": "user-1", "type": "User"},
+        {"value": "user-2", "type": "User"},
+    ]
