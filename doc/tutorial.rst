@@ -236,7 +236,7 @@ Schema extensions
 
 :rfc:`RFC7643 §3.3 <7643#section-3.3>` extensions are supported.
 Any class inheriting from :class:`~scim2_models.Extension` can be passed as a :class:`~scim2_models.Resource` type parameter, e.g. ``user = User[EnterpriseUser]`` or ``user = User[Union[EnterpriseUser, SuperHero]]``.
-Extensions attributes are accessed with brackets, e.g. ``user[EnterpriseUser].employee_number``.
+Extensions attributes are accessed with brackets, e.g. ``user[EnterpriseUser].employee_number``, where ``user[EnterpriseUser]`` is a shortcut for ``user["urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"]``.
 
 .. code-block:: python
 
