@@ -13,7 +13,7 @@ def test_remove_operation_single_attribute():
     """Test removing a single-valued attribute."""
     user = User(nick_name="Babs")
     patch = PatchOp[User](
-        operations=[PatchOperation(op=PatchOperation.Op.remove, path="nickName")]
+        operations=[PatchOperation[User](op=PatchOperation.Op.remove, path="nickName")]
     )
     result = patch.patch(user)
     assert result is True
@@ -24,7 +24,7 @@ def test_remove_operation_nonexistent_attribute():
     """Test removing an attribute that doesn't exist should not raise an error."""
     user = User()
     patch = PatchOp[User](
-        operations=[PatchOperation(op=PatchOperation.Op.remove, path="nickName")]
+        operations=[PatchOperation[User](op=PatchOperation.Op.remove, path="nickName")]
     )
     result = patch.patch(user)
     assert result is False
@@ -38,7 +38,7 @@ def test_remove_operation_on_non_list_attribute():
     # Try to remove specific value from a single-valued field
     patch = PatchOp[User](
         operations=[
-            PatchOperation(
+            PatchOperation[User](
                 op=PatchOperation.Op.remove, path="nickName", value="TestValue"
             )
         ]
@@ -54,7 +54,9 @@ def test_remove_operation_sub_attribute():
     """Test removing a sub-attribute of a complex attribute."""
     user = User(name={"familyName": "Jensen", "givenName": "Barbara"})
     patch = PatchOp[User](
-        operations=[PatchOperation(op=PatchOperation.Op.remove, path="name.familyName")]
+        operations=[
+            PatchOperation[User](op=PatchOperation.Op.remove, path="name.familyName")
+        ]
     )
     result = patch.patch(user)
     assert result is True
@@ -66,7 +68,7 @@ def test_remove_operation_complex_attribute():
     """Test removing an entire complex attribute."""
     user = User(name={"familyName": "Jensen", "givenName": "Barbara"})
     patch = PatchOp[User](
-        operations=[PatchOperation(op=PatchOperation.Op.remove, path="name")]
+        operations=[PatchOperation[User](op=PatchOperation.Op.remove, path="name")]
     )
     result = patch.patch(user)
     assert result is True
@@ -77,7 +79,9 @@ def test_remove_operation_sub_attribute_parent_none():
     """Test removing a sub-attribute when parent is None."""
     user = User(name=None)
     patch = PatchOp[User](
-        operations=[PatchOperation(op=PatchOperation.Op.remove, path="name.familyName")]
+        operations=[
+            PatchOperation[User](op=PatchOperation.Op.remove, path="name.familyName")
+        ]
     )
     result = patch.patch(user)
     assert result is False
@@ -101,7 +105,7 @@ def test_remove_operation_multiple_attribute_all():
         ]
     )
     patch = PatchOp[Group](
-        operations=[PatchOperation(op=PatchOperation.Op.remove, path="members")]
+        operations=[PatchOperation[Group](op=PatchOperation.Op.remove, path="members")]
     )
     result = patch.patch(group)
     assert result is True
@@ -118,7 +122,7 @@ def test_remove_operation_multiple_attribute_with_value():
     )
     patch = PatchOp[User](
         operations=[
-            PatchOperation(
+            PatchOperation[User](
                 op=PatchOperation.Op.remove,
                 path="emails",
                 value={"value": "work@example.com", "type": "work"},
@@ -136,7 +140,7 @@ def test_remove_operation_with_value_not_in_list():
     user = User(emails=[{"value": "test@example.com", "type": "work"}])
     patch = PatchOp[User](
         operations=[
-            PatchOperation(
+            PatchOperation[User](
                 op=PatchOperation.Op.remove,
                 path="emails",
                 value={"value": "other@example.com", "type": "work"},
@@ -159,7 +163,7 @@ def test_values_match_basemodel_second_parameter():
     member_obj = GroupMember(value="123", display="Test User")  # BaseModel
     patch = PatchOp[Group](
         operations=[
-            PatchOperation(
+            PatchOperation[Group](
                 op=PatchOperation.Op.remove,
                 path="members",
                 value=member_obj,  # BaseModel as second parameter
@@ -182,7 +186,7 @@ def test_remove_operations_on_nonexistent_and_basemodel_values():
     # Test removing non-existent value
     patch = PatchOp[User](
         operations=[
-            PatchOperation(
+            PatchOperation[User](
                 op=PatchOperation.Op.remove,
                 path="emails",
                 value={"value": "nonexistent@example.com", "type": "work"},
@@ -208,7 +212,7 @@ def test_complex_object_creation_and_basemodel_matching():
     # Remove specific member by BaseModel value
     patch = PatchOp[Group](
         operations=[
-            PatchOperation(
+            PatchOperation[Group](
                 op=PatchOperation.Op.remove,
                 path="members",
                 value=GroupMember(value="123", display="Test User"),
@@ -223,9 +227,8 @@ def test_complex_object_creation_and_basemodel_matching():
 
 
 def test_remove_operation_bypass_validation_no_path():
-    """Test remove operation with no path raises error during validation per RFC7644."""
-    # Path validation now happens during model validation
-    with pytest.raises(ValidationError, match="path.*invalid"):
+    """Test remove operation with no path raises noTarget error per RFC7644 §3.5.2.2."""
+    with pytest.raises(ValidationError, match="no match"):
         PatchOp.model_validate(
             {
                 "operations": [
@@ -237,10 +240,10 @@ def test_remove_operation_bypass_validation_no_path():
 
 
 def test_defensive_path_check_in_remove():
-    """Test defensive path check in _apply_remove method."""
+    """Test defensive path check in _apply_remove method per RFC7644 §3.5.2.2."""
     user = User(nick_name="Test")
     patch = PatchOp[User](
-        operations=[PatchOperation(op=PatchOperation.Op.remove, path="nickName")]
+        operations=[PatchOperation[User](op=PatchOperation.Op.remove, path="nickName")]
     )
 
     # Force path to None to test defensive check
@@ -248,42 +251,5 @@ def test_defensive_path_check_in_remove():
         op=PatchOperation.Op.remove, path=None
     )
 
-    with pytest.raises(ValueError, match="path.*invalid"):
-        patch.patch(user)
-
-
-def test_remove_value_empty_attr_path():
-    """Test _remove_value_at_path with empty attr_path after URN resolution (line 291)."""
-    user = User()
-
-    # URN with trailing colon results in empty attr_path after parsing
-    patch = PatchOp[User](
-        operations=[
-            PatchOperation(
-                op=PatchOperation.Op.remove,
-                path="urn:ietf:params:scim:schemas:core:2.0:User:",
-            )
-        ]
-    )
-
-    with pytest.raises(ValueError, match="path"):
-        patch.patch(user)
-
-
-def test_remove_specific_value_empty_attr_path():
-    """Test _remove_specific_value with empty attr_path after URN resolution (line 316)."""
-    user = User()
-
-    # URN with trailing colon results in empty attr_path after parsing
-    patch = PatchOp[User](
-        operations=[
-            PatchOperation(
-                op=PatchOperation.Op.remove,
-                path="urn:ietf:params:scim:schemas:core:2.0:User:",
-                value={"some": "value"},
-            )
-        ]
-    )
-
-    with pytest.raises(ValueError, match="path"):
+    with pytest.raises(ValueError, match="no match"):
         patch.patch(user)

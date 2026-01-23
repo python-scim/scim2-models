@@ -1,6 +1,13 @@
 Changelog
 =========
 
+[0.x.x] - Unreleased
+--------------------
+
+Changed
+^^^^^
+- Introduce a Path object to handle paths. :issue:`111`
+
 [0.5.2] - 2026-01-22
 --------------------
 

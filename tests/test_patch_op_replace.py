@@ -20,7 +20,7 @@ def test_replace_operation_single_attribute():
     user = User(nick_name="OldNick")
     patch = PatchOp[User](
         operations=[
-            PatchOperation(
+            PatchOperation[User](
                 op=PatchOperation.Op.replace_, path="nickName", value="NewNick"
             )
         ]
@@ -35,7 +35,7 @@ def test_replace_operation_single_attribute_none_to_value():
     user = User(nick_name=None)
     patch = PatchOp[User](
         operations=[
-            PatchOperation(
+            PatchOperation[User](
                 op=PatchOperation.Op.replace_, path="nickName", value="NewNick"
             )
         ]
@@ -50,7 +50,7 @@ def test_replace_operation_nonexistent_attribute():
     user = User()
     patch = PatchOp[User](
         operations=[
-            PatchOperation(
+            PatchOperation[User](
                 op=PatchOperation.Op.replace_, path="nickName", value="NewNick"
             )
         ]
@@ -65,7 +65,9 @@ def test_replace_operation_same_value():
     user = User(nick_name="Test")
     patch = PatchOp[User](
         operations=[
-            PatchOperation(op=PatchOperation.Op.replace_, path="nickName", value="Test")
+            PatchOperation[User](
+                op=PatchOperation.Op.replace_, path="nickName", value="Test"
+            )
         ]
     )
     result = patch.patch(user)
@@ -78,7 +80,7 @@ def test_replace_operation_sub_attribute():
     user = User(name={"familyName": "OldName", "givenName": "Barbara"})
     patch = PatchOp[User](
         operations=[
-            PatchOperation(
+            PatchOperation[User](
                 op=PatchOperation.Op.replace_, path="name.familyName", value="NewName"
             )
         ]
@@ -94,7 +96,7 @@ def test_replace_operation_complex_attribute():
     user = User(name={"familyName": "OldName", "givenName": "Barbara"})
     patch = PatchOp[User](
         operations=[
-            PatchOperation(
+            PatchOperation[User](
                 op=PatchOperation.Op.replace_,
                 path="name",
                 value={"familyName": "NewName", "givenName": "John"},
@@ -112,7 +114,7 @@ def test_replace_operation_sub_attribute_parent_none():
     user = User(name=None)
     patch = PatchOp[User](
         operations=[
-            PatchOperation(
+            PatchOperation[User](
                 op=PatchOperation.Op.replace_, path="name.familyName", value="NewName"
             )
         ]
@@ -133,7 +135,7 @@ def test_replace_operation_multiple_attribute_all():
     )
     patch = PatchOp[User](
         operations=[
-            PatchOperation(
+            PatchOperation[User](
                 op=PatchOperation.Op.replace_,
                 path="emails",
                 value=[{"value": "new@example.com", "type": "work"}],
@@ -157,7 +159,7 @@ def test_replace_operation_no_path():
     user = User(nick_name="OldNick", display_name="Old Display")
     patch = PatchOp[User](
         operations=[
-            PatchOperation(
+            PatchOperation[User](
                 op=PatchOperation.Op.replace_,
                 value={
                     "nickName": "NewNick",
@@ -177,7 +179,7 @@ def test_replace_operation_no_path_same_attributes():
     user = User(nick_name="Test", display_name="Display")
     patch = PatchOp[User](
         operations=[
-            PatchOperation(
+            PatchOperation[User](
                 op=PatchOperation.Op.replace_,
                 value={"nickName": "Test", "displayName": "Display"},
             )
@@ -194,7 +196,7 @@ def test_replace_operation_with_non_dict_value_no_path():
     user = User(nick_name="Test")
     patch = PatchOp[User](
         operations=[
-            PatchOperation(op=PatchOperation.Op.replace_, value="invalid_value")
+            PatchOperation[User](op=PatchOperation.Op.replace_, value="invalid_value")
         ]
     )
     result = patch.patch(user)
@@ -212,7 +214,7 @@ def test_immutable_field():
     with pytest.raises(ValidationError, match="mutability"):
         PatchOp[Dummy](
             operations=[
-                PatchOperation(
+                PatchOperation[Dummy](
                     op=PatchOperation.Op.replace_, path="immutable", value="new_value"
                 )
             ]

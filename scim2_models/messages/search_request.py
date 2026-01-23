@@ -1,12 +1,12 @@
 from enum import Enum
 from typing import Annotated
+from typing import Any
 
 from pydantic import field_validator
 from pydantic import model_validator
 
 from ..annotations import Required
-from ..utils import _validate_scim_path_syntax
-from .error import Error
+from ..path import Path
 from .message import Message
 
 
@@ -20,66 +20,21 @@ class SearchRequest(Message):
         "urn:ietf:params:scim:api:messages:2.0:SearchRequest"
     ]
 
-    attributes: list[str] | None = None
+    attributes: list[Path[Any]] | None = None
     """A multi-valued list of strings indicating the names of resource
     attributes to return in the response, overriding the set of attributes that
     would be returned by default."""
 
-    @field_validator("attributes")
-    @classmethod
-    def validate_attributes_syntax(cls, v: list[str] | None) -> list[str] | None:
-        """Validate syntax of attribute paths."""
-        if v is None:
-            return v
-
-        for attr in v:
-            if not _validate_scim_path_syntax(attr):
-                raise ValueError(Error.make_invalid_path_error().detail)
-
-        return v
-
-    excluded_attributes: list[str] | None = None
+    excluded_attributes: list[Path[Any]] | None = None
     """A multi-valued list of strings indicating the names of resource
     attributes to be removed from the default set of attributes to return."""
-
-    @field_validator("excluded_attributes")
-    @classmethod
-    def validate_excluded_attributes_syntax(
-        cls, v: list[str] | None
-    ) -> list[str] | None:
-        """Validate syntax of excluded attribute paths."""
-        if v is None:
-            return v
-
-        for attr in v:
-            if not _validate_scim_path_syntax(attr):
-                raise ValueError(Error.make_invalid_path_error().detail)
-
-        return v
 
     filter: str | None = None
     """The filter string used to request a subset of resources."""
 
-    sort_by: str | None = None
+    sort_by: Path[Any] | None = None
     """A string indicating the attribute whose value SHALL be used to order the
     returned responses."""
-
-    @field_validator("sort_by")
-    @classmethod
-    def validate_sort_by_syntax(cls, v: str | None) -> str | None:
-        """Validate syntax of sort_by attribute path.
-
-        :param v: The sort_by attribute path to validate
-        :return: The validated sort_by attribute path
-        :raises ValueError: If sort_by attribute path has invalid syntax
-        """
-        if v is None:
-            return v
-
-        if not _validate_scim_path_syntax(v):
-            raise ValueError(Error.make_invalid_path_error().detail)
-
-        return v
 
     class SortOrder(str, Enum):
         ascending = "ascending"
