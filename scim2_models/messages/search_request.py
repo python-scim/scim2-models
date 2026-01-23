@@ -1,11 +1,10 @@
 from enum import Enum
-from typing import Annotated
 from typing import Any
 
 from pydantic import field_validator
 from pydantic import model_validator
 
-from ..annotations import Required
+from ..path import URN
 from ..path import Path
 from .message import Message
 
@@ -16,9 +15,7 @@ class SearchRequest(Message):
     https://datatracker.ietf.org/doc/html/rfc7644#section-3.4.3
     """
 
-    schemas: Annotated[list[str], Required.true] = [
-        "urn:ietf:params:scim:api:messages:2.0:SearchRequest"
-    ]
+    __schema__ = URN("urn:ietf:params:scim:api:messages:2.0:SearchRequest")
 
     attributes: list[Path[Any]] | None = None
     """A multi-valued list of strings indicating the names of resource

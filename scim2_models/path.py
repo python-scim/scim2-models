@@ -68,7 +68,13 @@ class _Resolution(NamedTuple):
     is_explicit_schema_path: bool = False
 
 
-class URN(UserString):
+class URN(str):
+    """URN string type with validation."""
+
+    def __new__(cls, urn: str) -> "URN":
+        cls.check_syntax(urn)
+        return super().__new__(cls, urn)
+
     @classmethod
     def __get_pydantic_core_schema__(
         cls,
@@ -82,10 +88,6 @@ class URN(UserString):
                 str,
             ),
         )
-
-    def __init__(self, urn: str):
-        self.check_syntax(urn)
-        self.data = urn
 
     @classmethod
     def check_syntax(cls, path: str) -> None:
@@ -330,7 +332,7 @@ class Path(UserString, Generic[ResourceT]):
 
         schema = self.schema
         if not schema and issubclass(self.__scim_model__, Resource):
-            schema = self.__scim_model__.model_fields["schemas"].default[0]
+            schema = self.__scim_model__.__schema__
 
         if not self.attr:
             return schema if schema else None
@@ -348,13 +350,12 @@ class Path(UserString, Generic[ResourceT]):
         attr_path = self.attr
 
         if ":" in self and isclass(model) and issubclass(model, Resource | Extension):
-            model_schema = model.model_fields["schemas"].default[0]
             path_lower = str(self).lower()
 
-            if path_lower == model_schema.lower():
+            if model.__schema__ and path_lower == model.__schema__.lower():
                 return model, None
-            elif path_lower.startswith(model_schema.lower()):
-                attr_path = str(self)[len(model_schema) :].lstrip(":")
+            elif model.__schema__ and path_lower.startswith(model.__schema__.lower()):
+                attr_path = str(self)[len(model.__schema__) :].lstrip(":")
             elif issubclass(model, Resource):
                 for (
                     extension_schema,
@@ -414,7 +415,7 @@ class Path(UserString, Generic[ResourceT]):
         if ":" not in path_str:
             return _Resolution(resource, path_str)
 
-        model_schema = type(resource).model_fields["schemas"].default[0]
+        model_schema = getattr(type(resource), "__schema__", "") or ""
         path_lower = path_str.lower()
 
         if isinstance(resource, Resource | Extension) and path_lower.startswith(
@@ -708,10 +709,11 @@ class Path(UserString, Generic[ResourceT]):
 
                 field_type = target_model.get_field_root_type(field_name)
 
+                urn: str
                 if isclass(field_type) and issubclass(field_type, Extension):
                     if not include_extensions:
                         continue
-                    urn = field_type.model_fields["schemas"].default[0]
+                    urn = field_type.__schema__ or ""
                 elif isclass(target_model) and issubclass(target_model, Extension):
                     urn = target_model().get_attribute_urn(field_name)
                 else:

@@ -1,4 +1,3 @@
-from typing import Annotated
 from typing import Any
 from typing import Generic
 
@@ -9,17 +8,15 @@ from pydantic import model_validator
 from pydantic_core import PydanticCustomError
 from typing_extensions import Self
 
-from ..annotations import Required
 from ..context import Context
+from ..path import URN
 from ..resources.resource import AnyResource
 from .message import Message
 from .message import _GenericMessageMetaclass
 
 
 class ListResponse(Message, Generic[AnyResource], metaclass=_GenericMessageMetaclass):
-    schemas: Annotated[list[str], Required.true] = [
-        "urn:ietf:params:scim:api:messages:2.0:ListResponse"
-    ]
+    __schema__ = URN("urn:ietf:params:scim:api:messages:2.0:ListResponse")
 
     total_results: int | None = None
     """The total number of results returned by the list or query operation."""
