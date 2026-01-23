@@ -10,6 +10,7 @@ from typing import TypeVar
 from typing import Union
 from typing import get_origin
 
+from pydantic import Base64Bytes
 from pydantic import Field
 from pydantic import create_model
 from pydantic import field_validator
@@ -29,7 +30,6 @@ from ..constants import RESERVED_WORDS
 from ..reference import ExternalReference
 from ..reference import Reference
 from ..reference import URIReference
-from ..utils import Base64Bytes
 from ..utils import _normalize_attribute_name
 from .resource import Resource
 

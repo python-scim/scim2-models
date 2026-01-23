@@ -1,6 +1,8 @@
 import datetime
 from typing import Literal
 
+from pydantic import Base64Bytes
+
 from scim2_models.annotations import CaseExact
 from scim2_models.annotations import Mutability
 from scim2_models.annotations import Required
@@ -14,7 +16,6 @@ from scim2_models.resources.resource import Extension
 from scim2_models.resources.resource import Resource
 from scim2_models.resources.schema import Attribute
 from scim2_models.resources.schema import Schema
-from scim2_models.utils import Base64Bytes
 
 
 def test_make_group_model_from_schema(load_sample):

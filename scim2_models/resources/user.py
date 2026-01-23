@@ -3,6 +3,7 @@ from typing import Annotated
 from typing import ClassVar
 from typing import Literal
 
+from pydantic import Base64Bytes
 from pydantic import EmailStr
 from pydantic import Field
 
@@ -14,7 +15,6 @@ from ..annotations import Uniqueness
 from ..attributes import ComplexAttribute
 from ..reference import ExternalReference
 from ..reference import Reference
-from ..utils import Base64Bytes
 from .resource import AnyExtension
 from .resource import Resource
 
