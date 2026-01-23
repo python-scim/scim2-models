@@ -6,6 +6,7 @@ from pydantic import Field
 from ..annotations import Mutability
 from ..annotations import Required
 from ..attributes import ComplexAttribute
+from ..path import URN
 from ..reference import Reference
 from .resource import Extension
 
@@ -25,9 +26,7 @@ class Manager(ComplexAttribute):
 
 
 class EnterpriseUser(Extension):
-    schemas: Annotated[list[str], Required.true] = [
-        "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"
-    ]
+    __schema__ = URN("urn:ietf:params:scim:schemas:extension:enterprise:2.0:User")
 
     employee_number: str | None = None
     """Numeric or alphanumeric identifier assigned to a person, typically based

@@ -13,6 +13,7 @@ from ..annotations import Required
 from ..annotations import Returned
 from ..annotations import Uniqueness
 from ..attributes import ComplexAttribute
+from ..path import URN
 from ..reference import ExternalReference
 from ..reference import Reference
 from .resource import AnyExtension
@@ -245,9 +246,7 @@ class X509Certificate(ComplexAttribute):
 
 
 class User(Resource[AnyExtension]):
-    schemas: Annotated[list[str], Required.true] = [
-        "urn:ietf:params:scim:schemas:core:2.0:User"
-    ]
+    __schema__ = URN("urn:ietf:params:scim:schemas:core:2.0:User")
 
     user_name: Annotated[str | None, Uniqueness.server, Required.true] = None
     """Unique identifier for the User, typically used by the user to directly

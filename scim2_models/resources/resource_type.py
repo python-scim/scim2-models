@@ -9,6 +9,7 @@ from ..annotations import Mutability
 from ..annotations import Required
 from ..annotations import Returned
 from ..attributes import ComplexAttribute
+from ..path import URN
 from ..reference import Reference
 from ..reference import URIReference
 from .resource import Resource
@@ -35,9 +36,7 @@ class SchemaExtension(ComplexAttribute):
 
 
 class ResourceType(Resource[Any]):
-    schemas: Annotated[list[str], Required.true] = [
-        "urn:ietf:params:scim:schemas:core:2.0:ResourceType"
-    ]
+    __schema__ = URN("urn:ietf:params:scim:schemas:core:2.0:ResourceType")
 
     name: Annotated[str | None, Mutability.read_only, Required.true] = None
     """The resource type name.
@@ -80,10 +79,11 @@ class ResourceType(Resource[Any]):
     @classmethod
     def from_resource(cls, resource_model: type[Resource[Any]]) -> Self:
         """Build a naive ResourceType from a resource model."""
-        schema = resource_model.model_fields["schemas"].default[0]
+        schema = resource_model.__schema__
+        if schema is None:
+            raise ValueError(f"{resource_model.__name__} has no __schema__ defined")
         name = schema.split(":")[-1]
 
-        # Get extensions from the metadata system
         extensions = getattr(resource_model, "__scim_extension_metadata__", [])
 
         return cls(
@@ -91,10 +91,11 @@ class ResourceType(Resource[Any]):
             name=name,
             description=name,
             endpoint=Reference[URIReference](f"/{name}s"),
-            schema_=schema,
+            schema_=Reference[URIReference](schema),
             schema_extensions=[
                 SchemaExtension(
-                    schema_=extension.model_fields["schemas"].default[0], required=False
+                    schema_=Reference[URIReference](extension.__schema__),
+                    required=False,
                 )
                 for extension in extensions
             ],

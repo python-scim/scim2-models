@@ -7,11 +7,11 @@ from typing import get_origin
 
 from pydantic import Discriminator
 from pydantic import Tag
-from pydantic._internal._model_construction import ModelMetaclass
 
 from scim2_models.resources.resource import Resource
 
 from ..base import BaseModel
+from ..scim_object import ScimMetaclass
 from ..scim_object import ScimObject
 from ..utils import UNION_TYPES
 
@@ -56,7 +56,7 @@ def _get_tag(resource_type: type[BaseModel]) -> Tag:
     :param resource_type: SCIM resource type
     :return: Pydantic Tag for discrimination
     """
-    return Tag(resource_type.model_fields["schemas"].default[0])
+    return Tag(getattr(resource_type, "__schema__", None) or "")
 
 
 def _create_tagged_resource_union(resource_union: Any) -> Any:
@@ -75,7 +75,7 @@ def _create_tagged_resource_union(resource_union: Any) -> Any:
 
     # Set up schemas for the discriminator function
     resource_types_schemas = [
-        resource_type.model_fields["schemas"].default[0]
+        getattr(resource_type, "__schema__", None) or ""
         for resource_type in resource_types
     ]
 
@@ -92,7 +92,7 @@ def _create_tagged_resource_union(resource_union: Any) -> Any:
     return Annotated[union, discriminator]
 
 
-class _GenericMessageMetaclass(ModelMetaclass):
+class _GenericMessageMetaclass(ScimMetaclass):
     """Metaclass for SCIM generic types with discriminated unions."""
 
     def __new__(
