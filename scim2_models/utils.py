@@ -1,14 +1,8 @@
-import base64
 import re
 from typing import TYPE_CHECKING
-from typing import Annotated
-from typing import Literal
 from typing import Union
 
-from pydantic import EncodedBytes
-from pydantic import EncoderProtocol
 from pydantic.alias_generators import to_snake
-from pydantic_core import PydanticCustomError
 
 if TYPE_CHECKING:
     from .base import BaseModel
@@ -27,57 +21,6 @@ _NON_WORD_UNDERSCORE = re.compile(r"[\W_]+")
 
 def _int_to_str(status: int | None) -> str | None:
     return None if status is None else str(status)
-
-
-# Copied from Pydantic 2.10 repository
-class _Base64Encoder(EncoderProtocol):  # pragma: no cover
-    """Standard (non-URL-safe) Base64 encoder."""
-
-    @classmethod
-    def decode(cls, data: bytes) -> bytes:
-        """Decode the data from base64 encoded bytes to original bytes data.
-
-        Args:
-            data: The data to decode.
-
-        Returns:
-            The decoded data.
-
-        """
-        try:
-            return base64.b64decode(data)
-        except ValueError as e:
-            raise PydanticCustomError(
-                "base64_decode", "Base64 decoding error: '{error}'", {"error": str(e)}
-            ) from e
-
-    @classmethod
-    def encode(cls, value: bytes) -> bytes:
-        """Encode the data from bytes to a base64 encoded bytes.
-
-        Args:
-            value: The data to encode.
-
-        Returns:
-            The encoded data.
-
-        """
-        return base64.b64encode(value)
-
-    @classmethod
-    def get_json_format(cls) -> Literal["base64"]:
-        """Get the JSON format for the encoded data.
-
-        Returns:
-            The JSON format for the encoded data.
-
-        """
-        return "base64"
-
-
-# Compatibility with Pydantic <2.10
-# https://pydantic.dev/articles/pydantic-v2-10-release#use-b64decode-and-b64encode-for-base64bytes-and-base64str-types
-Base64Bytes = Annotated[bytes, EncodedBytes(encoder=_Base64Encoder)]
 
 
 def _to_camel(string: str) -> str:
