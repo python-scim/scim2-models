@@ -27,6 +27,7 @@ from ..attributes import ComplexAttribute
 from ..attributes import is_complex_attribute
 from ..base import BaseModel
 from ..constants import RESERVED_WORDS
+from ..path import URN
 from ..reference import ExternalReference
 from ..reference import Reference
 from ..reference import URIReference
@@ -65,10 +66,6 @@ def _make_python_model(
             for attr in (obj.attributes or [])
             if attr.name
         }
-        pydantic_attributes["schemas"] = (
-            Annotated[list[str], Required.true],
-            Field(default=[obj.id]),
-        )
 
     if not obj.name:
         raise ValueError("Schema or Attribute 'name' must be defined")
@@ -76,8 +73,9 @@ def _make_python_model(
     model_name = to_pascal(to_snake(obj.name))
     model: type[T] = create_model(model_name, __base__=base, **pydantic_attributes)  # type: ignore[call-overload]
 
-    # Set the ComplexType class as a member of the model
-    # e.g. make Member an attribute of Group
+    if isinstance(obj, Schema) and obj.id:
+        model.__schema__ = URN(obj.id)  # type: ignore[attr-defined]
+
     for attr_name in model.model_fields:
         attr_type = model.get_field_root_type(attr_name)
         if attr_type and is_complex_attribute(attr_type):
@@ -254,9 +252,7 @@ class Attribute(ComplexAttribute):
 
 
 class Schema(Resource[Any]):
-    schemas: Annotated[list[str], Required.true] = [
-        "urn:ietf:params:scim:schemas:core:2.0:Schema"
-    ]
+    __schema__ = URN("urn:ietf:params:scim:schemas:core:2.0:Schema")
 
     id: Annotated[str | None, Mutability.read_only, Required.true] = None
     """The unique URI of the schema."""

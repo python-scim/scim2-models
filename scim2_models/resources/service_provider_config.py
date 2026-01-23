@@ -9,6 +9,7 @@ from ..annotations import Required
 from ..annotations import Returned
 from ..annotations import Uniqueness
 from ..attributes import ComplexAttribute
+from ..path import URN
 from ..reference import ExternalReference
 from ..reference import Reference
 from .resource import Resource
@@ -92,9 +93,7 @@ class AuthenticationScheme(ComplexAttribute):
 
 
 class ServiceProviderConfig(Resource[Any]):
-    schemas: Annotated[list[str], Required.true] = [
-        "urn:ietf:params:scim:schemas:core:2.0:ServiceProviderConfig"
-    ]
+    __schema__ = URN("urn:ietf:params:scim:schemas:core:2.0:ServiceProviderConfig")
 
     id: Annotated[
         str | None, Mutability.read_only, Returned.default, Uniqueness.global_

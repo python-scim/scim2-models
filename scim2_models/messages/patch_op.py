@@ -15,6 +15,7 @@ from ..annotations import Mutability
 from ..annotations import Required
 from ..attributes import ComplexAttribute
 from ..context import Context
+from ..path import URN
 from ..path import InvalidPathError
 from ..path import Path
 from ..path import PathNotFoundError
@@ -199,9 +200,7 @@ class PatchOp(Message, Generic[ResourceT]):
 
         return super().__class_getitem__(typevar_values)
 
-    schemas: Annotated[list[str], Required.true] = [
-        "urn:ietf:params:scim:api:messages:2.0:PatchOp"
-    ]
+    __schema__ = URN("urn:ietf:params:scim:api:messages:2.0:PatchOp")
 
     operations: Annotated[list[PatchOperation[ResourceT]] | None, Required.true] = (
         Field(None, serialization_alias="Operations", min_length=1)

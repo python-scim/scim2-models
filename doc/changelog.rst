@@ -4,9 +4,19 @@ Changelog
 [0.x.x] - Unreleased
 --------------------
 
-Changed
+Added
 ^^^^^
-- Introduce a Path object to handle paths. :issue:`111`
+- Resources define their schema URN with a ``__schema__`` classvar instead of a ``schemas`` default value. :issue:`110`
+- Validation that the base schema is present in ``schemas`` during SCIM context validation.
+- Validation that extension schemas are known during SCIM context validation.
+
+Changed
+^^^^^^^
+- Introduce a :class:`~scim2_models.Path` object to handle paths. :issue:`111`
+
+Deprecated
+^^^^^^^^^^
+- Defining ``schemas`` with a default value is deprecated. Use ``__schema__ = URN("...")`` instead.
 
 [0.5.2] - 2026-01-22
 --------------------

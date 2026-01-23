@@ -305,8 +305,8 @@ Use :class:`~scim2_models.ComplexAttribute` as base class for complex attributes
 
 .. code-block:: python
 
-    >>> from typing import Annotated, Optional, List
-    >>> from scim2_models import Resource, Returned, Mutability, ComplexAttribute
+    >>> from typing import Annotated, Optional
+    >>> from scim2_models import Resource, Returned, Mutability, ComplexAttribute, URN
     >>> from enum import Enum
 
     >>> class PetType(ComplexAttribute):
@@ -317,7 +317,7 @@ Use :class:`~scim2_models.ComplexAttribute` as base class for complex attributes
     ...     """The pet color."""
 
     >>> class Pet(Resource):
-    ...     schemas: List[str] = ["example:schemas:Pet"]
+    ...     __schema__ = URN("urn:example:schemas:Pet")
     ...
     ...     name: Annotated[Optional[str], Mutability.immutable, Returned.always]
     ...     """The name of the pet."""
@@ -351,10 +351,12 @@ This is useful for server implementations, so custom models or models provided b
 
 .. code-block:: python
 
+    >>> from scim2_models import Resource, URN
+
     >>> class MyCustomResource(Resource):
     ...     """My awesome custom schema."""
     ...
-    ...     schemas: List[str] = ["example:schemas:MyCustomResource"]
+    ...     __schema__ = URN("urn:example:schemas:MyCustomResource")
     ...
     ...     foobar: Optional[str]
     ...
@@ -362,7 +364,7 @@ This is useful for server implementations, so custom models or models provided b
     >>> dump = schema.model_dump()
     >>> assert dump == {
     ...     "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Schema"],
-    ...     "id": "example:schemas:MyCustomResource",
+    ...     "id": "urn:example:schemas:MyCustomResource",
     ...     "name": "MyCustomResource",
     ...     "description": "My awesome custom schema.",
     ...     "attributes": [

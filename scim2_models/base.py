@@ -406,7 +406,9 @@ class BaseModel(PydanticBaseModel):
             main_schema = self._attribute_urn
             separator = "."
         else:
-            main_schema = self.__class__.model_fields["schemas"].default[0]
+            main_schema = getattr(self.__class__, "__schema__", None)
+            if main_schema is None:
+                return
             separator = ":"
 
         for field_name in self.__class__.model_fields:
@@ -540,13 +542,12 @@ class BaseModel(PydanticBaseModel):
         """
         from scim2_models.resources.resource import Extension
 
-        main_schema = self.__class__.model_fields["schemas"].default[0]
+        main_schema = getattr(self.__class__, "__schema__", None)
         field = self.__class__.model_fields[field_name]
         alias = field.serialization_alias or field_name
         field_type = self.get_field_root_type(field_name)
-        full_urn = (
-            alias
-            if isclass(field_type) and issubclass(field_type, Extension)
-            else f"{main_schema}:{alias}"
-        )
-        return full_urn
+        if isclass(field_type) and issubclass(field_type, Extension):
+            return alias
+        if main_schema is None:
+            return alias
+        return f"{main_schema}:{alias}"
