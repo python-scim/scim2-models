@@ -16,7 +16,6 @@ from scim2_models.resources.resource import Extension
 from scim2_models.resources.resource import Meta
 from scim2_models.resources.resource import Resource
 from scim2_models.resources.user import User
-from scim2_models.urn import _validate_attribute_urn
 
 
 class Sub(ComplexAttribute):
@@ -70,51 +69,6 @@ class Bar(Resource):
 class MyExtension(Extension):
     schemas: Annotated[list[str], Required.true] = ["urn:example:2.0:MyExtension"]
     baz: str
-
-
-def test_validate_attribute_urn():
-    """Test the method that validates and normalizes attribute URNs."""
-    assert _validate_attribute_urn("bar", Foo) == "urn:example:2.0:Foo:bar"
-    assert (
-        _validate_attribute_urn("urn:example:2.0:Foo:bar", Foo)
-        == "urn:example:2.0:Foo:bar"
-    )
-
-    assert _validate_attribute_urn("sub", Foo) == "urn:example:2.0:Foo:sub"
-    assert (
-        _validate_attribute_urn("urn:example:2.0:Foo:sub", Foo)
-        == "urn:example:2.0:Foo:sub"
-    )
-
-    assert (
-        _validate_attribute_urn("sub.always", Foo) == "urn:example:2.0:Foo:sub.always"
-    )
-    assert (
-        _validate_attribute_urn("urn:example:2.0:Foo:sub.always", Foo)
-        == "urn:example:2.0:Foo:sub.always"
-    )
-
-    assert _validate_attribute_urn("snakeCase", Foo) == "urn:example:2.0:Foo:snakeCase"
-    assert (
-        _validate_attribute_urn("urn:example:2.0:Foo:snakeCase", Foo)
-        == "urn:example:2.0:Foo:snakeCase"
-    )
-
-    assert (
-        _validate_attribute_urn("urn:example:2.0:MyExtension:baz", Foo[MyExtension])
-        == "urn:example:2.0:MyExtension:baz"
-    )
-
-    assert _validate_attribute_urn("urn:InvalidResource:bar", Foo) is None
-
-    assert _validate_attribute_urn("urn:example:2.0:Foo:invalid", Foo) is None
-
-    assert _validate_attribute_urn("bar.invalid", Foo) is None
-
-    assert (
-        _validate_attribute_urn("urn:example:2.0:MyExtension:invalid", Foo[MyExtension])
-        is None
-    )
 
 
 def test_payload_attribute_case_sensitivity():

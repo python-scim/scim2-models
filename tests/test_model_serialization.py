@@ -18,7 +18,7 @@ class SubRetModel(ComplexAttribute):
 
 
 class SupRetResource(Resource):
-    schemas: Annotated[list[str], Required.true] = ["org:example:SupRetResource"]
+    schemas: Annotated[list[str], Required.true] = ["urn:org:example:SupRetResource"]
 
     always_returned: Annotated[str | None, Returned.always] = None
     never_returned: Annotated[str | None, Returned.never] = None
@@ -175,7 +175,7 @@ def test_dump_search_request(mut_resource):
 def test_dump_default_response(ret_resource):
     """When no scim context is passed, every attributes are dumped."""
     assert ret_resource.model_dump() == {
-        "schemas": ["org:example:SupRetResource"],
+        "schemas": ["urn:org:example:SupRetResource"],
         "id": "id",
         "alwaysReturned": "x",
         "neverReturned": "x",
@@ -200,7 +200,7 @@ def test_invalid_attributes():
     )
     # Should return default response (alwaysReturned attributes)
     assert result == {
-        "schemas": ["org:example:SupRetResource"],
+        "schemas": ["urn:org:example:SupRetResource"],
         "id": "id",
         "alwaysReturned": "x",
         "defaultReturned": "x",
@@ -208,10 +208,10 @@ def test_invalid_attributes():
 
     result = resource.model_dump(
         scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
-        attributes={"org:example:SupRetResource:invalidAttribute"},
+        attributes={"urn:org:example:SupRetResource:invalidAttribute"},
     )
     assert result == {
-        "schemas": ["org:example:SupRetResource"],
+        "schemas": ["urn:org:example:SupRetResource"],
         "id": "id",
         "alwaysReturned": "x",
         "defaultReturned": "x",
@@ -222,7 +222,7 @@ def test_invalid_attributes():
         attributes={"urn:invalid:schema:invalidAttribute"},
     )
     assert result == {
-        "schemas": ["org:example:SupRetResource"],
+        "schemas": ["urn:org:example:SupRetResource"],
         "id": "id",
         "alwaysReturned": "x",
         "defaultReturned": "x",
@@ -240,7 +240,7 @@ def test_invalid_excluded_attributes():
     )
     # Should return default response (nothing excluded)
     assert result == {
-        "schemas": ["org:example:SupRetResource"],
+        "schemas": ["urn:org:example:SupRetResource"],
         "id": "id",
         "alwaysReturned": "x",
         "defaultReturned": "x",
@@ -248,10 +248,10 @@ def test_invalid_excluded_attributes():
 
     result = resource.model_dump(
         scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
-        excluded_attributes={"org:example:SupRetResource:invalidAttribute"},
+        excluded_attributes={"urn:org:example:SupRetResource:invalidAttribute"},
     )
     assert result == {
-        "schemas": ["org:example:SupRetResource"],
+        "schemas": ["urn:org:example:SupRetResource"],
         "id": "id",
         "alwaysReturned": "x",
         "defaultReturned": "x",
@@ -262,7 +262,7 @@ def test_invalid_excluded_attributes():
         excluded_attributes={"urn:invalid:schema:invalidAttribute"},
     )
     assert result == {
-        "schemas": ["org:example:SupRetResource"],
+        "schemas": ["urn:org:example:SupRetResource"],
         "id": "id",
         "alwaysReturned": "x",
         "defaultReturned": "x",
@@ -290,7 +290,7 @@ def test_dump_response(context, ret_resource):
     Including attributes with 'attributes=' replace the whole default set.
     """
     assert ret_resource.model_dump(scim_ctx=context) == {
-        "schemas": ["org:example:SupRetResource"],
+        "schemas": ["urn:org:example:SupRetResource"],
         "id": "id",
         "alwaysReturned": "x",
         "defaultReturned": "x",
@@ -301,13 +301,13 @@ def test_dump_response(context, ret_resource):
     }
 
     assert ret_resource.model_dump(scim_ctx=context, attributes={"alwaysReturned"}) == {
-        "schemas": ["org:example:SupRetResource"],
+        "schemas": ["urn:org:example:SupRetResource"],
         "id": "id",
         "alwaysReturned": "x",
     }
 
     assert ret_resource.model_dump(scim_ctx=context, attributes={"neverReturned"}) == {
-        "schemas": ["org:example:SupRetResource"],
+        "schemas": ["urn:org:example:SupRetResource"],
         "id": "id",
         "alwaysReturned": "x",
     }
@@ -315,14 +315,14 @@ def test_dump_response(context, ret_resource):
     assert ret_resource.model_dump(
         scim_ctx=context, attributes={"defaultReturned"}
     ) == {
-        "schemas": ["org:example:SupRetResource"],
+        "schemas": ["urn:org:example:SupRetResource"],
         "id": "id",
         "alwaysReturned": "x",
         "defaultReturned": "x",
     }
 
     assert ret_resource.model_dump(scim_ctx=context, attributes={"sub"}) == {
-        "schemas": ["org:example:SupRetResource"],
+        "schemas": ["urn:org:example:SupRetResource"],
         "id": "id",
         "alwaysReturned": "x",
         "sub": {
@@ -334,7 +334,7 @@ def test_dump_response(context, ret_resource):
     assert ret_resource.model_dump(
         scim_ctx=context, attributes={"sub.defaultReturned"}
     ) == {
-        "schemas": ["org:example:SupRetResource"],
+        "schemas": ["urn:org:example:SupRetResource"],
         "id": "id",
         "alwaysReturned": "x",
         "sub": {
@@ -346,7 +346,7 @@ def test_dump_response(context, ret_resource):
     assert ret_resource.model_dump(
         scim_ctx=context, attributes={"requestReturned"}
     ) == {
-        "schemas": ["org:example:SupRetResource"],
+        "schemas": ["urn:org:example:SupRetResource"],
         "id": "id",
         "alwaysReturned": "x",
         "requestReturned": "x",
@@ -356,7 +356,7 @@ def test_dump_response(context, ret_resource):
         scim_ctx=context,
         attributes={"defaultReturned", "requestReturned"},
     ) == {
-        "schemas": ["org:example:SupRetResource"],
+        "schemas": ["urn:org:example:SupRetResource"],
         "id": "id",
         "alwaysReturned": "x",
         "defaultReturned": "x",
@@ -366,7 +366,7 @@ def test_dump_response(context, ret_resource):
     assert ret_resource.model_dump(
         scim_ctx=context, excluded_attributes={"alwaysReturned"}
     ) == {
-        "schemas": ["org:example:SupRetResource"],
+        "schemas": ["urn:org:example:SupRetResource"],
         "id": "id",
         "alwaysReturned": "x",
         "defaultReturned": "x",
@@ -379,7 +379,7 @@ def test_dump_response(context, ret_resource):
     assert ret_resource.model_dump(
         scim_ctx=context, excluded_attributes={"neverReturned"}
     ) == {
-        "schemas": ["org:example:SupRetResource"],
+        "schemas": ["urn:org:example:SupRetResource"],
         "id": "id",
         "alwaysReturned": "x",
         "defaultReturned": "x",
@@ -392,7 +392,7 @@ def test_dump_response(context, ret_resource):
     assert ret_resource.model_dump(
         scim_ctx=context, excluded_attributes={"defaultReturned"}
     ) == {
-        "schemas": ["org:example:SupRetResource"],
+        "schemas": ["urn:org:example:SupRetResource"],
         "id": "id",
         "alwaysReturned": "x",
         "sub": {
@@ -404,7 +404,7 @@ def test_dump_response(context, ret_resource):
     assert ret_resource.model_dump(
         scim_ctx=context, excluded_attributes={"requestReturned"}
     ) == {
-        "schemas": ["org:example:SupRetResource"],
+        "schemas": ["urn:org:example:SupRetResource"],
         "id": "id",
         "alwaysReturned": "x",
         "defaultReturned": "x",
@@ -418,7 +418,7 @@ def test_dump_response(context, ret_resource):
         scim_ctx=context,
         excluded_attributes={"defaultReturned", "requestReturned"},
     ) == {
-        "schemas": ["org:example:SupRetResource"],
+        "schemas": ["urn:org:example:SupRetResource"],
         "id": "id",
         "alwaysReturned": "x",
         "sub": {

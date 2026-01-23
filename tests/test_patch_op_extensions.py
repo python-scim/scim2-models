@@ -2,6 +2,7 @@ from typing import TypeVar
 
 import pytest
 from pydantic import Field
+from pydantic import ValidationError
 
 from scim2_models import Group
 from scim2_models import GroupMember
@@ -26,7 +27,7 @@ def test_patch_operation_extension_simple_attribute():
 
     patch1 = PatchOp[User](
         operations=[
-            PatchOperation(
+            PatchOperation[User](
                 op=PatchOperation.Op.replace_,
                 path="urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:employeeNumber",
                 value="54321",
@@ -39,7 +40,7 @@ def test_patch_operation_extension_simple_attribute():
 
     patch2 = PatchOp[User](
         operations=[
-            PatchOperation(
+            PatchOperation[User](
                 op=PatchOperation.Op.add,
                 path="urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:organization",
                 value="ACME Corp",
@@ -52,7 +53,7 @@ def test_patch_operation_extension_simple_attribute():
 
     patch3 = PatchOp[User](
         operations=[
-            PatchOperation(
+            PatchOperation[User](
                 op=PatchOperation.Op.remove,
                 path="urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:costCenter",
             )
@@ -77,7 +78,7 @@ def test_patch_operation_extension_complex_attribute():
 
     patch1 = PatchOp[User](
         operations=[
-            PatchOperation(
+            PatchOperation[User](
                 op=PatchOperation.Op.replace_,
                 path="urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:manager.value",
                 value="new-manager-456",
@@ -91,7 +92,7 @@ def test_patch_operation_extension_complex_attribute():
 
     patch2 = PatchOp[User](
         operations=[
-            PatchOperation(
+            PatchOperation[User](
                 op=PatchOperation.Op.replace_,
                 path="urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:manager",
                 value={
@@ -109,7 +110,7 @@ def test_patch_operation_extension_complex_attribute():
 
     patch3 = PatchOp[User](
         operations=[
-            PatchOperation(
+            PatchOperation[User](
                 op=PatchOperation.Op.remove,
                 path="urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:manager",
             )
@@ -139,7 +140,7 @@ def test_patch_operation_extension_mutability_handled_by_model():
     # but patch method assumes operations are already validated
     patch = PatchOp[User](
         operations=[
-            PatchOperation(
+            PatchOperation[User](
                 op=PatchOperation.Op.replace_,
                 path="urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:employeeNumber",
                 value="12345",
@@ -151,56 +152,51 @@ def test_patch_operation_extension_mutability_handled_by_model():
     assert user[EnterpriseUser].employee_number == "12345"
 
 
-def test_patch_operation_extension_no_target_error():
-    """Test noTarget error for invalid extension paths.
+def test_patch_operation_extension_invalid_path_error():
+    """Test invalidPath error for non-existent extension attributes.
 
-    :rfc:`RFC7644 §3.5.2.2 <7644#section-3.5.2.2>`: noTarget errors apply to
-    extension attributes when the specified path does not exist.
+    :rfc:`RFC7644 §3.5.2 <7644#section-3.5.2>`: invalidPath errors occur when
+    the path references an attribute that doesn't exist in the schema.
     """
     user = User[EnterpriseUser].model_validate({"userName": "test.user"})
 
     patch1 = PatchOp[User](
         operations=[
-            PatchOperation(
+            PatchOperation[User](
                 op=PatchOperation.Op.add,
                 path="urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:invalidAttribute",
                 value="test",
             )
         ]
     )
-    with pytest.raises(ValueError, match="no match"):
+    with pytest.raises(ValueError, match="path.*invalid"):
         patch1.patch(user)
 
     patch2 = PatchOp[User](
         operations=[
-            PatchOperation(
+            PatchOperation[User](
                 op=PatchOperation.Op.add,
                 path="urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:manager.invalidField",
                 value="test",
             )
         ]
     )
-    with pytest.raises(ValueError, match="no match"):
+    with pytest.raises(ValueError, match="path.*invalid"):
         patch2.patch(user)
 
 
 def test_urn_parsing_errors():
     """Test URN parsing errors for malformed URNs."""
-    user = User()
-
-    # Test with malformed URN that causes extract_schema_and_attribute_base to fail
-    patch = PatchOp[User](
-        operations=[
-            PatchOperation(
-                op=PatchOperation.Op.add, path="urn:malformed:incomplete", value="test"
-            )
-        ]
-    )
-
-    with pytest.raises(
-        ValueError, match='The "path" attribute was invalid or malformed'
-    ):
-        patch.patch(user)
+    with pytest.raises(ValidationError, match="The path is not a valid URN"):
+        PatchOp[User](
+            operations=[
+                PatchOperation[User](
+                    op=PatchOperation.Op.add,
+                    path="urn:malformed:incomplete",
+                    value="test",
+                )
+            ]
+        )
 
 
 def test_values_match_integration():
@@ -212,7 +208,7 @@ def test_values_match_integration():
     # Remove with exact matching dict
     patch_op = PatchOp[Group](
         operations=[
-            PatchOperation(
+            PatchOperation[Group](
                 op=PatchOperation.Op.remove,
                 path="members",
                 value={"value": "123", "display": "Test User"},
@@ -229,7 +225,7 @@ def test_values_match_integration():
 
     patch_op = PatchOp[Group](
         operations=[
-            PatchOperation(
+            PatchOperation[Group](
                 op=PatchOperation.Op.remove,
                 path="members",
                 value={"value": "123", "display": "Test User"},
@@ -260,24 +256,6 @@ def test_generic_patchop_with_single_type():
     assert patch.operations[0].value == "test.user"
 
 
-def test_malformed_urn_extract_error():
-    """Test URN extraction error with truly malformed URN."""
-    user = User()
-    patch = PatchOp[User](
-        operations=[
-            PatchOperation(
-                op=PatchOperation.Op.add, path="urn:malformed:incomplete", value="test"
-            )
-        ]
-    )
-
-    # Should raise error for malformed URN
-    with pytest.raises(
-        ValueError, match='The "path" attribute was invalid or malformed'
-    ):
-        patch.patch(user)
-
-
 def test_create_parent_object_return_none():
     """Test _create_parent_object returns None when field type is not a class."""
     T = TypeVar("T")
@@ -290,7 +268,7 @@ def test_create_parent_object_return_none():
     user = TestResourceTypeVar()
     patch = PatchOp[TestResourceTypeVar](
         operations=[
-            PatchOperation(
+            PatchOperation[TestResourceTypeVar](
                 op=PatchOperation.Op.add, path="typevarField.subfield", value="test"
             )
         ]
@@ -308,7 +286,7 @@ def test_complex_object_creation_and_basemodel_matching():
     user = User()
     patch = PatchOp[User](
         operations=[
-            PatchOperation(
+            PatchOperation[User](
                 op=PatchOperation.Op.add, path="name.givenName", value="John"
             )
         ]
@@ -322,7 +300,7 @@ def test_complex_object_creation_and_basemodel_matching():
     group = Group(members=[GroupMember(value="123", display="Test")])
     patch = PatchOp[Group](
         operations=[
-            PatchOperation(
+            PatchOperation[Group](
                 op=PatchOperation.Op.remove,
                 path="members",
                 value=GroupMember(value="123", display="Test"),
@@ -347,7 +325,7 @@ def test_patch_extension_schema_path_without_attribute():
 
     patch = PatchOp[User](
         operations=[
-            PatchOperation(
+            PatchOperation[User](
                 op=PatchOperation.Op.add,
                 path="urn:ietf:params:scim:schemas:extension:enterprise:2.0:User",
                 value={
@@ -370,7 +348,7 @@ def test_patch_main_schema_path_without_attribute():
 
     patch = PatchOp[User](
         operations=[
-            PatchOperation(
+            PatchOperation[User](
                 op=PatchOperation.Op.add,
                 path="urn:ietf:params:scim:schemas:core:2.0:User",
                 value={
@@ -395,7 +373,7 @@ def test_patch_schema_path_with_invalid_value_type():
 
     patch = PatchOp[User](
         operations=[
-            PatchOperation(
+            PatchOperation[User](
                 op=PatchOperation.Op.add,
                 path="urn:ietf:params:scim:schemas:core:2.0:User",
                 value="invalid string value",
@@ -427,7 +405,7 @@ def test_patch_delete_extension_root():
 
     patch = PatchOp[User](
         operations=[
-            PatchOperation(
+            PatchOperation[User](
                 op=PatchOperation.Op.remove,
                 path="urn:ietf:params:scim:schemas:extension:enterprise:2.0:User",
             )

@@ -10,7 +10,9 @@ def test_add_operation_single_attribute():
     user = User()
     patch = PatchOp[User](
         operations=[
-            PatchOperation(op=PatchOperation.Op.add, path="nickName", value="Babs")
+            PatchOperation[User](
+                op=PatchOperation.Op.add, path="nickName", value="Babs"
+            )
         ]
     )
     result = patch.patch(user)
@@ -23,7 +25,9 @@ def test_add_operation_single_attribute_already_present():
     user = User(nick_name="foobar")
     patch = PatchOp[User](
         operations=[
-            PatchOperation(op=PatchOperation.Op.add, path="nickName", value="Babs")
+            PatchOperation[User](
+                op=PatchOperation.Op.add, path="nickName", value="Babs"
+            )
         ]
     )
     result = patch.patch(user)
@@ -36,7 +40,9 @@ def test_add_operation_same_value():
     user = User(nick_name="Test")
     patch = PatchOp[User](
         operations=[
-            PatchOperation(op=PatchOperation.Op.add, path="nickName", value="Test")
+            PatchOperation[User](
+                op=PatchOperation.Op.add, path="nickName", value="Test"
+            )
         ]
     )
     result = patch.patch(user)
@@ -49,7 +55,7 @@ def test_add_operation_sub_attribute():
     user = User()
     patch = PatchOp[User](
         operations=[
-            PatchOperation(
+            PatchOperation[User](
                 op=PatchOperation.Op.add, path="name.familyName", value="Jensen"
             )
         ]
@@ -64,7 +70,7 @@ def test_add_operation_complex_attribute():
     user = User()
     patch = PatchOp[User](
         operations=[
-            PatchOperation(
+            PatchOperation[User](
                 op=PatchOperation.Op.add, path="name", value={"familyName": "Jensen"}
             )
         ]
@@ -81,7 +87,7 @@ def test_add_operation_creates_parent_complex_object():
     # Add to a sub-attribute when parent doesn't exist
     patch = PatchOp[User](
         operations=[
-            PatchOperation(
+            PatchOperation[User](
                 op=PatchOperation.Op.add, path="name.givenName", value="John"
             )
         ]
@@ -98,7 +104,7 @@ def test_add_operation_multiple_attribute():
     group = Group()
     patch = PatchOp[Group](
         operations=[
-            PatchOperation(
+            PatchOperation[Group](
                 op=PatchOperation.Op.add,
                 path="members",
                 value=[
@@ -128,7 +134,7 @@ def test_add_operation_multiple_attribute_already_present():
 
     patch = PatchOp[Group](
         operations=[
-            PatchOperation(
+            PatchOperation[Group](
                 op=PatchOperation.Op.add,
                 path="members",
                 value=[member.model_dump()],
@@ -149,7 +155,7 @@ def test_add_operation_single_value_in_multivalued_field():
     group = Group(members=[])
     patch = PatchOp[Group](
         operations=[
-            PatchOperation(
+            PatchOperation[Group](
                 op=PatchOperation.Op.add,
                 path="members",
                 value={
@@ -182,7 +188,7 @@ def test_add_multiple_values_empty_new_values():
     group = Group(members=[member1, member2])
     patch = PatchOp[Group](
         operations=[
-            PatchOperation(
+            PatchOperation[Group](
                 op=PatchOperation.Op.add,
                 path="members",
                 value=[
@@ -203,7 +209,7 @@ def test_add_single_value_existing():
     group = Group(members=[GroupMember(value="123", display="Test User")])
     patch = PatchOp[Group](
         operations=[
-            PatchOperation(
+            PatchOperation[Group](
                 op=PatchOperation.Op.add,
                 path="members",
                 value={"value": "123", "display": "Test User"},  # Same value
@@ -221,7 +227,7 @@ def test_add_operation_no_path():
     user = User()
     patch = PatchOp[User](
         operations=[
-            PatchOperation(
+            PatchOperation[User](
                 op=PatchOperation.Op.add,
                 value={
                     "emails": [{"value": "babs@jensen.org", "type": "home"}],
@@ -241,7 +247,7 @@ def test_add_operation_no_path_same_attributes():
     user = User(nick_name="Test")
     patch = PatchOp[User](
         operations=[
-            PatchOperation(
+            PatchOperation[User](
                 op=PatchOperation.Op.add,
                 value={"nickName": "Test"},
             )
@@ -257,7 +263,7 @@ def test_add_operation_no_path_with_invalid_attribute():
     user = User(nick_name="Test")
     patch = PatchOp[User](
         operations=[
-            PatchOperation(
+            PatchOperation[User](
                 op=PatchOperation.Op.add,
                 value={"invalidAttributeName": "value", "nickName": "Updated"},
             )
@@ -272,7 +278,9 @@ def test_add_operation_with_non_dict_value_no_path():
     """Test add operation with no path and non-dict value should return False."""
     user = User()
     patch = PatchOp[User](
-        operations=[PatchOperation(op=PatchOperation.Op.add, value="invalid_value")]
+        operations=[
+            PatchOperation[User](op=PatchOperation.Op.add, value="invalid_value")
+        ]
     )
     result = patch.patch(user)
     assert result is False

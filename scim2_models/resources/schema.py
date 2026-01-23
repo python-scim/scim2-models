@@ -288,7 +288,7 @@ class Schema(Resource[Any]):
                 return attribute
         return None
 
-    def __getitem__(self, name: str) -> "Attribute":  # type: ignore[override]
+    def __getitem__(self, name: str) -> "Attribute":
         """Find an attribute by its name."""
         if attribute := self.get_attribute(name):
             return attribute

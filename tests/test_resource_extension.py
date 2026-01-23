@@ -181,27 +181,80 @@ def test_extension_validate_with_context():
 
 
 def test_invalid_getitem():
-    """Test that an non Resource subclass __getitem__ attribute raise a KeyError."""
+    """Test that invalid paths raise KeyError."""
     user = User[EnterpriseUser](user_name="foobar")
     with pytest.raises(KeyError):
         user["invalid"]
 
-    with pytest.raises(KeyError):
+    with pytest.raises(ValueError):
         user[object]
 
 
 def test_invalid_setitem():
-    """Test that an non Resource subclass __getitem__ attribute raise a KeyError."""
+    """Test that invalid paths raise KeyError."""
     user = User[EnterpriseUser](user_name="foobar")
     with pytest.raises(KeyError):
         user["invalid"] = "foobar"
 
-    with pytest.raises(KeyError):
+    with pytest.raises(ValueError):
         user[object] = "foobar"
 
 
+def test_getitem_by_path():
+    """Access attributes using path strings."""
+    user = User[EnterpriseUser](user_name="bjensen", display_name="Barbara Jensen")
+    user[EnterpriseUser] = EnterpriseUser(employee_number="12345")
+
+    assert user["userName"] == "bjensen"
+    assert user["displayName"] == "Barbara Jensen"
+    assert (
+        user[
+            "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:employeeNumber"
+        ]
+        == "12345"
+    )
+
+
+def test_setitem_by_path():
+    """Set attributes using path strings."""
+    user = User[EnterpriseUser](user_name="bjensen")
+
+    user["displayName"] = "Barbara Jensen"
+    assert user.display_name == "Barbara Jensen"
+
+    user["name.familyName"] = "Jensen"
+    assert user.name.family_name == "Jensen"
+
+
+def test_delitem_by_path():
+    """Delete attributes using path strings."""
+    user = User(user_name="bjensen", display_name="Barbara Jensen")
+
+    del user["displayName"]
+    assert user.display_name is None
+
+
+def test_delitem_extension():
+    """Delete extension using type."""
+    user = User[EnterpriseUser](user_name="bjensen")
+    user[EnterpriseUser] = EnterpriseUser(employee_number="12345")
+    assert user[EnterpriseUser] is not None
+
+    del user[EnterpriseUser]
+    assert user[EnterpriseUser] is None
+
+
+def test_invalid_delitem():
+    """Test that invalid paths raise KeyError on delete."""
+    user = User(user_name="bjensen")
+    with pytest.raises(KeyError):
+        del user["invalid"]
+
+
 class SuperHero(Extension):
-    schemas: Annotated[list[str], Required.true] = ["example:extensions:SuperHero"]
+    schemas: Annotated[list[str], Required.true] = [
+        "urn:example:extensions:2.0:SuperHero"
+    ]
 
     superpower: str | None = None
     """The superhero superpower."""
@@ -217,9 +270,9 @@ def test_multiple_extensions_union():
         "schemas": [
             "urn:ietf:params:scim:schemas:core:2.0:User",
             "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User",
-            "example:extensions:SuperHero",
+            "urn:example:extensions:2.0:SuperHero",
         ],
-        "example:extensions:SuperHero": {
+        "urn:example:extensions:2.0:SuperHero": {
             "superpower": "flight",
         },
     }
