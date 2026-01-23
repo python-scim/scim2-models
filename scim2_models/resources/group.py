@@ -6,8 +6,8 @@ from typing import Literal
 from pydantic import Field
 
 from ..annotations import Mutability
-from ..annotations import Required
 from ..attributes import ComplexAttribute
+from ..path import URN
 from ..reference import Reference
 from .resource import Resource
 
@@ -32,9 +32,7 @@ class GroupMember(ComplexAttribute):
 
 
 class Group(Resource[Any]):
-    schemas: Annotated[list[str], Required.true] = [
-        "urn:ietf:params:scim:schemas:core:2.0:Group"
-    ]
+    __schema__ = URN("urn:ietf:params:scim:schemas:core:2.0:Group")
 
     display_name: str | None = None
     """A human-readable name for the Group."""

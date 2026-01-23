@@ -11,8 +11,13 @@ from typing import get_origin
 from pydantic import Field
 from pydantic import SerializationInfo
 from pydantic import SerializerFunctionWrapHandler
+from pydantic import ValidationInfo
+from pydantic import ValidatorFunctionWrapHandler
 from pydantic import WrapSerializer
 from pydantic import field_serializer
+from pydantic import model_validator
+from pydantic_core import PydanticCustomError
+from typing_extensions import Self
 
 from ..annotations import CaseExact
 from ..annotations import Mutability
@@ -178,7 +183,7 @@ class Resource(ScimObject, Generic[AnyExtension]):
         class_attrs = {"__scim_extension_metadata__": valid_extensions}
 
         for extension in valid_extensions:
-            schema = extension.model_fields["schemas"].default[0]
+            schema = extension.__schema__
             class_attrs[extension.__name__] = Field(
                 default=None,  # type: ignore[arg-type]
                 serialization_alias=schema,
@@ -220,7 +225,7 @@ class Resource(ScimObject, Generic[AnyExtension]):
             user["name.familyName"]  # Get nested attribute
         """
         if isinstance(item, type) and issubclass(item, Extension):
-            item = item.model_fields["schemas"].default[0]
+            item = item.__schema__
 
         bound_path = Path.__class_getitem__(type(self))
         path = item if isinstance(item, Path) else bound_path(str(item))
@@ -243,7 +248,7 @@ class Resource(ScimObject, Generic[AnyExtension]):
             user["name.familyName"] = "Doe"
         """
         if isinstance(item, type) and issubclass(item, Extension):
-            item = item.model_fields["schemas"].default[0]
+            item = item.__schema__
 
         bound_path = Path.__class_getitem__(type(self))
         path = item if isinstance(item, Path) else bound_path(str(item))
@@ -264,7 +269,7 @@ class Resource(ScimObject, Generic[AnyExtension]):
             del user["displayName"]  # Remove attribute
         """
         if isinstance(item, type) and issubclass(item, Extension):
-            item = item.model_fields["schemas"].default[0]
+            item = item.__schema__
 
         bound_path = Path.__class_getitem__(type(self))
         path = item if isinstance(item, Path) else bound_path(str(item))
@@ -277,8 +282,8 @@ class Resource(ScimObject, Generic[AnyExtension]):
     def get_extension_models(cls) -> dict[str, type[Extension]]:
         """Return extension a dict associating extension models with their schemas."""
         extension_models = getattr(cls, "__scim_extension_metadata__", [])
-        by_schema = {
-            ext.model_fields["schemas"].default[0]: ext for ext in extension_models
+        by_schema: dict[str, type[Extension]] = {
+            ext.__schema__: ext for ext in extension_models
         }
         return by_schema
 
@@ -300,7 +305,7 @@ class Resource(ScimObject, Generic[AnyExtension]):
     ) -> type["Resource[Any]"] | type["Extension"] | None:
         """Given a resource type list and a schema, find the matching resource type."""
         by_schema: dict[str, type[Resource[Any]] | type[Extension]] = {
-            resource_type.model_fields["schemas"].default[0].lower(): resource_type
+            getattr(resource_type, "__schema__", "").lower(): resource_type
             for resource_type in (resource_types or [])
         }
         if with_extensions:
@@ -337,6 +342,35 @@ class Resource(ScimObject, Generic[AnyExtension]):
             schema for schema in extension_schemas if schema not in self.schemas
         ]
         return schemas
+
+    @model_validator(mode="wrap")
+    @classmethod
+    def _validate_extension_schemas(
+        cls, value: Any, handler: ValidatorFunctionWrapHandler, info: ValidationInfo
+    ) -> Self:
+        """Validate that extension schemas are known."""
+        obj: Self = handler(value)
+
+        scim_ctx = info.context.get("scim") if info.context else None
+        if scim_ctx is None or scim_ctx == Context.DEFAULT:
+            return obj
+
+        base_schema = getattr(cls, "__schema__", None)
+        if not base_schema:
+            return obj
+
+        allowed_extensions = set(cls.get_extension_models().keys())
+        provided_schemas = set(obj.schemas) - {base_schema}
+
+        unknown = provided_schemas - allowed_extensions
+        if unknown:
+            raise PydanticCustomError(
+                "unknown_extension_schema",
+                "Unknown extension schemas: {schemas}",
+                {"schemas": ", ".join(sorted(unknown))},
+            )
+
+        return obj
 
     @classmethod
     def to_schema(cls) -> "Schema":
@@ -458,7 +492,7 @@ def _dedicated_attributes(
 def _model_to_schema(model: type[BaseModel]) -> "Schema":
     from scim2_models.resources.schema import Schema
 
-    schema_urn = model.model_fields["schemas"].default[0]
+    schema_urn = getattr(model, "__schema__", "") or ""
     field_infos = _dedicated_attributes(model, [Resource])
     attributes = [
         _model_attribute_to_scim_attribute(model, attribute_name)
