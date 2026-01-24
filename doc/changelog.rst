@@ -9,6 +9,8 @@ Added
 - Resources define their schema URN with a ``__schema__`` classvar instead of a ``schemas`` default value. :issue:`110`
 - Validation that the base schema is present in ``schemas`` during SCIM context validation.
 - Validation that extension schemas are known during SCIM context validation.
+- Introduce SCIM exceptions hierarchy (:class:`~scim2_models.SCIMException` and subclasses) corresponding to RFC 7644 error types. :issue:`103`
+- :meth:`Error.from_validation_error <scim2_models.Error.from_validation_error>` to convert Pydantic :class:`~pydantic.ValidationError` to SCIM :class:`~scim2_models.Error`.
 
 Changed
 ^^^^^^^
@@ -17,6 +19,7 @@ Changed
 Deprecated
 ^^^^^^^^^^
 - Defining ``schemas`` with a default value is deprecated. Use ``__schema__ = URN("...")`` instead.
+- ``Error.make_*_error()`` methods are deprecated. Use ``<Exception>.to_error()`` instead.
 
 [0.5.2] - 2026-01-22
 --------------------
