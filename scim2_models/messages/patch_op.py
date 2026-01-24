@@ -15,12 +15,12 @@ from ..annotations import Mutability
 from ..annotations import Required
 from ..attributes import ComplexAttribute
 from ..context import Context
+from ..exceptions import InvalidValueException
+from ..exceptions import MutabilityException
+from ..exceptions import NoTargetException
 from ..path import URN
-from ..path import InvalidPathError
 from ..path import Path
-from ..path import PathNotFoundError
 from ..resources.resource import Resource
-from .error import Error
 from .message import Message
 from .message import _get_resource_class
 
@@ -63,11 +63,15 @@ class PatchOperation(ComplexAttribute, Generic[ResourceT]):
             PatchOperation.Op.add,
             PatchOperation.Op.replace_,
         ):
-            raise ValueError(Error.make_mutability_error().detail)
+            raise MutabilityException(
+                attribute=field_name, mutability="readOnly", operation=self.op.value
+            ).as_pydantic_error()
 
         # RFC 7643 Section 7: "Attributes with mutability 'immutable' SHALL NOT be updated"
         if mutability == Mutability.immutable and self.op == PatchOperation.Op.replace_:
-            raise ValueError(Error.make_mutability_error().detail)
+            raise MutabilityException(
+                attribute=field_name, mutability="immutable", operation=self.op.value
+            ).as_pydantic_error()
 
     def _validate_required_attribute(
         self, resource_class: type[Resource[Any]], field_name: str
@@ -85,7 +89,9 @@ class PatchOperation(ComplexAttribute, Generic[ResourceT]):
 
         # RFC 7643 Section 7: "Required attributes SHALL NOT be removed"
         if required == Required.true:
-            raise ValueError(Error.make_invalid_value_error().detail)
+            raise InvalidValueException(
+                detail="required attribute cannot be removed", attribute=field_name
+            ).as_pydantic_error()
 
     @model_validator(mode="after")
     def validate_operation_requirements(self, info: ValidationInfo) -> Self:
@@ -98,11 +104,15 @@ class PatchOperation(ComplexAttribute, Generic[ResourceT]):
         # RFC 7644 Section 3.5.2.2: "If 'path' is unspecified, the operation
         # fails with HTTP status code 400 and a 'scimType' error of 'noTarget'"
         if self.path is None and self.op == PatchOperation.Op.remove:
-            raise ValueError(Error.make_no_target_error().detail)
+            raise NoTargetException(
+                detail="Remove operation requires a path"
+            ).as_pydantic_error()
 
         # RFC 7644 Section 3.5.2.1: "Value is required for add operations"
         if self.op == PatchOperation.Op.add and self.value is None:
-            raise ValueError(Error.make_invalid_value_error().detail)
+            raise InvalidValueException(
+                detail="value is required for add operations"
+            ).as_pydantic_error()
 
         return self
 
@@ -218,7 +228,9 @@ class PatchOp(Message, Generic[ResourceT]):
         # RFC 7644: The body of an HTTP PATCH request MUST contain the attribute "Operations"
         scim_ctx = info.context.get("scim") if info.context else None
         if scim_ctx == Context.RESOURCE_PATCH_REQUEST and self.operations is None:
-            raise ValueError(Error.make_invalid_value_error().detail)
+            raise InvalidValueException(
+                detail="operations attribute is required"
+            ).as_pydantic_error()
 
         resource_class = _get_resource_class(self)
         if resource_class is None or not self.operations:
@@ -248,7 +260,7 @@ class PatchOp(Message, Generic[ResourceT]):
         :param resource: The SCIM resource to patch. This object is modified in-place.
         :type resource: T
         :return: True if the resource was modified by any operation, False otherwise.
-        :raises ValueError: If an operation is invalid (e.g., invalid path, forbidden mutation).
+        :raises SCIMException: If an operation is invalid (e.g., invalid path, forbidden mutation).
         """
         if not self.operations:
             return False
@@ -273,34 +285,24 @@ class PatchOp(Message, Generic[ResourceT]):
         if operation.op == PatchOperation.Op.remove:
             return self._apply_remove(resource, operation)
 
-        raise ValueError(Error.make_invalid_value_error().detail)
+        raise InvalidValueException(detail=f"unsupported operation: {operation.op}")
 
     def _apply_add_replace(
         self, resource: Resource[Any], operation: PatchOperation[ResourceT]
     ) -> bool:
         """Apply an add or replace operation."""
         path = operation.path if operation.path is not None else Path("")
-        try:
-            return path.set(
-                resource,  # type: ignore[arg-type]
-                operation.value,
-                is_add=operation.op == PatchOperation.Op.add,
-            )
-        except InvalidPathError as exc:
-            raise ValueError(Error.make_invalid_path_error().detail) from exc
-        except PathNotFoundError as exc:
-            raise ValueError(Error.make_invalid_path_error().detail) from exc
+        return path.set(
+            resource,  # type: ignore[arg-type]
+            operation.value,
+            is_add=operation.op == PatchOperation.Op.add,
+        )
 
     def _apply_remove(
         self, resource: Resource[Any], operation: PatchOperation[ResourceT]
     ) -> bool:
         """Apply a remove operation."""
         if operation.path is None:
-            raise ValueError(Error.make_no_target_error().detail)
+            raise NoTargetException(detail="Remove operation requires a path")
 
-        try:
-            return operation.path.delete(resource, operation.value)  # type: ignore[arg-type]
-        except InvalidPathError as exc:
-            raise ValueError(Error.make_invalid_path_error().detail) from exc
-        except PathNotFoundError as exc:
-            raise ValueError(Error.make_invalid_path_error().detail) from exc
+        return operation.path.delete(resource, operation.value)  # type: ignore[arg-type]

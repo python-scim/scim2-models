@@ -6,6 +6,7 @@ from pydantic import ValidationError
 
 from scim2_models import Group
 from scim2_models import GroupMember
+from scim2_models import InvalidPathException
 from scim2_models import PatchOp
 from scim2_models import PatchOperation
 from scim2_models import User
@@ -169,7 +170,7 @@ def test_patch_operation_extension_invalid_path_error():
             )
         ]
     )
-    with pytest.raises(ValueError, match="path.*invalid"):
+    with pytest.raises(InvalidPathException):
         patch1.patch(user)
 
     patch2 = PatchOp[User](
@@ -181,7 +182,7 @@ def test_patch_operation_extension_invalid_path_error():
             )
         ]
     )
-    with pytest.raises(ValueError, match="path.*invalid"):
+    with pytest.raises(InvalidPathException):
         patch2.patch(user)
 
 
@@ -381,7 +382,7 @@ def test_patch_schema_path_with_invalid_value_type():
         ]
     )
 
-    with pytest.raises(ValueError, match="path.*invalid.*malformed"):
+    with pytest.raises(InvalidPathException):
         patch.patch(user)
 
 

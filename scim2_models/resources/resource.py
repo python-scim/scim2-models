@@ -28,8 +28,8 @@ from ..attributes import ComplexAttribute
 from ..attributes import is_complex_attribute
 from ..base import BaseModel
 from ..context import Context
+from ..exceptions import InvalidPathException
 from ..path import Path
-from ..path import PathError
 from ..reference import Reference
 from ..scim_object import ScimObject
 from ..utils import UNION_TYPES
@@ -231,7 +231,7 @@ class Resource(ScimObject, Generic[AnyExtension]):
         path = item if isinstance(item, Path) else bound_path(str(item))
         try:
             return path.get(self)
-        except PathError as exc:
+        except InvalidPathException as exc:
             raise KeyError(str(item)) from exc
 
     def __setitem__(self, item: Any, value: Any) -> None:
@@ -254,7 +254,7 @@ class Resource(ScimObject, Generic[AnyExtension]):
         path = item if isinstance(item, Path) else bound_path(str(item))
         try:
             path.set(self, value)
-        except PathError as exc:
+        except InvalidPathException as exc:
             raise KeyError(str(item)) from exc
 
     def __delitem__(self, item: Any) -> None:
@@ -275,7 +275,7 @@ class Resource(ScimObject, Generic[AnyExtension]):
         path = item if isinstance(item, Path) else bound_path(str(item))
         try:
             path.delete(self)
-        except PathError as exc:
+        except InvalidPathException as exc:
             raise KeyError(str(item)) from exc
 
     @classmethod
