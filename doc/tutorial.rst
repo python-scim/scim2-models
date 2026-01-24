@@ -345,7 +345,7 @@ Use :meth:`Error.from_validation_errors <scim2_models.Error.from_validation_erro
     >>> len(errors)
     2
     >>> [e.detail for e in errors]
-    ['Input should be a valid string: userName', 'Input should be a valid string: displayName']
+    ['Input should be a valid string: username', 'Input should be a valid string: displayname']
 
 The exhaustive list of exceptions is available in the :class:`reference <scim2_models.SCIMException>`.
 
