@@ -21,6 +21,10 @@ Deprecated
 - Defining ``schemas`` with a default value is deprecated. Use ``__schema__ = URN("...")`` instead.
 - ``Error.make_*_error()`` methods are deprecated. Use ``<Exception>.to_error()`` instead.
 
+Fixed
+^^^^^
+- Only allow one primary complex attribute value to be true. :issue:`10`
+
 [0.5.2] - 2026-01-22
 --------------------
 
