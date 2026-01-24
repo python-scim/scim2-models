@@ -8,15 +8,15 @@ import pytest
 from scim2_models import Email
 from scim2_models import EnterpriseUser
 from scim2_models import Group
+from scim2_models import InvalidPathException
 from scim2_models import Manager
 from scim2_models import Mutability
 from scim2_models import Name
+from scim2_models import PathNotFoundException
 from scim2_models import Required
 from scim2_models import User
 from scim2_models.base import BaseModel
-from scim2_models.path import InvalidPathError
 from scim2_models.path import Path
-from scim2_models.path import PathNotFoundError
 
 
 def test_validate_scim_path_syntax_valid_paths():
@@ -300,10 +300,10 @@ def test_get_none_when_parent_missing():
 
 
 def test_get_invalid_attribute():
-    """Get raises PathNotFoundError for invalid attribute."""
+    """Get raises PathNotFoundException for invalid attribute."""
     user = User(user_name="john")
     path = Path("invalidAttribute")
-    with pytest.raises(PathNotFoundError):
+    with pytest.raises(PathNotFoundException):
         path.get(user)
 
 
@@ -320,10 +320,10 @@ def test_get_extension_complex_subattribute():
 
 
 def test_get_invalid_first_part_in_complex_path():
-    """Get raises PathNotFoundError when first part of complex path is invalid."""
+    """Get raises PathNotFoundException when first part of complex path is invalid."""
     user = User(user_name="john", name=Name(family_name="Doe"))
     path = Path("invalidAttr.subField")
-    with pytest.raises(PathNotFoundError):
+    with pytest.raises(PathNotFoundException):
         path.get(user)
 
 
@@ -416,10 +416,10 @@ def test_set_multivalued_wraps_single_value():
 
 
 def test_set_invalid_attribute():
-    """Set raises PathNotFoundError for invalid attribute."""
+    """Set raises PathNotFoundException for invalid attribute."""
     user = User(user_name="john")
     path = Path("invalidAttribute")
-    with pytest.raises(PathNotFoundError):
+    with pytest.raises(PathNotFoundException):
         path.set(user, "value")
 
 
@@ -435,10 +435,10 @@ def test_set_extension_complex_subattribute():
 
 
 def test_set_invalid_first_part_in_complex_path():
-    """Set raises PathNotFoundError when first part of complex path is invalid."""
+    """Set raises PathNotFoundException when first part of complex path is invalid."""
     user = User(user_name="john")
     path = Path("invalidAttr.subField")
-    with pytest.raises(PathNotFoundError):
+    with pytest.raises(PathNotFoundException):
         path.set(user, "value")
 
 
@@ -479,10 +479,10 @@ def test_set_cannot_navigate_into_list():
 
 
 def test_set_invalid_last_part_in_complex_path():
-    """Set raises PathNotFoundError when last part of complex path is invalid."""
+    """Set raises PathNotFoundException when last part of complex path is invalid."""
     user = User(user_name="john", name=Name(family_name="Doe"))
     path = Path("name.invalidField")
-    with pytest.raises(PathNotFoundError):
+    with pytest.raises(PathNotFoundException):
         path.set(user, "value")
 
 
@@ -738,10 +738,10 @@ def test_delete_complex_subattribute():
 
 
 def test_delete_invalid_path():
-    """Delete raises PathNotFoundError for invalid path."""
+    """Delete raises PathNotFoundException for invalid path."""
     user = User(user_name="john")
     path = Path("invalidAttribute")
-    with pytest.raises(PathNotFoundError):
+    with pytest.raises(PathNotFoundException):
         path.delete(user)
 
 
@@ -1005,10 +1005,10 @@ def test_get_extension_attribute_when_extension_is_none():
 
 
 def test_get_unknown_extension_raises():
-    """Get raises InvalidPathError for unknown extension URN."""
+    """Get raises InvalidPathException for unknown extension URN."""
     user = User[EnterpriseUser](user_name="john")
     path = Path("urn:ietf:params:scim:schemas:extension:unknown:2.0:User:field")
-    with pytest.raises(InvalidPathError):
+    with pytest.raises(InvalidPathException):
         path.get(user)
 
 
@@ -1039,10 +1039,10 @@ def test_get_mismatched_urn_on_extension_instance():
 
 
 def test_set_explicit_schema_path_with_non_dict_raises():
-    """Set with explicit schema path and non-dict value raises InvalidPathError."""
+    """Set with explicit schema path and non-dict value raises InvalidPathException."""
     user = User(user_name="john")
     path = Path("urn:ietf:params:scim:schemas:core:2.0:User")
-    with pytest.raises(InvalidPathError):
+    with pytest.raises(InvalidPathException):
         path.set(user, "not a dict")
 
 
@@ -1171,10 +1171,10 @@ def test_delete_on_extension_with_mismatched_urn():
 
 
 def test_delete_schema_only_path_raises():
-    """Delete with schema-only path raises InvalidPathError."""
+    """Delete with schema-only path raises InvalidPathException."""
     user = User(user_name="john")
     path = Path("urn:ietf:params:scim:schemas:core:2.0:User")
-    with pytest.raises(InvalidPathError):
+    with pytest.raises(InvalidPathException):
         path.delete(user)
 
 
