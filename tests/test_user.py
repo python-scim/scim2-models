@@ -1,5 +1,8 @@
 import datetime
 
+import pytest
+from pydantic import ValidationError
+
 from scim2_models import Address
 from scim2_models import Email
 from scim2_models import Im
@@ -7,6 +10,7 @@ from scim2_models import PhoneNumber
 from scim2_models import Photo
 from scim2_models import Reference
 from scim2_models import User
+from scim2_models.context import Context
 
 
 def test_minimal_user(load_sample):
@@ -124,3 +128,67 @@ def test_full_user(load_sample):
         obj.meta.location
         == "https://example.com/v2/Users/2819c223-7f76-453a-919d-413861904646"
     )
+
+
+def test_multiple_emails_without_primary_is_valid():
+    """Test that multiple emails without any primary attribute is valid."""
+    user_data = {
+        "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+        "userName": "testuser",
+        "emails": [
+            {"value": "test1@example.com", "type": "work"},
+            {"value": "test2@example.com", "type": "home"},
+        ],
+    }
+    user = User.model_validate(user_data, scim_ctx=Context.RESOURCE_CREATION_REQUEST)
+    assert user.user_name == "testuser"
+
+
+def test_single_primary_email_is_valid():
+    """Test that exactly one primary email is valid per RFC 7643."""
+    user_data = {
+        "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+        "userName": "testuser",
+        "emails": [
+            {"value": "primary@example.com", "type": "work", "primary": True},
+            {"value": "secondary@example.com", "type": "home", "primary": False},
+        ],
+    }
+    user = User.model_validate(user_data, scim_ctx=Context.RESOURCE_CREATION_REQUEST)
+    assert user.emails[0].primary is True
+    assert user.emails[1].primary is False
+
+
+def test_multiple_primary_emails_rejected():
+    """Test that multiple primary emails are rejected per RFC 7643."""
+    user_data = {
+        "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+        "userName": "testuser",
+        "emails": [
+            {"value": "primary1@example.com", "primary": True},
+            {"value": "primary2@example.com", "primary": True},
+        ],
+    }
+
+    with pytest.raises(ValidationError) as exc_info:
+        User.model_validate(user_data, scim_ctx=Context.RESOURCE_CREATION_REQUEST)
+
+    error = exc_info.value.errors()[0]
+    assert error["type"] == "primary_uniqueness_error"
+    assert "emails" in error["ctx"]["field_name"]
+    assert error["ctx"]["count"] == 2
+
+
+@pytest.mark.parametrize("scim_ctx", [None, Context.DEFAULT])
+def test_multiple_primary_validation_skipped_without_strict_context(scim_ctx):
+    """Test that primary validation is skipped when no strict SCIM context is provided."""
+    user_data = {
+        "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+        "userName": "testuser",
+        "emails": [
+            {"value": "primary1@example.com", "primary": True},
+            {"value": "primary2@example.com", "primary": True},
+        ],
+    }
+    user = User.model_validate(user_data, scim_ctx=scim_ctx)
+    assert len(user.emails) == 2
