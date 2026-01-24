@@ -3,6 +3,7 @@ from pydantic import ValidationError
 
 from scim2_models import Group
 from scim2_models import GroupMember
+from scim2_models import NoTargetException
 from scim2_models import PatchOp
 from scim2_models import PatchOperation
 from scim2_models import User
@@ -228,7 +229,7 @@ def test_complex_object_creation_and_basemodel_matching():
 
 def test_remove_operation_bypass_validation_no_path():
     """Test remove operation with no path raises noTarget error per RFC7644 §3.5.2.2."""
-    with pytest.raises(ValidationError, match="no match"):
+    with pytest.raises(ValidationError, match="Remove operation requires a path"):
         PatchOp.model_validate(
             {
                 "operations": [
@@ -251,5 +252,5 @@ def test_defensive_path_check_in_remove():
         op=PatchOperation.Op.remove, path=None
     )
 
-    with pytest.raises(ValueError, match="no match"):
+    with pytest.raises(NoTargetException, match="Remove operation requires a path"):
         patch.patch(user)

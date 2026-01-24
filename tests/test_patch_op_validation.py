@@ -4,6 +4,8 @@ import pytest
 from pydantic import ValidationError
 
 from scim2_models import Group
+from scim2_models import InvalidPathException
+from scim2_models import InvalidValueException
 from scim2_models import PatchOp
 from scim2_models import PatchOperation
 from scim2_models import User
@@ -22,10 +24,7 @@ def test_patch_op_add_invalid_extension_path():
             )
         ]
     )
-    with pytest.raises(
-        ValueError,
-        match=r'The "path" attribute was invalid or malformed \(see Figure 7 of RFC7644\)\.',
-    ):
+    with pytest.raises(InvalidPathException):
         patch_op.patch(user)
 
 
@@ -40,10 +39,7 @@ def test_patch_op_replace_invalid_extension_path():
             )
         ]
     )
-    with pytest.raises(
-        ValueError,
-        match=r'The "path" attribute was invalid or malformed \(see Figure 7 of RFC7644\)\.',
-    ):
+    with pytest.raises(InvalidPathException):
         patch_op.patch(user)
 
 
@@ -57,10 +53,7 @@ def test_patch_op_remove_invalid_extension_path():
             )
         ]
     )
-    with pytest.raises(
-        ValueError,
-        match=r'The "path" attribute was invalid or malformed \(see Figure 7 of RFC7644\)\.',
-    ):
+    with pytest.raises(InvalidPathException):
         patch_op.patch(user)
 
 
@@ -75,10 +68,7 @@ def test_patch_op_remove_invalid_extension_path_with_value():
             )
         ]
     )
-    with pytest.raises(
-        ValueError,
-        match=r'The "path" attribute was invalid or malformed \(see Figure 7 of RFC7644\)\.',
-    ):
+    with pytest.raises(InvalidPathException):
         patch_op.patch(user)
 
 
@@ -176,7 +166,7 @@ def test_path_required_for_remove_operations():
     )
 
     # RFC 7644 §3.5.2.2: remove without path returns noTarget error
-    with pytest.raises(ValidationError, match="no match"):
+    with pytest.raises(ValidationError, match="Remove operation requires a path"):
         PatchOp[User].model_validate(
             {
                 "operations": [
@@ -234,13 +224,13 @@ def test_patch_operation_validation_contexts():
         )
 
     # RFC 7644 §3.5.2.2: remove without path returns noTarget error
-    with pytest.raises(ValidationError, match="no match"):
+    with pytest.raises(ValidationError, match="Remove operation requires a path"):
         PatchOperation.model_validate(
             {"op": "remove"},
             context={"scim": Context.RESOURCE_PATCH_REQUEST},
         )
 
-    with pytest.raises(ValidationError, match="required value was missing"):
+    with pytest.raises(ValidationError, match="value is required for add operations"):
         PatchOperation.model_validate(
             {"op": "add", "path": "test"},
             context={"scim": Context.RESOURCE_PATCH_REQUEST},
@@ -377,7 +367,7 @@ def test_patch_operation_with_schema_only_urn_path():
     )
 
     # This should trigger the path where extract_field_name returns None
-    with pytest.raises(ValueError, match="path"):
+    with pytest.raises(InvalidPathException):
         patch.patch(user)
 
 
@@ -481,14 +471,14 @@ def test_create_parent_object_return_none():
     )
 
     # Non-existent field returns invalidPath error
-    with pytest.raises(ValueError, match="path.*invalid"):
+    with pytest.raises(InvalidPathException):
         patch.patch(user)
 
 
 def test_validate_required_field_removal():
     """Test that removing required fields raises validation error."""
     # Test removing schemas (required field) should raise validation error
-    with pytest.raises(ValidationError, match="required value was missing"):
+    with pytest.raises(ValidationError, match="required attribute cannot be removed"):
         PatchOp[User].model_validate(
             {"operations": [{"op": "remove", "path": "schemas"}]},
             context={"scim": Context.RESOURCE_PATCH_REQUEST},
@@ -509,7 +499,7 @@ def test_patch_error_handling_invalid_operation():
     # Force invalid operation type to test error handling
     object.__setattr__(patch.operations[0], "op", "invalid_operation")
 
-    with pytest.raises(ValueError, match="invalid value|required value was missing"):
+    with pytest.raises(InvalidValueException):
         patch.patch(user)
 
 
@@ -527,7 +517,7 @@ def test_remove_value_at_path_invalid_field():
     )
 
     # Non-existent field returns invalidPath error
-    with pytest.raises(ValueError, match="path.*invalid"):
+    with pytest.raises(InvalidPathException):
         patch.patch(user)
 
 
@@ -547,14 +537,14 @@ def test_remove_specific_value_invalid_field():
     )
 
     # Non-existent field returns invalidPath error
-    with pytest.raises(ValueError, match="path.*invalid"):
+    with pytest.raises(InvalidPathException):
         patch.patch(user)
 
 
 def test_patch_op_operations_attribute_required_in_patch_context():
     """Test that Operations attribute is required in PATCH request context per RFC 7644."""
     # Operations attribute must be present in PATCH request context
-    with pytest.raises(ValidationError, match="required value was missing"):
+    with pytest.raises(ValidationError, match="operations attribute is required"):
         PatchOp[User].model_validate(
             {"schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"]},
             context={"scim": Context.RESOURCE_PATCH_REQUEST},

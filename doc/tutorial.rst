@@ -275,26 +275,79 @@ Extensions attributes are accessed with brackets, e.g. ``user[EnterpriseUser].em
     ... }
 
 
-Pre-defined Error objects
-=========================
+Errors and Exceptions
+=====================
 
-:rfc:`RFC7643 §3.12 <7643#section-3.12>` pre-defined errors are usable.
+scim2-models provides a hierarchy of exceptions corresponding to :rfc:`RFC7644 §3.12 <7644#section-3.12>` error types.
+Each exception can be converted to an :class:`~scim2_models.Error` response object or used in Pydantic validators.
+
+Raising exceptions
+~~~~~~~~~~~~~~~~~~
+
+Exceptions are named after their ``scimType`` value:
 
 .. code-block:: python
 
-    >>> from scim2_models import Error
+    >>> from scim2_models import InvalidPathException, PathNotFoundException
 
-    >>> error = Error.make_invalid_path_error()
-    >>> dump = error.model_dump()
-    >>> assert dump == {
-    ...     'detail': 'The "path" attribute was invalid or malformed (see Figure 7 of RFC7644).',
-    ...     'schemas': ['urn:ietf:params:scim:api:messages:2.0:Error'],
-    ...     'scimType': 'invalidPath',
-    ...     'status': '400'
-    ... }
+    >>> raise InvalidPathException(path="invalid..path")
+    Traceback (most recent call last):
+        ...
+    scim2_models.exceptions.InvalidPathException: The path attribute was invalid or malformed
 
-The exhaustive list is available in the :class:`reference <scim2_models.Error>`.
+    >>> raise PathNotFoundException(path="unknownAttr")
+    Traceback (most recent call last):
+        ...
+    scim2_models.exceptions.PathNotFoundException: The specified path references a non-existent field
 
+Converting to Error response
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Use :meth:`~scim2_models.SCIMException.to_error` to convert an exception to an :class:`~scim2_models.Error` response:
+
+.. code-block:: python
+
+    >>> from scim2_models import InvalidPathException
+
+    >>> exc = InvalidPathException(path="invalid..path")
+    >>> error = exc.to_error()
+    >>> error.status
+    400
+    >>> error.scim_type
+    'invalidPath'
+
+Converting from ValidationError
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Use :meth:`Error.from_validation_error <scim2_models.Error.from_validation_error>` to convert a single Pydantic error to an :class:`~scim2_models.Error`:
+
+.. code-block:: python
+
+    >>> from pydantic import ValidationError
+    >>> from scim2_models import Error, User
+    >>> from scim2_models.base import Context
+
+    >>> try:
+    ...     User.model_validate({"userName": None}, context={"scim": Context.RESOURCE_CREATION_REQUEST})
+    ... except ValidationError as exc:
+    ...     error = Error.from_validation_error(exc.errors()[0])
+    >>> error.scim_type
+    'invalidValue'
+
+Use :meth:`Error.from_validation_errors <scim2_models.Error.from_validation_errors>` to convert all errors at once:
+
+.. code-block:: python
+
+    >>> try:
+    ...     User.model_validate({"userName": 123, "displayName": 456})
+    ... except ValidationError as exc:
+    ...     errors = Error.from_validation_errors(exc)
+    >>> len(errors)
+    2
+    >>> [e.detail for e in errors]
+    ['Input should be a valid string: userName', 'Input should be a valid string: displayName']
+
+The exhaustive list of exceptions is available in the :class:`reference <scim2_models.SCIMException>`.
 
 Custom models
 =============

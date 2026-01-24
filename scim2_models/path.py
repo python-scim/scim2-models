@@ -20,6 +20,9 @@ if TYPE_CHECKING:
     from .annotations import Required
     from .resources.resource import Resource
 
+from .exceptions import InvalidPathException
+from .exceptions import PathNotFoundException
+
 ResourceT = TypeVar("ResourceT", bound="Resource[Any]")
 
 _VALID_PATH_PATTERN = re.compile(r'^[a-zA-Z][a-zA-Z0-9._:\-\[\]"=\s]*$')
@@ -42,22 +45,10 @@ def _value_in_list(current_list: list[Any], new_value: Any) -> bool:
 
 
 def _require_field(model: type[BaseModel], name: str) -> str:
-    """Find field name or raise PathNotFoundError."""
+    """Find field name or raise PathNotFoundException."""
     if (field_name := _find_field_name(model, name)) is None:
-        raise PathNotFoundError(f"Field not found: {name}")
+        raise PathNotFoundException(path=name, field=name)
     return field_name
-
-
-class PathError(ValueError):
-    """Base exception for path operation failures."""
-
-
-class PathNotFoundError(PathError):
-    """Exception raised when a path references a non-existent field."""
-
-
-class InvalidPathError(PathError):
-    """Exception raised when a path is malformed or invalid."""
 
 
 class _Resolution(NamedTuple):
@@ -405,7 +396,7 @@ class Path(UserString, Generic[ResourceT]):
         :param resource: The resource to resolve against.
         :param create: If True, create extension instance if it doesn't exist.
         :returns: Resolution with target object and path, or None if target doesn't exist.
-        :raises InvalidPathError: If the path references an unknown extension.
+        :raises InvalidPathException: If the path references an unknown extension.
         """
         from .resources.resource import Extension
         from .resources.resource import Resource
@@ -440,7 +431,7 @@ class Path(UserString, Generic[ResourceT]):
                         return None
                     return _Resolution(ext_obj, sub_path)
 
-            raise InvalidPathError(f"Extension not found for path: {self}")
+            raise InvalidPathException(path=str(self))
 
         return None
 
@@ -486,12 +477,12 @@ class Path(UserString, Generic[ResourceT]):
         :param resource: The resource to get the value from.
         :param strict: If True, raise exceptions for invalid paths.
         :returns: The value at this path, or None if the value is absent.
-        :raises PathNotFoundError: If strict and the path references a non-existent field.
-        :raises InvalidPathError: If strict and the path references an unknown extension.
+        :raises PathNotFoundException: If strict and the path references a non-existent field.
+        :raises InvalidPathException: If strict and the path references an unknown extension.
         """
         try:
             return self._get(resource)
-        except PathError:
+        except InvalidPathException:
             if strict:
                 raise
             return None
@@ -508,7 +499,7 @@ class Path(UserString, Generic[ResourceT]):
         if not path_str:
             if not isinstance(value, dict):
                 if is_explicit_schema_path:
-                    raise InvalidPathError(f"Schema path requires dict value: {self}")
+                    raise InvalidPathException(path=str(self))
                 return False
             filtered_value = {
                 k: v
@@ -563,11 +554,11 @@ class Path(UserString, Generic[ResourceT]):
             list instead of replacing. Duplicates are not added.
         :param strict: If True, raise exceptions for invalid paths.
         :returns: True if the value was set/added, False if unchanged.
-        :raises PathError: If strict and the path does not exist or is invalid.
+        :raises InvalidPathException: If strict and the path does not exist or is invalid.
         """
         try:
             return self._set(resource, value, is_add=is_add)
-        except PathError:
+        except InvalidPathException:
             if strict:
                 raise
             return False
@@ -609,7 +600,7 @@ class Path(UserString, Generic[ResourceT]):
             return False
 
         if not resolution.path_str:
-            raise InvalidPathError(f"Cannot delete schema-only path: {self}")
+            raise InvalidPathException(path=str(self))
 
         if (
             result := self._walk_to_target(resolution.target, resolution.path_str)
@@ -647,11 +638,11 @@ class Path(UserString, Generic[ResourceT]):
         :param value: Optional specific value to remove from a list.
         :param strict: If True, raise exceptions for invalid paths.
         :returns: True if a value was deleted, False if unchanged.
-        :raises PathError: If strict and the path does not exist or is invalid.
+        :raises InvalidPathException: If strict and the path does not exist or is invalid.
         """
         try:
             return self._delete(resource, value)
-        except PathError:
+        except InvalidPathException:
             if strict:
                 raise
             return False
