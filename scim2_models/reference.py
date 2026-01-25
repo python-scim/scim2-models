@@ -8,6 +8,7 @@ from typing import get_origin
 
 from pydantic import GetCoreSchemaHandler
 from pydantic_core import Url
+from pydantic_core import ValidationError
 from pydantic_core import core_schema
 
 from .utils import UNION_TYPES
@@ -166,5 +167,5 @@ def _validate_uri(value: str) -> None:
         return
     try:
         Url(value)
-    except Exception as e:
+    except ValidationError as e:
         raise ValueError(f"Invalid URI: {value}") from e
