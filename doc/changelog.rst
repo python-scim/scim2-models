@@ -1,6 +1,13 @@
 Changelog
 =========
 
+[0.6.1] - 2026-01-25
+--------------------
+
+Added
+^^^^^
+- Allow ``Path`` objects in Pydantic validation methods.
+
 [0.6.0] - 2026-01-25
 --------------------
 

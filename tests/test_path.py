@@ -1417,3 +1417,11 @@ def test_iter_paths_filter_skips_non_matching_subattributes():
 
     assert "members" in path_strings
     assert len(paths_with_filter) < len(paths_no_filter)
+
+
+def test_path_init_with_path_object():
+    """Path can be initialized with another Path object."""
+    original = Path("userName")
+    copy = Path(original)
+    assert str(copy) == "userName"
+    assert copy.data == original.data

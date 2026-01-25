@@ -129,7 +129,9 @@ class Path(UserString, Generic[ResourceT]):
             serialization=core_schema.plain_serializer_function_ser_schema(str),
         )
 
-    def __init__(self, path: str):
+    def __init__(self, path: "str | Path[Any]"):
+        if isinstance(path, Path):
+            path = str(path)
         self.check_syntax(path)
         self.data = path
 
