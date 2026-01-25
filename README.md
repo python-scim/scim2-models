@@ -12,6 +12,17 @@ Provisioning is the action of managing a set of resources across different servi
 SCIM is often used between Identity Providers and applications in completion of standards like OAuth2 and OpenID Connect.
 It allows users and groups creations, modifications and deletions to be synchronized between applications.
 
+## Features
+
+- **SCIM Resources**: Native Python classes for `User`, `Group`, `EnterpriseUser`, `ServiceProviderConfig`, `ResourceType` and `Schema`
+- **Pydantic Integration**: Full Pydantic v2 support with validation, serialization and IDE autocompletion
+- **RFC Compliance**: Implements [RFC7643](https://datatracker.ietf.org/doc/html/rfc7643) (schema) and [RFC7644](https://datatracker.ietf.org/doc/html/rfc7644) (protocol) specifications
+- **Attribute Metadata**: Support for `Mutability`, `Returned`, `Uniqueness` and `Required` field annotations
+- **Context-Aware Validation**: Automatic field inclusion/exclusion based on HTTP context (creation, query, replacement, etc.)
+- **Schema Extensions**: Dynamic schema extensions and custom resource types, dynamic conversion between schemas and Python models.
+- **SCIM Messages**: `ListResponse`, `SearchRequest`, `PatchOp`, and `Error` messages
+- **Error Handling**: SCIM-compliant exceptions with automatic conversion to `Error` responses
+
 ## Installation
 
 ```shell
