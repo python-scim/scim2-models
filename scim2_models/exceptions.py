@@ -52,6 +52,21 @@ class SCIMException(Exception):
             {"scim_type": self.scim_type, "status": self.status, **self.context},
         )
 
+    @classmethod
+    def from_error(cls, error: "Error") -> "SCIMException":
+        """Create an exception from a SCIM Error object.
+
+        :param error: The SCIM Error object to convert.
+        :return: The appropriate SCIMException subclass instance.
+        """
+        from .messages.error import Error
+
+        if not isinstance(error, Error):
+            raise TypeError(f"Expected Error, got {type(error).__name__}")
+
+        exception_class = _SCIM_TYPE_TO_EXCEPTION.get(error.scim_type or "", cls)
+        return exception_class(detail=error.detail)
+
 
 class InvalidFilterException(SCIMException):
     """The specified filter syntax was invalid.
@@ -263,3 +278,17 @@ class SensitiveException(SCIMException):
         "The specified request cannot be completed, due to the passing of sensitive "
         "information in a request URI"
     )
+
+
+_SCIM_TYPE_TO_EXCEPTION: dict[str, type[SCIMException]] = {
+    "invalidFilter": InvalidFilterException,
+    "tooMany": TooManyException,
+    "uniqueness": UniquenessException,
+    "mutability": MutabilityException,
+    "invalidSyntax": InvalidSyntaxException,
+    "invalidPath": InvalidPathException,
+    "noTarget": NoTargetException,
+    "invalidValue": InvalidValueException,
+    "invalidVers": InvalidVersionException,
+    "sensitive": SensitiveException,
+}
