@@ -47,7 +47,7 @@ class SearchRequest(Message):
     @field_validator("start_index")
     @classmethod
     def start_index_floor(cls, value: int | None) -> int | None:
-        """According to :rfc:`RFC7644 §3.4.2 <7644#section-3.4.2.4>, start_index values less than 1 are interpreted as 1.
+        """According to :rfc:`RFC7644 §3.4.2 <7644#section-3.4.2.4>`, start_index values less than 1 are interpreted as 1.
 
         A value less than 1 SHALL be interpreted as 1.
         """
@@ -60,7 +60,7 @@ class SearchRequest(Message):
     @field_validator("count")
     @classmethod
     def count_floor(cls, value: int | None) -> int | None:
-        """According to :rfc:`RFC7644 §3.4.2 <7644#section-3.4.2.4>, count values less than 0 are interpreted as 0.
+        """According to :rfc:`RFC7644 §3.4.2 <7644#section-3.4.2.4>`, count values less than 0 are interpreted as 0.
 
         A negative value SHALL be interpreted as 0.
         """
