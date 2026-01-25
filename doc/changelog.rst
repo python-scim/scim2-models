@@ -1,13 +1,20 @@
 Changelog
 =========
 
+[0.6.2] - 2026-01-25
+--------------------
+
+Added
+^^^^^
+
+- :meth:`SCIMException.from_error <scim2_models.SCIMException.from_error>` to create an exception from a SCIM :class:`~scim2_models.Error` object.
+
 [0.6.1] - 2026-01-25
 --------------------
 
 Added
 ^^^^^
 - Allow ``Path`` objects in Pydantic validation methods.
-- :meth:`SCIMException.from_error <scim2_models.SCIMException.from_error>` to create an exception from a SCIM :class:`~scim2_models.Error` object.
 
 [0.6.0] - 2026-01-25
 --------------------
