@@ -319,3 +319,113 @@ def test_path_not_found_is_invalid_path():
     exc = PathNotFoundException()
     assert isinstance(exc, InvalidPathException)
     assert exc.scim_type == "invalidPath"
+
+
+def test_from_error_invalid_filter():
+    """from_error() creates InvalidFilterException from Error with scim_type invalidFilter."""
+    error = Error(status=400, scim_type="invalidFilter", detail="Bad filter")
+    exc = SCIMException.from_error(error)
+    assert isinstance(exc, InvalidFilterException)
+    assert exc.detail == "Bad filter"
+
+
+def test_from_error_too_many():
+    """from_error() creates TooManyException from Error with scim_type tooMany."""
+    error = Error(status=400, scim_type="tooMany", detail="Too many results")
+    exc = SCIMException.from_error(error)
+    assert isinstance(exc, TooManyException)
+    assert exc.detail == "Too many results"
+
+
+def test_from_error_uniqueness():
+    """from_error() creates UniquenessException from Error with scim_type uniqueness."""
+    error = Error(status=409, scim_type="uniqueness", detail="Duplicate userName")
+    exc = SCIMException.from_error(error)
+    assert isinstance(exc, UniquenessException)
+    assert exc.detail == "Duplicate userName"
+
+
+def test_from_error_mutability():
+    """from_error() creates MutabilityException from Error with scim_type mutability."""
+    error = Error(status=400, scim_type="mutability", detail="Cannot modify id")
+    exc = SCIMException.from_error(error)
+    assert isinstance(exc, MutabilityException)
+    assert exc.detail == "Cannot modify id"
+
+
+def test_from_error_invalid_syntax():
+    """from_error() creates InvalidSyntaxException from Error with scim_type invalidSyntax."""
+    error = Error(status=400, scim_type="invalidSyntax", detail="Malformed JSON")
+    exc = SCIMException.from_error(error)
+    assert isinstance(exc, InvalidSyntaxException)
+    assert exc.detail == "Malformed JSON"
+
+
+def test_from_error_invalid_path():
+    """from_error() creates InvalidPathException from Error with scim_type invalidPath."""
+    error = Error(status=400, scim_type="invalidPath", detail="Bad path")
+    exc = SCIMException.from_error(error)
+    assert isinstance(exc, InvalidPathException)
+    assert exc.detail == "Bad path"
+
+
+def test_from_error_no_target():
+    """from_error() creates NoTargetException from Error with scim_type noTarget."""
+    error = Error(status=400, scim_type="noTarget", detail="No match")
+    exc = SCIMException.from_error(error)
+    assert isinstance(exc, NoTargetException)
+    assert exc.detail == "No match"
+
+
+def test_from_error_invalid_value():
+    """from_error() creates InvalidValueException from Error with scim_type invalidValue."""
+    error = Error(status=400, scim_type="invalidValue", detail="Missing required")
+    exc = SCIMException.from_error(error)
+    assert isinstance(exc, InvalidValueException)
+    assert exc.detail == "Missing required"
+
+
+def test_from_error_invalid_version():
+    """from_error() creates InvalidVersionException from Error with scim_type invalidVers."""
+    error = Error(status=400, scim_type="invalidVers", detail="Unsupported version")
+    exc = SCIMException.from_error(error)
+    assert isinstance(exc, InvalidVersionException)
+    assert exc.detail == "Unsupported version"
+
+
+def test_from_error_sensitive():
+    """from_error() creates SensitiveException from Error with scim_type sensitive."""
+    error = Error(status=400, scim_type="sensitive", detail="Sensitive data in URI")
+    exc = SCIMException.from_error(error)
+    assert isinstance(exc, SensitiveException)
+    assert exc.detail == "Sensitive data in URI"
+
+
+def test_from_error_unknown_scim_type():
+    """from_error() creates base SCIMException for unknown scim_type."""
+    error = Error(status=400, scim_type="unknownType", detail="Unknown error")
+    exc = SCIMException.from_error(error)
+    assert type(exc) is SCIMException
+    assert exc.detail == "Unknown error"
+
+
+def test_from_error_no_scim_type():
+    """from_error() creates base SCIMException when scim_type is None."""
+    error = Error(status=500, detail="Internal error")
+    exc = SCIMException.from_error(error)
+    assert type(exc) is SCIMException
+    assert exc.detail == "Internal error"
+
+
+def test_from_error_no_detail():
+    """from_error() uses default detail when Error has no detail."""
+    error = Error(status=400, scim_type="invalidFilter")
+    exc = SCIMException.from_error(error)
+    assert isinstance(exc, InvalidFilterException)
+    assert exc.detail == InvalidFilterException._default_detail
+
+
+def test_from_error_type_error():
+    """from_error() raises TypeError for non-Error input."""
+    with pytest.raises(TypeError, match="Expected Error"):
+        SCIMException.from_error("not an error")
