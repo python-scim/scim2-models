@@ -386,8 +386,8 @@ class Resource(ScimObject, Generic[AnyExtension]):
     def _prepare_model_dump(
         self,
         scim_ctx: Context | None = Context.DEFAULT,
-        attributes: list[str] | None = None,
-        excluded_attributes: list[str] | None = None,
+        attributes: list[str | Path[Any]] | None = None,
+        excluded_attributes: list[str | Path[Any]] | None = None,
         **kwargs: Any,
     ) -> dict[str, Any]:
         kwargs = super()._prepare_model_dump(scim_ctx, **kwargs)
@@ -410,8 +410,8 @@ class Resource(ScimObject, Generic[AnyExtension]):
         self,
         *args: Any,
         scim_ctx: Context | None = Context.DEFAULT,
-        attributes: list[str] | None = None,
-        excluded_attributes: list[str] | None = None,
+        attributes: list[str | Path[Any]] | None = None,
+        excluded_attributes: list[str | Path[Any]] | None = None,
         **kwargs: Any,
     ) -> dict[str, Any]:
         """Create a model representation that can be included in SCIM messages by using Pydantic :code:`BaseModel.model_dump`.
@@ -436,8 +436,8 @@ class Resource(ScimObject, Generic[AnyExtension]):
         self,
         *args: Any,
         scim_ctx: Context | None = Context.DEFAULT,
-        attributes: list[str] | None = None,
-        excluded_attributes: list[str] | None = None,
+        attributes: list[str | Path[Any]] | None = None,
+        excluded_attributes: list[str | Path[Any]] | None = None,
         **kwargs: Any,
     ) -> str:
         """Create a JSON model representation that can be included in SCIM messages by using Pydantic :code:`BaseModel.model_dump_json`.
