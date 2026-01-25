@@ -1,9 +1,9 @@
 from typing import TypeVar
 
 import pytest
-from pydantic import Field
 from pydantic import ValidationError
 
+from scim2_models import URN
 from scim2_models import Group
 from scim2_models import GroupMember
 from scim2_models import InvalidPathException
@@ -262,8 +262,8 @@ def test_create_parent_object_return_none():
     T = TypeVar("T")
 
     class TestResourceTypeVar(Resource):
-        schemas: list[str] = Field(default=["urn:test:TestResource"])
-        # TypeVar is not a class, so _create_parent_object should return None
+        __schema__ = URN("urn:test:TestResource")
+
         typevar_field: T = None
 
     user = TestResourceTypeVar()

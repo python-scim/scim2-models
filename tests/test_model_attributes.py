@@ -1,7 +1,7 @@
 import uuid
 from typing import Annotated
 
-from scim2_models.annotations import Required
+from scim2_models import URN
 from scim2_models.annotations import Returned
 from scim2_models.attributes import ComplexAttribute
 from scim2_models.base import BaseModel
@@ -23,7 +23,8 @@ class Sub(ComplexAttribute):
 
 
 class Sup(Resource):
-    schemas: Annotated[list[str], Required.true] = ["urn:example:2.0:Sup"]
+    __schema__ = URN("urn:example:2.0:Sup")
+
     dummy: str
     sub: Sub
     subs: list[Sub]
@@ -51,7 +52,8 @@ class Baz(ComplexAttribute):
 
 
 class Foo(Resource):
-    schemas: Annotated[list[str], Required.true] = ["urn:example:2.0:Foo"]
+    __schema__ = URN("urn:example:2.0:Foo")
+
     sub: Annotated[ReturnedModel, Returned.default]
     bar: str
     snake_case: str
@@ -59,7 +61,8 @@ class Foo(Resource):
 
 
 class Bar(Resource):
-    schemas: Annotated[list[str], Required.true] = ["urn:example:2.0:Bar"]
+    __schema__ = URN("urn:example:2.0:Bar")
+
     sub: Annotated[ReturnedModel, Returned.default]
     bar: str
     snake_case: str
@@ -67,7 +70,8 @@ class Bar(Resource):
 
 
 class MyExtension(Extension):
-    schemas: Annotated[list[str], Required.true] = ["urn:example:2.0:MyExtension"]
+    __schema__ = URN("urn:example:2.0:MyExtension")
+
     baz: str
 
 
