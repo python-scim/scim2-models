@@ -11,6 +11,7 @@ Added
 - Validation that extension schemas are known during SCIM context validation.
 - Introduce SCIM exceptions hierarchy (:class:`~scim2_models.SCIMException` and subclasses) corresponding to RFC 7644 error types. :issue:`103`
 - :meth:`Error.from_validation_error <scim2_models.Error.from_validation_error>` to convert Pydantic :class:`~pydantic.ValidationError` to SCIM :class:`~scim2_models.Error`.
+- :meth:`PatchOp.patch <scim2_models.PatchOp.patch>` auto-excludes other ``primary`` values when setting one to ``True``. :issue:`116`
 
 Changed
 ^^^^^^^
