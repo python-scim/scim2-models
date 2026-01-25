@@ -180,7 +180,7 @@ class Address(ComplexAttribute):
 
     primary: bool | None = None
     """A Boolean value indicating the 'primary' or preferred attribute value
-    for this attribute, e.g., the preferred photo or thumbnail."""
+    for this attribute, e.g., the preferred address."""
 
 
 class Entitlement(ComplexAttribute):
