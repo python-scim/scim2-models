@@ -34,7 +34,11 @@ class MultiValuedComplexAttribute(ComplexAttribute):
 
     primary: bool | None = None
     """A Boolean value indicating the 'primary' or preferred attribute value
-    for this attribute."""
+    for this attribute.
+
+    Per :rfc:`RFC 7643 §2.4 <7643#section-2.4>`, the primary attribute value
+    ``True`` MUST appear no more than once in a multi-valued attribute list.
+    """
 
     display: Annotated[str | None, Mutability.immutable] = None
     """A human-readable name, primarily used for display purposes."""
