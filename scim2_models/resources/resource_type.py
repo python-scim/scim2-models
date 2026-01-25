@@ -10,14 +10,14 @@ from ..annotations import Required
 from ..annotations import Returned
 from ..attributes import ComplexAttribute
 from ..path import URN
+from ..reference import URI
 from ..reference import Reference
-from ..reference import URIReference
 from .resource import Resource
 
 
 class SchemaExtension(ComplexAttribute):
     schema_: Annotated[
-        Reference[URIReference] | None,
+        Reference[URI] | None,
         Mutability.read_only,
         Required.true,
         CaseExact.true,
@@ -57,14 +57,14 @@ class ResourceType(Resource[Any]):
     This is often the same value as the "name" attribute.
     """
 
-    endpoint: Annotated[
-        Reference[URIReference] | None, Mutability.read_only, Required.true
-    ] = None
+    endpoint: Annotated[Reference[URI] | None, Mutability.read_only, Required.true] = (
+        None
+    )
     """The resource type's HTTP-addressable endpoint relative to the Base URL,
     e.g., '/Users'."""
 
     schema_: Annotated[
-        Reference[URIReference] | None,
+        Reference[URI] | None,
         Mutability.read_only,
         Required.true,
         CaseExact.true,
@@ -90,11 +90,11 @@ class ResourceType(Resource[Any]):
             id=name,
             name=name,
             description=name,
-            endpoint=Reference[URIReference](f"/{name}s"),
-            schema_=Reference[URIReference](schema),
+            endpoint=Reference[URI](f"/{name}s"),
+            schema_=Reference[URI](schema),
             schema_extensions=[
                 SchemaExtension(
-                    schema_=Reference[URIReference](extension.__schema__),
+                    schema_=Reference[URI](extension.__schema__),
                     required=False,
                 )
                 for extension in extensions

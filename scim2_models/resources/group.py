@@ -1,7 +1,8 @@
+from typing import TYPE_CHECKING
 from typing import Annotated
 from typing import Any
 from typing import ClassVar
-from typing import Literal
+from typing import Union
 
 from pydantic import Field
 
@@ -11,13 +12,16 @@ from ..path import URN
 from ..reference import Reference
 from .resource import Resource
 
+if TYPE_CHECKING:
+    from .user import User
+
 
 class GroupMember(ComplexAttribute):
     value: Annotated[str | None, Mutability.immutable] = None
     """Identifier of the member of this Group."""
 
-    ref: Annotated[
-        Reference[Literal["User"] | Literal["Group"]] | None,
+    ref: Annotated[  # type: ignore[type-arg]
+        Reference[Union["User", "Group"]] | None,
         Mutability.immutable,
     ] = Field(None, serialization_alias="$ref")
     """The reference URI of a target resource, if the attribute is a
