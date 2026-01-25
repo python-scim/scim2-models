@@ -1,9 +1,8 @@
 import operator
-from typing import Annotated
 
 import pytest
 
-from scim2_models.annotations import Required
+from scim2_models import URN
 from scim2_models.context import Context
 from scim2_models.resources.enterprise_user import EnterpriseUser
 from scim2_models.resources.group import Group
@@ -116,9 +115,7 @@ def test_inheritance():
     """Check that parent attributes are included in the schema."""
 
     class Foo(Resource):
-        schemas: Annotated[list[str], Required.true] = [
-            "urn:ietf:params:scim:schemas:core:2.0:Foo"
-        ]
+        __schema__ = URN("urn:ietf:params:scim:schemas:core:2.0:Foo")
 
         foo: str | None = None
 

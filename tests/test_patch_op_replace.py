@@ -1,9 +1,9 @@
 from typing import Annotated
 
 import pytest
-from pydantic import Field
 from pydantic import ValidationError
 
+from scim2_models import URN
 from scim2_models import PatchOp
 from scim2_models import PatchOperation
 from scim2_models import User
@@ -208,7 +208,8 @@ def test_immutable_field():
     """Test that replace operations on immutable fields raise validation errors."""
 
     class Dummy(Resource):
-        schemas: list[str] = Field(default=["urn:test:TestResource"])
+        __schema__ = URN("urn:test:TestResource")
+
         immutable: Annotated[str, Mutability.immutable]
 
     with pytest.raises(ValidationError, match="mutability"):

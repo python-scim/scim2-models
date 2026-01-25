@@ -1,14 +1,13 @@
 import datetime
-from typing import Annotated
 
 import pytest
 
+from scim2_models import URN
 from scim2_models import Context
 from scim2_models import EnterpriseUser
 from scim2_models import Extension
 from scim2_models import Manager
 from scim2_models import Meta
-from scim2_models import Required
 from scim2_models import User
 
 
@@ -252,9 +251,7 @@ def test_invalid_delitem():
 
 
 class SuperHero(Extension):
-    schemas: Annotated[list[str], Required.true] = [
-        "urn:example:extensions:2.0:SuperHero"
-    ]
+    __schema__ = URN("urn:example:extensions:2.0:SuperHero")
 
     superpower: str | None = None
     """The superhero superpower."""

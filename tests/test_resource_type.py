@@ -1,9 +1,7 @@
-from typing import Annotated
-
+from scim2_models import URN
 from scim2_models import EnterpriseUser
 from scim2_models import Extension
 from scim2_models import Reference
-from scim2_models import Required
 from scim2_models import ResourceType
 from scim2_models import User
 
@@ -69,9 +67,7 @@ def test_from_resource_with_extensions():
 
 def test_from_resource_with_mulitple_extensions():
     class TestExtension(Extension):
-        schemas: Annotated[list[str], Required.true] = [
-            "urn:ietf:params:scim:schemas:extension:Test:1.0:User"
-        ]
+        __schema__ = URN("urn:ietf:params:scim:schemas:extension:Test:1.0:User")
 
         test: str | None = None
         test2: list[str] | None = None

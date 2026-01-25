@@ -2,6 +2,7 @@ from typing import Annotated
 
 import pytest
 
+from scim2_models import URN
 from scim2_models.annotations import Mutability
 from scim2_models.annotations import Required
 from scim2_models.annotations import Returned
@@ -18,7 +19,7 @@ class SubRetModel(ComplexAttribute):
 
 
 class SupRetResource(Resource):
-    schemas: Annotated[list[str], Required.true] = ["urn:org:example:SupRetResource"]
+    __schema__ = URN("urn:org:example:SupRetResource")
 
     always_returned: Annotated[str | None, Returned.always] = None
     never_returned: Annotated[str | None, Returned.never] = None
