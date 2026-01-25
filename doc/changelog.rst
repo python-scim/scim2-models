@@ -1,30 +1,43 @@
 Changelog
 =========
 
-[0.x.x] - Unreleased
+[0.6.0] - Unreleased
 --------------------
 
 Added
 ^^^^^
 - Resources define their schema URN with a ``__schema__`` classvar instead of a ``schemas`` default value. :issue:`110`
-- Validation that the base schema is present in ``schemas`` during SCIM context validation.
-- Validation that extension schemas are known during SCIM context validation.
-- Introduce SCIM exceptions hierarchy (:class:`~scim2_models.SCIMException` and subclasses) corresponding to RFC 7644 error types. :issue:`103`
-- :meth:`Error.from_validation_error <scim2_models.Error.from_validation_error>` to convert Pydantic :class:`~pydantic.ValidationError` to SCIM :class:`~scim2_models.Error`.
-- :meth:`PatchOp.patch <scim2_models.PatchOp.patch>` auto-excludes other ``primary`` values when setting one to ``True``. :issue:`116`
+- :class:`~scim2_models.External` and :class:`~scim2_models.URI` marker classes for reference types.
 
 Changed
 ^^^^^^^
 - Introduce a :class:`~scim2_models.Path` object to handle paths. :issue:`111`
+- :class:`~scim2_models.Reference` type parameters simplified:
+
+  - ``Reference[ExternalReference]`` → ``Reference[External]``
+  - ``Reference[URIReference]`` → ``Reference[URI]``
+  - ``Reference[Literal["User"]]`` → ``Reference["User"]``
+  - ``Reference[Literal["User"] | Literal["Group"]]`` → ``Reference[Union["User", "Group"]]``
+
+- :class:`~scim2_models.Reference` now validates URI format for ``External`` and ``URI`` types.
+- :class:`~scim2_models.Reference` inherits from ``str`` directly instead of ``UserString``.
+
+Fixed
+^^^^^
+- Only allow one primary complex attribute value to be true. :issue:`10`
 
 Deprecated
 ^^^^^^^^^^
 - Defining ``schemas`` with a default value is deprecated. Use ``__schema__ = URN("...")`` instead.
 - ``Error.make_*_error()`` methods are deprecated. Use ``<Exception>.to_error()`` instead.
-
-Fixed
-^^^^^
-- Only allow one primary complex attribute value to be true. :issue:`10`
+- ``Reference[Literal["X"]]`` syntax is deprecated. Use ``Reference["X"]`` instead. Will be removed in 0.7.0.
+- ``ExternalReference`` alias is deprecated. Use :class:`~scim2_models.External` instead. Will be removed in 0.7.0.
+- ``URIReference`` alias is deprecated. Use :class:`~scim2_models.URI` instead. Will be removed in 0.7.0.
+- Validation that the base schema is present in ``schemas`` during SCIM context validation.
+- Validation that extension schemas are known during SCIM context validation.
+- Introduce SCIM exceptions hierarchy (:class:`~scim2_models.SCIMException` and subclasses) corresponding to RFC 7644 error types. :issue:`103`
+- :meth:`Error.from_validation_error <scim2_models.Error.from_validation_error>` to convert Pydantic :class:`~pydantic.ValidationError` to SCIM :class:`~scim2_models.Error`.
+- :meth:`PatchOp.patch <scim2_models.PatchOp.patch>` auto-excludes other ``primary`` values when setting one to ``True``. :issue:`116`
 
 [0.5.2] - 2026-01-22
 --------------------

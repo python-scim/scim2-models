@@ -10,7 +10,7 @@ from ..annotations import Returned
 from ..annotations import Uniqueness
 from ..attributes import ComplexAttribute
 from ..path import URN
-from ..reference import ExternalReference
+from ..reference import External
 from ..reference import Reference
 from .resource import Resource
 
@@ -74,15 +74,13 @@ class AuthenticationScheme(ComplexAttribute):
     description: Annotated[str | None, Mutability.read_only, Required.true] = None
     """A description of the authentication scheme."""
 
-    spec_uri: Annotated[Reference[ExternalReference] | None, Mutability.read_only] = (
-        None
-    )
+    spec_uri: Annotated[Reference[External] | None, Mutability.read_only] = None
     """An HTTP-addressable URL pointing to the authentication scheme's
     specification."""
 
-    documentation_uri: Annotated[
-        Reference[ExternalReference] | None, Mutability.read_only
-    ] = None
+    documentation_uri: Annotated[Reference[External] | None, Mutability.read_only] = (
+        None
+    )
     """An HTTP-addressable URL pointing to the authentication scheme's usage
     documentation."""
 
@@ -105,9 +103,9 @@ class ServiceProviderConfig(Resource[Any]):
     #     resources, the "id" attribute is not required for the service
     #     provider configuration resource
 
-    documentation_uri: Annotated[
-        Reference[ExternalReference] | None, Mutability.read_only
-    ] = None
+    documentation_uri: Annotated[Reference[External] | None, Mutability.read_only] = (
+        None
+    )
     """An HTTP-addressable URL pointing to the service provider's human-
     consumable help documentation."""
 

@@ -30,7 +30,6 @@ from ..base import BaseModel
 from ..context import Context
 from ..exceptions import InvalidPathException
 from ..path import Path
-from ..reference import Reference
 from ..scim_object import ScimObject
 from ..utils import UNION_TYPES
 from ..utils import _normalize_attribute_name
@@ -545,7 +544,7 @@ def _model_attribute_to_scim_attribute(
         returned=model.get_field_annotation(attribute_name, Returned),
         uniqueness=model.get_field_annotation(attribute_name, Uniqueness),
         sub_attributes=sub_attributes,
-        reference_types=Reference.get_types(root_type)
+        reference_types=root_type.get_scim_reference_types()  # type: ignore[attr-defined]
         if attribute_type == Attribute.Type.reference
         else None,
     )

@@ -4,11 +4,9 @@ from enum import Enum
 from typing import Annotated
 from typing import Any
 from typing import List  # noqa : UP005,UP035
-from typing import Literal
 from typing import Optional
 from typing import TypeVar
 from typing import Union
-from typing import get_origin
 
 from pydantic import Base64Bytes
 from pydantic import Field
@@ -28,9 +26,9 @@ from ..attributes import is_complex_attribute
 from ..base import BaseModel
 from ..constants import RESERVED_WORDS
 from ..path import URN
-from ..reference import ExternalReference
+from ..reference import URI
+from ..reference import External
 from ..reference import Reference
-from ..reference import URIReference
 from ..utils import _normalize_attribute_name
 from .resource import Resource
 
@@ -101,13 +99,14 @@ class Attribute(ComplexAttribute):
         ) -> type:
             if self.value == self.reference and reference_types is not None:
                 if reference_types == ["external"]:
-                    return Reference[ExternalReference]
+                    return Reference[External]
 
                 if reference_types == ["uri"]:
-                    return Reference[URIReference]
+                    return Reference[URI]
 
-                types = tuple(Literal[t] for t in reference_types)
-                return Reference[Union[types]]  # type: ignore  # noqa: UP007
+                if len(reference_types) == 1:
+                    return Reference[reference_types[0]]  # type: ignore[valid-type]
+                return Reference[Union[tuple(reference_types)]]  # type: ignore[misc,return-value] # noqa: UP007
 
             attr_types = {
                 self.string: str,
@@ -122,7 +121,7 @@ class Attribute(ComplexAttribute):
 
         @classmethod
         def from_python(cls, pytype: type) -> "Attribute.Type":
-            if get_origin(pytype) == Reference:
+            if isinstance(pytype, type) and issubclass(pytype, Reference):
                 return cls.reference
 
             if pytype and is_complex_attribute(pytype):

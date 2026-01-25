@@ -1,5 +1,5 @@
+from typing import TYPE_CHECKING
 from typing import Annotated
-from typing import Literal
 
 from pydantic import Field
 
@@ -10,15 +10,18 @@ from ..path import URN
 from ..reference import Reference
 from .resource import Extension
 
+if TYPE_CHECKING:
+    from .user import User
+
 
 class Manager(ComplexAttribute):
     value: Annotated[str | None, Required.true] = None
     """The id of the SCIM resource representing the User's manager."""
 
-    ref: Annotated[Reference[Literal["User"]] | None, Required.true] = Field(
-        None,
-        serialization_alias="$ref",
-    )
+    ref: Annotated[  # type: ignore[type-arg]
+        Reference["User"] | None,
+        Required.true,
+    ] = Field(None, serialization_alias="$ref")
     """The URI of the SCIM resource representing the User's manager."""
 
     display_name: Annotated[str | None, Mutability.read_only] = None
