@@ -219,3 +219,147 @@ def test_immutable_field():
                 )
             ]
         )
+
+
+def test_primary_auto_exclusion_on_add():
+    """Test that adding an element with primary=true auto-excludes other primary values.
+
+    :rfc:`RFC 7644 §3.5.2 <7644#section-3.5.2>`: "a PATCH operation that sets a
+    value's 'primary' sub-attribute to 'true' SHALL cause the server to
+    automatically set 'primary' to 'false' for any other values in the array."
+    """
+    from scim2_models import Email
+
+    user = User(
+        emails=[
+            Email(value="existing@example.com", primary=True),
+        ]
+    )
+
+    patch = PatchOp[User](
+        operations=[
+            PatchOperation[User](
+                op=PatchOperation.Op.add,
+                path="emails",
+                value={"value": "new@example.com", "primary": True},
+            )
+        ]
+    )
+
+    result = patch.patch(user)
+
+    assert result is True
+    assert user.emails[0].primary is False
+    assert user.emails[1].primary is True
+
+
+def test_primary_auto_exclusion_on_replace_list():
+    """Test that replacing a list with a new primary auto-excludes the old one."""
+    from scim2_models import Email
+
+    user = User(
+        emails=[
+            Email(value="old@example.com", primary=True),
+        ]
+    )
+
+    patch = PatchOp[User](
+        operations=[
+            PatchOperation[User](
+                op=PatchOperation.Op.replace_,
+                path="emails",
+                value=[
+                    {"value": "old@example.com", "primary": False},
+                    {"value": "new@example.com", "primary": True},
+                ],
+            )
+        ]
+    )
+
+    result = patch.patch(user)
+
+    assert result is True
+    assert user.emails[0].primary is False
+    assert user.emails[1].primary is True
+
+
+def test_primary_no_change_when_single_primary():
+    """Test that no change occurs when there's only one primary after patch."""
+    from scim2_models import Email
+
+    user = User(
+        emails=[
+            Email(value="a@example.com", primary=True),
+            Email(value="b@example.com", primary=False),
+        ]
+    )
+
+    patch = PatchOp[User](
+        operations=[
+            PatchOperation[User](
+                op=PatchOperation.Op.add,
+                path="emails",
+                value={"value": "c@example.com", "primary": False},
+            )
+        ]
+    )
+
+    result = patch.patch(user)
+
+    assert result is True
+    assert user.emails[0].primary is True
+    assert user.emails[1].primary is False
+    assert user.emails[2].primary is False
+
+
+def test_primary_auto_exclusion_rejects_multiple_new_primaries():
+    """Test that setting multiple new primaries in one operation raises an error."""
+    from scim2_models import Email
+
+    user = User(
+        emails=[
+            Email(value="a@example.com", primary=False),
+            Email(value="b@example.com", primary=False),
+        ]
+    )
+
+    patch = PatchOp[User](
+        operations=[
+            PatchOperation[User](
+                op=PatchOperation.Op.replace_,
+                path="emails",
+                value=[
+                    {"value": "a@example.com", "primary": True},
+                    {"value": "b@example.com", "primary": True},
+                ],
+            )
+        ]
+    )
+
+    with pytest.raises(Exception, match="Multiple values marked as primary"):
+        patch.patch(user)
+
+
+def test_primary_auto_exclusion_rejects_preexisting_multiple_primaries():
+    """Test that patching data with preexisting multiple primaries raises an error."""
+    from scim2_models import Email
+
+    user = User(
+        emails=[
+            Email(value="a@example.com", primary=True),
+            Email(value="b@example.com", primary=True),
+        ]
+    )
+
+    patch = PatchOp[User](
+        operations=[
+            PatchOperation[User](
+                op=PatchOperation.Op.add,
+                path="emails",
+                value={"value": "c@example.com", "primary": False},
+            )
+        ]
+    )
+
+    with pytest.raises(Exception, match="Multiple primary values already exist"):
+        patch.patch(user)
