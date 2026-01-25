@@ -30,6 +30,8 @@ from .messages.patch_op import PatchOperation
 from .messages.search_request import SearchRequest
 from .path import URN
 from .path import Path
+from .reference import URI
+from .reference import External
 from .reference import ExternalReference
 from .reference import Reference
 from .reference import URIReference
@@ -86,6 +88,7 @@ __all__ = [
     "EnterpriseUser",
     "Entitlement",
     "Error",
+    "External",
     "ExternalReference",
     "Extension",
     "Filter",
@@ -130,6 +133,7 @@ __all__ = [
     "TooManyException",
     "Uniqueness",
     "UniquenessException",
+    "URI",
     "URIReference",
     "URN",
     "User",

@@ -1,7 +1,8 @@
 from enum import Enum
+from typing import TYPE_CHECKING
 from typing import Annotated
 from typing import ClassVar
-from typing import Literal
+from typing import Union
 
 from pydantic import Base64Bytes
 from pydantic import EmailStr
@@ -14,10 +15,13 @@ from ..annotations import Returned
 from ..annotations import Uniqueness
 from ..attributes import ComplexAttribute
 from ..path import URN
-from ..reference import ExternalReference
+from ..reference import External
 from ..reference import Reference
 from .resource import AnyExtension
 from .resource import Resource
+
+if TYPE_CHECKING:
+    from .group import Group
 
 
 class Name(ComplexAttribute):
@@ -127,7 +131,7 @@ class Photo(ComplexAttribute):
         photo = "photo"
         thumbnail = "thumbnail"
 
-    value: Annotated[Reference[ExternalReference] | None, CaseExact.true] = None
+    value: Annotated[Reference[External] | None, CaseExact.true] = None
     """URL of a photo of the User."""
 
     display: str | None = None
@@ -198,8 +202,8 @@ class GroupMembership(ComplexAttribute):
     value: Annotated[str | None, Mutability.read_only] = None
     """The identifier of the User's group."""
 
-    ref: Annotated[
-        Reference[Literal["User"] | Literal["Group"]] | None,
+    ref: Annotated[  # type: ignore[type-arg]
+        Reference[Union["User", "Group"]] | None,
         Mutability.read_only,
     ] = Field(None, serialization_alias="$ref")
     """The reference URI of a target resource, if the attribute is a
@@ -264,7 +268,7 @@ class User(Resource[AnyExtension]):
     """The casual way to address the user in real life, e.g., 'Bob' or 'Bobby'
     instead of 'Robert'."""
 
-    profile_url: Reference[ExternalReference] | None = None
+    profile_url: Reference[External] | None = None
     """A fully qualified URL pointing to a page representing the User's online
     profile."""
 
