@@ -1,6 +1,13 @@
 Changelog
 =========
 
+[0.6.3] - 2026-01-29
+--------------------
+
+Fixed
+^^^^^
+- Fix ``model_json_schema()`` generation for models containing :class:`~scim2_models.Reference` or :class:`~scim2_models.Path` fields. :issue:`125`
+
 [0.6.2] - 2026-01-25
 --------------------
 
