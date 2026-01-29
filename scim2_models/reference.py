@@ -7,6 +7,8 @@ from typing import get_args
 from typing import get_origin
 
 from pydantic import GetCoreSchemaHandler
+from pydantic import GetJsonSchemaHandler
+from pydantic.json_schema import JsonSchemaValue
 from pydantic_core import Url
 from pydantic_core import ValidationError
 from pydantic_core import core_schema
@@ -111,6 +113,14 @@ class Reference(str, Generic[ReferenceTypes]):
             validate,
             serialization=core_schema.plain_serializer_function_ser_schema(str),
         )
+
+    @classmethod
+    def __get_pydantic_json_schema__(
+        cls,
+        _core_schema: core_schema.CoreSchema,
+        _handler: GetJsonSchemaHandler,
+    ) -> JsonSchemaValue:
+        return {"type": "string", "format": "uri"}
 
     @classmethod
     def get_scim_reference_types(cls) -> list[str]:
