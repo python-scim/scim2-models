@@ -32,7 +32,7 @@ def test_make_group_model_from_schema(load_sample):
         Group.model_fields["display_name"].description
         == "A human-readable name for the Group. REQUIRED."
     )
-    assert Group.get_field_annotation("display_name", Required) == Required.false
+    assert Group.get_field_annotation("display_name", Required) == Required.true
     assert Group.get_field_annotation("display_name", CaseExact) == CaseExact.false
     assert (
         Group.get_field_annotation("display_name", Mutability) == Mutability.read_write
@@ -2712,7 +2712,7 @@ def test_make_schema_model_from_schema(load_sample):
     assert obj.attributes[0].description == (
         "A human-readable name for the Group. REQUIRED."
     )
-    assert not obj.attributes[0].required
+    assert obj.attributes[0].required
     assert not obj.attributes[0].case_exact
     assert obj.attributes[0].mutability == Mutability.read_write
     assert obj.attributes[0].returned == Returned.default
