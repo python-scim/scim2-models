@@ -1425,3 +1425,14 @@ def test_path_init_with_path_object():
     copy = Path(original)
     assert str(copy) == "userName"
     assert copy.data == original.data
+
+
+def test_path_json_schema_generation():
+    """Test that models with Path fields can generate JSON Schema."""
+
+    class ModelWithPath(BaseModel):
+        path: Path[User] | None = None
+
+    schema = ModelWithPath.model_json_schema()
+    assert schema["type"] == "object"
+    assert "path" in schema["properties"]
