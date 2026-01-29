@@ -21,7 +21,7 @@ def test_group_schema(load_sample):
     assert obj.attributes[0].description == (
         "A human-readable name for the Group. REQUIRED."
     )
-    assert not obj.attributes[0].required
+    assert obj.attributes[0].required
     assert not obj.attributes[0].case_exact
     assert obj.attributes[0].mutability == Mutability.read_write
     assert obj.attributes[0].returned == Returned.default
