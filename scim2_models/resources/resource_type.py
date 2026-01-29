@@ -8,6 +8,7 @@ from ..annotations import CaseExact
 from ..annotations import Mutability
 from ..annotations import Required
 from ..annotations import Returned
+from ..annotations import Uniqueness
 from ..attributes import ComplexAttribute
 from ..path import URN
 from ..reference import URI
@@ -38,7 +39,13 @@ class SchemaExtension(ComplexAttribute):
 class ResourceType(Resource[Any]):
     __schema__ = URN("urn:ietf:params:scim:schemas:core:2.0:ResourceType")
 
-    name: Annotated[str | None, Mutability.read_only, Required.true] = None
+    name: Annotated[
+        str | None,
+        Mutability.read_only,
+        Required.true,
+        CaseExact.true,
+        Uniqueness.server,
+    ] = None
     """The resource type name.
 
     When applicable, service providers MUST specify the name, e.g.,
@@ -57,9 +64,9 @@ class ResourceType(Resource[Any]):
     This is often the same value as the "name" attribute.
     """
 
-    endpoint: Annotated[Reference[URI] | None, Mutability.read_only, Required.true] = (
-        None
-    )
+    endpoint: Annotated[
+        Reference[URI] | None, Mutability.read_only, Required.true, Uniqueness.server
+    ] = None
     """The resource type's HTTP-addressable endpoint relative to the Base URL,
     e.g., '/Users'."""
 

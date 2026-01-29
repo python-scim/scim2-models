@@ -72,7 +72,7 @@
                     "multiValued": false,
                     "description": "The id of the SCIM resource representing the User's manager.  REQUIRED.",
                     "required": true,
-                    "caseExact": false,
+                    "caseExact": true,
                     "mutability": "readWrite",
                     "returned": "default",
                     "uniqueness": "none"

@@ -2,7 +2,6 @@ from enum import Enum
 from typing import TYPE_CHECKING
 from typing import Annotated
 from typing import ClassVar
-from typing import Union
 
 from pydantic import Base64Bytes
 from pydantic import EmailStr
@@ -202,8 +201,8 @@ class GroupMembership(ComplexAttribute):
     value: Annotated[str | None, Mutability.read_only] = None
     """The identifier of the User's group."""
 
-    ref: Annotated[  # type: ignore[type-arg]
-        Reference[Union["User", "Group"]] | None,
+    ref: Annotated[
+        Reference["Group"] | None,
         Mutability.read_only,
     ] = Field(None, serialization_alias="$ref")
     """The reference URI of a target resource, if the attribute is a

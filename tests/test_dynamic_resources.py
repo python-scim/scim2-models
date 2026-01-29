@@ -857,9 +857,7 @@ def test_make_user_model_from_schema(load_sample):
     assert Groups.get_field_annotation("value", Uniqueness) == Uniqueness.none
 
     # group.ref
-    assert (
-        Groups.get_field_root_type("ref") == Reference[Union["User", "Group"]]  # noqa: F821
-    )
+    assert Groups.get_field_root_type("ref") == Reference["Group"]  # noqa: F821
     assert not Groups.get_field_multiplicity("ref")
     assert (
         Groups.model_fields["ref"].description
@@ -1388,7 +1386,7 @@ def test_make_enterprise_user_model_from_schema(load_sample):
         == "The id of the SCIM resource representing the User's manager.  REQUIRED."
     )
     assert Manager.get_field_annotation("value", Required) == Required.true
-    assert Manager.get_field_annotation("value", CaseExact) == CaseExact.false
+    assert Manager.get_field_annotation("value", CaseExact) == CaseExact.true
     assert Manager.get_field_annotation("value", Mutability) == Mutability.read_write
     assert Manager.get_field_annotation("value", Returned) == Returned.default
     assert Manager.get_field_annotation("value", Uniqueness) == Uniqueness.none
@@ -1452,10 +1450,10 @@ def test_make_resource_type_model_from_schema(load_sample):
         == "The resource type name.  When applicable, service providers MUST specify the name, e.g., 'User'."
     )
     assert ResourceType.get_field_annotation("name", Required) == Required.true
-    assert ResourceType.get_field_annotation("name", CaseExact) == CaseExact.false
+    assert ResourceType.get_field_annotation("name", CaseExact) == CaseExact.true
     assert ResourceType.get_field_annotation("name", Mutability) == Mutability.read_only
     assert ResourceType.get_field_annotation("name", Returned) == Returned.default
-    assert ResourceType.get_field_annotation("name", Uniqueness) == Uniqueness.none
+    assert ResourceType.get_field_annotation("name", Uniqueness) == Uniqueness.server
 
     # description
     assert ResourceType.get_field_root_type("description") is str
@@ -1493,7 +1491,9 @@ def test_make_resource_type_model_from_schema(load_sample):
         == Mutability.read_only
     )
     assert ResourceType.get_field_annotation("endpoint", Returned) == Returned.default
-    assert ResourceType.get_field_annotation("endpoint", Uniqueness) == Uniqueness.none
+    assert (
+        ResourceType.get_field_annotation("endpoint", Uniqueness) == Uniqueness.server
+    )
 
     # schema
     assert ResourceType.get_field_root_type("schema_") == Reference[URI]
