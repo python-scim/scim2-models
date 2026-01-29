@@ -1450,10 +1450,10 @@ def test_make_resource_type_model_from_schema(load_sample):
         == "The resource type name.  When applicable, service providers MUST specify the name, e.g., 'User'."
     )
     assert ResourceType.get_field_annotation("name", Required) == Required.true
-    assert ResourceType.get_field_annotation("name", CaseExact) == CaseExact.false
+    assert ResourceType.get_field_annotation("name", CaseExact) == CaseExact.true
     assert ResourceType.get_field_annotation("name", Mutability) == Mutability.read_only
     assert ResourceType.get_field_annotation("name", Returned) == Returned.default
-    assert ResourceType.get_field_annotation("name", Uniqueness) == Uniqueness.none
+    assert ResourceType.get_field_annotation("name", Uniqueness) == Uniqueness.server
 
     # description
     assert ResourceType.get_field_root_type("description") is str
@@ -1491,7 +1491,9 @@ def test_make_resource_type_model_from_schema(load_sample):
         == Mutability.read_only
     )
     assert ResourceType.get_field_annotation("endpoint", Returned) == Returned.default
-    assert ResourceType.get_field_annotation("endpoint", Uniqueness) == Uniqueness.none
+    assert (
+        ResourceType.get_field_annotation("endpoint", Uniqueness) == Uniqueness.server
+    )
 
     # schema
     assert ResourceType.get_field_root_type("schema_") == Reference[URI]
