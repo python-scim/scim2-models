@@ -1386,7 +1386,7 @@ def test_make_enterprise_user_model_from_schema(load_sample):
         == "The id of the SCIM resource representing the User's manager.  REQUIRED."
     )
     assert Manager.get_field_annotation("value", Required) == Required.true
-    assert Manager.get_field_annotation("value", CaseExact) == CaseExact.false
+    assert Manager.get_field_annotation("value", CaseExact) == CaseExact.true
     assert Manager.get_field_annotation("value", Mutability) == Mutability.read_write
     assert Manager.get_field_annotation("value", Returned) == Returned.default
     assert Manager.get_field_annotation("value", Uniqueness) == Uniqueness.none

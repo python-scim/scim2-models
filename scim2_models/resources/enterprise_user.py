@@ -3,6 +3,7 @@ from typing import Annotated
 
 from pydantic import Field
 
+from ..annotations import CaseExact
 from ..annotations import Mutability
 from ..annotations import Required
 from ..attributes import ComplexAttribute
@@ -15,7 +16,7 @@ if TYPE_CHECKING:
 
 
 class Manager(ComplexAttribute):
-    value: Annotated[str | None, Required.true] = None
+    value: Annotated[str | None, Required.true, CaseExact.true] = None
     """The id of the SCIM resource representing the User's manager."""
 
     ref: Annotated[  # type: ignore[type-arg]
