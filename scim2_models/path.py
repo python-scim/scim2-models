@@ -9,6 +9,8 @@ from typing import NamedTuple
 from typing import TypeVar
 
 from pydantic import GetCoreSchemaHandler
+from pydantic import GetJsonSchemaHandler
+from pydantic.json_schema import JsonSchemaValue
 from pydantic_core import core_schema
 
 from .base import BaseModel
@@ -128,6 +130,14 @@ class Path(UserString, Generic[ResourceT]):
             validate_path,
             serialization=core_schema.plain_serializer_function_ser_schema(str),
         )
+
+    @classmethod
+    def __get_pydantic_json_schema__(
+        cls,
+        _core_schema: core_schema.CoreSchema,
+        _handler: GetJsonSchemaHandler,
+    ) -> JsonSchemaValue:
+        return {"type": "string"}
 
     def __init__(self, path: "str | Path[Any]"):
         if isinstance(path, Path):
