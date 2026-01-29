@@ -8,6 +8,7 @@ Fixed
 ^^^^^
 - Fix ``model_json_schema()`` generation for models containing :class:`~scim2_models.Reference` or :class:`~scim2_models.Path` fields. :issue:`125`
 - Group ``displayName`` is required. :rfc:`7643` `erratum 5368 <https://www.rfc-editor.org/errata/eid5368>`_ :issue:`123` :pr:`128`
+- :class:`~scim2_models.GroupMembership` ``$ref`` only references ``Group``. :rfc:`7643` `erratum 8471 <https://www.rfc-editor.org/errata/eid8471>`_
 
 [0.6.2] - 2026-01-25
 --------------------

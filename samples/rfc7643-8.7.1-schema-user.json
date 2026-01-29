@@ -572,7 +572,6 @@
                     "name": "$ref",
                     "type": "reference",
                     "referenceTypes": [
-                        "User",
                         "Group"
                     ],
                     "multiValued": false,
