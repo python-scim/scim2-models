@@ -532,19 +532,21 @@ def _model_attribute_to_scim_attribute(
         else None
     )
 
-    return Attribute(
-        name=field_info.serialization_alias or attribute_name,
-        type=Attribute.Type(attribute_type),
-        multi_valued=model.get_field_multiplicity(attribute_name),
-        description=field_info.description,
-        canonical_values=field_info.examples,
-        required=model.get_field_annotation(attribute_name, Required),
-        case_exact=model.get_field_annotation(attribute_name, CaseExact),
-        mutability=model.get_field_annotation(attribute_name, Mutability),
-        returned=model.get_field_annotation(attribute_name, Returned),
-        uniqueness=model.get_field_annotation(attribute_name, Uniqueness),
-        sub_attributes=sub_attributes,
-        reference_types=root_type.get_scim_reference_types()  # type: ignore[attr-defined]
-        if attribute_type == Attribute.Type.reference
-        else None,
-    )
+    kwargs: dict[str, Any] = {
+        "name": field_info.serialization_alias or attribute_name,
+        "type": Attribute.Type(attribute_type),
+        "multi_valued": model.get_field_multiplicity(attribute_name),
+        "description": field_info.description,
+        "canonical_values": field_info.examples,
+        "required": model.get_field_annotation(attribute_name, Required),
+        "case_exact": model.get_field_annotation(attribute_name, CaseExact),
+        "mutability": model.get_field_annotation(attribute_name, Mutability),
+        "returned": model.get_field_annotation(attribute_name, Returned),
+        "sub_attributes": sub_attributes,
+    }
+    if attribute_type != Attribute.Type.complex:
+        kwargs["uniqueness"] = model.get_field_annotation(attribute_name, Uniqueness)
+    if attribute_type == Attribute.Type.reference:
+        kwargs["reference_types"] = root_type.get_scim_reference_types()  # type: ignore[attr-defined]
+
+    return Attribute(**kwargs)
