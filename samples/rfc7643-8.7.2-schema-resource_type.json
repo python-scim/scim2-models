@@ -21,10 +21,10 @@
             "multiValued": false,
             "description": "The resource type name.  When applicable, service providers MUST specify the name, e.g., 'User'.",
             "required": true,
-            "caseExact": false,
+            "caseExact": true,
             "mutability": "readOnly",
             "returned": "default",
-            "uniqueness": "none"
+            "uniqueness": "server"
         },
         {
             "name": "description",
@@ -49,7 +49,7 @@
             "caseExact": false,
             "mutability": "readOnly",
             "returned": "default",
-            "uniqueness": "none"
+            "uniqueness": "server"
         },
         {
             "name": "schema",

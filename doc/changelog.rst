@@ -10,6 +10,7 @@ Fixed
 - Group ``displayName`` is required. :rfc:`7643` `erratum 5368 <https://www.rfc-editor.org/errata/eid5368>`_ :issue:`123` :pr:`128`
 - :class:`~scim2_models.GroupMembership` ``$ref`` only references ``Group``. :rfc:`7643` `erratum 8471 <https://www.rfc-editor.org/errata/eid8471>`_
 - :class:`~scim2_models.Manager` ``value`` is case-exact. :rfc:`7643` `erratum 8472 <https://www.rfc-editor.org/errata/eid8472>`_
+- :class:`~scim2_models.ResourceType` ``name`` and ``endpoint`` have server uniqueness. :rfc:`7643` `erratum 8475 <https://www.rfc-editor.org/errata/eid8475>`_
 
 [0.6.2] - 2026-01-25
 --------------------
