@@ -6,8 +6,8 @@ from typing import Union
 
 from pydantic import Field
 
-from ..annotations import Required
 from ..annotations import Mutability
+from ..annotations import Required
 from ..attributes import ComplexAttribute
 from ..path import URN
 from ..reference import Reference
