@@ -1,6 +1,14 @@
 Changelog
 =========
 
+[Unreleased]
+------------
+
+Added
+^^^^^
+
+- :class:`~scim2_models.SCIMException` now accepts an optional ``scim_ctx`` parameter to indicate the SCIM context in which the exception occurred.
+
 [0.6.3] - 2026-01-29
 --------------------
 

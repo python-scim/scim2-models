@@ -6,6 +6,7 @@ from pydantic import HttpUrl
 from pydantic import ValidationError
 from pydantic import field_validator
 
+from scim2_models import Context
 from scim2_models import Error
 from scim2_models import InvalidFilterException
 from scim2_models import InvalidPathException
@@ -429,3 +430,44 @@ def test_from_error_type_error():
     """from_error() raises TypeError for non-Error input."""
     with pytest.raises(TypeError, match="Expected Error"):
         SCIMException.from_error("not an error")
+
+
+def test_scim_ctx_default_none():
+    """SCIMException has scim_ctx=None by default."""
+    exc = SCIMException()
+    assert exc.scim_ctx is None
+
+
+def test_scim_ctx_set_directly():
+    """SCIMException can have scim_ctx set directly."""
+    exc = SCIMException(detail="Test error", scim_ctx=Context.RESOURCE_CREATION_REQUEST)
+    assert exc.scim_ctx == Context.RESOURCE_CREATION_REQUEST
+    assert exc.detail == "Test error"
+
+
+def test_scim_ctx_on_subclass():
+    """Exception subclasses can have scim_ctx set."""
+    exc = InvalidValueException(
+        detail="Invalid input",
+        attribute="userName",
+        scim_ctx=Context.RESOURCE_CREATION_REQUEST,
+    )
+    assert exc.scim_ctx == Context.RESOURCE_CREATION_REQUEST
+    assert exc.attribute == "userName"
+
+
+def test_from_error_with_scim_ctx():
+    """from_error() passes scim_ctx to the created exception."""
+    error = Error(status=400, scim_type="invalidValue", detail="Missing required")
+    exc = SCIMException.from_error(error, scim_ctx=Context.RESOURCE_CREATION_RESPONSE)
+    assert isinstance(exc, InvalidValueException)
+    assert exc.scim_ctx == Context.RESOURCE_CREATION_RESPONSE
+    assert exc.detail == "Missing required"
+
+
+def test_from_error_without_scim_ctx():
+    """from_error() creates exception with scim_ctx=None when not provided."""
+    error = Error(status=400, scim_type="invalidFilter", detail="Bad filter")
+    exc = SCIMException.from_error(error)
+    assert isinstance(exc, InvalidFilterException)
+    assert exc.scim_ctx is None
