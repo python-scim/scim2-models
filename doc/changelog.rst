@@ -1,12 +1,11 @@
 Changelog
 =========
 
-[Unreleased]
-------------
+[0.6.4] - 2026-02-05
+--------------------
 
 Added
 ^^^^^
-
 - :class:`~scim2_models.SCIMException` now accepts an optional ``scim_ctx`` parameter to indicate the SCIM context in which the exception occurred.
 
 [0.6.3] - 2026-01-29
@@ -26,7 +25,6 @@ Fixed
 
 Added
 ^^^^^
-
 - :meth:`SCIMException.from_error <scim2_models.SCIMException.from_error>` to create an exception from a SCIM :class:`~scim2_models.Error` object.
 
 [0.6.1] - 2026-01-25
