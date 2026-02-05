@@ -10,6 +10,8 @@ from typing import Any
 
 from pydantic_core import PydanticCustomError
 
+from .context import Context
+
 if TYPE_CHECKING:
     from .messages.error import Error
 
@@ -18,15 +20,25 @@ class SCIMException(Exception):
     """Base exception for SCIM protocol errors.
 
     Each subclass corresponds to a scimType defined in :rfc:`RFC 7644 Table 9 <7644#section-3.12>`.
+
+    :param detail: The error detail message.
+    :param scim_ctx: The SCIM context in which the exception occurred.
     """
 
     status: int = 400
     scim_type: str = ""
     _default_detail: str = "A SCIM error occurred"
 
-    def __init__(self, *, detail: str | None = None, **context: Any):
+    def __init__(
+        self,
+        *,
+        detail: str | None = None,
+        scim_ctx: Context | None = None,
+        **context: Any,
+    ):
         self.context = context
         self._detail = detail
+        self.scim_ctx = scim_ctx
         super().__init__(detail or self._default_detail)
 
     @property
@@ -53,10 +65,13 @@ class SCIMException(Exception):
         )
 
     @classmethod
-    def from_error(cls, error: "Error") -> "SCIMException":
+    def from_error(
+        cls, error: "Error", scim_ctx: Context | None = None
+    ) -> "SCIMException":
         """Create an exception from a SCIM Error object.
 
         :param error: The SCIM Error object to convert.
+        :param scim_ctx: The SCIM context in which the exception occurred.
         :return: The appropriate SCIMException subclass instance.
         """
         from .messages.error import Error
@@ -65,7 +80,7 @@ class SCIMException(Exception):
             raise TypeError(f"Expected Error, got {type(error).__name__}")
 
         exception_class = _SCIM_TYPE_TO_EXCEPTION.get(error.scim_type or "", cls)
-        return exception_class(detail=error.detail)
+        return exception_class(detail=error.detail, scim_ctx=scim_ctx)
 
 
 class InvalidFilterException(SCIMException):
