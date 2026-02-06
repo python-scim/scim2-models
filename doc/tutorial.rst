@@ -27,7 +27,7 @@ Attributes can be removed with ``del``.
 Model parsing
 =============
 
-Pydantic :func:`~scim2_models.BaseModel.model_validate` method can be used to parse and validate SCIM2 payloads.
+Use Pydantic's :func:`~scim2_models.BaseModel.model_validate` method to parse and validate SCIM2 payloads.
 
 
 .. code-block:: python
@@ -466,7 +466,7 @@ with the :meth:`Resource.from_schema <scim2_models.Resource.from_schema>` and :m
     Group = Resource.from_schema(schema)
     my_group = Group(display_name="This is my group")
 
-This can be used by client applications that intends to dynamically discover server resources by browsing the `/Schemas` endpoint.
+Client applications can use this to dynamically discover server resources by browsing the `/Schemas` endpoint.
 
 .. tip::
 
