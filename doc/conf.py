@@ -50,6 +50,7 @@ intersphinx_mapping = {
 html_theme = "shibuya"
 # html_static_path = ["_static"]
 html_baseurl = "https://scim2-models.readthedocs.io"
+html_logo = "_static/python-scim.svg"
 html_theme_options = {
     "globaltoc_expand_depth": 3,
     "accent_color": "amber",
