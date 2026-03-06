@@ -118,6 +118,10 @@ def _extension_serializer(
     dumped when the model is used as an extension for another model.
     """
     partial_result = handler(value)
+
+    if partial_result is None:
+        return None
+
     result = {
         attr_name: value
         for attr_name, value in partial_result.items()
