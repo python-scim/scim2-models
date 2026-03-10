@@ -117,10 +117,10 @@ def _extension_serializer(
     For instance, attributes 'meta', 'id' or 'schemas' should not be
     dumped when the model is used as an extension for another model.
     """
-    partial_result = handler(value)
-
-    if partial_result is None:
+    if value is None:
         return None
+
+    partial_result = handler(value)
 
     result = {
         attr_name: value
