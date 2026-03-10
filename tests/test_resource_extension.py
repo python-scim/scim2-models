@@ -1,6 +1,7 @@
 import datetime
 
 import pytest
+from pydantic import TypeAdapter
 
 from scim2_models import URN
 from scim2_models import Context
@@ -368,6 +369,14 @@ def test_class_getitem():
 
     with pytest.raises(TypeError, match="is not a valid Extension type"):
         User[int]
+
+
+def test_dump_resource_with_unset_extension():
+    """Serialize a resource whose extension is declared but not populated."""
+    user = User[EnterpriseUser](user_name="bjensen")
+    ta = TypeAdapter(User[EnterpriseUser])
+    payload = ta.dump_python(user)
+    assert "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User" not in payload
 
 
 def test_model_attribute_to_scim_attribute_error():

@@ -1,6 +1,13 @@
 Changelog
 =========
 
+[0.6.5] - 2026-03-10
+--------------------
+
+Fixed
+^^^^^
+- Fix extension serialization crash when an extension is declared but not populated on a resource serialized outside of SCIM context (e.g. FastAPI ``response_model``). :pr:`131`
+
 [0.6.4] - 2026-02-05
 --------------------
 
