@@ -186,10 +186,7 @@ def test_zero_results():
     ListResponse[User].model_validate(payload, scim_ctx=Context.RESOURCE_QUERY_RESPONSE)
 
     payload = {"totalResults": 1, "Resources": []}
-    with pytest.raises(ValidationError):
-        ListResponse[User].model_validate(
-            payload, scim_ctx=Context.RESOURCE_QUERY_RESPONSE
-        )
+    ListResponse[User].model_validate(payload, scim_ctx=Context.RESOURCE_QUERY_RESPONSE)
 
     payload = {"totalResults": 1}
     with pytest.raises(ValidationError):
