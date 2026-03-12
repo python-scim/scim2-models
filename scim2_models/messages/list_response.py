@@ -60,7 +60,7 @@ class ListResponse(Message, Generic[AnyResource], metaclass=_GenericMessageMetac
                 "Field 'total_results' is required but value is missing or null",
             )
 
-        if obj.total_results > 0 and not obj.resources:
+        if obj.total_results > 0 and obj.resources is None:
             raise PydanticCustomError(
                 "no_resource_error",
                 "Field 'resources' is missing or null but 'total_results' is non-zero.",
