@@ -1,6 +1,13 @@
 Changelog
 =========
 
+[0.6.6] - 2026-03-12
+--------------------
+
+Fixed
+^^^^^
+- Fix `ListResponse.totalResults` validation when `resources` is none. :pr:`133`
+
 [0.6.5] - 2026-03-10
 --------------------
 
