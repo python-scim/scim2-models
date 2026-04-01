@@ -104,8 +104,9 @@ Single resource
 ^^^^^^^^^^^^^^^
 
 ``UserView`` handles ``GET``, ``PATCH`` and ``DELETE`` on ``/Users/<id>``.
-For ``GET``, convert the native record to a SCIM resource and serialize with
-:attr:`~scim2_models.Context.RESOURCE_QUERY_RESPONSE`.
+For ``GET``, parse query parameters with :class:`~scim2_models.ResponseParameters` to honour the
+``attributes`` and ``excludedAttributes`` query parameters, convert the native record to a
+SCIM resource, and serialize with :attr:`~scim2_models.Context.RESOURCE_QUERY_RESPONSE`.
 For ``DELETE``, remove the record and return an empty 204 response.
 For ``PATCH``, validate the payload with :attr:`~scim2_models.Context.RESOURCE_PATCH_REQUEST`,
 apply it with :meth:`~scim2_models.PatchOp.patch` (generic, works with any resource type),
@@ -121,9 +122,13 @@ Collection
 ^^^^^^^^^^
 
 ``UsersView`` handles ``GET /Users`` and ``POST /Users``.
-For ``GET``, parse pagination parameters with :class:`~scim2_models.SearchRequest`, slice
-the store, then wrap the page in a :class:`~scim2_models.ListResponse` serialized with
+For ``GET``, parse pagination and filtering parameters with
+:class:`~scim2_models.SearchRequest`, slice the store, then wrap the page in a
+:class:`~scim2_models.ListResponse` serialized with
 :attr:`~scim2_models.Context.RESOURCE_QUERY_RESPONSE`.
+``req.attributes`` and ``req.excluded_attributes`` are passed to
+:meth:`~scim2_models.ListResponse.model_dump_json` to apply the ``attributes`` and
+``excludedAttributes`` query parameters to each embedded resource.
 For ``POST``, validate the creation payload with
 :attr:`~scim2_models.Context.RESOURCE_CREATION_REQUEST`, persist the record, then serialize
 with :attr:`~scim2_models.Context.RESOURCE_CREATION_RESPONSE`.

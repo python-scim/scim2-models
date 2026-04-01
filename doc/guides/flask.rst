@@ -79,8 +79,11 @@ any other collection.
 GET /Users/<id>
 ^^^^^^^^^^^^^^^
 
-Convert the native record to a SCIM resource with your mapping helper, then serialize with
-:attr:`~scim2_models.Context.RESOURCE_QUERY_RESPONSE`.
+Parse query parameters with :class:`~scim2_models.ResponseParameters`, convert the native
+record to a SCIM resource with your mapping helper, then serialize with
+:attr:`~scim2_models.Context.RESOURCE_QUERY_RESPONSE`, forwarding
+``req.attributes`` and ``req.excluded_attributes`` so the response only includes the
+requested fields.
 
 .. literalinclude:: _examples/flask_example.py
    :language: python
@@ -116,9 +119,12 @@ convert back to native and persist, then serialize the result with
 GET /Users
 ^^^^^^^^^^
 
-Parse pagination parameters with :class:`~scim2_models.SearchRequest`, slice the store
-accordingly, then wrap the page in a :class:`~scim2_models.ListResponse` serialized with
-:attr:`~scim2_models.Context.RESOURCE_QUERY_RESPONSE`.
+Parse pagination and filtering parameters with :class:`~scim2_models.SearchRequest`, slice
+the store accordingly, then wrap the page in a :class:`~scim2_models.ListResponse` serialized
+with :attr:`~scim2_models.Context.RESOURCE_QUERY_RESPONSE`.
+Pass ``req.attributes`` and ``req.excluded_attributes`` to
+:meth:`~scim2_models.ListResponse.model_dump_json` so that the ``attributes`` and
+``excludedAttributes`` query parameters are applied to each embedded resource.
 
 .. literalinclude:: _examples/flask_example.py
    :language: python

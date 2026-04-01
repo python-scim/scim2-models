@@ -347,3 +347,33 @@ def test_multivalued_complex_attribute_inclusion_includes_sub_attributes():
         {"value": "user-1", "type": "User"},
         {"value": "user-2", "type": "User"},
     ]
+
+
+def test_extension_excluded_by_full_urn():
+    """Excluding an extension attribute with its full URN removes only that attribute."""
+    user = User[EnterpriseUser].model_validate(
+        {
+            "userName": "foobar",
+            "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User": {
+                "employeeNumber": "12345",
+                "department": "Engineering",
+            },
+        }
+    )
+    result = user.model_dump(
+        scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
+        excluded_attributes=[
+            "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:employeeNumber"
+        ],
+    )
+    ext = result["urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"]
+    assert "employeeNumber" not in ext
+    assert ext["department"] == "Engineering"
+
+
+def test_short_attr_path_with_plain_name():
+    """The short-path helper returns plain attribute names unchanged."""
+    from scim2_models.base import _short_attr_path
+
+    assert _short_attr_path("userName") == "userName"
+    assert _short_attr_path("name.familyName") == "name.familyName"

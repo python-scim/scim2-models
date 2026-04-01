@@ -55,6 +55,19 @@ def test_flask_example_smoke():
     assert list_response.status_code == 200
     assert list_response.get_json()["totalResults"] == 1
 
+    get_attributes_response = client.get(
+        f"/scim/v2/Users/{user_id}?attributes=userName"
+    )
+    assert get_attributes_response.status_code == 200
+    assert "userName" in get_attributes_response.get_json()
+    assert "displayName" not in get_attributes_response.get_json()
+
+    list_attributes_response = client.get("/scim/v2/Users?attributes=userName")
+    assert list_attributes_response.status_code == 200
+    resources = list_attributes_response.get_json()["Resources"]
+    assert "userName" in resources[0]
+    assert "displayName" not in resources[0]
+
     duplicate_response = client.post(
         "/scim/v2/Users",
         json={
@@ -127,6 +140,19 @@ def test_django_example_smoke():
         list_response = client.get("/scim/v2/Users?startIndex=1&count=1")
         assert list_response.status_code == 200
         assert json.loads(list_response.content)["totalResults"] == 1
+
+        get_attributes_response = client.get(
+            f"/scim/v2/Users/{user_id}?attributes=userName"
+        )
+        assert get_attributes_response.status_code == 200
+        assert "userName" in json.loads(get_attributes_response.content)
+        assert "displayName" not in json.loads(get_attributes_response.content)
+
+        list_attributes_response = client.get("/scim/v2/Users?attributes=userName")
+        assert list_attributes_response.status_code == 200
+        resources = json.loads(list_attributes_response.content)["Resources"]
+        assert "userName" in resources[0]
+        assert "displayName" not in resources[0]
 
         duplicate_response = client.post(
             "/scim/v2/Users",
