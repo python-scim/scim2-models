@@ -8,6 +8,7 @@ Table of contents
     :maxdepth: 2
 
     tutorial
+    guides/index
     reference
     contributing
     changelog
