@@ -5,7 +5,9 @@ repos:
     hooks:
       - id: ruff-check
         args: [--fix, --exit-non-zero-on-fix]
+        exclude: ^doc/guides/_examples/
       - id: ruff-format
+        exclude: ^doc/guides/_examples/
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
     hooks:
@@ -19,7 +21,7 @@ repos:
     rev: v1.19.1
     hooks:
       - id: mypy
-        exclude: ^(tests/|conftest.py)
+        exclude: ^(tests/|conftest\.py|doc/)
         additional_dependencies:
           - pydantic[email]>=2.7.0
   - repo: https://github.com/codespell-project/codespell
