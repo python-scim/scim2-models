@@ -1,5 +1,5 @@
-Flask Integration
------------------
+Flask
+-----
 
 This guide shows a minimal SCIM server built with `Flask <https://flask.palletsprojects.com/>`_
 and :mod:`scim2_models`.
@@ -114,6 +114,20 @@ convert back to native and persist, then serialize the result with
    :language: python
    :start-after: # -- patch-user-start --
    :end-before: # -- patch-user-end --
+
+PUT /Users/<id>
+^^^^^^^^^^^^^^^
+
+Validate the full replacement payload with
+:attr:`~scim2_models.Context.RESOURCE_REPLACEMENT_REQUEST`, passing the ``original`` resource
+so that immutable attributes are checked for unintended modifications.
+Convert back to native and persist, then serialize the result with
+:attr:`~scim2_models.Context.RESOURCE_REPLACEMENT_RESPONSE`.
+
+.. literalinclude:: _examples/flask_example.py
+   :language: python
+   :start-after: # -- put-user-start --
+   :end-before: # -- put-user-end --
 
 
 GET /Users

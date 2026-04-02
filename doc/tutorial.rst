@@ -16,7 +16,7 @@ The standard Python dot notation uses snake_case attribute names, while the brac
     >>> user["nickName"] = "Babs"
     >>> user["name.familyName"] = "Jensen"
 
-Attributes can be removed with ``del``.
+Attributes can be removed with ``del`` or by assigning :data:`None` to the attribute.
 
 .. doctest::
 

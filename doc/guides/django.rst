@@ -1,5 +1,5 @@
-Django Integration
-------------------
+Django
+------
 
 This guide shows a minimal SCIM integration with `Django <https://www.djangoproject.com/>`_
 and :mod:`scim2_models`.
@@ -103,11 +103,16 @@ any other collection.
 Single resource
 ^^^^^^^^^^^^^^^
 
-``UserView`` handles ``GET``, ``PATCH`` and ``DELETE`` on ``/Users/<id>``.
+``UserView`` handles ``GET``, ``PUT``, ``PATCH`` and ``DELETE`` on ``/Users/<id>``.
 For ``GET``, parse query parameters with :class:`~scim2_models.ResponseParameters` to honour the
 ``attributes`` and ``excludedAttributes`` query parameters, convert the native record to a
 SCIM resource, and serialize with :attr:`~scim2_models.Context.RESOURCE_QUERY_RESPONSE`.
 For ``DELETE``, remove the record and return an empty 204 response.
+For ``PUT``, validate the full replacement payload with
+:attr:`~scim2_models.Context.RESOURCE_REPLACEMENT_REQUEST`, passing the ``original`` resource
+so that immutable attributes are checked for unintended modifications.
+Convert back to native and persist, then serialize with
+:attr:`~scim2_models.Context.RESOURCE_REPLACEMENT_RESPONSE`.
 For ``PATCH``, validate the payload with :attr:`~scim2_models.Context.RESOURCE_PATCH_REQUEST`,
 apply it with :meth:`~scim2_models.PatchOp.patch` (generic, works with any resource type),
 convert back to native and persist, then serialize with

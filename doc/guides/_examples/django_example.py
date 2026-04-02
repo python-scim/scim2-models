@@ -84,7 +84,7 @@ def handler404(request, exception):
 # -- single-resource-start --
 @method_decorator(csrf_exempt, name="dispatch")
 class UserView(View):
-    """Handle GET, PATCH and DELETE on one SCIM user resource."""
+    """Handle GET, PUT, PATCH and DELETE on one SCIM user resource."""
 
     def get(self, request, app_record):
         try:
@@ -104,6 +104,31 @@ class UserView(View):
     def delete(self, request, app_record):
         delete_record(app_record["id"])
         return scim_response("", HTTPStatus.NO_CONTENT)
+
+    def put(self, request, app_record):
+        existing_user = to_scim_user(app_record)
+        try:
+            replacement = User.model_validate(
+                json.loads(request.body),
+                scim_ctx=Context.RESOURCE_REPLACEMENT_REQUEST,
+                original=existing_user,
+            )
+        except ValidationError as error:
+            return scim_validation_error(error)
+
+        replacement.id = existing_user.id
+        updated_record = from_scim_user(replacement)
+        try:
+            save_record(updated_record)
+        except ValueError as error:
+            return scim_uniqueness_error(error)
+
+        response_user = to_scim_user(updated_record)
+        return scim_response(
+            response_user.model_dump_json(
+                scim_ctx=Context.RESOURCE_REPLACEMENT_RESPONSE
+            )
+        )
 
     def patch(self, request, app_record):
         try:

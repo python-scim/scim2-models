@@ -78,6 +78,17 @@ def test_flask_example_smoke():
     assert duplicate_response.status_code == 409
     assert duplicate_response.get_json()["scimType"] == "uniqueness"
 
+    put_response = client.put(
+        f"/scim/v2/Users/{user_id}",
+        json={
+            "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+            "userName": "bjensen@example.com",
+            "displayName": "Barbara J.",
+        },
+    )
+    assert put_response.status_code == 200
+    assert put_response.get_json()["displayName"] == "Barbara J."
+
 
 def test_django_example_smoke():
     from django.conf import settings
@@ -166,3 +177,17 @@ def test_django_example_smoke():
         )
         assert duplicate_response.status_code == 409
         assert json.loads(duplicate_response.content)["scimType"] == "uniqueness"
+
+        put_response = client.put(
+            f"/scim/v2/Users/{user_id}",
+            data=json.dumps(
+                {
+                    "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+                    "userName": "bjensen@example.com",
+                    "displayName": "Barbara J.",
+                }
+            ),
+            content_type="application/scim+json",
+        )
+        assert put_response.status_code == 200
+        assert json.loads(put_response.content)["displayName"] == "Barbara J."

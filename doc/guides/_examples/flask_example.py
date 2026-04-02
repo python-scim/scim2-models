@@ -119,6 +119,31 @@ def patch_user(app_record):
 # -- patch-user-end --
 
 
+# -- put-user-start --
+@bp.put("/Users/<user:app_record>")
+def replace_user(app_record):
+    """Replace an existing user with a full SCIM resource."""
+    existing_user = to_scim_user(app_record)
+    replacement = User.model_validate(
+        request.get_json(),
+        scim_ctx=Context.RESOURCE_REPLACEMENT_REQUEST,
+        original=existing_user,
+    )
+
+    replacement.id = existing_user.id
+    updated_record = from_scim_user(replacement)
+    save_record(updated_record)
+
+    response_user = to_scim_user(updated_record)
+    return (
+        response_user.model_dump_json(
+            scim_ctx=Context.RESOURCE_REPLACEMENT_RESPONSE
+        ),
+        HTTPStatus.OK,
+    )
+# -- put-user-end --
+
+
 # -- delete-user-start --
 @bp.delete("/Users/<user:app_record>")
 def delete_user(app_record):
