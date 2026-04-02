@@ -2,7 +2,16 @@
 
 from uuid import uuid4
 
+from scim2_models import AuthenticationScheme
+from scim2_models import Bulk
+from scim2_models import ChangePassword
+from scim2_models import ETag
+from scim2_models import Filter
 from scim2_models import Meta
+from scim2_models import Patch
+from scim2_models import ResourceType
+from scim2_models import ServiceProviderConfig
+from scim2_models import Sort
 from scim2_models import User
 
 # -- storage-start --
@@ -58,3 +67,35 @@ def from_scim_user(scim_user):
         "email": scim_user.emails[0].value if scim_user.emails else None,
     }
 # -- mapping-end --
+
+
+# -- discovery-start --
+RESOURCE_MODELS = [User]
+
+
+def get_schemas():
+    """Return a :class:`~scim2_models.Schema` for every resource the server exposes."""
+    return [model.to_schema() for model in RESOURCE_MODELS]
+
+
+def get_resource_types():
+    """Return a :class:`~scim2_models.ResourceType` for every resource the server exposes."""
+    return [ResourceType.from_resource(model) for model in RESOURCE_MODELS]
+
+
+service_provider_config = ServiceProviderConfig(
+    patch=Patch(supported=True),
+    bulk=Bulk(supported=False, max_operations=0, max_payload_size=0),
+    filter=Filter(supported=False, max_results=0),
+    change_password=ChangePassword(supported=False),
+    sort=Sort(supported=False),
+    etag=ETag(supported=False),
+    authentication_schemes=[
+        AuthenticationScheme(
+            type=AuthenticationScheme.Type.httpbasic,
+            name="HTTP Basic",
+            description="Authentication via HTTP Basic",
+        ),
+    ],
+)
+# -- discovery-end --

@@ -13,7 +13,9 @@ from scim2_models import Context
 from scim2_models import Error
 from scim2_models import ListResponse
 from scim2_models import PatchOp
+from scim2_models import ResourceType
 from scim2_models import ResponseParameters
+from scim2_models import Schema
 from scim2_models import SearchRequest
 from scim2_models import UniquenessException
 from scim2_models import User
@@ -21,8 +23,11 @@ from scim2_models import User
 from .integrations import delete_record
 from .integrations import from_scim_user
 from .integrations import get_record
+from .integrations import get_resource_types
+from .integrations import get_schemas
 from .integrations import list_records
 from .integrations import save_record
+from .integrations import service_provider_config
 from .integrations import to_scim_user
 
 # -- setup-start --
@@ -209,4 +214,116 @@ urlpatterns = [
     path("scim/v2/Users/<user:app_record>", UserView.as_view(), name="scim_user"),
 ]
 # -- collection-end --
+
+
+# -- discovery-start --
+# -- schemas-start --
+class SchemasView(View):
+    """Handle GET on the SCIM schemas collection."""
+
+    def get(self, request):
+        try:
+            req = SearchRequest.model_validate(request.GET.dict())
+        except ValidationError as error:
+            return scim_validation_error(error)
+
+        all_schemas = get_schemas()
+        page = all_schemas[req.start_index_0 : req.stop_index_0]
+        response = ListResponse[Schema](
+            total_results=len(all_schemas),
+            start_index=req.start_index or 1,
+            items_per_page=len(page),
+            resources=page,
+        )
+        return scim_response(
+            response.model_dump_json(scim_ctx=Context.RESOURCE_QUERY_RESPONSE)
+        )
+
+
+class SchemaView(View):
+    """Handle GET on a single SCIM schema."""
+
+    def get(self, request, schema_id):
+        for schema in get_schemas():
+            if schema.id == schema_id:
+                return scim_response(
+                    schema.model_dump_json(scim_ctx=Context.RESOURCE_QUERY_RESPONSE)
+                )
+        scim_error = Error(status=404, detail=f"Schema {schema_id!r} not found")
+        return scim_response(scim_error.model_dump_json(), HTTPStatus.NOT_FOUND)
+# -- schemas-end --
+
+
+# -- resource-types-start --
+class ResourceTypesView(View):
+    """Handle GET on the SCIM resource types collection."""
+
+    def get(self, request):
+        try:
+            req = SearchRequest.model_validate(request.GET.dict())
+        except ValidationError as error:
+            return scim_validation_error(error)
+
+        all_resource_types = get_resource_types()
+        page = all_resource_types[req.start_index_0 : req.stop_index_0]
+        response = ListResponse[ResourceType](
+            total_results=len(all_resource_types),
+            start_index=req.start_index or 1,
+            items_per_page=len(page),
+            resources=page,
+        )
+        return scim_response(
+            response.model_dump_json(scim_ctx=Context.RESOURCE_QUERY_RESPONSE)
+        )
+
+
+class ResourceTypeView(View):
+    """Handle GET on a single SCIM resource type."""
+
+    def get(self, request, resource_type_id):
+        for rt in get_resource_types():
+            if rt.id == resource_type_id:
+                return scim_response(
+                    rt.model_dump_json(scim_ctx=Context.RESOURCE_QUERY_RESPONSE)
+                )
+        scim_error = Error(
+            status=404, detail=f"ResourceType {resource_type_id!r} not found"
+        )
+        return scim_response(scim_error.model_dump_json(), HTTPStatus.NOT_FOUND)
+# -- resource-types-end --
+
+
+# -- service-provider-config-start --
+class ServiceProviderConfigView(View):
+    """Handle GET on the SCIM service provider configuration."""
+
+    def get(self, request):
+        return scim_response(
+            service_provider_config.model_dump_json(
+                scim_ctx=Context.RESOURCE_QUERY_RESPONSE
+            )
+        )
+# -- service-provider-config-end --
+
+
+discovery_urlpatterns = [
+    path("scim/v2/Schemas", SchemasView.as_view(), name="scim_schemas"),
+    path("scim/v2/Schemas/<path:schema_id>", SchemaView.as_view(), name="scim_schema"),
+    path(
+        "scim/v2/ResourceTypes",
+        ResourceTypesView.as_view(),
+        name="scim_resource_types",
+    ),
+    path(
+        "scim/v2/ResourceTypes/<resource_type_id>",
+        ResourceTypeView.as_view(),
+        name="scim_resource_type",
+    ),
+    path(
+        "scim/v2/ServiceProviderConfig",
+        ServiceProviderConfigView.as_view(),
+        name="scim_service_provider_config",
+    ),
+]
+# -- discovery-end --
 # -- endpoints-end --
