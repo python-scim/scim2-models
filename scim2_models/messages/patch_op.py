@@ -52,26 +52,21 @@ class PatchOperation(ComplexAttribute, Generic[ResourceT]):
     def _validate_mutability(
         self, resource_class: type[Resource[Any]], field_name: str
     ) -> None:
-        """Validate mutability constraints."""
-        # RFC 7644 Section 3.5.2: "Servers should be tolerant of schema extensions"
+        """Validate mutability constraints at parse-time.
+
+        Only :attr:`~scim2_models.Mutability.read_only` is validated here.
+        :attr:`~scim2_models.Mutability.immutable` validation requires access
+        to the resource instance and is enforced at runtime in
+        :meth:`PatchOp._check_immutable`.
+        """
         if field_name not in resource_class.model_fields:
             return
 
         mutability = resource_class.get_field_annotation(field_name, Mutability)
 
-        # RFC 7643 Section 7: "Attributes with mutability 'readOnly' SHALL NOT be modified"
-        if mutability == Mutability.read_only and self.op in (
-            PatchOperation.Op.add,
-            PatchOperation.Op.replace_,
-        ):
+        if mutability == Mutability.read_only:
             raise MutabilityException(
                 attribute=field_name, mutability="readOnly", operation=self.op.value
-            ).as_pydantic_error()
-
-        # RFC 7643 Section 7: "Attributes with mutability 'immutable' SHALL NOT be updated"
-        if mutability == Mutability.immutable and self.op == PatchOperation.Op.replace_:
-            raise MutabilityException(
-                attribute=field_name, mutability="immutable", operation=self.op.value
             ).as_pydantic_error()
 
     def _validate_required_attribute(
@@ -284,13 +279,64 @@ class PatchOp(Message, Generic[ResourceT]):
         """Apply a single patch operation to a resource.
 
         :return: :data:`True` if the resource was modified, else :data:`False`.
+        :raises MutabilityException: If the operation would modify an
+            immutable attribute.
         """
+        if operation.path is not None:
+            self._check_immutable(resource, operation)
+
         if operation.op in (PatchOperation.Op.add, PatchOperation.Op.replace_):
             return self._apply_add_replace(resource, operation)
         if operation.op == PatchOperation.Op.remove:
             return self._apply_remove(resource, operation)
 
         raise InvalidValueException(detail=f"unsupported operation: {operation.op}")
+
+    def _check_immutable(
+        self, resource: Resource[Any], operation: PatchOperation[ResourceT]
+    ) -> None:
+        """Validate immutable constraints at runtime.
+
+        :rfc:`RFC 7644 §3.5.2 <7644#section-3.5.2>`:
+
+            *"A client MUST NOT modify an attribute that has mutability
+            "readOnly" or "immutable".  However, a client MAY "add" a value
+            to an "immutable" attribute if the attribute had no previous
+            value."*
+
+        An operation is considered a no-op (and thus allowed) when it would
+        not effectively change the resource state: ``remove`` on an unset
+        field, or ``replace`` with the current value.
+        """
+        resource_class = type(resource)
+        assert operation.path is not None
+        field_name = operation.path.parts[0] if operation.path.parts else None
+        if field_name is None or field_name not in resource_class.model_fields:
+            return
+
+        mutability = resource_class.get_field_annotation(field_name, Mutability)
+        if mutability != Mutability.immutable:
+            return
+
+        current_value = getattr(resource, field_name, None)
+
+        if operation.op == PatchOperation.Op.add and current_value is None:
+            return
+
+        if operation.op == PatchOperation.Op.remove and current_value is None:
+            return
+
+        if (
+            operation.op == PatchOperation.Op.replace_
+            and operation.value == current_value
+        ):
+            return
+
+        raise MutabilityException(
+            attribute=field_name,
+            mutability="immutable",
+            operation=operation.op.value,
+        )
 
     def _apply_add_replace(
         self, resource: Resource[Any], operation: PatchOperation[ResourceT]

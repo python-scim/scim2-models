@@ -1,9 +1,9 @@
 from typing import Annotated
 
 import pytest
-from pydantic import ValidationError
 
 from scim2_models import URN
+from scim2_models import MutabilityException
 from scim2_models import PatchOp
 from scim2_models import PatchOperation
 from scim2_models import User
@@ -205,21 +205,23 @@ def test_replace_operation_with_non_dict_value_no_path():
 
 
 def test_immutable_field():
-    """Test that replace operations on immutable fields raise validation errors."""
+    """Test that replace operations on immutable fields raise mutability errors."""
 
     class Dummy(Resource):
         __schema__ = URN("urn:test:TestResource")
 
         immutable: Annotated[str, Mutability.immutable]
 
-    with pytest.raises(ValidationError, match="mutability"):
-        PatchOp[Dummy](
-            operations=[
-                PatchOperation[Dummy](
-                    op=PatchOperation.Op.replace_, path="immutable", value="new_value"
-                )
-            ]
-        )
+    resource = Dummy.model_construct(immutable="original")
+    patch = PatchOp[Dummy](
+        operations=[
+            PatchOperation[Dummy](
+                op=PatchOperation.Op.replace_, path="immutable", value="new_value"
+            )
+        ]
+    )
+    with pytest.raises(MutabilityException):
+        patch.patch(resource)
 
 
 def test_primary_auto_exclusion_on_add():
