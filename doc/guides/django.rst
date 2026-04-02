@@ -144,6 +144,57 @@ The ``urlpatterns`` list wires both views to their routes.
    :start-after: # -- collection-start --
    :end-before: # -- collection-end --
 
+Discovery endpoints
+===================
+
+SCIM defines three read-only endpoints that let clients discover the server's capabilities
+and the resources it exposes (:rfc:`RFC 7644 §4 <7644#section-4>`).
+The shared :ref:`discovery helpers <discovery-helpers>` that build
+:class:`~scim2_models.Schema`, :class:`~scim2_models.ResourceType` and
+:class:`~scim2_models.ServiceProviderConfig` objects are defined in the :doc:`index` section.
+
+GET /Schemas and GET /Schemas/<id>
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Return all :class:`~scim2_models.Schema` objects or look one up by its URI.
+Schemas are built automatically from resource models with
+:meth:`~scim2_models.Resource.to_schema`.
+The collection endpoint parses pagination parameters with
+:class:`~scim2_models.SearchRequest`, following the same pattern as ``GET /Users``.
+
+.. literalinclude:: _examples/django_example.py
+   :language: python
+   :start-after: # -- schemas-start --
+   :end-before: # -- schemas-end --
+
+GET /ResourceTypes and GET /ResourceTypes/<id>
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Return all :class:`~scim2_models.ResourceType` objects or look one up by its identifier.
+Resource types are built automatically from resource models with
+:meth:`~scim2_models.ResourceType.from_resource`.
+The collection endpoint parses pagination parameters with
+:class:`~scim2_models.SearchRequest`, following the same pattern as ``GET /Users``.
+
+.. literalinclude:: _examples/django_example.py
+   :language: python
+   :start-after: # -- resource-types-start --
+   :end-before: # -- resource-types-end --
+
+GET /ServiceProviderConfig
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Return the :class:`~scim2_models.ServiceProviderConfig` singleton that describes the
+features the server supports (patch, bulk, filtering, etc.).
+
+.. literalinclude:: _examples/django_example.py
+   :language: python
+   :start-after: # -- service-provider-config-start --
+   :end-before: # -- service-provider-config-end --
+
+The ``discovery_urlpatterns`` list wires the discovery views to their routes.
+Merge it with the resource ``urlpatterns`` in your root URLconf.
+
 Complete example
 ================
 

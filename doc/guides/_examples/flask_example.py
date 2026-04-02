@@ -10,7 +10,9 @@ from scim2_models import Context
 from scim2_models import Error
 from scim2_models import ListResponse
 from scim2_models import PatchOp
+from scim2_models import ResourceType
 from scim2_models import ResponseParameters
+from scim2_models import Schema
 from scim2_models import SearchRequest
 from scim2_models import UniquenessException
 from scim2_models import User
@@ -18,8 +20,11 @@ from scim2_models import User
 from .integrations import delete_record
 from .integrations import from_scim_user
 from .integrations import get_record
+from .integrations import get_resource_types
+from .integrations import get_schemas
 from .integrations import list_records
 from .integrations import save_record
+from .integrations import service_provider_config
 from .integrations import to_scim_user
 
 # -- setup-start --
@@ -198,4 +203,87 @@ def create_user():
     )
 # -- create-user-end --
 # -- collection-end --
+
+
+# -- discovery-start --
+# -- schemas-start --
+@bp.get("/Schemas")
+def list_schemas():
+    """Return one page of SCIM schemas the server exposes."""
+    req = SearchRequest.model_validate(request.args.to_dict())
+    all_schemas = get_schemas()
+    page = all_schemas[req.start_index_0 : req.stop_index_0]
+    response = ListResponse[Schema](
+        total_results=len(all_schemas),
+        start_index=req.start_index or 1,
+        items_per_page=len(page),
+        resources=page,
+    )
+    return (
+        response.model_dump_json(scim_ctx=Context.RESOURCE_QUERY_RESPONSE),
+        HTTPStatus.OK,
+    )
+
+
+@bp.get("/Schemas/<path:schema_id>")
+def get_schema(schema_id):
+    """Return one SCIM schema by its URI identifier."""
+    for schema in get_schemas():
+        if schema.id == schema_id:
+            return (
+                schema.model_dump_json(scim_ctx=Context.RESOURCE_QUERY_RESPONSE),
+                HTTPStatus.OK,
+            )
+    scim_error = Error(status=404, detail=f"Schema {schema_id!r} not found")
+    return scim_error.model_dump_json(), HTTPStatus.NOT_FOUND
+# -- schemas-end --
+
+
+# -- resource-types-start --
+@bp.get("/ResourceTypes")
+def list_resource_types():
+    """Return one page of SCIM resource types the server exposes."""
+    req = SearchRequest.model_validate(request.args.to_dict())
+    all_resource_types = get_resource_types()
+    page = all_resource_types[req.start_index_0 : req.stop_index_0]
+    response = ListResponse[ResourceType](
+        total_results=len(all_resource_types),
+        start_index=req.start_index or 1,
+        items_per_page=len(page),
+        resources=page,
+    )
+    return (
+        response.model_dump_json(scim_ctx=Context.RESOURCE_QUERY_RESPONSE),
+        HTTPStatus.OK,
+    )
+
+
+@bp.get("/ResourceTypes/<resource_type_id>")
+def get_resource_type(resource_type_id):
+    """Return one SCIM resource type by its identifier."""
+    for rt in get_resource_types():
+        if rt.id == resource_type_id:
+            return (
+                rt.model_dump_json(scim_ctx=Context.RESOURCE_QUERY_RESPONSE),
+                HTTPStatus.OK,
+            )
+    scim_error = Error(
+        status=404, detail=f"ResourceType {resource_type_id!r} not found"
+    )
+    return scim_error.model_dump_json(), HTTPStatus.NOT_FOUND
+# -- resource-types-end --
+
+
+# -- service-provider-config-start --
+@bp.get("/ServiceProviderConfig")
+def get_service_provider_config():
+    """Return the SCIM service provider configuration."""
+    return (
+        service_provider_config.model_dump_json(
+            scim_ctx=Context.RESOURCE_QUERY_RESPONSE
+        ),
+        HTTPStatus.OK,
+    )
+# -- service-provider-config-end --
+# -- discovery-end --
 # -- endpoints-end --

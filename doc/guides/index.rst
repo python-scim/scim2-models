@@ -36,6 +36,25 @@ This separation keeps the HTTP layer simple.
 The views work with SCIM resources, while the rest of the application can keep its own
 representation.
 
+.. _discovery-helpers:
+
+Server discovery
+----------------
+
+SCIM clients discover the server capabilities by querying three read-only endpoints:
+``/Schemas``, ``/ResourceTypes`` and ``/ServiceProviderConfig``
+(:rfc:`RFC 7644 §4 <7644#section-4>`).
+The helpers below build :class:`~scim2_models.Schema` and
+:class:`~scim2_models.ResourceType` objects from the resource models your server exposes,
+and define a :class:`~scim2_models.ServiceProviderConfig` describing the server's
+capabilities.
+
+.. literalinclude:: _examples/integrations.py
+   :language: python
+   :caption: Server discovery helpers
+   :start-after: # -- discovery-start --
+   :end-before: # -- discovery-end --
+
 Web frameworks
 --------------
 
