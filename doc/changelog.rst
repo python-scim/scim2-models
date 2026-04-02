@@ -1,6 +1,13 @@
 Changelog
 =========
 
+[0.6.8] - Unreleased
+--------------------
+
+Fixed
+^^^^^
+- PATCH operations on :attr:`~scim2_models.Mutability.immutable` fields are now validated at runtime per :rfc:`RFC 7644 §3.5.2 <7644#section-3.5.2>`: ``add`` is only allowed when the field has no previous value, ``replace`` is only allowed with the same value, and ``remove`` is only allowed on unset fields.
+
 [0.6.7] - 2026-04-02
 --------------------
 

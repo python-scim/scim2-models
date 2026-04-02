@@ -1,3 +1,4 @@
+from typing import Annotated
 from typing import TypeVar
 
 import pytest
@@ -6,11 +7,17 @@ from pydantic import ValidationError
 from scim2_models import Group
 from scim2_models import InvalidPathException
 from scim2_models import InvalidValueException
+from scim2_models import Mutability
+from scim2_models import MutabilityException
 from scim2_models import PatchOp
 from scim2_models import PatchOperation
 from scim2_models import User
 from scim2_models.base import Context
 from scim2_models.resources.resource import Resource
+
+
+class ImmutableFieldResource(Resource):
+    locked: Annotated[str | None, Mutability.immutable] = None
 
 
 def test_patch_op_add_invalid_extension_path():
@@ -257,9 +264,8 @@ def test_validate_mutability_readonly_error():
         )
 
 
-def test_validate_mutability_immutable_error():
-    """Test mutability validation error for immutable attributes."""
-    # Test replace operation on immutable field within groups complex attribute
+def test_validate_mutability_readonly_replace_via_complex_path():
+    """Replacing a readOnly complex attribute path is rejected."""
     with pytest.raises(ValidationError, match="mutability"):
         PatchOp[User].model_validate(
             {
@@ -275,9 +281,83 @@ def test_validate_mutability_immutable_error():
         )
 
 
+def test_patch_remove_on_immutable_field_with_value_is_rejected():
+    """Removing an existing immutable attribute via PATCH is rejected."""
+    resource = ImmutableFieldResource.model_construct(locked="existing")
+    patch_op = PatchOp[ImmutableFieldResource].model_validate(
+        {"operations": [{"op": "remove", "path": "locked"}]},
+        context={"scim": Context.RESOURCE_PATCH_REQUEST},
+    )
+    with pytest.raises(MutabilityException):
+        patch_op.patch(resource)
+
+
+def test_patch_remove_on_immutable_field_without_value_is_allowed():
+    """Removing an unset immutable attribute is a no-op and is allowed."""
+    resource = ImmutableFieldResource.model_construct()
+    patch_op = PatchOp[ImmutableFieldResource].model_validate(
+        {"operations": [{"op": "remove", "path": "locked"}]},
+        context={"scim": Context.RESOURCE_PATCH_REQUEST},
+    )
+    patch_op.patch(resource)
+    assert resource.locked is None
+
+
+def test_patch_add_on_immutable_field_with_existing_value_is_rejected():
+    """Adding to an immutable attribute that already has a value is rejected."""
+    resource = ImmutableFieldResource.model_construct(locked="existing")
+    patch_op = PatchOp[ImmutableFieldResource].model_validate(
+        {"operations": [{"op": "add", "path": "locked", "value": "new"}]},
+        context={"scim": Context.RESOURCE_PATCH_REQUEST},
+    )
+    with pytest.raises(MutabilityException):
+        patch_op.patch(resource)
+
+
+def test_patch_add_on_immutable_field_without_value_is_allowed():
+    """Adding to an immutable attribute with no previous value is allowed per RFC 7644."""
+    resource = ImmutableFieldResource.model_construct()
+    patch_op = PatchOp[ImmutableFieldResource].model_validate(
+        {"operations": [{"op": "add", "path": "locked", "value": "initial"}]},
+        context={"scim": Context.RESOURCE_PATCH_REQUEST},
+    )
+    patch_op.patch(resource)
+    assert resource.locked == "initial"
+
+
+def test_patch_replace_on_immutable_field_with_different_value_is_rejected():
+    """Replacing an immutable attribute with a different value is rejected."""
+    resource = ImmutableFieldResource.model_construct(locked="existing")
+    patch_op = PatchOp[ImmutableFieldResource].model_validate(
+        {"operations": [{"op": "replace", "path": "locked", "value": "other"}]},
+        context={"scim": Context.RESOURCE_PATCH_REQUEST},
+    )
+    with pytest.raises(MutabilityException):
+        patch_op.patch(resource)
+
+
+def test_patch_replace_on_immutable_field_with_same_value_is_allowed():
+    """Replacing an immutable attribute with its current value is a no-op and is allowed."""
+    resource = ImmutableFieldResource.model_construct(locked="existing")
+    patch_op = PatchOp[ImmutableFieldResource].model_validate(
+        {"operations": [{"op": "replace", "path": "locked", "value": "existing"}]},
+        context={"scim": Context.RESOURCE_PATCH_REQUEST},
+    )
+    patch_op.patch(resource)
+    assert resource.locked == "existing"
+
+
+def test_patch_remove_on_readonly_field_is_rejected():
+    """Removing a readOnly attribute via PATCH is rejected per RFC 7643 §7."""
+    with pytest.raises(ValidationError, match="mutability"):
+        PatchOp[User].model_validate(
+            {"operations": [{"op": "remove", "path": "id"}]},
+            context={"scim": Context.RESOURCE_PATCH_REQUEST},
+        )
+
+
 def test_patch_validation_allows_unknown_fields():
-    """Test that patch validation allows unknown fields in operations."""
-    # This should not raise an error even though 'unknownField' doesn't exist on User
+    """Patch operations on unknown fields pass without mutability checks."""
     patch_op = PatchOp[User].model_validate(
         {
             "operations": [
@@ -290,9 +370,8 @@ def test_patch_validation_allows_unknown_fields():
     assert patch_op.operations[0].path == "unknownField"
 
 
-def test_non_replace_operations_on_immutable_fields_allowed():
-    """Test that non-replace operations on immutable fields are allowed."""
-    # Test with non-immutable fields since groups.value is immutable
+def test_patch_operations_on_readwrite_fields_allowed():
+    """All patch operations are allowed on readWrite fields."""
     patch_op = PatchOp[User].model_validate(
         {
             "operations": [
