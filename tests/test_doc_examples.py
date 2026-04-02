@@ -4,6 +4,7 @@ import pytest
 
 flask = pytest.importorskip("flask")
 django = pytest.importorskip("django")
+fastapi = pytest.importorskip("fastapi")
 
 
 def create_flask_app():
@@ -191,3 +192,81 @@ def test_django_example_smoke():
         )
         assert put_response.status_code == 200
         assert json.loads(put_response.content)["displayName"] == "Barbara J."
+
+
+def test_fastapi_example_smoke():
+    from doc.guides._examples import integrations
+
+    integrations.records.clear()
+
+    from starlette.testclient import TestClient
+
+    from doc.guides._examples.fastapi_example import app
+
+    client = TestClient(app)
+
+    create_response = client.post(
+        "/scim/v2/Users",
+        json={
+            "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+            "userName": "bjensen@example.com",
+            "displayName": "Barbara Jensen",
+            "active": True,
+            "emails": [{"value": "bjensen@example.com"}],
+        },
+    )
+    assert create_response.status_code == 201
+    assert create_response.headers["Content-Type"] == "application/scim+json"
+    user_id = create_response.json()["id"]
+
+    get_response = client.get(f"/scim/v2/Users/{user_id}")
+    assert get_response.status_code == 200
+    assert get_response.json()["userName"] == "bjensen@example.com"
+
+    patch_response = client.patch(
+        f"/scim/v2/Users/{user_id}",
+        json={
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+            "Operations": [{"op": "replace", "path": "displayName", "value": "Babs"}],
+        },
+    )
+    assert patch_response.status_code == 200
+    assert patch_response.json()["displayName"] == "Babs"
+
+    list_response = client.get("/scim/v2/Users?startIndex=1&count=1")
+    assert list_response.status_code == 200
+    assert list_response.json()["totalResults"] == 1
+
+    get_attributes_response = client.get(
+        f"/scim/v2/Users/{user_id}?attributes=userName"
+    )
+    assert get_attributes_response.status_code == 200
+    assert "userName" in get_attributes_response.json()
+    assert "displayName" not in get_attributes_response.json()
+
+    list_attributes_response = client.get("/scim/v2/Users?attributes=userName")
+    assert list_attributes_response.status_code == 200
+    resources = list_attributes_response.json()["Resources"]
+    assert "userName" in resources[0]
+    assert "displayName" not in resources[0]
+
+    duplicate_response = client.post(
+        "/scim/v2/Users",
+        json={
+            "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+            "userName": "bjensen@example.com",
+        },
+    )
+    assert duplicate_response.status_code == 409
+    assert duplicate_response.json()["scimType"] == "uniqueness"
+
+    put_response = client.put(
+        f"/scim/v2/Users/{user_id}",
+        json={
+            "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+            "userName": "bjensen@example.com",
+            "displayName": "Barbara J.",
+        },
+    )
+    assert put_response.status_code == 200
+    assert put_response.json()["displayName"] == "Barbara J."
