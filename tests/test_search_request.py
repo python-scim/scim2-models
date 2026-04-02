@@ -185,6 +185,27 @@ def test_search_request_complex_paths_allowed():
     assert len(request.attributes) == 3
 
 
+def test_comma_separated_attributes():
+    """SearchRequest accepts comma-separated strings for attributes."""
+    req = SearchRequest.model_validate({"attributes": "userName,displayName"})
+    assert req.attributes == ["userName", "displayName"]
+
+    req = SearchRequest.model_validate({"excludedAttributes": "password, phoneNumbers"})
+    assert req.excluded_attributes == ["password", "phoneNumbers"]
+
+
+def test_comma_separated_single_attribute():
+    """A single attribute value without comma is accepted as-is."""
+    req = SearchRequest.model_validate({"attributes": "userName"})
+    assert req.attributes == ["userName"]
+
+
+def test_comma_separated_empty_string():
+    """An empty string produces an empty list."""
+    req = SearchRequest.model_validate({"attributes": ""})
+    assert req.attributes == []
+
+
 def test_search_request_empty_lists():
     """Test that empty attribute lists are handled correctly."""
     valid_data = {

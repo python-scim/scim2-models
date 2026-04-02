@@ -2,29 +2,17 @@ from enum import Enum
 from typing import Any
 
 from pydantic import field_validator
-from pydantic import model_validator
 
 from ..path import URN
 from ..path import Path
 from .message import Message
+from .response_parameters import ResponseParameters
 
 
-class SearchRequest(Message):
-    """SearchRequest object defined at RFC7644.
-
-    https://datatracker.ietf.org/doc/html/rfc7644#section-3.4.3
-    """
+class SearchRequest(Message, ResponseParameters):
+    """SearchRequest object defined at :rfc:`RFC7644 §3.4.3 <7644#section-3.4.3>`."""
 
     __schema__ = URN("urn:ietf:params:scim:api:messages:2.0:SearchRequest")
-
-    attributes: list[Path[Any]] | None = None
-    """A multi-valued list of strings indicating the names of resource
-    attributes to return in the response, overriding the set of attributes that
-    would be returned by default."""
-
-    excluded_attributes: list[Path[Any]] | None = None
-    """A multi-valued list of strings indicating the names of resource
-    attributes to be removed from the default set of attributes to return."""
 
     filter: str | None = None
     """The filter string used to request a subset of resources."""
@@ -65,15 +53,6 @@ class SearchRequest(Message):
         A negative value SHALL be interpreted as 0.
         """
         return None if value is None else max(0, value)
-
-    @model_validator(mode="after")
-    def attributes_validator(self) -> "SearchRequest":
-        if self.attributes and self.excluded_attributes:
-            raise ValueError(
-                "'attributes' and 'excluded_attributes' are mutually exclusive"
-            )
-
-        return self
 
     @property
     def start_index_0(self) -> int | None:

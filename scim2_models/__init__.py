@@ -27,6 +27,7 @@ from .messages.list_response import ListResponse
 from .messages.message import Message
 from .messages.patch_op import PatchOp
 from .messages.patch_op import PatchOperation
+from .messages.response_parameters import ResponseParameters
 from .messages.search_request import SearchRequest
 from .path import URN
 from .path import Path
@@ -121,6 +122,7 @@ __all__ = [
     "Required",
     "Resource",
     "ResourceType",
+    "ResponseParameters",
     "Returned",
     "Role",
     "SCIMException",

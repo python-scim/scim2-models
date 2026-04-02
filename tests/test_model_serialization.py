@@ -195,16 +195,15 @@ def test_invalid_attributes():
     """Test that invalid attributes are ignored per RFC 7644 recommendation."""
     resource = SupRetResource(id="id", always_returned="x", default_returned="x")
 
-    # Invalid attributes should be ignored, not raise errors
+    # Invalid attributes should be silently ignored: no match means only
+    # Returned.always attributes remain.
     result = resource.model_dump(
         scim_ctx=Context.RESOURCE_QUERY_RESPONSE, attributes={"invalidAttribute"}
     )
-    # Should return default response (alwaysReturned attributes)
     assert result == {
         "schemas": ["urn:org:example:SupRetResource"],
         "id": "id",
         "alwaysReturned": "x",
-        "defaultReturned": "x",
     }
 
     result = resource.model_dump(
@@ -215,7 +214,6 @@ def test_invalid_attributes():
         "schemas": ["urn:org:example:SupRetResource"],
         "id": "id",
         "alwaysReturned": "x",
-        "defaultReturned": "x",
     }
 
     result = resource.model_dump(
@@ -226,7 +224,6 @@ def test_invalid_attributes():
         "schemas": ["urn:org:example:SupRetResource"],
         "id": "id",
         "alwaysReturned": "x",
-        "defaultReturned": "x",
     }
 
 

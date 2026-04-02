@@ -1,4 +1,5 @@
 from collections.abc import Callable
+from typing import TYPE_CHECKING
 from typing import Annotated
 from typing import Any
 from typing import Union
@@ -15,9 +16,18 @@ from ..scim_object import ScimMetaclass
 from ..scim_object import ScimObject
 from ..utils import UNION_TYPES
 
+if TYPE_CHECKING:
+    from pydantic import FieldSerializationInfo
+
 
 class Message(ScimObject):
     """SCIM protocol messages as defined by :rfc:`RFC7644 §3.1 <7644#section-3.1>`."""
+
+    def _scim_response_serializer(
+        self, value: Any, info: "FieldSerializationInfo"
+    ) -> Any:
+        """Message fields are not subject to attribute filtering."""
+        return value
 
 
 def _create_schema_discriminator(

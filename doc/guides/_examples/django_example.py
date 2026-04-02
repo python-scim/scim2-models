@@ -13,6 +13,7 @@ from scim2_models import Context
 from scim2_models import Error
 from scim2_models import ListResponse
 from scim2_models import PatchOp
+from scim2_models import ResponseParameters
 from scim2_models import SearchRequest
 from scim2_models import UniquenessException
 from scim2_models import User
@@ -86,9 +87,18 @@ class UserView(View):
     """Handle GET, PATCH and DELETE on one SCIM user resource."""
 
     def get(self, request, app_record):
+        try:
+            req = ResponseParameters.model_validate(request.GET.dict())
+        except ValidationError as error:
+            return scim_validation_error(error)
+
         scim_user = to_scim_user(app_record)
         return scim_response(
-            scim_user.model_dump_json(scim_ctx=Context.RESOURCE_QUERY_RESPONSE)
+            scim_user.model_dump_json(
+                scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
+                attributes=req.attributes,
+                excluded_attributes=req.excluded_attributes,
+            )
         )
 
     def delete(self, request, app_record):
@@ -126,9 +136,10 @@ class UsersView(View):
 
     def get(self, request):
         try:
-            req = SearchRequest.model_validate(request.GET)
+            req = SearchRequest.model_validate(request.GET.dict())
         except ValidationError as error:
             return scim_validation_error(error)
+
         all_records = list_records()
         page = all_records[req.start_index_0 : req.stop_index_0]
         resources = [to_scim_user(record) for record in page]
@@ -139,7 +150,11 @@ class UsersView(View):
             resources=resources,
         )
         return scim_response(
-            response.model_dump_json(scim_ctx=Context.RESOURCE_QUERY_RESPONSE)
+            response.model_dump_json(
+                scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
+                attributes=req.attributes,
+                excluded_attributes=req.excluded_attributes,
+            )
         )
 
     def post(self, request):

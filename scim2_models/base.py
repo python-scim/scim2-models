@@ -29,22 +29,71 @@ from scim2_models.utils import _normalize_attribute_name
 from scim2_models.utils import _to_camel
 
 
-def _is_attribute_requested(requested_urns: list[str], current_urn: str) -> bool:
-    """Check if an attribute should be included based on the requested URNs.
+def _short_attr_path(urn: str) -> str:
+    """Extract the short attribute path from a full URN.
+
+    For URNs like ``urn:...:User:userName``, returns ``userName``.
+    For URNs like ``urn:...:User:name.familyName``, returns ``name.familyName``.
+    For short names like ``userName``, returns ``userName`` as-is.
+    """
+    if ":" in urn:
+        return urn.rsplit(":", 1)[1]
+    return urn
+
+
+def _attr_matches(requested: str, current_urn: str) -> bool:
+    """Check if a single requested attribute matches the current field URN.
+
+    Supports short names (``userName``), dotted paths (``name.familyName``),
+    and full extension URNs. Handles parent/child relationships.
+    """
+    req_lower = requested.lower()
+
+    if ":" in requested:
+        current_lower = current_urn.lower()
+        return (
+            current_lower == req_lower
+            or req_lower.startswith(current_lower + ":")
+            or req_lower.startswith(current_lower + ".")
+            or current_lower.startswith(req_lower + ".")
+            or current_lower.startswith(req_lower + ":")
+        )
+
+    current_short = _short_attr_path(current_urn).lower()
+    return (
+        current_short == req_lower
+        or current_short.startswith(req_lower + ".")
+        or req_lower.startswith(current_short + ".")
+    )
+
+
+def _exact_attr_match(attrs: list[str], current_urn: str) -> bool:
+    """Check if current_urn exactly matches any entry in attrs (case-insensitive).
+
+    Used for ``excludedAttributes`` matching and :attr:`Returned.request` checking,
+    where parent/child relationship should not apply.
+    """
+    current_short = _short_attr_path(current_urn).lower()
+    for attr in attrs:
+        attr_lower = attr.lower()
+        if ":" in attr:
+            if current_urn.lower() == attr_lower:
+                return True
+        else:
+            if current_short == attr_lower:
+                return True
+    return False
+
+
+def _is_attribute_requested(requested_attrs: list[str], current_urn: str) -> bool:
+    """Check if an attribute should be included based on the requested attributes.
 
     Returns True if:
     - The current attribute is explicitly requested
     - A sub-attribute of the current attribute is requested
     - The current attribute is a sub-attribute of a requested attribute
     """
-    return (
-        current_urn in requested_urns
-        or any(
-            item.startswith(f"{current_urn}.") or item.startswith(f"{current_urn}:")
-            for item in requested_urns
-        )
-        or any(current_urn.startswith(f"{item}.") for item in requested_urns)
-    )
+    return any(_attr_matches(req, current_urn) for req in requested_attrs)
 
 
 class BaseModel(PydanticBaseModel):
@@ -459,7 +508,11 @@ class BaseModel(PydanticBaseModel):
             if not attr_type or not is_complex_attribute(attr_type):
                 continue
 
-            schema = f"{main_schema}{separator}{field_name}"
+            alias = (
+                self.__class__.model_fields[field_name].serialization_alias
+                or field_name
+            )
+            schema = f"{main_schema}{separator}{alias}"
 
             if attr_value := getattr(self, field_name):
                 if isinstance(attr_value, list):
@@ -517,28 +570,26 @@ class BaseModel(PydanticBaseModel):
         """Serialize the fields according to returnability indications passed in the serialization context."""
         returnability = self.get_field_annotation(info.field_name, Returned)
         attribute_urn = self.get_attribute_urn(info.field_name)
-        included_urns = info.context.get("scim_attributes", []) if info.context else []
-        excluded_urns = (
+        included_attrs = info.context.get("scim_attributes", []) if info.context else []
+        excluded_attrs = (
             info.context.get("scim_excluded_attributes", []) if info.context else []
         )
-
-        attribute_urn = _normalize_attribute_name(attribute_urn)
-        included_urns = [_normalize_attribute_name(urn) for urn in included_urns]
-        excluded_urns = [_normalize_attribute_name(urn) for urn in excluded_urns]
 
         if returnability == Returned.never:
             return None
 
         if returnability == Returned.default and (
             (
-                included_urns
-                and not _is_attribute_requested(included_urns, attribute_urn)
+                included_attrs
+                and not _is_attribute_requested(included_attrs, attribute_urn)
             )
-            or attribute_urn in excluded_urns
+            or _exact_attr_match(excluded_attrs, attribute_urn)
         ):
             return None
 
-        if returnability == Returned.request and attribute_urn not in included_urns:
+        if returnability == Returned.request and not _exact_attr_match(
+            included_attrs, attribute_urn
+        ):
             return None
 
         return value

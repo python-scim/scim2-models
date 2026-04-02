@@ -215,6 +215,118 @@ def test_list_response_schema_ordering():
     ListResponse[User[EnterpriseUser] | Group].model_validate(payload)
 
 
+def test_attributes_inclusion():
+    """ListResponse.model_dump propagates the 'attributes' parameter to embedded resources."""
+    response = ListResponse[User](
+        total_results=1,
+        resources=[
+            User(id="user-id", user_name="user-name", display_name="display-name")
+        ],
+    )
+    payload = response.model_dump(
+        scim_ctx=Context.RESOURCE_QUERY_RESPONSE, attributes=["userName"]
+    )
+    assert payload == {
+        "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
+        "totalResults": 1,
+        "Resources": [
+            {
+                "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+                "id": "user-id",
+                "userName": "user-name",
+            }
+        ],
+    }
+
+
+def test_excluded_attributes():
+    """ListResponse.model_dump propagates the 'excluded_attributes' parameter to embedded resources."""
+    response = ListResponse[User](
+        total_results=1,
+        resources=[
+            User(id="user-id", user_name="user-name", display_name="display-name")
+        ],
+    )
+    payload = response.model_dump(
+        scim_ctx=Context.RESOURCE_QUERY_RESPONSE, excluded_attributes=["displayName"]
+    )
+    assert "displayName" not in payload["Resources"][0]
+    assert payload["Resources"][0]["userName"] == "user-name"
+
+
+def test_attributes_inclusion_with_full_urn():
+    """ListResponse propagates full URN attributes to embedded resources."""
+    response = ListResponse[User](
+        total_results=1,
+        resources=[
+            User(id="user-id", user_name="user-name", display_name="display-name")
+        ],
+    )
+    payload = response.model_dump(
+        scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
+        attributes=["urn:ietf:params:scim:schemas:core:2.0:User:userName"],
+    )
+    resource = payload["Resources"][0]
+    assert resource["userName"] == "user-name"
+    assert "displayName" not in resource
+
+
+def test_excluded_attributes_with_full_urn():
+    """ListResponse propagates full URN excluded attributes to embedded resources."""
+    response = ListResponse[User](
+        total_results=1,
+        resources=[
+            User(id="user-id", user_name="user-name", display_name="display-name")
+        ],
+    )
+    payload = response.model_dump(
+        scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
+        excluded_attributes=["urn:ietf:params:scim:schemas:core:2.0:User:displayName"],
+    )
+    resource = payload["Resources"][0]
+    assert "displayName" not in resource
+    assert resource["userName"] == "user-name"
+
+
+def test_attributes_with_union_type(load_sample):
+    """ListResponse with a Union type resolves attributes against the matching resource type."""
+    user_payload = load_sample("rfc7643-8.1-user-minimal.json")
+    group_payload = load_sample("rfc7643-8.4-group.json")
+    payload = {
+        "totalResults": 2,
+        "itemsPerPage": 10,
+        "startIndex": 1,
+        "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
+        "Resources": [user_payload, group_payload],
+    }
+    response = ListResponse[User | Group].model_validate(payload)
+    dumped = response.model_dump(
+        scim_ctx=Context.RESOURCE_QUERY_RESPONSE, attributes=["userName"]
+    )
+    user_resource = dumped["Resources"][0]
+    assert "userName" in user_resource
+    assert "displayName" not in user_resource
+
+
+def test_attributes_with_empty_resources():
+    """ListResponse serialization handles empty resources when attributes are set."""
+    response = ListResponse[User](total_results=0, resources=[])
+    payload = response.model_dump(
+        scim_ctx=Context.RESOURCE_QUERY_RESPONSE, attributes=["userName"]
+    )
+    assert payload["Resources"] == []
+
+
+def test_model_dump_without_scim_context():
+    """ListResponse.model_dump works without a SCIM context."""
+    response = ListResponse[User](
+        total_results=1,
+        resources=[User(id="user-id", user_name="user-name")],
+    )
+    payload = response.model_dump(scim_ctx=None)
+    assert payload["resources"][0]["user_name"] == "user-name"
+
+
 def test_total_results_required():
     """ListResponse.total_results is required."""
     payload = {
