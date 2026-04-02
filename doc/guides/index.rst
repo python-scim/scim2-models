@@ -92,3 +92,4 @@ Those sections show how to process incoming SCIM HTTP requests, and which respon
 
    flask
    django
+   fastapi
