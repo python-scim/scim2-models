@@ -3,6 +3,7 @@ from http import HTTPStatus
 from flask import Blueprint
 from flask import make_response
 from flask import request
+from flask import url_for
 from pydantic import ValidationError
 from werkzeug.routing import BaseConverter
 from werkzeug.routing import ValidationError as RoutingValidationError
@@ -42,6 +43,11 @@ def add_scim_content_type(response):
     """Expose every endpoint with the SCIM media type."""
     response.headers["Content-Type"] = "application/scim+json"
     return response
+
+
+def resource_location(app_record):
+    """Return the canonical URL for a user record."""
+    return url_for("scim.get_user", app_record=app_record, _external=True)
 # -- setup-end --
 
 
@@ -104,7 +110,7 @@ def handle_precondition_failed(error):
 def get_user(app_record):
     """Return one SCIM user."""
     req = ResponseParameters.model_validate(request.args.to_dict())
-    scim_user = to_scim_user(app_record)
+    scim_user = to_scim_user(app_record, resource_location(app_record))
     resp = make_response(
         scim_user.model_dump_json(
             scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
@@ -123,7 +129,7 @@ def get_user(app_record):
 def patch_user(app_record):
     """Apply a SCIM PatchOp to an existing user."""
     check_etag(app_record, request.headers.get("If-Match"))
-    scim_user = to_scim_user(app_record)
+    scim_user = to_scim_user(app_record, resource_location(app_record))
     patch = PatchOp[User].model_validate(
         request.get_json(),
         scim_ctx=Context.RESOURCE_PATCH_REQUEST,
@@ -146,7 +152,7 @@ def patch_user(app_record):
 def replace_user(app_record):
     """Replace an existing user with a full SCIM resource."""
     check_etag(app_record, request.headers.get("If-Match"))
-    existing_user = to_scim_user(app_record)
+    existing_user = to_scim_user(app_record, resource_location(app_record))
     replacement = User.model_validate(
         request.get_json(),
         scim_ctx=Context.RESOURCE_REPLACEMENT_REQUEST,
@@ -157,7 +163,7 @@ def replace_user(app_record):
     updated_record = from_scim_user(replacement)
     save_record(updated_record)
 
-    response_user = to_scim_user(updated_record)
+    response_user = to_scim_user(updated_record, resource_location(updated_record))
     return (
         response_user.model_dump_json(
             scim_ctx=Context.RESOURCE_REPLACEMENT_RESPONSE
@@ -186,7 +192,7 @@ def list_users():
     """Return one page of users as a SCIM ListResponse."""
     req = SearchRequest.model_validate(request.args.to_dict())
     total, page = list_records(req.start_index_0, req.stop_index_0)
-    resources = [to_scim_user(record) for record in page]
+    resources = [to_scim_user(record, resource_location(record)) for record in page]
     response = ListResponse[User](
         total_results=total,
         start_index=req.start_index or 1,
@@ -215,7 +221,7 @@ def create_user():
     app_record = from_scim_user(request_user)
     save_record(app_record)
 
-    response_user = to_scim_user(app_record)
+    response_user = to_scim_user(app_record, resource_location(app_record))
     return (
         response_user.model_dump_json(scim_ctx=Context.RESOURCE_CREATION_RESPONSE),
         HTTPStatus.CREATED,

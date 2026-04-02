@@ -4,6 +4,7 @@ from http import HTTPStatus
 from django.http import HttpResponse
 from django.urls import path
 from django.urls import register_converter
+from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
@@ -42,6 +43,13 @@ def scim_response(payload, status=HTTPStatus.OK):
         payload,
         status=status,
         content_type="application/scim+json",
+    )
+
+
+def resource_location(request, app_record):
+    """Return the canonical URL for a user record."""
+    return request.build_absolute_uri(
+        reverse("scim_user", kwargs={"app_record": app_record})
     )
 # -- setup-end --
 
@@ -115,7 +123,7 @@ class UserView(View):
         if if_none_match and etag in [t.strip() for t in if_none_match.split(",")]:
             return HttpResponse(status=HTTPStatus.NOT_MODIFIED)
 
-        scim_user = to_scim_user(app_record)
+        scim_user = to_scim_user(app_record, resource_location(request, app_record))
         resp = scim_response(
             scim_user.model_dump_json(
                 scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
@@ -139,7 +147,7 @@ class UserView(View):
             check_etag(app_record, request.META.get("HTTP_IF_MATCH"))
         except PreconditionFailed:
             return scim_precondition_error()
-        existing_user = to_scim_user(app_record)
+        existing_user = to_scim_user(app_record, resource_location(request, app_record))
         try:
             replacement = User.model_validate(
                 json.loads(request.body),
@@ -156,7 +164,7 @@ class UserView(View):
         except ValueError as error:
             return scim_uniqueness_error(error)
 
-        response_user = to_scim_user(updated_record)
+        response_user = to_scim_user(updated_record, resource_location(request, updated_record))
         resp = scim_response(
             response_user.model_dump_json(
                 scim_ctx=Context.RESOURCE_REPLACEMENT_RESPONSE
@@ -178,7 +186,7 @@ class UserView(View):
         except ValidationError as error:
             return scim_validation_error(error)
 
-        scim_user = to_scim_user(app_record)
+        scim_user = to_scim_user(app_record, resource_location(request, app_record))
         patch.patch(scim_user)
 
         updated_record = from_scim_user(scim_user)
@@ -207,7 +215,7 @@ class UsersView(View):
             return scim_validation_error(error)
 
         total, page = list_records(req.start_index_0, req.stop_index_0)
-        resources = [to_scim_user(record) for record in page]
+        resources = [to_scim_user(record, resource_location(request, record)) for record in page]
         response = ListResponse[User](
             total_results=total,
             start_index=req.start_index or 1,
@@ -237,7 +245,7 @@ class UsersView(View):
         except ValueError as error:
             return scim_uniqueness_error(error)
 
-        response_user = to_scim_user(app_record)
+        response_user = to_scim_user(app_record, resource_location(request, app_record))
         resp = scim_response(
             response_user.model_dump_json(scim_ctx=Context.RESOURCE_CREATION_RESPONSE),
             HTTPStatus.CREATED,

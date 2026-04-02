@@ -59,8 +59,12 @@ def delete_record(record_id):
 
 
 # -- mapping-start --
-def to_scim_user(record):
-    """Convert an application record into a SCIM User resource."""
+def to_scim_user(record, location=None):
+    """Convert an application record into a SCIM User resource.
+
+    :param record: The application record.
+    :param location: Canonical URL of the resource, set in :attr:`~scim2_models.Meta.location`.
+    """
     return User(
         id=record["id"],
         user_name=record["user_name"],
@@ -72,6 +76,7 @@ def to_scim_user(record):
             version=make_etag(record),
             created=record["created_at"],
             last_modified=record["updated_at"],
+            location=location,
         ),
     )
 
