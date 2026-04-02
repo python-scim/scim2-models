@@ -25,9 +25,15 @@ def get_record(record_id):
     return records[record_id]
 
 
-def list_records():
-    """Return all stored records as a list."""
-    return list(records.values())
+def list_records(start=None, stop=None):
+    """Return a page of stored records and the total count.
+
+    :param start: 0-based start index.
+    :param stop: 0-based stop index (exclusive).
+    :return: A ``(total, page)`` tuple.
+    """
+    all_records = list(records.values())
+    return len(all_records), all_records[start:stop]
 
 
 def save_record(record):
@@ -73,14 +79,44 @@ def from_scim_user(scim_user):
 RESOURCE_MODELS = [User]
 
 
-def get_schemas():
-    """Return a :class:`~scim2_models.Schema` for every resource the server exposes."""
-    return [model.to_schema() for model in RESOURCE_MODELS]
+def get_schemas(start=None, stop=None):
+    """Return a page of :class:`~scim2_models.Schema` and the total count.
+
+    :param start: 0-based start index.
+    :param stop: 0-based stop index (exclusive).
+    :return: A ``(total, page)`` tuple.
+    """
+    all_schemas = [model.to_schema() for model in RESOURCE_MODELS]
+    return len(all_schemas), all_schemas[start:stop]
 
 
-def get_resource_types():
-    """Return a :class:`~scim2_models.ResourceType` for every resource the server exposes."""
-    return [ResourceType.from_resource(model) for model in RESOURCE_MODELS]
+def get_schema(schema_id):
+    """Return the :class:`~scim2_models.Schema` matching *schema_id*, or raise KeyError."""
+    for model in RESOURCE_MODELS:
+        schema = model.to_schema()
+        if schema.id == schema_id:
+            return schema
+    raise KeyError(schema_id)
+
+
+def get_resource_types(start=None, stop=None):
+    """Return a page of :class:`~scim2_models.ResourceType` and the total count.
+
+    :param start: 0-based start index.
+    :param stop: 0-based stop index (exclusive).
+    :return: A ``(total, page)`` tuple.
+    """
+    all_resource_types = [ResourceType.from_resource(model) for model in RESOURCE_MODELS]
+    return len(all_resource_types), all_resource_types[start:stop]
+
+
+def get_resource_type(resource_type_id):
+    """Return the :class:`~scim2_models.ResourceType` matching *resource_type_id*, or raise KeyError."""
+    for model in RESOURCE_MODELS:
+        rt = ResourceType.from_resource(model)
+        if rt.id == resource_type_id:
+            return rt
+    raise KeyError(resource_type_id)
 
 
 service_provider_config = ServiceProviderConfig(
