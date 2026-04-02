@@ -1,6 +1,7 @@
 from http import HTTPStatus
 
 from flask import Blueprint
+from flask import make_response
 from flask import request
 from pydantic import ValidationError
 from werkzeug.routing import BaseConverter
@@ -17,6 +18,7 @@ from scim2_models import SearchRequest
 from scim2_models import UniquenessException
 from scim2_models import User
 
+from .integrations import check_etag
 from .integrations import delete_record
 from .integrations import from_scim_user
 from .integrations import get_record
@@ -25,6 +27,8 @@ from .integrations import get_resource_types
 from .integrations import get_schema
 from .integrations import get_schemas
 from .integrations import list_records
+from .integrations import make_etag
+from .integrations import PreconditionFailed
 from .integrations import save_record
 from .integrations import service_provider_config
 from .integrations import to_scim_user
@@ -82,6 +86,13 @@ def handle_value_error(error):
     """Turn uniqueness errors into SCIM 409 responses."""
     scim_error = UniquenessException(detail=str(error)).to_error()
     return scim_error.model_dump_json(), HTTPStatus.CONFLICT
+
+
+@bp.errorhandler(PreconditionFailed)
+def handle_precondition_failed(error):
+    """Turn ETag mismatches into SCIM 412 responses."""
+    scim_error = Error(status=412, detail="ETag mismatch")
+    return scim_error.model_dump_json(), HTTPStatus.PRECONDITION_FAILED
 # -- error-handlers-end --
 # -- refinements-end --
 
@@ -94,14 +105,16 @@ def get_user(app_record):
     """Return one SCIM user."""
     req = ResponseParameters.model_validate(request.args.to_dict())
     scim_user = to_scim_user(app_record)
-    return (
+    resp = make_response(
         scim_user.model_dump_json(
             scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
             attributes=req.attributes,
             excluded_attributes=req.excluded_attributes,
-        ),
-        HTTPStatus.OK,
+        )
     )
+    resp.headers["ETag"] = make_etag(app_record)
+    resp.make_conditional(request)
+    return resp
 # -- get-user-end --
 
 
@@ -109,6 +122,7 @@ def get_user(app_record):
 @bp.patch("/Users/<user:app_record>")
 def patch_user(app_record):
     """Apply a SCIM PatchOp to an existing user."""
+    check_etag(app_record, request.headers.get("If-Match"))
     scim_user = to_scim_user(app_record)
     patch = PatchOp[User].model_validate(
         request.get_json(),
@@ -122,6 +136,7 @@ def patch_user(app_record):
     return (
         scim_user.model_dump_json(scim_ctx=Context.RESOURCE_PATCH_RESPONSE),
         HTTPStatus.OK,
+        {"ETag": make_etag(updated_record)},
     )
 # -- patch-user-end --
 
@@ -130,6 +145,7 @@ def patch_user(app_record):
 @bp.put("/Users/<user:app_record>")
 def replace_user(app_record):
     """Replace an existing user with a full SCIM resource."""
+    check_etag(app_record, request.headers.get("If-Match"))
     existing_user = to_scim_user(app_record)
     replacement = User.model_validate(
         request.get_json(),
@@ -147,6 +163,7 @@ def replace_user(app_record):
             scim_ctx=Context.RESOURCE_REPLACEMENT_RESPONSE
         ),
         HTTPStatus.OK,
+        {"ETag": make_etag(updated_record)},
     )
 # -- put-user-end --
 
@@ -155,6 +172,7 @@ def replace_user(app_record):
 @bp.delete("/Users/<user:app_record>")
 def delete_user(app_record):
     """Delete an existing user."""
+    check_etag(app_record, request.headers.get("If-Match"))
     delete_record(app_record["id"])
     return "", HTTPStatus.NO_CONTENT
 # -- delete-user-end --
@@ -201,6 +219,7 @@ def create_user():
     return (
         response_user.model_dump_json(scim_ctx=Context.RESOURCE_CREATION_RESPONSE),
         HTTPStatus.CREATED,
+        {"ETag": make_etag(app_record)},
     )
 # -- create-user-end --
 # -- collection-end --

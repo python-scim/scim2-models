@@ -55,6 +55,33 @@ capabilities.
    :start-after: # -- discovery-start --
    :end-before: # -- discovery-end --
 
+.. _etag-helpers:
+
+Resource versioning (ETags)
+---------------------------
+
+SCIM supports resource versioning through HTTP ETags
+(:rfc:`RFC 7644 §3.14 <7644#section-3.14>`).
+The helpers below compute a weak ETag from each record's content and verify
+``If-Match`` headers on write requests.
+The mapping helper ``to_scim_user`` stores the ETag in
+:attr:`~scim2_models.Meta.version` so that clients see the current version in
+every response.
+
+.. literalinclude:: _examples/integrations.py
+   :language: python
+   :caption: ETag helpers
+   :start-after: # -- etag-start --
+   :end-before: # -- etag-end --
+
+.. note::
+
+   In a real application you may not need to compute the hash yourself.
+   For example, **SQLAlchemy** exposes a built-in
+   :doc:`version counter <sqlalchemy:orm/versioning>` that auto-increments
+   a column on every update and raises :exc:`~sqlalchemy.orm.exc.StaleDataError` on conflicts.
+   A custom ``version_id_generator`` can produce UUIDs or hashes instead of integers.
+
 Web frameworks
 --------------
 

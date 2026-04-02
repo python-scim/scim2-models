@@ -20,6 +20,7 @@ from scim2_models import SearchRequest
 from scim2_models import UniquenessException
 from scim2_models import User
 
+from .integrations import check_etag
 from .integrations import delete_record
 from .integrations import from_scim_user
 from .integrations import get_record
@@ -28,6 +29,8 @@ from .integrations import get_resource_types
 from .integrations import get_schema
 from .integrations import get_schemas
 from .integrations import list_records
+from .integrations import make_etag
+from .integrations import PreconditionFailed
 from .integrations import save_record
 from .integrations import service_provider_config
 from .integrations import to_scim_user
@@ -78,6 +81,14 @@ def scim_uniqueness_error(error):
 # -- uniqueness-helper-end --
 
 
+# -- precondition-helper-start --
+def scim_precondition_error():
+    """Turn ETag mismatches into a SCIM 412 response."""
+    scim_error = Error(status=412, detail="ETag mismatch")
+    return scim_response(scim_error.model_dump_json(), HTTPStatus.PRECONDITION_FAILED)
+# -- precondition-helper-end --
+
+
 # -- error-handler-start --
 def handler404(request, exception):
     """Turn Django 404 errors into SCIM error responses."""
@@ -99,20 +110,35 @@ class UserView(View):
         except ValidationError as error:
             return scim_validation_error(error)
 
+        etag = make_etag(app_record)
+        if_none_match = request.META.get("HTTP_IF_NONE_MATCH")
+        if if_none_match and etag in [t.strip() for t in if_none_match.split(",")]:
+            return HttpResponse(status=HTTPStatus.NOT_MODIFIED)
+
         scim_user = to_scim_user(app_record)
-        return scim_response(
+        resp = scim_response(
             scim_user.model_dump_json(
                 scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
                 attributes=req.attributes,
                 excluded_attributes=req.excluded_attributes,
             )
         )
+        resp["ETag"] = etag
+        return resp
 
     def delete(self, request, app_record):
+        try:
+            check_etag(app_record, request.META.get("HTTP_IF_MATCH"))
+        except PreconditionFailed:
+            return scim_precondition_error()
         delete_record(app_record["id"])
         return scim_response("", HTTPStatus.NO_CONTENT)
 
     def put(self, request, app_record):
+        try:
+            check_etag(app_record, request.META.get("HTTP_IF_MATCH"))
+        except PreconditionFailed:
+            return scim_precondition_error()
         existing_user = to_scim_user(app_record)
         try:
             replacement = User.model_validate(
@@ -131,13 +157,19 @@ class UserView(View):
             return scim_uniqueness_error(error)
 
         response_user = to_scim_user(updated_record)
-        return scim_response(
+        resp = scim_response(
             response_user.model_dump_json(
                 scim_ctx=Context.RESOURCE_REPLACEMENT_RESPONSE
             )
         )
+        resp["ETag"] = make_etag(updated_record)
+        return resp
 
     def patch(self, request, app_record):
+        try:
+            check_etag(app_record, request.META.get("HTTP_IF_MATCH"))
+        except PreconditionFailed:
+            return scim_precondition_error()
         try:
             patch = PatchOp[User].model_validate(
                 json.loads(request.body),
@@ -155,9 +187,11 @@ class UserView(View):
         except ValueError as error:
             return scim_uniqueness_error(error)
 
-        return scim_response(
+        resp = scim_response(
             scim_user.model_dump_json(scim_ctx=Context.RESOURCE_PATCH_RESPONSE)
         )
+        resp["ETag"] = make_etag(updated_record)
+        return resp
 # -- single-resource-end --
 
 
@@ -204,10 +238,12 @@ class UsersView(View):
             return scim_uniqueness_error(error)
 
         response_user = to_scim_user(app_record)
-        return scim_response(
+        resp = scim_response(
             response_user.model_dump_json(scim_ctx=Context.RESOURCE_CREATION_RESPONSE),
             HTTPStatus.CREATED,
         )
+        resp["ETag"] = make_etag(app_record)
+        return resp
 
 
 urlpatterns = [

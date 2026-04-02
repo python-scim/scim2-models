@@ -78,6 +78,18 @@ Uniqueness error helper
    :start-after: # -- uniqueness-helper-start --
    :end-before: # -- uniqueness-helper-end --
 
+Precondition error helper
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+``scim_precondition_error`` catches the
+:class:`~doc.guides._examples.integrations.PreconditionFailed` errors raised by the
+:ref:`ETag helpers <etag-helpers>` and returns a 412.
+
+.. literalinclude:: _examples/django_example.py
+   :language: python
+   :start-after: # -- precondition-helper-start --
+   :end-before: # -- precondition-helper-end --
+
 Error handler
 ^^^^^^^^^^^^^
 
@@ -143,6 +155,41 @@ The ``urlpatterns`` list wires both views to their routes.
    :language: python
    :start-after: # -- collection-start --
    :end-before: # -- collection-end --
+
+Resource versioning (ETags)
+===========================
+
+SCIM supports resource versioning through HTTP ETags
+(:rfc:`RFC 7644 §3.14 <7644#section-3.14>`).
+The shared :ref:`ETag helpers <etag-helpers>` compute a weak ETag from each record and
+populate :attr:`~scim2_models.Meta.version`.
+
+On ``GET`` single-resource responses, the ``ETag`` header is set and the ``If-None-Match``
+request header is checked manually to return a ``304 Not Modified`` when the client already
+has the current version.
+
+On write operations (``PUT``, ``PATCH``, ``DELETE``), the ``If-Match`` header is checked
+before processing.
+If the client's ETag does not match, a ``412 Precondition Failed`` SCIM error is returned.
+``POST`` and ``PUT``/``PATCH`` responses include the ``ETag`` header for the newly created or
+updated resource.
+
+.. tip::
+
+   With Django ORM, a :class:`~uuid.UUIDField` regenerated on every
+   :meth:`~django.db.models.Model.save` provides a collision-free ETag value
+   without relying on clock precision::
+
+      import uuid
+
+      from django.db import models
+
+      class UserModel(models.Model):
+          version = models.UUIDField(default=uuid.uuid4)
+
+          def save(self, **kwargs):
+              self.version = uuid.uuid4()
+              super().save(**kwargs)
 
 Discovery endpoints
 ===================
