@@ -20,7 +20,9 @@ from scim2_models import User
 from .integrations import delete_record
 from .integrations import from_scim_user
 from .integrations import get_record
+from .integrations import get_resource_type
 from .integrations import get_resource_types
+from .integrations import get_schema
 from .integrations import get_schemas
 from .integrations import list_records
 from .integrations import save_record
@@ -165,11 +167,10 @@ def delete_user(app_record):
 def list_users():
     """Return one page of users as a SCIM ListResponse."""
     req = SearchRequest.model_validate(request.args.to_dict())
-    all_records = list_records()
-    page = all_records[req.start_index_0 : req.stop_index_0]
+    total, page = list_records(req.start_index_0, req.stop_index_0)
     resources = [to_scim_user(record) for record in page]
     response = ListResponse[User](
-        total_results=len(all_records),
+        total_results=total,
         start_index=req.start_index or 1,
         items_per_page=len(resources),
         resources=resources,
@@ -211,10 +212,9 @@ def create_user():
 def list_schemas():
     """Return one page of SCIM schemas the server exposes."""
     req = SearchRequest.model_validate(request.args.to_dict())
-    all_schemas = get_schemas()
-    page = all_schemas[req.start_index_0 : req.stop_index_0]
+    total, page = get_schemas(req.start_index_0, req.stop_index_0)
     response = ListResponse[Schema](
-        total_results=len(all_schemas),
+        total_results=total,
         start_index=req.start_index or 1,
         items_per_page=len(page),
         resources=page,
@@ -226,16 +226,17 @@ def list_schemas():
 
 
 @bp.get("/Schemas/<path:schema_id>")
-def get_schema(schema_id):
+def get_schema_by_id(schema_id):
     """Return one SCIM schema by its URI identifier."""
-    for schema in get_schemas():
-        if schema.id == schema_id:
-            return (
-                schema.model_dump_json(scim_ctx=Context.RESOURCE_QUERY_RESPONSE),
-                HTTPStatus.OK,
-            )
-    scim_error = Error(status=404, detail=f"Schema {schema_id!r} not found")
-    return scim_error.model_dump_json(), HTTPStatus.NOT_FOUND
+    try:
+        schema = get_schema(schema_id)
+    except KeyError:
+        scim_error = Error(status=404, detail=f"Schema {schema_id!r} not found")
+        return scim_error.model_dump_json(), HTTPStatus.NOT_FOUND
+    return (
+        schema.model_dump_json(scim_ctx=Context.RESOURCE_QUERY_RESPONSE),
+        HTTPStatus.OK,
+    )
 # -- schemas-end --
 
 
@@ -244,10 +245,9 @@ def get_schema(schema_id):
 def list_resource_types():
     """Return one page of SCIM resource types the server exposes."""
     req = SearchRequest.model_validate(request.args.to_dict())
-    all_resource_types = get_resource_types()
-    page = all_resource_types[req.start_index_0 : req.stop_index_0]
+    total, page = get_resource_types(req.start_index_0, req.stop_index_0)
     response = ListResponse[ResourceType](
-        total_results=len(all_resource_types),
+        total_results=total,
         start_index=req.start_index or 1,
         items_per_page=len(page),
         resources=page,
@@ -259,18 +259,19 @@ def list_resource_types():
 
 
 @bp.get("/ResourceTypes/<resource_type_id>")
-def get_resource_type(resource_type_id):
+def get_resource_type_by_id(resource_type_id):
     """Return one SCIM resource type by its identifier."""
-    for rt in get_resource_types():
-        if rt.id == resource_type_id:
-            return (
-                rt.model_dump_json(scim_ctx=Context.RESOURCE_QUERY_RESPONSE),
-                HTTPStatus.OK,
-            )
-    scim_error = Error(
-        status=404, detail=f"ResourceType {resource_type_id!r} not found"
+    try:
+        rt = get_resource_type(resource_type_id)
+    except KeyError:
+        scim_error = Error(
+            status=404, detail=f"ResourceType {resource_type_id!r} not found"
+        )
+        return scim_error.model_dump_json(), HTTPStatus.NOT_FOUND
+    return (
+        rt.model_dump_json(scim_ctx=Context.RESOURCE_QUERY_RESPONSE),
+        HTTPStatus.OK,
     )
-    return scim_error.model_dump_json(), HTTPStatus.NOT_FOUND
 # -- resource-types-end --
 
 

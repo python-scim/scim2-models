@@ -23,7 +23,9 @@ from scim2_models import User
 from .integrations import delete_record
 from .integrations import from_scim_user
 from .integrations import get_record
+from .integrations import get_resource_type
 from .integrations import get_resource_types
+from .integrations import get_schema
 from .integrations import get_schemas
 from .integrations import list_records
 from .integrations import save_record
@@ -170,11 +172,10 @@ class UsersView(View):
         except ValidationError as error:
             return scim_validation_error(error)
 
-        all_records = list_records()
-        page = all_records[req.start_index_0 : req.stop_index_0]
+        total, page = list_records(req.start_index_0, req.stop_index_0)
         resources = [to_scim_user(record) for record in page]
         response = ListResponse[User](
-            total_results=len(all_records),
+            total_results=total,
             start_index=req.start_index or 1,
             items_per_page=len(resources),
             resources=resources,
@@ -227,10 +228,9 @@ class SchemasView(View):
         except ValidationError as error:
             return scim_validation_error(error)
 
-        all_schemas = get_schemas()
-        page = all_schemas[req.start_index_0 : req.stop_index_0]
+        total, page = get_schemas(req.start_index_0, req.stop_index_0)
         response = ListResponse[Schema](
-            total_results=len(all_schemas),
+            total_results=total,
             start_index=req.start_index or 1,
             items_per_page=len(page),
             resources=page,
@@ -244,13 +244,14 @@ class SchemaView(View):
     """Handle GET on a single SCIM schema."""
 
     def get(self, request, schema_id):
-        for schema in get_schemas():
-            if schema.id == schema_id:
-                return scim_response(
-                    schema.model_dump_json(scim_ctx=Context.RESOURCE_QUERY_RESPONSE)
-                )
-        scim_error = Error(status=404, detail=f"Schema {schema_id!r} not found")
-        return scim_response(scim_error.model_dump_json(), HTTPStatus.NOT_FOUND)
+        try:
+            schema = get_schema(schema_id)
+        except KeyError:
+            scim_error = Error(status=404, detail=f"Schema {schema_id!r} not found")
+            return scim_response(scim_error.model_dump_json(), HTTPStatus.NOT_FOUND)
+        return scim_response(
+            schema.model_dump_json(scim_ctx=Context.RESOURCE_QUERY_RESPONSE)
+        )
 # -- schemas-end --
 
 
@@ -264,10 +265,9 @@ class ResourceTypesView(View):
         except ValidationError as error:
             return scim_validation_error(error)
 
-        all_resource_types = get_resource_types()
-        page = all_resource_types[req.start_index_0 : req.stop_index_0]
+        total, page = get_resource_types(req.start_index_0, req.stop_index_0)
         response = ListResponse[ResourceType](
-            total_results=len(all_resource_types),
+            total_results=total,
             start_index=req.start_index or 1,
             items_per_page=len(page),
             resources=page,
@@ -281,15 +281,16 @@ class ResourceTypeView(View):
     """Handle GET on a single SCIM resource type."""
 
     def get(self, request, resource_type_id):
-        for rt in get_resource_types():
-            if rt.id == resource_type_id:
-                return scim_response(
-                    rt.model_dump_json(scim_ctx=Context.RESOURCE_QUERY_RESPONSE)
-                )
-        scim_error = Error(
-            status=404, detail=f"ResourceType {resource_type_id!r} not found"
+        try:
+            rt = get_resource_type(resource_type_id)
+        except KeyError:
+            scim_error = Error(
+                status=404, detail=f"ResourceType {resource_type_id!r} not found"
+            )
+            return scim_response(scim_error.model_dump_json(), HTTPStatus.NOT_FOUND)
+        return scim_response(
+            rt.model_dump_json(scim_ctx=Context.RESOURCE_QUERY_RESPONSE)
         )
-        return scim_response(scim_error.model_dump_json(), HTTPStatus.NOT_FOUND)
 # -- resource-types-end --
 
 
