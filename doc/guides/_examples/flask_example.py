@@ -10,6 +10,7 @@ from scim2_models import Context
 from scim2_models import Error
 from scim2_models import ListResponse
 from scim2_models import PatchOp
+from scim2_models import ResponseParameters
 from scim2_models import SearchRequest
 from scim2_models import UniquenessException
 from scim2_models import User
@@ -84,9 +85,14 @@ def handle_value_error(error):
 @bp.get("/Users/<user:app_record>")
 def get_user(app_record):
     """Return one SCIM user."""
+    req = ResponseParameters.model_validate(request.args.to_dict())
     scim_user = to_scim_user(app_record)
     return (
-        scim_user.model_dump_json(scim_ctx=Context.RESOURCE_QUERY_RESPONSE),
+        scim_user.model_dump_json(
+            scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
+            attributes=req.attributes,
+            excluded_attributes=req.excluded_attributes,
+        ),
         HTTPStatus.OK,
     )
 # -- get-user-end --
@@ -128,7 +134,7 @@ def delete_user(app_record):
 @bp.get("/Users")
 def list_users():
     """Return one page of users as a SCIM ListResponse."""
-    req = SearchRequest.model_validate(request.args)
+    req = SearchRequest.model_validate(request.args.to_dict())
     all_records = list_records()
     page = all_records[req.start_index_0 : req.stop_index_0]
     resources = [to_scim_user(record) for record in page]
@@ -139,7 +145,11 @@ def list_users():
         resources=resources,
     )
     return (
-        response.model_dump_json(scim_ctx=Context.RESOURCE_QUERY_RESPONSE),
+        response.model_dump_json(
+            scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
+            attributes=req.attributes,
+            excluded_attributes=req.excluded_attributes,
+        ),
         HTTPStatus.OK,
     )
 # -- list-users-end --

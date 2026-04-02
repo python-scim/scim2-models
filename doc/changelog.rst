@@ -1,6 +1,15 @@
 Changelog
 =========
 
+[0.7.0] - Unreleased
+--------------------
+
+Added
+^^^^^
+- :class:`~scim2_models.ListResponse` ``model_dump`` and ``model_dump_json`` now accept ``attributes`` and ``excluded_attributes`` parameters. :issue:`59`
+- New :class:`~scim2_models.ResponseParameters` model for :rfc:`RFC7644 §3.9 <7644#section-3.9>` ``attributes`` and ``excludedAttributes`` query parameters. :class:`~scim2_models.SearchRequest` inherits from it.
+- :class:`~scim2_models.ResponseParameters` and :class:`~scim2_models.SearchRequest` accept comma-separated strings for ``attributes`` and ``excludedAttributes``.
+
 [0.6.6] - 2026-03-12
 --------------------
 
