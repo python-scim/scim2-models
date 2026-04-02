@@ -44,6 +44,7 @@ intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
     "pydantic": ("https://docs.pydantic.dev/latest/", None),
     "flask": ("https://flask.palletsprojects.com/en/stable/", None),
+    "sqlalchemy": ("https://docs.sqlalchemy.org/en/20/", None),
 }
 
 # -- Options for HTML output ----------------------------------------------

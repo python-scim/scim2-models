@@ -68,6 +68,9 @@ If :meth:`~scim2_models.Resource.model_validate`, Flask routes the
 SCIM :class:`~scim2_models.Error` response.
 ``handle_value_error`` catches the ``ValueError`` raised by ``save_record`` and returns a 409
 with ``scimType: uniqueness`` using :class:`~scim2_models.UniquenessException`.
+``handle_precondition_failed`` catches
+:class:`~doc.guides._examples.integrations.PreconditionFailed` errors raised by the
+:ref:`ETag helpers <etag-helpers>` and returns a 412.
 
 Endpoints
 =========
@@ -156,6 +159,30 @@ convert to native and persist, then serialize the created resource with
    :language: python
    :start-after: # -- create-user-start --
    :end-before: # -- create-user-end --
+
+Resource versioning (ETags)
+===========================
+
+SCIM supports resource versioning through HTTP ETags
+(:rfc:`RFC 7644 §3.14 <7644#section-3.14>`).
+The shared :ref:`ETag helpers <etag-helpers>` compute a weak ETag from each record and
+populate :attr:`~scim2_models.Meta.version`.
+
+On ``GET`` single-resource responses, the ``ETag`` header is set and Werkzeug's
+:meth:`~werkzeug.wrappers.Response.make_conditional` handles ``If-None-Match`` to return a
+``304 Not Modified`` when the client already has the current version.
+
+On write operations (``PUT``, ``PATCH``, ``DELETE``), the ``If-Match`` header is checked
+before processing.
+If the client's ETag does not match, a ``412 Precondition Failed`` SCIM error is returned.
+``POST`` and ``PUT``/``PATCH`` responses include the ``ETag`` header for the newly created or
+updated resource.
+
+.. tip::
+
+   If your application uses SQLAlchemy, the built-in
+   :doc:`version counter <sqlalchemy:orm/versioning>` can serve as ETag
+   value directly, removing the need for a manual hash.
 
 Discovery endpoints
 ===================

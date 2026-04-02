@@ -1,5 +1,8 @@
 """Framework-agnostic storage and mapping layer shared by the integration examples."""
 
+import hashlib
+from datetime import datetime
+from datetime import timezone
 from uuid import uuid4
 
 from scim2_models import AuthenticationScheme
@@ -38,9 +41,14 @@ def list_records(start=None, stop=None):
 
 def save_record(record):
     """Persist *record*, raising ValueError if its userName is already taken."""
+    if not record.get("id"):
+        record["id"] = str(uuid4())
     for existing in records.values():
         if existing["id"] != record["id"] and existing["user_name"] == record["user_name"]:
             raise ValueError(f"userName {record['user_name']!r} is already taken")
+    now = datetime.now(timezone.utc)
+    record.setdefault("created_at", now)
+    record["updated_at"] = now
     records[record["id"]] = record
 
 
@@ -59,20 +67,54 @@ def to_scim_user(record):
         display_name=record.get("display_name"),
         active=record.get("active", True),
         emails=[User.Emails(value=record["email"])] if record.get("email") else None,
-        meta=Meta(resource_type="User"),
+        meta=Meta(
+            resource_type="User",
+            version=make_etag(record),
+            created=record["created_at"],
+            last_modified=record["updated_at"],
+        ),
     )
 
 
 def from_scim_user(scim_user):
     """Convert a validated SCIM payload into the application shape."""
     return {
-        "id": scim_user.id or str(uuid4()),
+        "id": scim_user.id,
         "user_name": scim_user.user_name,
         "display_name": scim_user.display_name,
         "active": True if scim_user.active is None else scim_user.active,
         "email": scim_user.emails[0].value if scim_user.emails else None,
     }
 # -- mapping-end --
+
+
+# -- etag-start --
+class PreconditionFailed(Exception):
+    """Raised when an ``If-Match`` ETag check fails."""
+
+
+def make_etag(record):
+    """Compute a weak ETag from a record's content."""
+    digest = hashlib.sha256(str(sorted(record.items())).encode()).hexdigest()[:16]
+    return f'W/"{digest}"'
+
+
+def check_etag(record, if_match):
+    """Compare the record's ETag against an ``If-Match`` header value.
+
+    :param record: The application record.
+    :param if_match: Raw ``If-Match`` header value, or :data:`None`.
+    :raises PreconditionFailed: If the header is present and does not match.
+    """
+    if not if_match:
+        return
+    if if_match.strip() == "*":
+        return
+    etag = make_etag(record)
+    tags = [t.strip() for t in if_match.split(",")]
+    if etag not in tags:
+        raise PreconditionFailed()
+# -- etag-end --
 
 
 # -- discovery-start --
@@ -125,7 +167,7 @@ service_provider_config = ServiceProviderConfig(
     filter=Filter(supported=False, max_results=0),
     change_password=ChangePassword(supported=False),
     sort=Sort(supported=False),
-    etag=ETag(supported=False),
+    etag=ETag(supported=True),
     authentication_schemes=[
         AuthenticationScheme(
             type=AuthenticationScheme.Type.httpbasic,
