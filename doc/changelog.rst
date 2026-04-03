@@ -1,6 +1,13 @@
 Changelog
 =========
 
+[0.6.9] - Unreleased
+--------------------
+
+Added
+^^^^^
+- ``*RequestContext`` and ``*ResponseContext`` generic type aliases that wrap :class:`~scim2_models.SCIMValidator` and :class:`~scim2_models.SCIMSerializer` for each SCIM context (e.g. ``CreationRequestContext[User]``, ``CreationResponseContext[User]``).
+
 [0.6.8] - 2026-04-03
 --------------------
 

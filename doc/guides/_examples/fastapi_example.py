@@ -1,26 +1,30 @@
 import json
 from http import HTTPStatus
 from typing import Annotated
+from typing import Any
 
 from fastapi import APIRouter
 from fastapi import Depends
 from fastapi import FastAPI
 from fastapi import HTTPException
+from fastapi import Query
 from fastapi import Request
 from fastapi import Response
 from pydantic import ValidationError
 
 from scim2_models import Context
+from scim2_models import CreationRequestContext
 from scim2_models import Error
 from scim2_models import ListResponse
 from scim2_models import PatchOp
+from scim2_models import PatchRequestContext
+from scim2_models import QueryResponseContext
+from scim2_models import ReplacementRequestContext
 from scim2_models import ResourceType
 from scim2_models import ResponseParameters
 from scim2_models import Schema
 from scim2_models import SCIMException
-from scim2_models import SCIMSerializer
 from scim2_models import ServiceProviderConfig
-from scim2_models import SCIMValidator
 from scim2_models import SearchRequest
 from scim2_models import User
 
@@ -46,16 +50,14 @@ class SCIMResponse(Response):
 
     media_type = "application/scim+json"
 
-    def __init__(self, content=None, **kwargs):
-        if isinstance(content, (dict, list)):
-            content = json.dumps(content, ensure_ascii=False)
-        super().__init__(content=content, **kwargs)
-        try:
-            meta = json.loads(content).get("meta", {})
-            if version := meta.get("version"):
-                self.headers["ETag"] = version
-        except (json.JSONDecodeError, AttributeError, TypeError):
-            pass
+    def render(self, content: Any) -> bytes:
+        self._etag = (content or {}).get("meta", {}).get("version")
+        return json.dumps(content, ensure_ascii=False).encode("utf-8")
+
+    def __init__(self, content: Any = None, **kwargs: Any) -> None:
+        super().__init__(content, **kwargs)
+        if self._etag:
+            self.headers["ETag"] = self._etag
 
 
 router = APIRouter(prefix="/scim/v2", default_response_class=SCIMResponse)
@@ -103,21 +105,21 @@ def resolve_user(user_id: str):
 async def handle_validation_error(request, error):
     """Turn Pydantic validation errors into SCIM error responses."""
     scim_error = Error.from_validation_error(error.errors()[0])
-    return SCIMResponse(scim_error.model_dump_json(), status_code=scim_error.status)
+    return SCIMResponse(scim_error.model_dump(), status_code=scim_error.status)
 
 
 @app.exception_handler(HTTPException)
 async def handle_http_exception(request, error):
     """Turn HTTP exceptions into SCIM error responses."""
     scim_error = Error(status=error.status_code, detail=error.detail or "")
-    return SCIMResponse(scim_error.model_dump_json(), status_code=error.status_code)
+    return SCIMResponse(scim_error.model_dump(), status_code=error.status_code)
 
 
 @app.exception_handler(SCIMException)
 async def handle_scim_error(request, error):
     """Turn SCIM exceptions into SCIM error responses."""
     scim_error = error.to_error()
-    return SCIMResponse(scim_error.model_dump_json(), status_code=scim_error.status)
+    return SCIMResponse(scim_error.model_dump(), status_code=scim_error.status)
 # -- error-handlers-end --
 # -- refinements-end --
 
@@ -126,16 +128,19 @@ async def handle_scim_error(request, error):
 # -- single-resource-start --
 # -- get-user-start --
 @router.get("/Users/{user_id}")
-async def get_user(request: Request, app_record: dict = Depends(resolve_user)):
+async def get_user(
+    request: Request,
+    req: Annotated[ResponseParameters, Query()],
+    app_record: dict = Depends(resolve_user),
+):
     """Return one SCIM user."""
-    req = ResponseParameters.model_validate(dict(request.query_params))
     scim_user = to_scim_user(app_record, resource_location(request, app_record))
     etag = make_etag(app_record)
     if_none_match = request.headers.get("If-None-Match")
     if if_none_match and etag in [t.strip() for t in if_none_match.split(",")]:
         return Response(status_code=HTTPStatus.NOT_MODIFIED)
     return SCIMResponse(
-        scim_user.model_dump_json(
+        scim_user.model_dump(
             scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
             attributes=req.attributes,
             excluded_attributes=req.excluded_attributes,
@@ -148,11 +153,10 @@ async def get_user(request: Request, app_record: dict = Depends(resolve_user)):
 @router.patch("/Users/{user_id}")
 async def patch_user(
     request: Request,
-    patch: Annotated[
-        PatchOp[User], SCIMValidator(Context.RESOURCE_PATCH_REQUEST)
-    ],
+    patch: PatchRequestContext[PatchOp[User]],
+    req: Annotated[ResponseParameters, Query()],
     app_record: dict = Depends(resolve_user),
-) -> Annotated[User, SCIMSerializer(Context.RESOURCE_PATCH_RESPONSE)]:
+):
     """Apply a SCIM PatchOp to an existing user."""
     check_etag(app_record, request)
     scim_user = to_scim_user(app_record, resource_location(request, app_record))
@@ -161,7 +165,14 @@ async def patch_user(
     updated_record = from_scim_user(scim_user)
     save_record(updated_record)
 
-    return to_scim_user(updated_record, resource_location(request, updated_record))
+    response_user = to_scim_user(updated_record, resource_location(request, updated_record))
+    return SCIMResponse(
+        response_user.model_dump(
+            scim_ctx=Context.RESOURCE_PATCH_RESPONSE,
+            attributes=req.attributes,
+            excluded_attributes=req.excluded_attributes,
+        ),
+    )
 # -- patch-user-end --
 
 
@@ -169,11 +180,10 @@ async def patch_user(
 @router.put("/Users/{user_id}")
 async def replace_user(
     request: Request,
-    replacement: Annotated[
-        User, SCIMValidator(Context.RESOURCE_REPLACEMENT_REQUEST)
-    ],
+    replacement: ReplacementRequestContext[User],
+    req: Annotated[ResponseParameters, Query()],
     app_record: dict = Depends(resolve_user),
-) -> Annotated[User, SCIMSerializer(Context.RESOURCE_REPLACEMENT_RESPONSE)]:
+):
     """Replace an existing user with a full SCIM resource."""
     check_etag(app_record, request)
     existing_user = to_scim_user(app_record, resource_location(request, app_record))
@@ -183,7 +193,14 @@ async def replace_user(
     updated_record = from_scim_user(replacement)
     save_record(updated_record)
 
-    return to_scim_user(updated_record, resource_location(request, updated_record))
+    response_user = to_scim_user(updated_record, resource_location(request, updated_record))
+    return SCIMResponse(
+        response_user.model_dump(
+            scim_ctx=Context.RESOURCE_REPLACEMENT_RESPONSE,
+            attributes=req.attributes,
+            excluded_attributes=req.excluded_attributes,
+        ),
+    )
 # -- put-user-end --
 
 
@@ -201,9 +218,10 @@ async def delete_user(request: Request, app_record: dict = Depends(resolve_user)
 # -- collection-start --
 # -- list-users-start --
 @router.get("/Users")
-async def list_users(request: Request):
+async def list_users(
+    request: Request, req: Annotated[SearchRequest, Query()]
+):
     """Return one page of users as a SCIM ListResponse."""
-    req = SearchRequest.model_validate(dict(request.query_params))
     total, page = list_records(req.start_index_0, req.stop_index_0)
     resources = [
         to_scim_user(record, resource_location(request, record)) for record in page
@@ -215,7 +233,7 @@ async def list_users(request: Request):
         resources=resources,
     )
     return SCIMResponse(
-        response.model_dump_json(
+        response.model_dump(
             scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
             attributes=req.attributes,
             excluded_attributes=req.excluded_attributes,
@@ -228,15 +246,22 @@ async def list_users(request: Request):
 @router.post("/Users", status_code=HTTPStatus.CREATED)
 async def create_user(
     request: Request,
-    request_user: Annotated[
-        User, SCIMValidator(Context.RESOURCE_CREATION_REQUEST)
-    ],
-) -> Annotated[User, SCIMSerializer(Context.RESOURCE_CREATION_RESPONSE)]:
+    request_user: CreationRequestContext[User],
+    req: Annotated[ResponseParameters, Query()],
+):
     """Validate a SCIM creation payload and store the new user."""
     app_record = from_scim_user(request_user)
     save_record(app_record)
 
-    return to_scim_user(app_record, resource_location(request, app_record))
+    response_user = to_scim_user(app_record, resource_location(request, app_record))
+    return SCIMResponse(
+        response_user.model_dump(
+            scim_ctx=Context.RESOURCE_CREATION_RESPONSE,
+            attributes=req.attributes,
+            excluded_attributes=req.excluded_attributes,
+        ),
+        status_code=HTTPStatus.CREATED,
+    )
 # -- create-user-end --
 # -- collection-end --
 
@@ -244,9 +269,8 @@ async def create_user(
 # -- discovery-start --
 # -- schemas-start --
 @router.get("/Schemas")
-async def list_schemas(request: Request):
+async def list_schemas(req: Annotated[SearchRequest, Query()]):
     """Return one page of SCIM schemas the server exposes."""
-    req = SearchRequest.model_validate(dict(request.query_params))
     total, page = get_schemas(req.start_index_0, req.stop_index_0)
     response = ListResponse[Schema](
         total_results=total,
@@ -255,7 +279,7 @@ async def list_schemas(request: Request):
         resources=page,
     )
     return SCIMResponse(
-        response.model_dump_json(scim_ctx=Context.RESOURCE_QUERY_RESPONSE),
+        response.model_dump(scim_ctx=Context.RESOURCE_QUERY_RESPONSE),
     )
 
 
@@ -266,18 +290,17 @@ async def get_schema_by_id(schema_id: str):
         schema = get_schema(schema_id)
     except KeyError:
         scim_error = Error(status=404, detail=f"Schema {schema_id!r} not found")
-        return SCIMResponse(scim_error.model_dump_json(), status_code=HTTPStatus.NOT_FOUND)
+        return SCIMResponse(scim_error.model_dump(), status_code=HTTPStatus.NOT_FOUND)
     return SCIMResponse(
-        schema.model_dump_json(scim_ctx=Context.RESOURCE_QUERY_RESPONSE),
+        schema.model_dump(scim_ctx=Context.RESOURCE_QUERY_RESPONSE),
     )
 # -- schemas-end --
 
 
 # -- resource-types-start --
 @router.get("/ResourceTypes")
-async def list_resource_types(request: Request):
+async def list_resource_types(req: Annotated[SearchRequest, Query()]):
     """Return one page of SCIM resource types the server exposes."""
-    req = SearchRequest.model_validate(dict(request.query_params))
     total, page = get_resource_types(req.start_index_0, req.stop_index_0)
     response = ListResponse[ResourceType](
         total_results=total,
@@ -286,7 +309,7 @@ async def list_resource_types(request: Request):
         resources=page,
     )
     return SCIMResponse(
-        response.model_dump_json(scim_ctx=Context.RESOURCE_QUERY_RESPONSE),
+        response.model_dump(scim_ctx=Context.RESOURCE_QUERY_RESPONSE),
     )
 
 
@@ -299,17 +322,17 @@ async def get_resource_type_by_id(resource_type_id: str):
         scim_error = Error(
             status=404, detail=f"ResourceType {resource_type_id!r} not found"
         )
-        return SCIMResponse(scim_error.model_dump_json(), status_code=HTTPStatus.NOT_FOUND)
+        return SCIMResponse(scim_error.model_dump(), status_code=HTTPStatus.NOT_FOUND)
     return SCIMResponse(
-        rt.model_dump_json(scim_ctx=Context.RESOURCE_QUERY_RESPONSE),
+        rt.model_dump(scim_ctx=Context.RESOURCE_QUERY_RESPONSE),
     )
 # -- resource-types-end --
 
 
 # -- service-provider-config-start --
 @router.get("/ServiceProviderConfig")
-async def get_service_provider_config() -> Annotated[
-    ServiceProviderConfig, SCIMSerializer(Context.RESOURCE_QUERY_RESPONSE)
+async def get_service_provider_config() -> QueryResponseContext[
+    ServiceProviderConfig
 ]:
     """Return the SCIM service provider configuration."""
     return service_provider_config

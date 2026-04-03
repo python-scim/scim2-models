@@ -29,6 +29,8 @@ class ResponseParameters(BaseModel):
         """
         if isinstance(value, str):
             return [v.strip() for v in value.split(",") if v.strip()]
+        if isinstance(value, list) and len(value) == 1 and isinstance(value[0], str):
+            return [v.strip() for v in value[0].split(",") if v.strip()]
         return value
 
     @model_validator(mode="after")
