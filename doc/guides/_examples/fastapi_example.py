@@ -14,13 +14,11 @@ from scim2_models import ListResponse
 from scim2_models import PatchOp
 from scim2_models import ResourceType
 from scim2_models import ResponseParameters
-from scim2_models import SCIMException
 from scim2_models import Schema
+from scim2_models import SCIMException
 from scim2_models import SearchRequest
 from scim2_models import User
 
-from .integrations import PreconditionFailed
-from .integrations import check_etag
 from .integrations import delete_record
 from .integrations import from_scim_user
 from .integrations import get_record
@@ -53,6 +51,25 @@ def resource_location(request, app_record):
 # -- setup-end --
 
 
+# -- etag-start --
+def check_etag(record, if_match):
+    """Compare the record's ETag against an ``If-Match`` header value.
+
+    :param record: The application record.
+    :param if_match: Raw ``If-Match`` header value, or :data:`None`.
+    :raises ~fastapi.HTTPException: If the header is present and does not match.
+    """
+    if not if_match:
+        return
+    if if_match.strip() == "*":
+        return
+    etag = make_etag(record)
+    tags = [t.strip() for t in if_match.split(",")]
+    if etag not in tags:
+        raise HTTPException(status_code=412, detail="ETag mismatch")
+# -- etag-end --
+
+
 # -- refinements-start --
 # -- dependency-start --
 def resolve_user(user_id: str):
@@ -61,6 +78,8 @@ def resolve_user(user_id: str):
         return get_record(user_id)
     except KeyError:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
+
+
 # -- dependency-end --
 
 
@@ -86,13 +105,6 @@ async def handle_scim_error(request, error):
     return Response(scim_error.model_dump_json(), status_code=scim_error.status)
 
 
-@app.exception_handler(PreconditionFailed)
-async def handle_precondition_failed(request, error):
-    """Turn ETag mismatches into SCIM 412 responses."""
-    scim_error = Error(status=412, detail="ETag mismatch")
-    return Response(
-        scim_error.model_dump_json(), status_code=HTTPStatus.PRECONDITION_FAILED
-    )
 # -- error-handlers-end --
 # -- refinements-end --
 
@@ -117,6 +129,8 @@ async def get_user(request: Request, app_record: dict = Depends(resolve_user)):
         ),
         headers={"ETag": etag},
     )
+
+
 # -- get-user-end --
 
 
@@ -139,6 +153,8 @@ async def patch_user(request: Request, app_record: dict = Depends(resolve_user))
         scim_user.model_dump_json(scim_ctx=Context.RESOURCE_PATCH_RESPONSE),
         headers={"ETag": make_etag(updated_record)},
     )
+
+
 # -- patch-user-end --
 
 
@@ -162,11 +178,11 @@ async def replace_user(request: Request, app_record: dict = Depends(resolve_user
         updated_record, resource_location(request, updated_record)
     )
     return Response(
-        response_user.model_dump_json(
-            scim_ctx=Context.RESOURCE_REPLACEMENT_RESPONSE
-        ),
+        response_user.model_dump_json(scim_ctx=Context.RESOURCE_REPLACEMENT_RESPONSE),
         headers={"ETag": make_etag(updated_record)},
     )
+
+
 # -- put-user-end --
 
 
@@ -177,6 +193,8 @@ async def delete_user(request: Request, app_record: dict = Depends(resolve_user)
     check_etag(app_record, request.headers.get("If-Match"))
     delete_record(app_record["id"])
     return Response(status_code=HTTPStatus.NO_CONTENT)
+
+
 # -- delete-user-end --
 # -- single-resource-end --
 
@@ -204,6 +222,8 @@ async def list_users(request: Request):
             excluded_attributes=req.excluded_attributes,
         ),
     )
+
+
 # -- list-users-end --
 
 
@@ -224,6 +244,8 @@ async def create_user(request: Request):
         status_code=HTTPStatus.CREATED,
         headers={"ETag": make_etag(app_record)},
     )
+
+
 # -- create-user-end --
 # -- collection-end --
 
@@ -257,6 +279,8 @@ async def get_schema_by_id(schema_id: str):
     return Response(
         schema.model_dump_json(scim_ctx=Context.RESOURCE_QUERY_RESPONSE),
     )
+
+
 # -- schemas-end --
 
 
@@ -290,6 +314,8 @@ async def get_resource_type_by_id(resource_type_id: str):
     return Response(
         rt.model_dump_json(scim_ctx=Context.RESOURCE_QUERY_RESPONSE),
     )
+
+
 # -- resource-types-end --
 
 
@@ -302,6 +328,8 @@ async def get_service_provider_config():
             scim_ctx=Context.RESOURCE_QUERY_RESPONSE
         ),
     )
+
+
 # -- service-provider-config-end --
 # -- discovery-end --
 

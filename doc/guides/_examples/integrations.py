@@ -45,7 +45,10 @@ def save_record(record):
     if not record.get("id"):
         record["id"] = str(uuid4())
     for existing in records.values():
-        if existing["id"] != record["id"] and existing["user_name"] == record["user_name"]:
+        if (
+            existing["id"] != record["id"]
+            and existing["user_name"] == record["user_name"]
+        ):
             raise UniquenessException(
                 detail=f"userName {record['user_name']!r} is already taken"
             )
@@ -93,36 +96,13 @@ def from_scim_user(scim_user):
         "active": True if scim_user.active is None else scim_user.active,
         "email": scim_user.emails[0].value if scim_user.emails else None,
     }
-# -- mapping-end --
-
-
-# -- etag-start --
-class PreconditionFailed(Exception):
-    """Raised when an ``If-Match`` ETag check fails."""
 
 
 def make_etag(record):
     """Compute a weak ETag from a record's content."""
     digest = hashlib.sha256(str(sorted(record.items())).encode()).hexdigest()[:16]
     return f'W/"{digest}"'
-
-
-def check_etag(record, if_match):
-    """Compare the record's ETag against an ``If-Match`` header value.
-
-    :param record: The application record.
-    :param if_match: Raw ``If-Match`` header value, or :data:`None`.
-    :raises PreconditionFailed: If the header is present and does not match.
-    """
-    if not if_match:
-        return
-    if if_match.strip() == "*":
-        return
-    etag = make_etag(record)
-    tags = [t.strip() for t in if_match.split(",")]
-    if etag not in tags:
-        raise PreconditionFailed()
-# -- etag-end --
+# -- mapping-end --
 
 
 # -- discovery-start --
@@ -156,7 +136,9 @@ def get_resource_types(start=None, stop=None):
     :param stop: 0-based stop index (exclusive).
     :return: A ``(total, page)`` tuple.
     """
-    all_resource_types = [ResourceType.from_resource(model) for model in RESOURCE_MODELS]
+    all_resource_types = [
+        ResourceType.from_resource(model) for model in RESOURCE_MODELS
+    ]
     return len(all_resource_types), all_resource_types[start:stop]
 
 

@@ -74,9 +74,8 @@ response.
 them in a SCIM :class:`~scim2_models.Error`.
 ``handle_scim_error`` catches any :class:`~scim2_models.SCIMException` (uniqueness, mutability, …)
 and returns the appropriate SCIM :class:`~scim2_models.Error` response.
-``handle_precondition_failed`` catches
-:class:`~doc.guides._examples.integrations.PreconditionFailed` errors raised by the
-:ref:`ETag helpers <etag-helpers>` and returns a 412.
+``check_etag`` raises an :class:`~fastapi.HTTPException` with status 412 on ETag mismatch,
+which is caught by ``handle_http_exception``.
 
 Endpoints
 =========
@@ -171,8 +170,15 @@ Resource versioning (ETags)
 
 SCIM supports resource versioning through HTTP ETags
 (:rfc:`RFC 7644 §3.14 <7644#section-3.14>`).
-The shared :ref:`ETag helpers <etag-helpers>` compute a weak ETag from each record and
-populate :attr:`~scim2_models.Meta.version`.
+``check_etag`` compares the record's ETag against the ``If-Match`` header and
+raises an :class:`~fastapi.HTTPException` on mismatch.
+``make_etag`` computes a weak ETag from each record and populates
+:attr:`~scim2_models.Meta.version`.
+
+.. literalinclude:: _examples/fastapi_example.py
+   :language: python
+   :start-after: # -- etag-start --
+   :end-before: # -- etag-end --
 
 On ``GET`` single-resource responses, the ``ETag`` header is set and the ``If-None-Match``
 request header is checked manually to return a ``304 Not Modified`` when the client already
