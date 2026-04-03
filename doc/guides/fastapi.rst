@@ -25,9 +25,9 @@ Application setup
 
 Start with a FastAPI application and an
 `APIRouter <https://fastapi.tiangolo.com/reference/apirouter/>`_ prefixed with ``/scim/v2``.
-The SCIM specifications indicates that the responses content type must be ``application/scim+json``,
-so lets enforce this on all routes with an
-`HTTP middleware <https://fastapi.tiangolo.com/tutorial/middleware/>`_.
+``SCIMResponse`` is a thin :class:`~fastapi.Response` subclass that sets the
+``application/scim+json`` content type and automatically extracts the ``ETag`` header
+from ``meta.version`` when the response body contains it.
 
 .. literalinclude:: _examples/fastapi_example.py
    :language: python
@@ -180,15 +180,16 @@ the record's ETag and raises an :class:`~fastapi.HTTPException` on mismatch.
    :start-after: # -- etag-start --
    :end-before: # -- etag-end --
 
-On ``GET`` single-resource responses, the ``ETag`` header is set and the ``If-None-Match``
+On ``GET`` single-resource responses, the ``If-None-Match``
 request header is checked manually to return a ``304 Not Modified`` when the client already
 has the current version.
 
 On write operations (``PUT``, ``PATCH``, ``DELETE``), the ``If-Match`` header is checked
 before processing.
 If the client's ETag does not match, a ``412 Precondition Failed`` SCIM error is returned.
-``POST`` and ``PUT``/``PATCH`` responses include the ``ETag`` header for the newly created or
-updated resource.
+
+``SCIMResponse`` automatically extracts ``meta.version`` from the serialized body and sets
+the ``ETag`` response header, so endpoints do not need to set it manually.
 
 .. tip::
 
