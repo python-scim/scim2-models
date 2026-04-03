@@ -14,9 +14,9 @@ from scim2_models import ListResponse
 from scim2_models import PatchOp
 from scim2_models import ResourceType
 from scim2_models import ResponseParameters
+from scim2_models import SCIMException
 from scim2_models import Schema
 from scim2_models import SearchRequest
-from scim2_models import UniquenessException
 from scim2_models import User
 
 from .integrations import check_etag
@@ -87,11 +87,11 @@ def handle_not_found(error):
     return scim_error.model_dump_json(), HTTPStatus.NOT_FOUND
 
 
-@bp.errorhandler(ValueError)
-def handle_value_error(error):
-    """Turn uniqueness errors into SCIM 409 responses."""
-    scim_error = UniquenessException(detail=str(error)).to_error()
-    return scim_error.model_dump_json(), HTTPStatus.CONFLICT
+@bp.errorhandler(SCIMException)
+def handle_scim_error(error):
+    """Turn SCIM exceptions into SCIM error responses."""
+    scim_error = error.to_error()
+    return scim_error.model_dump_json(), scim_error.status
 
 
 @bp.errorhandler(PreconditionFailed)
@@ -156,8 +156,8 @@ def replace_user(app_record):
     replacement = User.model_validate(
         request.get_json(),
         scim_ctx=Context.RESOURCE_REPLACEMENT_REQUEST,
-        original=existing_user,
     )
+    replacement.replace(existing_user)
 
     replacement.id = existing_user.id
     updated_record = from_scim_user(replacement)

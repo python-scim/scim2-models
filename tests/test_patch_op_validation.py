@@ -248,24 +248,21 @@ def test_patch_operation_validation_contexts():
 
 
 def test_validate_mutability_readonly_error():
-    """Test mutability validation error for readOnly attributes."""
-    # Test add operation on readOnly field
-    with pytest.raises(ValidationError, match="mutability"):
-        PatchOp[User].model_validate(
-            {"operations": [{"op": "add", "path": "id", "value": "new-id"}]},
-            context={"scim": Context.RESOURCE_PATCH_REQUEST},
-        )
-
-    # Test replace operation on readOnly field
-    with pytest.raises(ValidationError, match="mutability"):
-        PatchOp[User].model_validate(
-            {"operations": [{"op": "replace", "path": "id", "value": "new-id"}]},
-            context={"scim": Context.RESOURCE_PATCH_REQUEST},
-        )
+    """All PATCH operations on readOnly attributes are rejected at parse-time."""
+    for op, extra in [
+        ("add", {"value": "x"}),
+        ("replace", {"value": "x"}),
+        ("remove", {}),
+    ]:
+        with pytest.raises(ValidationError, match="mutability"):
+            PatchOp[User].model_validate(
+                {"operations": [{"op": op, "path": "id", **extra}]},
+                context={"scim": Context.RESOURCE_PATCH_REQUEST},
+            )
 
 
-def test_validate_mutability_readonly_replace_via_complex_path():
-    """Replacing a readOnly complex attribute path is rejected."""
+def test_validate_mutability_readonly_via_complex_path():
+    """Replacing a readOnly complex attribute path is rejected at parse-time."""
     with pytest.raises(ValidationError, match="mutability"):
         PatchOp[User].model_validate(
             {
@@ -282,7 +279,7 @@ def test_validate_mutability_readonly_replace_via_complex_path():
 
 
 def test_patch_remove_on_immutable_field_with_value_is_rejected():
-    """Removing an existing immutable attribute via PATCH is rejected."""
+    """Removing an existing immutable attribute via PATCH is rejected at runtime."""
     resource = ImmutableFieldResource.model_construct(locked="existing")
     patch_op = PatchOp[ImmutableFieldResource].model_validate(
         {"operations": [{"op": "remove", "path": "locked"}]},

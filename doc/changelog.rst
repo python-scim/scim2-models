@@ -4,6 +4,14 @@ Changelog
 [0.6.8] - Unreleased
 --------------------
 
+Added
+^^^^^
+- :class:`~scim2_models.MutabilityException` handler in framework integration examples (FastAPI, Flask, Django).
+
+Deprecated
+^^^^^^^^^^
+- The ``original`` parameter of :meth:`~scim2_models.base.BaseModel.model_validate` is deprecated. Use :meth:`~scim2_models.Resource.replace` on the validated instance instead. Will be removed in 0.8.0.
+
 Fixed
 ^^^^^
 - PATCH operations on :attr:`~scim2_models.Mutability.immutable` fields are now validated at runtime per :rfc:`RFC 7644 §3.5.2 <7644#section-3.5.2>`: ``add`` is only allowed when the field has no previous value, ``replace`` is only allowed with the same value, and ``remove`` is only allowed on unset fields.

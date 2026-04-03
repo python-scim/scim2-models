@@ -124,13 +124,6 @@ fields with unexpected values will raise :class:`~pydantic.ValidationError`:
     ... except pydantic.ValidationError:
     ...    obj = Error(...)
 
-.. note::
-
-   With the :attr:`~scim2_models.Context.RESOURCE_REPLACEMENT_REQUEST` context,
-   :meth:`~scim2_models.BaseModel.model_validate` takes an additional
-   :paramref:`~scim2_models.BaseModel.model_validate.original` argument that is used to compare
-   :attr:`~scim2_models.Mutability.immutable` attributes, and raise an exception when they have mutated.
-
 Attributes inclusions and exclusions
 ====================================
 
@@ -478,6 +471,29 @@ Client applications can use this to dynamically discover server resources by bro
        .. literalinclude :: ../samples/rfc7643-8.7.1-schema-group.json
           :language: json
           :caption: schema-group.json
+
+Replace operations
+==================
+
+When handling a ``PUT`` request, validate the incoming payload with the
+:attr:`~scim2_models.Context.RESOURCE_REPLACEMENT_REQUEST` context, then call
+:meth:`~scim2_models.Resource.replace` against the existing resource to
+verify that :attr:`~scim2_models.Mutability.immutable` attributes have not been
+modified.
+
+.. doctest::
+
+    >>> from scim2_models import User, Context
+    >>> from scim2_models.exceptions import MutabilityException
+    >>> existing = User(user_name="bjensen")
+    >>> replacement = User.model_validate(
+    ...     {"userName": "bjensen"},
+    ...     scim_ctx=Context.RESOURCE_REPLACEMENT_REQUEST,
+    ... )
+    >>> replacement.replace(existing)
+
+If an immutable attribute differs, a :class:`~scim2_models.MutabilityException`
+is raised.
 
 Patch operations
 ================

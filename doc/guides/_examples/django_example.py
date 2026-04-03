@@ -16,9 +16,9 @@ from scim2_models import ListResponse
 from scim2_models import PatchOp
 from scim2_models import ResourceType
 from scim2_models import ResponseParameters
+from scim2_models import SCIMException
 from scim2_models import Schema
 from scim2_models import SearchRequest
-from scim2_models import UniquenessException
 from scim2_models import User
 
 from .integrations import check_etag
@@ -81,12 +81,12 @@ def scim_validation_error(error):
 # -- validation-helper-end --
 
 
-# -- uniqueness-helper-start --
-def scim_uniqueness_error(error):
-    """Turn uniqueness errors into a SCIM 409 response."""
-    scim_error = UniquenessException(detail=str(error)).to_error()
-    return scim_response(scim_error.model_dump_json(), HTTPStatus.CONFLICT)
-# -- uniqueness-helper-end --
+# -- scim-exception-helper-start --
+def scim_exception_error(error):
+    """Turn SCIM exceptions into a SCIM error response."""
+    scim_error = error.to_error()
+    return scim_response(scim_error.model_dump_json(), scim_error.status)
+# -- scim-exception-helper-end --
 
 
 # -- precondition-helper-start --
@@ -152,17 +152,19 @@ class UserView(View):
             replacement = User.model_validate(
                 json.loads(request.body),
                 scim_ctx=Context.RESOURCE_REPLACEMENT_REQUEST,
-                original=existing_user,
             )
+            replacement.replace(existing_user)
         except ValidationError as error:
             return scim_validation_error(error)
+        except SCIMException as error:
+            return scim_exception_error(error)
 
         replacement.id = existing_user.id
         updated_record = from_scim_user(replacement)
         try:
             save_record(updated_record)
-        except ValueError as error:
-            return scim_uniqueness_error(error)
+        except SCIMException as error:
+            return scim_exception_error(error)
 
         response_user = to_scim_user(updated_record, resource_location(request, updated_record))
         resp = scim_response(
@@ -192,8 +194,8 @@ class UserView(View):
         updated_record = from_scim_user(scim_user)
         try:
             save_record(updated_record)
-        except ValueError as error:
-            return scim_uniqueness_error(error)
+        except SCIMException as error:
+            return scim_exception_error(error)
 
         resp = scim_response(
             scim_user.model_dump_json(scim_ctx=Context.RESOURCE_PATCH_RESPONSE)
@@ -242,8 +244,8 @@ class UsersView(View):
         app_record = from_scim_user(request_user)
         try:
             save_record(app_record)
-        except ValueError as error:
-            return scim_uniqueness_error(error)
+        except SCIMException as error:
+            return scim_exception_error(error)
 
         response_user = to_scim_user(app_record, resource_location(request, app_record))
         resp = scim_response(

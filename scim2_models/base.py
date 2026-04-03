@@ -1,3 +1,4 @@
+import warnings
 from inspect import isclass
 from typing import Any
 from typing import Optional
@@ -23,6 +24,7 @@ from scim2_models.annotations import Mutability
 from scim2_models.annotations import Required
 from scim2_models.annotations import Returned
 from scim2_models.context import Context
+from scim2_models.exceptions import MutabilityException
 from scim2_models.utils import UNION_TYPES
 from scim2_models.utils import _find_field_name
 from scim2_models.utils import _normalize_attribute_name
@@ -410,7 +412,10 @@ class BaseModel(PydanticBaseModel):
             and issubclass(cls, Resource)
             and original is not None
         ):
-            cls._check_mutability_issues(original, obj)
+            try:
+                obj._check_immutable_fields(original)
+            except MutabilityException as exc:
+                raise exc.as_pydantic_error() from exc
         return obj
 
     @model_validator(mode="after")
@@ -456,35 +461,30 @@ class BaseModel(PydanticBaseModel):
 
         return self
 
-    @classmethod
-    def _check_mutability_issues(
-        cls, original: "BaseModel", replacement: "BaseModel"
-    ) -> None:
-        """Compare two instances, and check for differences of values on the fields marked as immutable."""
+    def _check_immutable_fields(self, original: Self) -> None:
+        """Check that immutable fields have not been modified compared to *original*.
+
+        Recursively checks nested single-valued complex attributes.
+        """
         from .attributes import is_complex_attribute
 
-        model = replacement.__class__
-        for field_name in model.model_fields:
-            mutability = model.get_field_annotation(field_name, Mutability)
+        for field_name in type(self).model_fields:
+            mutability = type(self).get_field_annotation(field_name, Mutability)
             if mutability == Mutability.immutable and getattr(
                 original, field_name
-            ) != getattr(replacement, field_name):
-                raise PydanticCustomError(
-                    "mutability_error",
-                    "Field '{field_name}' is immutable but the request value is different than the original value.",
-                    {"field_name": field_name},
-                )
+            ) != getattr(self, field_name):
+                raise MutabilityException(attribute=field_name, mutability="immutable")
 
-            attr_type = model.get_field_root_type(field_name)
+            attr_type = type(self).get_field_root_type(field_name)
             if (
                 attr_type
                 and is_complex_attribute(attr_type)
-                and not model.get_field_multiplicity(field_name)
+                and not type(self).get_field_multiplicity(field_name)
             ):
                 original_val = getattr(original, field_name)
-                replacement_value = getattr(replacement, field_name)
-                if original_val is not None and replacement_value is not None:
-                    cls._check_mutability_issues(original_val, replacement_value)
+                replacement_val = getattr(self, field_name)
+                if original_val is not None and replacement_val is not None:
+                    replacement_val._check_immutable_fields(original_val)
 
     def _set_complex_attribute_urns(self) -> None:
         """Navigate through attributes and sub-attributes of type ComplexAttribute, and mark them with a '_attribute_urn' attribute.
@@ -611,21 +611,29 @@ class BaseModel(PydanticBaseModel):
         original: Optional["BaseModel"] = None,
         **kwargs: Any,
     ) -> Self:
-        """Validate SCIM payloads and generate model representation by using Pydantic :code:`BaseModel.model_validate`.
+        """Validate SCIM payloads and generate model representation by using Pydantic :meth:`~pydantic.BaseModel.model_validate`.
 
         :param scim_ctx: The SCIM :class:`~scim2_models.Context` in which the validation happens.
         :param original: If this parameter is set during :attr:`~Context.RESOURCE_REPLACEMENT_REQUEST`,
             :attr:`~scim2_models.Mutability.immutable` parameters will be compared against the *original* model value.
             An exception is raised if values are different.
+
+            .. deprecated:: 0.6.7
+                Use :meth:`replace` on the validated instance instead.
+                Will be removed in 0.8.0.
         """
+        if original is not None:
+            warnings.warn(
+                "The 'original' parameter is deprecated, "
+                "use the 'replace' method on the validated instance instead. "
+                "Will be removed in 0.8.0.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
         context = kwargs.setdefault("context", {})
         context.setdefault("scim", scim_ctx)
         context.setdefault("original", original)
-
-        if scim_ctx == Context.RESOURCE_REPLACEMENT_REQUEST and original is None:
-            raise ValueError(
-                "Resource queries replacement validation must compare to an original resource"
-            )
 
         return super().model_validate(*args, **kwargs)
 
