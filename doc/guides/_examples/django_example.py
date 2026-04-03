@@ -37,12 +37,19 @@ from .integrations import to_scim_user
 
 # -- setup-start --
 def scim_response(payload, status=HTTPStatus.OK):
-    """Build a Django response with the SCIM media type."""
-    return HttpResponse(
+    """Build a Django response with the SCIM media type.
+
+    Automatically sets the ``ETag`` header from ``meta.version`` when present.
+    """
+    response = HttpResponse(
         payload,
         status=status,
         content_type="application/scim+json",
     )
+    meta = json.loads(payload).get("meta", {})
+    if version := meta.get("version"):
+        response["ETag"] = version
+    return response
 
 
 def resource_location(request, app_record):
@@ -139,15 +146,13 @@ class UserView(View):
             return HttpResponse(status=HTTPStatus.NOT_MODIFIED)
 
         scim_user = to_scim_user(app_record, resource_location(request, app_record))
-        resp = scim_response(
+        return scim_response(
             scim_user.model_dump_json(
                 scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
                 attributes=req.attributes,
                 excluded_attributes=req.excluded_attributes,
             )
         )
-        resp["ETag"] = etag
-        return resp
 
     def delete(self, request, app_record):
         if resp := check_etag(app_record, request):
@@ -180,13 +185,11 @@ class UserView(View):
         response_user = to_scim_user(
             updated_record, resource_location(request, updated_record)
         )
-        resp = scim_response(
+        return scim_response(
             response_user.model_dump_json(
                 scim_ctx=Context.RESOURCE_REPLACEMENT_RESPONSE
             )
         )
-        resp["ETag"] = make_etag(updated_record)
-        return resp
 
     def patch(self, request, app_record):
         if resp := check_etag(app_record, request):
@@ -208,11 +211,9 @@ class UserView(View):
         except SCIMException as error:
             return scim_exception_error(error)
 
-        resp = scim_response(
+        return scim_response(
             scim_user.model_dump_json(scim_ctx=Context.RESOURCE_PATCH_RESPONSE)
         )
-        resp["ETag"] = make_etag(updated_record)
-        return resp
 # -- single-resource-end --
 
 
@@ -261,12 +262,10 @@ class UsersView(View):
             return scim_exception_error(error)
 
         response_user = to_scim_user(app_record, resource_location(request, app_record))
-        resp = scim_response(
+        return scim_response(
             response_user.model_dump_json(scim_ctx=Context.RESOURCE_CREATION_RESPONSE),
             HTTPStatus.CREATED,
         )
-        resp["ETag"] = make_etag(app_record)
-        return resp
 
 
 urlpatterns = [

@@ -1,3 +1,4 @@
+import json
 from http import HTTPStatus
 
 from fastapi import APIRouter
@@ -34,15 +35,21 @@ from .integrations import to_scim_user
 
 # -- setup-start --
 app = FastAPI()
-router = APIRouter(prefix="/scim/v2")
 
 
-@app.middleware("http")
-async def add_scim_content_type(request: Request, call_next):
-    """Set the SCIM media type on every response."""
-    response = await call_next(request)
-    response.headers["Content-Type"] = "application/scim+json"
-    return response
+class SCIMResponse(Response):
+    """SCIM JSON response that auto-extracts the ``ETag`` from ``meta.version``."""
+
+    media_type = "application/scim+json"
+
+    def __init__(self, content: str, **kwargs):
+        super().__init__(content=content, **kwargs)
+        meta = json.loads(content).get("meta", {})
+        if version := meta.get("version"):
+            self.headers["ETag"] = version
+
+
+router = APIRouter(prefix="/scim/v2", default_response_class=SCIMResponse)
 
 
 def resource_location(request, app_record):
@@ -87,21 +94,21 @@ def resolve_user(user_id: str):
 async def handle_validation_error(request, error):
     """Turn Pydantic validation errors into SCIM error responses."""
     scim_error = Error.from_validation_error(error.errors()[0])
-    return Response(scim_error.model_dump_json(), status_code=scim_error.status)
+    return SCIMResponse(scim_error.model_dump_json(), status_code=scim_error.status)
 
 
 @app.exception_handler(HTTPException)
 async def handle_http_exception(request, error):
     """Turn HTTP exceptions into SCIM error responses."""
     scim_error = Error(status=error.status_code, detail=error.detail or "")
-    return Response(scim_error.model_dump_json(), status_code=error.status_code)
+    return SCIMResponse(scim_error.model_dump_json(), status_code=error.status_code)
 
 
 @app.exception_handler(SCIMException)
 async def handle_scim_error(request, error):
     """Turn SCIM exceptions into SCIM error responses."""
     scim_error = error.to_error()
-    return Response(scim_error.model_dump_json(), status_code=scim_error.status)
+    return SCIMResponse(scim_error.model_dump_json(), status_code=scim_error.status)
 # -- error-handlers-end --
 # -- refinements-end --
 
@@ -118,13 +125,12 @@ async def get_user(request: Request, app_record: dict = Depends(resolve_user)):
     if_none_match = request.headers.get("If-None-Match")
     if if_none_match and etag in [t.strip() for t in if_none_match.split(",")]:
         return Response(status_code=HTTPStatus.NOT_MODIFIED)
-    return Response(
+    return SCIMResponse(
         scim_user.model_dump_json(
             scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
             attributes=req.attributes,
             excluded_attributes=req.excluded_attributes,
         ),
-        headers={"ETag": etag},
     )
 # -- get-user-end --
 
@@ -144,9 +150,8 @@ async def patch_user(request: Request, app_record: dict = Depends(resolve_user))
     updated_record = from_scim_user(scim_user)
     save_record(updated_record)
 
-    return Response(
+    return SCIMResponse(
         scim_user.model_dump_json(scim_ctx=Context.RESOURCE_PATCH_RESPONSE),
-        headers={"ETag": make_etag(updated_record)},
     )
 # -- patch-user-end --
 
@@ -170,9 +175,8 @@ async def replace_user(request: Request, app_record: dict = Depends(resolve_user
     response_user = to_scim_user(
         updated_record, resource_location(request, updated_record)
     )
-    return Response(
+    return SCIMResponse(
         response_user.model_dump_json(scim_ctx=Context.RESOURCE_REPLACEMENT_RESPONSE),
-        headers={"ETag": make_etag(updated_record)},
     )
 # -- put-user-end --
 
@@ -204,7 +208,7 @@ async def list_users(request: Request):
         items_per_page=len(resources),
         resources=resources,
     )
-    return Response(
+    return SCIMResponse(
         response.model_dump_json(
             scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
             attributes=req.attributes,
@@ -226,10 +230,9 @@ async def create_user(request: Request):
     save_record(app_record)
 
     response_user = to_scim_user(app_record, resource_location(request, app_record))
-    return Response(
+    return SCIMResponse(
         response_user.model_dump_json(scim_ctx=Context.RESOURCE_CREATION_RESPONSE),
         status_code=HTTPStatus.CREATED,
-        headers={"ETag": make_etag(app_record)},
     )
 # -- create-user-end --
 # -- collection-end --
@@ -248,7 +251,7 @@ async def list_schemas(request: Request):
         items_per_page=len(page),
         resources=page,
     )
-    return Response(
+    return SCIMResponse(
         response.model_dump_json(scim_ctx=Context.RESOURCE_QUERY_RESPONSE),
     )
 
@@ -260,8 +263,8 @@ async def get_schema_by_id(schema_id: str):
         schema = get_schema(schema_id)
     except KeyError:
         scim_error = Error(status=404, detail=f"Schema {schema_id!r} not found")
-        return Response(scim_error.model_dump_json(), status_code=HTTPStatus.NOT_FOUND)
-    return Response(
+        return SCIMResponse(scim_error.model_dump_json(), status_code=HTTPStatus.NOT_FOUND)
+    return SCIMResponse(
         schema.model_dump_json(scim_ctx=Context.RESOURCE_QUERY_RESPONSE),
     )
 # -- schemas-end --
@@ -279,7 +282,7 @@ async def list_resource_types(request: Request):
         items_per_page=len(page),
         resources=page,
     )
-    return Response(
+    return SCIMResponse(
         response.model_dump_json(scim_ctx=Context.RESOURCE_QUERY_RESPONSE),
     )
 
@@ -293,8 +296,8 @@ async def get_resource_type_by_id(resource_type_id: str):
         scim_error = Error(
             status=404, detail=f"ResourceType {resource_type_id!r} not found"
         )
-        return Response(scim_error.model_dump_json(), status_code=HTTPStatus.NOT_FOUND)
-    return Response(
+        return SCIMResponse(scim_error.model_dump_json(), status_code=HTTPStatus.NOT_FOUND)
+    return SCIMResponse(
         rt.model_dump_json(scim_ctx=Context.RESOURCE_QUERY_RESPONSE),
     )
 # -- resource-types-end --
@@ -304,7 +307,7 @@ async def get_resource_type_by_id(resource_type_id: str):
 @router.get("/ServiceProviderConfig")
 async def get_service_provider_config():
     """Return the SCIM service provider configuration."""
-    return Response(
+    return SCIMResponse(
         service_provider_config.model_dump_json(
             scim_ctx=Context.RESOURCE_QUERY_RESPONSE
         ),
