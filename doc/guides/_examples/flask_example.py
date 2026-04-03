@@ -5,6 +5,7 @@ from flask import make_response
 from flask import request
 from flask import url_for
 from pydantic import ValidationError
+from werkzeug.exceptions import PreconditionFailed
 from werkzeug.routing import BaseConverter
 from werkzeug.routing import ValidationError as RoutingValidationError
 
@@ -14,12 +15,11 @@ from scim2_models import ListResponse
 from scim2_models import PatchOp
 from scim2_models import ResourceType
 from scim2_models import ResponseParameters
-from scim2_models import SCIMException
 from scim2_models import Schema
+from scim2_models import SCIMException
 from scim2_models import SearchRequest
 from scim2_models import User
 
-from .integrations import check_etag
 from .integrations import delete_record
 from .integrations import from_scim_user
 from .integrations import get_record
@@ -29,7 +29,6 @@ from .integrations import get_schema
 from .integrations import get_schemas
 from .integrations import list_records
 from .integrations import make_etag
-from .integrations import PreconditionFailed
 from .integrations import save_record
 from .integrations import service_provider_config
 from .integrations import to_scim_user
@@ -51,6 +50,25 @@ def resource_location(app_record):
 # -- setup-end --
 
 
+# -- etag-start --
+def check_etag(record, if_match):
+    """Compare the record's ETag against an ``If-Match`` header value.
+
+    :param record: The application record.
+    :param if_match: Raw ``If-Match`` header value, or :data:`None`.
+    :raises ~werkzeug.exceptions.PreconditionFailed: If the header is present and does not match.
+    """
+    if not if_match:
+        return
+    if if_match.strip() == "*":
+        return
+    etag = make_etag(record)
+    tags = [t.strip() for t in if_match.split(",")]
+    if etag not in tags:
+        raise PreconditionFailed("ETag mismatch")
+# -- etag-end --
+
+
 # -- refinements-start --
 # -- converters-start --
 class UserConverter(BaseConverter):
@@ -69,6 +87,8 @@ class UserConverter(BaseConverter):
 @bp.record_once
 def _register_converter(state):
     state.app.url_map.converters["user"] = UserConverter
+
+
 # -- converters-end --
 
 
@@ -99,6 +119,8 @@ def handle_precondition_failed(error):
     """Turn ETag mismatches into SCIM 412 responses."""
     scim_error = Error(status=412, detail="ETag mismatch")
     return scim_error.model_dump_json(), HTTPStatus.PRECONDITION_FAILED
+
+
 # -- error-handlers-end --
 # -- refinements-end --
 
@@ -121,6 +143,8 @@ def get_user(app_record):
     resp.headers["ETag"] = make_etag(app_record)
     resp.make_conditional(request)
     return resp
+
+
 # -- get-user-end --
 
 
@@ -144,6 +168,8 @@ def patch_user(app_record):
         HTTPStatus.OK,
         {"ETag": make_etag(updated_record)},
     )
+
+
 # -- patch-user-end --
 
 
@@ -165,12 +191,12 @@ def replace_user(app_record):
 
     response_user = to_scim_user(updated_record, resource_location(updated_record))
     return (
-        response_user.model_dump_json(
-            scim_ctx=Context.RESOURCE_REPLACEMENT_RESPONSE
-        ),
+        response_user.model_dump_json(scim_ctx=Context.RESOURCE_REPLACEMENT_RESPONSE),
         HTTPStatus.OK,
         {"ETag": make_etag(updated_record)},
     )
+
+
 # -- put-user-end --
 
 
@@ -181,6 +207,8 @@ def delete_user(app_record):
     check_etag(app_record, request.headers.get("If-Match"))
     delete_record(app_record["id"])
     return "", HTTPStatus.NO_CONTENT
+
+
 # -- delete-user-end --
 # -- single-resource-end --
 
@@ -207,6 +235,8 @@ def list_users():
         ),
         HTTPStatus.OK,
     )
+
+
 # -- list-users-end --
 
 
@@ -227,6 +257,8 @@ def create_user():
         HTTPStatus.CREATED,
         {"ETag": make_etag(app_record)},
     )
+
+
 # -- create-user-end --
 # -- collection-end --
 
@@ -262,6 +294,8 @@ def get_schema_by_id(schema_id):
         schema.model_dump_json(scim_ctx=Context.RESOURCE_QUERY_RESPONSE),
         HTTPStatus.OK,
     )
+
+
 # -- schemas-end --
 
 
@@ -297,6 +331,8 @@ def get_resource_type_by_id(resource_type_id):
         rt.model_dump_json(scim_ctx=Context.RESOURCE_QUERY_RESPONSE),
         HTTPStatus.OK,
     )
+
+
 # -- resource-types-end --
 
 
@@ -310,6 +346,8 @@ def get_service_provider_config():
         ),
         HTTPStatus.OK,
     )
+
+
 # -- service-provider-config-end --
 # -- discovery-end --
 # -- endpoints-end --

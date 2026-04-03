@@ -69,8 +69,8 @@ SCIM :class:`~scim2_models.Error` response.
 ``handle_scim_error`` catches any :class:`~scim2_models.SCIMException` (uniqueness, mutability, …)
 and returns the appropriate SCIM :class:`~scim2_models.Error` response.
 ``handle_precondition_failed`` catches
-:class:`~doc.guides._examples.integrations.PreconditionFailed` errors raised by the
-:ref:`ETag helpers <etag-helpers>` and returns a 412.
+:class:`~werkzeug.exceptions.PreconditionFailed` errors raised by
+``check_etag`` and returns a 412.
 
 Endpoints
 =========
@@ -164,8 +164,15 @@ Resource versioning (ETags)
 
 SCIM supports resource versioning through HTTP ETags
 (:rfc:`RFC 7644 §3.14 <7644#section-3.14>`).
-The shared :ref:`ETag helpers <etag-helpers>` compute a weak ETag from each record and
-populate :attr:`~scim2_models.Meta.version`.
+``check_etag`` compares the record's ETag against the ``If-Match`` header and
+raises :class:`~werkzeug.exceptions.PreconditionFailed` on mismatch.
+``make_etag`` computes a weak ETag from each record and populates
+:attr:`~scim2_models.Meta.version`.
+
+.. literalinclude:: _examples/flask_example.py
+   :language: python
+   :start-after: # -- etag-start --
+   :end-before: # -- etag-end --
 
 On ``GET`` single-resource responses, the ``ETag`` header is set and Werkzeug's
 :meth:`~werkzeug.wrappers.Response.make_conditional` handles ``If-None-Match`` to return a
