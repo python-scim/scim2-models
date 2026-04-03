@@ -88,8 +88,6 @@ class UserConverter(BaseConverter):
 @bp.record_once
 def _register_converter(state):
     state.app.url_map.converters["user"] = UserConverter
-
-
 # -- converters-end --
 
 
@@ -113,8 +111,6 @@ def handle_scim_error(error):
     """Turn SCIM exceptions into SCIM error responses."""
     scim_error = error.to_error()
     return scim_error.model_dump_json(), scim_error.status
-
-
 # -- error-handlers-end --
 # -- refinements-end --
 
@@ -137,8 +133,6 @@ def get_user(app_record):
     resp.headers["ETag"] = make_etag(app_record)
     resp.make_conditional(request)
     return resp
-
-
 # -- get-user-end --
 
 
@@ -162,8 +156,6 @@ def patch_user(app_record):
         HTTPStatus.OK,
         {"ETag": make_etag(updated_record)},
     )
-
-
 # -- patch-user-end --
 
 
@@ -189,8 +181,6 @@ def replace_user(app_record):
         HTTPStatus.OK,
         {"ETag": make_etag(updated_record)},
     )
-
-
 # -- put-user-end --
 
 
@@ -201,8 +191,6 @@ def delete_user(app_record):
     check_etag(app_record)
     delete_record(app_record["id"])
     return "", HTTPStatus.NO_CONTENT
-
-
 # -- delete-user-end --
 # -- single-resource-end --
 
@@ -229,8 +217,6 @@ def list_users():
         ),
         HTTPStatus.OK,
     )
-
-
 # -- list-users-end --
 
 
@@ -251,8 +237,6 @@ def create_user():
         HTTPStatus.CREATED,
         {"ETag": make_etag(app_record)},
     )
-
-
 # -- create-user-end --
 # -- collection-end --
 
@@ -288,8 +272,6 @@ def get_schema_by_id(schema_id):
         schema.model_dump_json(scim_ctx=Context.RESOURCE_QUERY_RESPONSE),
         HTTPStatus.OK,
     )
-
-
 # -- schemas-end --
 
 
@@ -325,8 +307,6 @@ def get_resource_type_by_id(resource_type_id):
         rt.model_dump_json(scim_ctx=Context.RESOURCE_QUERY_RESPONSE),
         HTTPStatus.OK,
     )
-
-
 # -- resource-types-end --
 
 
@@ -340,8 +320,6 @@ def get_service_provider_config():
         ),
         HTTPStatus.OK,
     )
-
-
 # -- service-provider-config-end --
 # -- discovery-end --
 # -- endpoints-end --

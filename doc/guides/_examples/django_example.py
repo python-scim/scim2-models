@@ -109,8 +109,6 @@ def scim_exception_error(error):
     """Turn SCIM exceptions into a SCIM error response."""
     scim_error = error.to_error()
     return scim_response(scim_error.model_dump_json(), scim_error.status)
-
-
 # -- scim-exception-helper-end --
 
 
@@ -119,8 +117,6 @@ def handler404(request, exception):
     """Turn Django 404 errors into SCIM error responses."""
     scim_error = Error(status=404, detail=str(exception))
     return scim_response(scim_error.model_dump_json(), HTTPStatus.NOT_FOUND)
-
-
 # -- error-handler-end --
 # -- refinements-end --
 
@@ -217,8 +213,6 @@ class UserView(View):
         )
         resp["ETag"] = make_etag(updated_record)
         return resp
-
-
 # -- single-resource-end --
 
 
@@ -317,8 +311,6 @@ class SchemaView(View):
         return scim_response(
             schema.model_dump_json(scim_ctx=Context.RESOURCE_QUERY_RESPONSE)
         )
-
-
 # -- schemas-end --
 
 
@@ -358,8 +350,6 @@ class ResourceTypeView(View):
         return scim_response(
             rt.model_dump_json(scim_ctx=Context.RESOURCE_QUERY_RESPONSE)
         )
-
-
 # -- resource-types-end --
 
 
@@ -373,8 +363,6 @@ class ServiceProviderConfigView(View):
                 scim_ctx=Context.RESOURCE_QUERY_RESPONSE
             )
         )
-
-
 # -- service-provider-config-end --
 
 
