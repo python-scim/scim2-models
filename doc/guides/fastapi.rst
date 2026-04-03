@@ -83,7 +83,10 @@ Endpoints
 The routes below serve ``/Users``, but the same structure applies to any resource type:
 replace the mapping helpers, the model class, and the URL prefix to expose ``/Groups`` or
 any other collection.
-All route functions are ``async`` because the request body is read with ``await request.json()``.
+Write endpoints use :class:`~scim2_models.SCIMValidator` to let FastAPI parse and validate
+the request body with the correct SCIM :class:`~scim2_models.Context` automatically.
+Read endpoints still build responses explicitly because they need to forward
+``attributes`` / ``excludedAttributes`` query parameters.
 
 GET /Users/<id>
 ^^^^^^^^^^^^^^^
@@ -113,8 +116,9 @@ No SCIM serialization is needed.
 PATCH /Users/<id>
 ^^^^^^^^^^^^^^^^^
 
-Validate the patch payload with :attr:`~scim2_models.Context.RESOURCE_PATCH_REQUEST`,
-apply it to a SCIM conversion of the native record with :meth:`~scim2_models.PatchOp.patch`,
+The patch payload is validated through :class:`~scim2_models.SCIMValidator` with
+:attr:`~scim2_models.Context.RESOURCE_PATCH_REQUEST`.
+Apply it to a SCIM conversion of the native record with :meth:`~scim2_models.PatchOp.patch`,
 convert back to native and persist, then serialize the result with
 :attr:`~scim2_models.Context.RESOURCE_PATCH_RESPONSE`.
 :class:`~scim2_models.PatchOp` is generic and works with any resource type.
@@ -127,7 +131,7 @@ convert back to native and persist, then serialize the result with
 PUT /Users/<id>
 ^^^^^^^^^^^^^^^
 
-Validate the full replacement payload with
+The full replacement payload is validated through :class:`~scim2_models.SCIMValidator` with
 :attr:`~scim2_models.Context.RESOURCE_REPLACEMENT_REQUEST`, then call
 :meth:`~scim2_models.Resource.replace` to verify that immutable attributes
 have not been modified.
@@ -156,8 +160,9 @@ Pass ``req.attributes`` and ``req.excluded_attributes`` to
 POST /Users
 ^^^^^^^^^^^
 
-Validate the creation payload with :attr:`~scim2_models.Context.RESOURCE_CREATION_REQUEST`,
-convert to native and persist, then serialize the created resource with
+The creation payload is validated through :class:`~scim2_models.SCIMValidator` with
+:attr:`~scim2_models.Context.RESOURCE_CREATION_REQUEST`.
+Convert to native and persist, then serialize the created resource with
 :attr:`~scim2_models.Context.RESOURCE_CREATION_RESPONSE`.
 
 .. literalinclude:: _examples/fastapi_example.py
@@ -244,6 +249,40 @@ features the server supports (patch, bulk, filtering, etc.).
    :language: python
    :start-after: # -- service-provider-config-start --
    :end-before: # -- service-provider-config-end --
+
+Idiomatic type annotations
+==========================
+
+The endpoints above use ``await request.json()`` and explicit
+:meth:`~scim2_models.Resource.model_validate` / :meth:`~scim2_models.Resource.model_dump_json` calls.
+:mod:`scim2_models` also provides two Pydantic-compatible annotations that let you use
+FastAPI's native body parsing and response serialization with the correct SCIM context:
+
+- :class:`~scim2_models.SCIMValidator` — injects a SCIM :class:`~scim2_models.Context` during
+  **input validation** (request body parsing).
+- :class:`~scim2_models.SCIMSerializer` — injects a SCIM :class:`~scim2_models.Context` during
+  **output serialization** (response rendering).
+
+.. code-block:: python
+
+   from typing import Annotated
+   from scim2_models import Context, SCIMSerializer, SCIMValidator, User
+
+   @router.post("/Users", status_code=201)
+   async def create_user(
+       user: Annotated[User, SCIMValidator(Context.RESOURCE_CREATION_REQUEST)]
+   ) -> Annotated[User, SCIMSerializer(Context.RESOURCE_CREATION_RESPONSE)]:
+       app_record = from_scim_user(user)
+       save_record(app_record)
+       return to_scim_user(app_record, ...)
+
+These annotations are **pure Pydantic** and carry no dependency on FastAPI — they work with any
+framework that respects :data:`typing.Annotated` metadata.
+
+:class:`~scim2_models.SCIMSerializer` on the return type lets FastAPI handle the response
+serialization automatically.
+When you need to pass ``attributes`` or ``excluded_attributes`` (for ``GET`` endpoints),
+use the explicit ``model_dump_json`` approach shown in the previous sections instead.
 
 Complete example
 ================
