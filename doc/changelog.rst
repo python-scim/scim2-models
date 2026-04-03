@@ -1,11 +1,12 @@
 Changelog
 =========
 
-[0.6.8] - Unreleased
+[0.6.8] - 2026-04-03
 --------------------
 
 Added
 ^^^^^
+- :class:`~scim2_models.SCIMValidator` and :class:`~scim2_models.SCIMSerializer` Pydantic Annotated markers to inject a SCIM :class:`~scim2_models.Context` during validation and serialization. :issue:`130`
 - :class:`~scim2_models.MutabilityException` handler in framework integration examples (FastAPI, Flask, Django).
 
 Deprecated
