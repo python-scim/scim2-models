@@ -79,8 +79,6 @@ def resolve_user(user_id: str):
         return get_record(user_id)
     except KeyError:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
-
-
 # -- dependency-end --
 
 
@@ -104,8 +102,6 @@ async def handle_scim_error(request, error):
     """Turn SCIM exceptions into SCIM error responses."""
     scim_error = error.to_error()
     return Response(scim_error.model_dump_json(), status_code=scim_error.status)
-
-
 # -- error-handlers-end --
 # -- refinements-end --
 
@@ -130,8 +126,6 @@ async def get_user(request: Request, app_record: dict = Depends(resolve_user)):
         ),
         headers={"ETag": etag},
     )
-
-
 # -- get-user-end --
 
 
@@ -154,8 +148,6 @@ async def patch_user(request: Request, app_record: dict = Depends(resolve_user))
         scim_user.model_dump_json(scim_ctx=Context.RESOURCE_PATCH_RESPONSE),
         headers={"ETag": make_etag(updated_record)},
     )
-
-
 # -- patch-user-end --
 
 
@@ -182,8 +174,6 @@ async def replace_user(request: Request, app_record: dict = Depends(resolve_user
         response_user.model_dump_json(scim_ctx=Context.RESOURCE_REPLACEMENT_RESPONSE),
         headers={"ETag": make_etag(updated_record)},
     )
-
-
 # -- put-user-end --
 
 
@@ -194,8 +184,6 @@ async def delete_user(request: Request, app_record: dict = Depends(resolve_user)
     check_etag(app_record, request)
     delete_record(app_record["id"])
     return Response(status_code=HTTPStatus.NO_CONTENT)
-
-
 # -- delete-user-end --
 # -- single-resource-end --
 
@@ -223,8 +211,6 @@ async def list_users(request: Request):
             excluded_attributes=req.excluded_attributes,
         ),
     )
-
-
 # -- list-users-end --
 
 
@@ -245,8 +231,6 @@ async def create_user(request: Request):
         status_code=HTTPStatus.CREATED,
         headers={"ETag": make_etag(app_record)},
     )
-
-
 # -- create-user-end --
 # -- collection-end --
 
@@ -280,8 +264,6 @@ async def get_schema_by_id(schema_id: str):
     return Response(
         schema.model_dump_json(scim_ctx=Context.RESOURCE_QUERY_RESPONSE),
     )
-
-
 # -- schemas-end --
 
 
@@ -315,8 +297,6 @@ async def get_resource_type_by_id(resource_type_id: str):
     return Response(
         rt.model_dump_json(scim_ctx=Context.RESOURCE_QUERY_RESPONSE),
     )
-
-
 # -- resource-types-end --
 
 
@@ -329,8 +309,6 @@ async def get_service_provider_config():
             scim_ctx=Context.RESOURCE_QUERY_RESPONSE
         ),
     )
-
-
 # -- service-provider-config-end --
 # -- discovery-end --
 
