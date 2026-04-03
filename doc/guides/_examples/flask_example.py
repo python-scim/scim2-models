@@ -5,6 +5,7 @@ from flask import make_response
 from flask import request
 from flask import url_for
 from pydantic import ValidationError
+from werkzeug.exceptions import HTTPException
 from werkzeug.exceptions import PreconditionFailed
 from werkzeug.routing import BaseConverter
 from werkzeug.routing import ValidationError as RoutingValidationError
@@ -51,13 +52,13 @@ def resource_location(app_record):
 
 
 # -- etag-start --
-def check_etag(record, if_match):
-    """Compare the record's ETag against an ``If-Match`` header value.
+def check_etag(record):
+    """Compare the record's ETag against the ``If-Match`` request header.
 
     :param record: The application record.
-    :param if_match: Raw ``If-Match`` header value, or :data:`None`.
     :raises ~werkzeug.exceptions.PreconditionFailed: If the header is present and does not match.
     """
+    if_match = request.headers.get("If-Match")
     if not if_match:
         return
     if if_match.strip() == "*":
@@ -100,11 +101,11 @@ def handle_validation_error(error):
     return scim_error.model_dump_json(), scim_error.status
 
 
-@bp.errorhandler(404)
-def handle_not_found(error):
-    """Turn Flask 404 errors into SCIM error responses."""
-    scim_error = Error(status=404, detail=str(error.description))
-    return scim_error.model_dump_json(), HTTPStatus.NOT_FOUND
+@bp.errorhandler(HTTPException)
+def handle_http_error(error):
+    """Turn HTTP errors into SCIM error responses."""
+    scim_error = Error(status=error.code, detail=str(error.description))
+    return scim_error.model_dump_json(), error.code
 
 
 @bp.errorhandler(SCIMException)
@@ -112,13 +113,6 @@ def handle_scim_error(error):
     """Turn SCIM exceptions into SCIM error responses."""
     scim_error = error.to_error()
     return scim_error.model_dump_json(), scim_error.status
-
-
-@bp.errorhandler(PreconditionFailed)
-def handle_precondition_failed(error):
-    """Turn ETag mismatches into SCIM 412 responses."""
-    scim_error = Error(status=412, detail="ETag mismatch")
-    return scim_error.model_dump_json(), HTTPStatus.PRECONDITION_FAILED
 
 
 # -- error-handlers-end --
@@ -152,7 +146,7 @@ def get_user(app_record):
 @bp.patch("/Users/<user:app_record>")
 def patch_user(app_record):
     """Apply a SCIM PatchOp to an existing user."""
-    check_etag(app_record, request.headers.get("If-Match"))
+    check_etag(app_record)
     scim_user = to_scim_user(app_record, resource_location(app_record))
     patch = PatchOp[User].model_validate(
         request.get_json(),
@@ -177,7 +171,7 @@ def patch_user(app_record):
 @bp.put("/Users/<user:app_record>")
 def replace_user(app_record):
     """Replace an existing user with a full SCIM resource."""
-    check_etag(app_record, request.headers.get("If-Match"))
+    check_etag(app_record)
     existing_user = to_scim_user(app_record, resource_location(app_record))
     replacement = User.model_validate(
         request.get_json(),
@@ -204,7 +198,7 @@ def replace_user(app_record):
 @bp.delete("/Users/<user:app_record>")
 def delete_user(app_record):
     """Delete an existing user."""
-    check_etag(app_record, request.headers.get("If-Match"))
+    check_etag(app_record)
     delete_record(app_record["id"])
     return "", HTTPStatus.NO_CONTENT
 

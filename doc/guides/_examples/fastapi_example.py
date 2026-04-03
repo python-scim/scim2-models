@@ -52,13 +52,14 @@ def resource_location(request, app_record):
 
 
 # -- etag-start --
-def check_etag(record, if_match):
-    """Compare the record's ETag against an ``If-Match`` header value.
+def check_etag(record, request: Request):
+    """Compare the record's ETag against the ``If-Match`` request header.
 
     :param record: The application record.
-    :param if_match: Raw ``If-Match`` header value, or :data:`None`.
+    :param request: The incoming request.
     :raises ~fastapi.HTTPException: If the header is present and does not match.
     """
+    if_match = request.headers.get("If-Match")
     if not if_match:
         return
     if if_match.strip() == "*":
@@ -138,7 +139,7 @@ async def get_user(request: Request, app_record: dict = Depends(resolve_user)):
 @router.patch("/Users/{user_id}")
 async def patch_user(request: Request, app_record: dict = Depends(resolve_user)):
     """Apply a SCIM PatchOp to an existing user."""
-    check_etag(app_record, request.headers.get("If-Match"))
+    check_etag(app_record, request)
     scim_user = to_scim_user(app_record, resource_location(request, app_record))
     patch = PatchOp[User].model_validate(
         await request.json(),
@@ -162,7 +163,7 @@ async def patch_user(request: Request, app_record: dict = Depends(resolve_user))
 @router.put("/Users/{user_id}")
 async def replace_user(request: Request, app_record: dict = Depends(resolve_user)):
     """Replace an existing user with a full SCIM resource."""
-    check_etag(app_record, request.headers.get("If-Match"))
+    check_etag(app_record, request)
     existing_user = to_scim_user(app_record, resource_location(request, app_record))
     replacement = User.model_validate(
         await request.json(),
@@ -190,7 +191,7 @@ async def replace_user(request: Request, app_record: dict = Depends(resolve_user
 @router.delete("/Users/{user_id}")
 async def delete_user(request: Request, app_record: dict = Depends(resolve_user)):
     """Delete an existing user."""
-    check_etag(app_record, request.headers.get("If-Match"))
+    check_etag(app_record, request)
     delete_record(app_record["id"])
     return Response(status_code=HTTPStatus.NO_CONTENT)
 

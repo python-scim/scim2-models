@@ -170,8 +170,8 @@ Resource versioning (ETags)
 
 SCIM supports resource versioning through HTTP ETags
 (:rfc:`RFC 7644 §3.14 <7644#section-3.14>`).
-``check_etag`` compares the record's ETag against the ``If-Match`` header and
-raises an :class:`~fastapi.HTTPException` on mismatch.
+``check_etag`` reads the ``If-Match`` header from the incoming request, compares it against
+the record's ETag and raises an :class:`~fastapi.HTTPException` on mismatch.
 ``make_etag`` computes a weak ETag from each record and populates
 :attr:`~scim2_models.Meta.version`.
 

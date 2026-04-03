@@ -55,7 +55,7 @@ record and lets Flask handle the not-found case before entering the view.
 Error handlers
 ^^^^^^^^^^^^^^
 
-The error handlers keep Pydantic validation errors and Flask 404s aligned with SCIM
+The error handlers keep Pydantic validation errors and HTTP errors aligned with SCIM
 responses.
 
 .. literalinclude:: _examples/flask_example.py
@@ -68,9 +68,8 @@ If :meth:`~scim2_models.Resource.model_validate`, Flask routes the
 SCIM :class:`~scim2_models.Error` response.
 ``handle_scim_error`` catches any :class:`~scim2_models.SCIMException` (uniqueness, mutability, …)
 and returns the appropriate SCIM :class:`~scim2_models.Error` response.
-``handle_precondition_failed`` catches
-:class:`~werkzeug.exceptions.PreconditionFailed` errors raised by
-``check_etag`` and returns a 412.
+``handle_http_error`` catches any :class:`~werkzeug.exceptions.HTTPException`
+(404, 412, 405, …) and returns the corresponding SCIM :class:`~scim2_models.Error` response.
 
 Endpoints
 =========
@@ -164,8 +163,8 @@ Resource versioning (ETags)
 
 SCIM supports resource versioning through HTTP ETags
 (:rfc:`RFC 7644 §3.14 <7644#section-3.14>`).
-``check_etag`` compares the record's ETag against the ``If-Match`` header and
-raises :class:`~werkzeug.exceptions.PreconditionFailed` on mismatch.
+``check_etag`` reads the ``If-Match`` header from the current request, compares it against
+the record's ETag and raises :class:`~werkzeug.exceptions.PreconditionFailed` on mismatch.
 ``make_etag`` computes a weak ETag from each record and populates
 :attr:`~scim2_models.Meta.version`.
 
