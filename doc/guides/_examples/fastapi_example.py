@@ -1,5 +1,6 @@
 import json
 from http import HTTPStatus
+from typing import Annotated
 
 from fastapi import APIRouter
 from fastapi import Depends
@@ -17,6 +18,9 @@ from scim2_models import ResourceType
 from scim2_models import ResponseParameters
 from scim2_models import Schema
 from scim2_models import SCIMException
+from scim2_models import SCIMSerializer
+from scim2_models import ServiceProviderConfig
+from scim2_models import SCIMValidator
 from scim2_models import SearchRequest
 from scim2_models import User
 
@@ -42,11 +46,16 @@ class SCIMResponse(Response):
 
     media_type = "application/scim+json"
 
-    def __init__(self, content: str, **kwargs):
+    def __init__(self, content=None, **kwargs):
+        if isinstance(content, (dict, list)):
+            content = json.dumps(content, ensure_ascii=False)
         super().__init__(content=content, **kwargs)
-        meta = json.loads(content).get("meta", {})
-        if version := meta.get("version"):
-            self.headers["ETag"] = version
+        try:
+            meta = json.loads(content).get("meta", {})
+            if version := meta.get("version"):
+                self.headers["ETag"] = version
+        except (json.JSONDecodeError, AttributeError, TypeError):
+            pass
 
 
 router = APIRouter(prefix="/scim/v2", default_response_class=SCIMResponse)
@@ -137,47 +146,44 @@ async def get_user(request: Request, app_record: dict = Depends(resolve_user)):
 
 # -- patch-user-start --
 @router.patch("/Users/{user_id}")
-async def patch_user(request: Request, app_record: dict = Depends(resolve_user)):
+async def patch_user(
+    request: Request,
+    patch: Annotated[
+        PatchOp[User], SCIMValidator(Context.RESOURCE_PATCH_REQUEST)
+    ],
+    app_record: dict = Depends(resolve_user),
+) -> Annotated[User, SCIMSerializer(Context.RESOURCE_PATCH_RESPONSE)]:
     """Apply a SCIM PatchOp to an existing user."""
     check_etag(app_record, request)
     scim_user = to_scim_user(app_record, resource_location(request, app_record))
-    patch = PatchOp[User].model_validate(
-        await request.json(),
-        scim_ctx=Context.RESOURCE_PATCH_REQUEST,
-    )
     patch.patch(scim_user)
 
     updated_record = from_scim_user(scim_user)
     save_record(updated_record)
 
-    return SCIMResponse(
-        scim_user.model_dump_json(scim_ctx=Context.RESOURCE_PATCH_RESPONSE),
-    )
+    return to_scim_user(updated_record, resource_location(request, updated_record))
 # -- patch-user-end --
 
 
 # -- put-user-start --
 @router.put("/Users/{user_id}")
-async def replace_user(request: Request, app_record: dict = Depends(resolve_user)):
+async def replace_user(
+    request: Request,
+    replacement: Annotated[
+        User, SCIMValidator(Context.RESOURCE_REPLACEMENT_REQUEST)
+    ],
+    app_record: dict = Depends(resolve_user),
+) -> Annotated[User, SCIMSerializer(Context.RESOURCE_REPLACEMENT_RESPONSE)]:
     """Replace an existing user with a full SCIM resource."""
     check_etag(app_record, request)
     existing_user = to_scim_user(app_record, resource_location(request, app_record))
-    replacement = User.model_validate(
-        await request.json(),
-        scim_ctx=Context.RESOURCE_REPLACEMENT_REQUEST,
-    )
     replacement.replace(existing_user)
 
     replacement.id = existing_user.id
     updated_record = from_scim_user(replacement)
     save_record(updated_record)
 
-    response_user = to_scim_user(
-        updated_record, resource_location(request, updated_record)
-    )
-    return SCIMResponse(
-        response_user.model_dump_json(scim_ctx=Context.RESOURCE_REPLACEMENT_RESPONSE),
-    )
+    return to_scim_user(updated_record, resource_location(request, updated_record))
 # -- put-user-end --
 
 
@@ -219,21 +225,18 @@ async def list_users(request: Request):
 
 
 # -- create-user-start --
-@router.post("/Users")
-async def create_user(request: Request):
+@router.post("/Users", status_code=HTTPStatus.CREATED)
+async def create_user(
+    request: Request,
+    request_user: Annotated[
+        User, SCIMValidator(Context.RESOURCE_CREATION_REQUEST)
+    ],
+) -> Annotated[User, SCIMSerializer(Context.RESOURCE_CREATION_RESPONSE)]:
     """Validate a SCIM creation payload and store the new user."""
-    request_user = User.model_validate(
-        await request.json(),
-        scim_ctx=Context.RESOURCE_CREATION_REQUEST,
-    )
     app_record = from_scim_user(request_user)
     save_record(app_record)
 
-    response_user = to_scim_user(app_record, resource_location(request, app_record))
-    return SCIMResponse(
-        response_user.model_dump_json(scim_ctx=Context.RESOURCE_CREATION_RESPONSE),
-        status_code=HTTPStatus.CREATED,
-    )
+    return to_scim_user(app_record, resource_location(request, app_record))
 # -- create-user-end --
 # -- collection-end --
 
@@ -305,13 +308,11 @@ async def get_resource_type_by_id(resource_type_id: str):
 
 # -- service-provider-config-start --
 @router.get("/ServiceProviderConfig")
-async def get_service_provider_config():
+async def get_service_provider_config() -> Annotated[
+    ServiceProviderConfig, SCIMSerializer(Context.RESOURCE_QUERY_RESPONSE)
+]:
     """Return the SCIM service provider configuration."""
-    return SCIMResponse(
-        service_provider_config.model_dump_json(
-            scim_ctx=Context.RESOURCE_QUERY_RESPONSE
-        ),
-    )
+    return service_provider_config
 # -- service-provider-config-end --
 # -- discovery-end --
 

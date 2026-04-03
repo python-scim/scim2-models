@@ -1,3 +1,5 @@
+from .annotated import SCIMSerializer
+from .annotated import SCIMValidator
 from .annotations import CaseExact
 from .annotations import Mutability
 from .annotations import Required
@@ -72,6 +74,8 @@ from .resources.user import X509Certificate
 __all__ = [
     "Address",
     "AnyResource",
+    "SCIMSerializer",
+    "SCIMValidator",
     "AnyExtension",
     "Attribute",
     "AuthenticationScheme",

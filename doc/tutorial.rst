@@ -124,6 +124,61 @@ fields with unexpected values will raise :class:`~pydantic.ValidationError`:
     ... except pydantic.ValidationError:
     ...    obj = Error(...)
 
+Context annotations
+===================
+
+:class:`~scim2_models.SCIMValidator` and :class:`~scim2_models.SCIMSerializer` are
+`Pydantic Annotated markers <https://docs.pydantic.dev/latest/concepts/types/#custom-types>`_
+that embed a :class:`~scim2_models.Context` directly in the type hint.
+They are useful for web framework integration where the framework handles parsing and
+serialization automatically.
+
+:class:`~scim2_models.SCIMValidator` injects the context during **validation**:
+
+.. code-block:: python
+
+    >>> from typing import Annotated
+    >>> from pydantic import TypeAdapter
+    >>> from scim2_models import User, Context, SCIMValidator
+
+    >>> adapter = TypeAdapter(
+    ...     Annotated[User, SCIMValidator(Context.RESOURCE_CREATION_REQUEST)]
+    ... )
+    >>> user = adapter.validate_python({
+    ...     "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+    ...     "userName": "bjensen",
+    ...     "id": "should-be-stripped",
+    ... })
+    >>> user.id is None
+    True
+
+:class:`~scim2_models.SCIMSerializer` injects the context during **serialization**:
+
+.. code-block:: python
+
+    >>> from scim2_models import SCIMSerializer
+    >>> adapter = TypeAdapter(
+    ...     Annotated[User, SCIMSerializer(Context.RESOURCE_QUERY_RESPONSE)]
+    ... )
+    >>> user = User(user_name="bjensen", password="secret")
+    >>> user.id = "123"
+    >>> data = adapter.dump_python(user)
+    >>> "password" not in data
+    True
+
+These annotations are **pure Pydantic** and carry no dependency on any web framework.
+In FastAPI for instance, they can be used directly in endpoint signatures:
+
+.. code-block:: python
+
+    @router.post("/Users", status_code=201)
+    async def create_user(
+        user: Annotated[User, SCIMValidator(Context.RESOURCE_CREATION_REQUEST)]
+    ) -> Annotated[User, SCIMSerializer(Context.RESOURCE_CREATION_RESPONSE)]:
+        ...
+
+See the :doc:`guides/fastapi` guide for a complete example.
+
 Attributes inclusions and exclusions
 ====================================
 
