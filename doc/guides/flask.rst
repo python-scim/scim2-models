@@ -66,8 +66,8 @@ responses.
 If :meth:`~scim2_models.Resource.model_validate`, Flask routes the
 :class:`~pydantic.ValidationError` to ``handle_validation_error`` and the client receives a
 SCIM :class:`~scim2_models.Error` response.
-``handle_value_error`` catches the ``ValueError`` raised by ``save_record`` and returns a 409
-with ``scimType: uniqueness`` using :class:`~scim2_models.UniquenessException`.
+``handle_scim_error`` catches any :class:`~scim2_models.SCIMException` (uniqueness, mutability, …)
+and returns the appropriate SCIM :class:`~scim2_models.Error` response.
 ``handle_precondition_failed`` catches
 :class:`~doc.guides._examples.integrations.PreconditionFailed` errors raised by the
 :ref:`ETag helpers <etag-helpers>` and returns a 412.
@@ -122,10 +122,9 @@ PUT /Users/<id>
 ^^^^^^^^^^^^^^^
 
 Validate the full replacement payload with
-:attr:`~scim2_models.Context.RESOURCE_REPLACEMENT_REQUEST`, passing the ``original`` resource
-so that immutable attributes are checked for unintended modifications.
-Convert back to native and persist, then serialize the result with
-:attr:`~scim2_models.Context.RESOURCE_REPLACEMENT_RESPONSE`.
+:attr:`~scim2_models.Context.RESOURCE_REPLACEMENT_REQUEST`, then call
+:meth:`~scim2_models.Resource.replace` to verify that immutable attributes
+have not been modified.
 
 .. literalinclude:: _examples/flask_example.py
    :language: python

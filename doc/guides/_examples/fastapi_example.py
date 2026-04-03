@@ -14,9 +14,9 @@ from scim2_models import ListResponse
 from scim2_models import PatchOp
 from scim2_models import ResourceType
 from scim2_models import ResponseParameters
+from scim2_models import SCIMException
 from scim2_models import Schema
 from scim2_models import SearchRequest
-from scim2_models import UniquenessException
 from scim2_models import User
 
 from .integrations import PreconditionFailed
@@ -79,11 +79,11 @@ async def handle_http_exception(request, error):
     return Response(scim_error.model_dump_json(), status_code=error.status_code)
 
 
-@app.exception_handler(ValueError)
-async def handle_value_error(request, error):
-    """Turn uniqueness errors into SCIM 409 responses."""
-    scim_error = UniquenessException(detail=str(error)).to_error()
-    return Response(scim_error.model_dump_json(), status_code=HTTPStatus.CONFLICT)
+@app.exception_handler(SCIMException)
+async def handle_scim_error(request, error):
+    """Turn SCIM exceptions into SCIM error responses."""
+    scim_error = error.to_error()
+    return Response(scim_error.model_dump_json(), status_code=scim_error.status)
 
 
 @app.exception_handler(PreconditionFailed)
@@ -151,8 +151,8 @@ async def replace_user(request: Request, app_record: dict = Depends(resolve_user
     replacement = User.model_validate(
         await request.json(),
         scim_ctx=Context.RESOURCE_REPLACEMENT_REQUEST,
-        original=existing_user,
     )
+    replacement.replace(existing_user)
 
     replacement.id = existing_user.id
     updated_record = from_scim_user(replacement)

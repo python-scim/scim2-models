@@ -15,6 +15,7 @@ from scim2_models import Patch
 from scim2_models import ResourceType
 from scim2_models import ServiceProviderConfig
 from scim2_models import Sort
+from scim2_models import UniquenessException
 from scim2_models import User
 
 # -- storage-start --
@@ -40,12 +41,14 @@ def list_records(start=None, stop=None):
 
 
 def save_record(record):
-    """Persist *record*, raising ValueError if its userName is already taken."""
+    """Persist *record*, raising UniquenessException if its userName is already taken."""
     if not record.get("id"):
         record["id"] = str(uuid4())
     for existing in records.values():
         if existing["id"] != record["id"] and existing["user_name"] == record["user_name"]:
-            raise ValueError(f"userName {record['user_name']!r} is already taken")
+            raise UniquenessException(
+                detail=f"userName {record['user_name']!r} is already taken"
+            )
     now = datetime.now(timezone.utc)
     record.setdefault("created_at", now)
     record["updated_at"] = now

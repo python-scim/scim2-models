@@ -67,16 +67,16 @@ If :meth:`~scim2_models.Resource.model_validate` or
 :class:`~pydantic.ValidationError` and return a SCIM :class:`~scim2_models.Error`
 response.
 
-Uniqueness error helper
-^^^^^^^^^^^^^^^^^^^^^^^
+SCIM exception helper
+^^^^^^^^^^^^^^^^^^^^^
 
-``scim_uniqueness_error`` catches the ``ValueError`` raised by ``save_record`` and returns a
-409 with ``scimType: uniqueness`` using :class:`~scim2_models.UniquenessException`.
+``scim_exception_error`` converts any :class:`~scim2_models.SCIMException`
+(uniqueness, mutability, …) into a SCIM error response.
 
 .. literalinclude:: _examples/django_example.py
    :language: python
-   :start-after: # -- uniqueness-helper-start --
-   :end-before: # -- uniqueness-helper-end --
+   :start-after: # -- scim-exception-helper-start --
+   :end-before: # -- scim-exception-helper-end --
 
 Precondition error helper
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -121,8 +121,9 @@ For ``GET``, parse query parameters with :class:`~scim2_models.ResponseParameter
 SCIM resource, and serialize with :attr:`~scim2_models.Context.RESOURCE_QUERY_RESPONSE`.
 For ``DELETE``, remove the record and return an empty 204 response.
 For ``PUT``, validate the full replacement payload with
-:attr:`~scim2_models.Context.RESOURCE_REPLACEMENT_REQUEST`, passing the ``original`` resource
-so that immutable attributes are checked for unintended modifications.
+:attr:`~scim2_models.Context.RESOURCE_REPLACEMENT_REQUEST`, then call
+:meth:`~scim2_models.Resource.replace` to verify that immutable attributes
+have not been modified.
 Convert back to native and persist, then serialize with
 :attr:`~scim2_models.Context.RESOURCE_REPLACEMENT_RESPONSE`.
 For ``PATCH``, validate the payload with :attr:`~scim2_models.Context.RESOURCE_PATCH_REQUEST`,

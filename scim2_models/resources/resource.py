@@ -153,6 +153,20 @@ class Resource(ScimObject, Generic[AnyExtension]):
     meta: Annotated[Meta | None, Mutability.read_only, Returned.default] = None
     """A complex attribute containing resource metadata."""
 
+    def replace(self, original: Self) -> None:
+        """Verify that no immutable field has been modified compared to *original*.
+
+        Intended to be called after parsing a PUT request body, to enforce
+        :rfc:`RFC 7644 §3.5.1 <7644#section-3.5.1>`: if one or more values
+        are already set for an immutable attribute, the input values MUST match.
+
+        Recursively checks nested single-valued complex attributes.
+
+        :param original: The original resource state to compare against.
+        :raises MutabilityException: If an immutable field value differs.
+        """
+        self._check_immutable_fields(original)
+
     @classmethod
     def __class_getitem__(cls, item: Any) -> type["Resource[Any]"]:
         """Create a Resource class with extension fields dynamically added."""
