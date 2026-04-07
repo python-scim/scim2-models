@@ -1,4 +1,3 @@
-import json
 from http import HTTPStatus
 from typing import Annotated
 from typing import Any
@@ -10,6 +9,7 @@ from fastapi import HTTPException
 from fastapi import Query
 from fastapi import Request
 from fastapi import Response
+from fastapi.responses import JSONResponse
 from pydantic import ValidationError
 
 from scim2_models import Context
@@ -45,19 +45,16 @@ from .integrations import to_scim_user
 app = FastAPI()
 
 
-class SCIMResponse(Response):
+class SCIMResponse(JSONResponse):
     """SCIM JSON response that auto-extracts the ``ETag`` from ``meta.version``."""
 
     media_type = "application/scim+json"
 
-    def render(self, content: Any) -> bytes:
-        self._etag = (content or {}).get("meta", {}).get("version")
-        return json.dumps(content, ensure_ascii=False).encode("utf-8")
-
     def __init__(self, content: Any = None, **kwargs: Any) -> None:
         super().__init__(content, **kwargs)
-        if self._etag:
-            self.headers["ETag"] = self._etag
+        if meta := (content or {}).get("meta", {}):
+            if version := meta.get("version"):
+                self.headers["ETag"] = version
 
 
 router = APIRouter(prefix="/scim/v2", default_response_class=SCIMResponse)
