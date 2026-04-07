@@ -177,7 +177,6 @@ def replace_user(app_record):
     )
     replacement.replace(existing_user)
 
-    replacement.id = existing_user.id
     updated_record = from_scim_user(replacement)
     save_record(updated_record)
 

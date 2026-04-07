@@ -1,6 +1,13 @@
 Changelog
 =========
 
+[0.6.10] - Unreleased
+---------------------
+
+Fixed
+^^^^^
+- replace copies readOnly and preserves immutable fields
+
 [0.6.9] - 2026-04-07
 --------------------
 

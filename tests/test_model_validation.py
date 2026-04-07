@@ -145,7 +145,7 @@ def test_validate_replacement_request_mutability():
 
     Attributes marked as:
     - Mutability.immutable raise a ValidationError if different than the 'original' item.
-    - Mutability.read_only are ignored
+    - Mutability.read_only are copied from the original
     """
     original = MutResource(read_only="y", read_write="y", write_only="y", immutable="y")
     with pytest.warns(DeprecationWarning, match="original"):
@@ -160,6 +160,7 @@ def test_validate_replacement_request_mutability():
             original=original,
         ) == MutResource(
             schemas=["org:example:MutResource"],
+            read_only="y",
             readWrite="x",
             writeOnly="x",
             immutable="y",
@@ -286,6 +287,49 @@ def test_replace_ignores_readwrite_changes():
     original = MutResource(read_write="y")
     replacement = MutResource(read_write="x")
     replacement.replace(original)
+    assert replacement.read_write == "x"
+
+
+def test_replace_copies_read_only_from_original():
+    """Replace copies readOnly fields from the original resource."""
+    original = MutResource(read_only="server-value")
+    replacement = MutResource(read_only="client-value")
+    replacement.replace(original)
+    assert replacement.read_only == "server-value"
+
+
+def test_replace_copies_read_only_none_from_original():
+    """Replace copies readOnly fields even when the original value is None."""
+    original = MutResource(read_only=None)
+    replacement = MutResource(read_only="client-value")
+    replacement.replace(original)
+    assert replacement.read_only is None
+
+
+def test_replace_preserves_immutable_when_absent():
+    """Replace copies immutable fields from original when absent in replacement."""
+    original = MutResource(immutable="y")
+    replacement = MutResource(immutable=None)
+    replacement.replace(original)
+    assert replacement.immutable == "y"
+
+
+def test_replace_copies_read_only_in_nested_complex_attribute():
+    """Replace copies readOnly sub-attributes from original in nested complex attributes."""
+
+    class Sub(ComplexAttribute):
+        read_only: Annotated[str | None, Mutability.read_only] = None
+        read_write: Annotated[str | None, Mutability.read_write] = None
+
+    class Super(Resource):
+        schemas: Annotated[list[str], Required.true] = ["org:example:Super"]
+        sub: Sub | None = None
+
+    original = Super(sub=Sub(read_only="server", read_write="old"))
+    replacement = Super(sub=Sub(read_only="client", read_write="new"))
+    replacement.replace(original)
+    assert replacement.sub.read_only == "server"
+    assert replacement.sub.read_write == "new"
 
 
 def test_original_parameter_emits_deprecation_warning():

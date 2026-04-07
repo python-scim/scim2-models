@@ -176,7 +176,6 @@ class UserView(View):
         except SCIMException as error:
             return scim_exception_error(error)
 
-        replacement.id = existing_user.id
         updated_record = from_scim_user(replacement)
         try:
             save_record(updated_record)

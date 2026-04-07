@@ -186,7 +186,6 @@ async def replace_user(
     existing_user = to_scim_user(app_record, resource_location(request, app_record))
     replacement.replace(existing_user)
 
-    replacement.id = existing_user.id
     updated_record = from_scim_user(replacement)
     save_record(updated_record)
 
