@@ -2,10 +2,12 @@ import json
 from http import HTTPStatus
 
 from django.http import HttpResponse
+from django.http import JsonResponse
 from django.urls import path
 from django.urls import register_converter
 from django.urls import reverse
 from django.utils.decorators import method_decorator
+from django.utils.http import parse_etags
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 from pydantic import ValidationError
@@ -36,20 +38,60 @@ from .integrations import to_scim_user
 
 
 # -- setup-start --
-def scim_response(payload, status=HTTPStatus.OK):
-    """Build a Django response with the SCIM media type.
+class SCIMJsonResponse(JsonResponse):
+    """JSON response with the ``application/scim+json`` media type.
 
-    Automatically sets the ``ETag`` header from ``meta.version`` when present.
+    Keeps a reference to the original data dict in :attr:`scim_data` so that
+    ``dispatch()`` can inspect it without re-parsing the serialised body.
     """
-    response = HttpResponse(
-        payload,
-        status=status,
-        content_type="application/scim+json",
-    )
-    meta = json.loads(payload).get("meta", {})
-    if version := meta.get("version"):
-        response["ETag"] = version
-    return response
+
+    def __init__(self, data, **kwargs):
+        self.scim_data = data
+        kwargs.setdefault("content_type", "application/scim+json")
+        super().__init__(data, **kwargs)
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class SCIMView(View):
+    """Base view for SCIM endpoints.
+
+    Extracts the ``ETag`` header from ``meta.version``, handles
+    ``If-None-Match`` (304) on GET, and checks ``If-Match`` (412) on
+    write operations.
+    """
+
+    # -- etag-start --
+    def dispatch(self, request, *args, **kwargs):
+        """Dispatch with ETag handling."""
+        if request.method in ("PUT", "PATCH", "DELETE"):
+            app_record = kwargs.get("app_record")
+            if app_record is not None:
+                if_match = request.META.get("HTTP_IF_MATCH")
+                if if_match and if_match.strip() != "*":
+                    etag = make_etag(app_record)
+                    if etag not in parse_etags(if_match):
+                        scim_error = Error(status=412, detail="ETag mismatch")
+                        return SCIMJsonResponse(
+                            scim_error.model_dump(), status=412
+                        )
+
+        response = super().dispatch(request, *args, **kwargs)
+
+        data = getattr(response, "scim_data", None)
+        if data is None:
+            return response
+
+        if meta := data.get("meta"):
+            if version := meta.get("version"):
+                response["ETag"] = version
+
+        if request.method == "GET" and (etag := response.get("ETag")):
+            if_none_match = request.META.get("HTTP_IF_NONE_MATCH")
+            if if_none_match and etag in parse_etags(if_none_match):
+                return HttpResponse(status=HTTPStatus.NOT_MODIFIED)
+
+        return response
+    # -- etag-end --
 
 
 def resource_location(request, app_record):
@@ -58,30 +100,6 @@ def resource_location(request, app_record):
         reverse("scim_user", kwargs={"app_record": app_record})
     )
 # -- setup-end --
-
-
-# -- etag-start --
-def check_etag(record, request):
-    """Compare the record's ETag against the ``If-Match`` request header.
-
-    :param record: The application record.
-    :param request: The Django request.
-    :return: A 412 SCIM error response if the ETag does not match, or :data:`None`.
-    """
-    if_match = request.META.get("HTTP_IF_MATCH")
-    if not if_match:
-        return None
-    if if_match.strip() == "*":
-        return None
-    etag = make_etag(record)
-    tags = [t.strip() for t in if_match.split(",")]
-    if etag not in tags:
-        scim_error = Error(status=412, detail="ETag mismatch")
-        return scim_response(
-            scim_error.model_dump_json(), HTTPStatus.PRECONDITION_FAILED
-        )
-    return None
-# -- etag-end --
 
 
 # -- refinements-start --
@@ -107,7 +125,7 @@ register_converter(UserConverter, "user")
 def scim_validation_error(error):
     """Turn Pydantic validation errors into a SCIM error response."""
     scim_error = Error.from_validation_error(error.errors()[0])
-    return scim_response(scim_error.model_dump_json(), scim_error.status)
+    return SCIMJsonResponse(scim_error.model_dump(), status=scim_error.status)
 # -- validation-helper-end --
 
 
@@ -115,7 +133,7 @@ def scim_validation_error(error):
 def scim_exception_error(error):
     """Turn SCIM exceptions into a SCIM error response."""
     scim_error = error.to_error()
-    return scim_response(scim_error.model_dump_json(), scim_error.status)
+    return SCIMJsonResponse(scim_error.model_dump(), status=scim_error.status)
 # -- scim-exception-helper-end --
 
 
@@ -123,15 +141,17 @@ def scim_exception_error(error):
 def handler404(request, exception):
     """Turn Django 404 errors into SCIM error responses."""
     scim_error = Error(status=404, detail=str(exception))
-    return scim_response(scim_error.model_dump_json(), HTTPStatus.NOT_FOUND)
+    return SCIMJsonResponse(
+        scim_error.model_dump(),
+        status=HTTPStatus.NOT_FOUND,
+    )
 # -- error-handler-end --
 # -- refinements-end --
 
 
 # -- endpoints-start --
 # -- single-resource-start --
-@method_decorator(csrf_exempt, name="dispatch")
-class UserView(View):
+class UserView(SCIMView):
     """Handle GET, PUT, PATCH and DELETE on one SCIM user resource."""
 
     def get(self, request, app_record):
@@ -140,14 +160,9 @@ class UserView(View):
         except ValidationError as error:
             return scim_validation_error(error)
 
-        etag = make_etag(app_record)
-        if_none_match = request.META.get("HTTP_IF_NONE_MATCH")
-        if if_none_match and etag in [t.strip() for t in if_none_match.split(",")]:
-            return HttpResponse(status=HTTPStatus.NOT_MODIFIED)
-
         scim_user = to_scim_user(app_record, resource_location(request, app_record))
-        return scim_response(
-            scim_user.model_dump_json(
+        return SCIMJsonResponse(
+            scim_user.model_dump(
                 scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
                 attributes=req.attributes,
                 excluded_attributes=req.excluded_attributes,
@@ -155,14 +170,10 @@ class UserView(View):
         )
 
     def delete(self, request, app_record):
-        if resp := check_etag(app_record, request):
-            return resp
         delete_record(app_record["id"])
-        return scim_response("", HTTPStatus.NO_CONTENT)
+        return HttpResponse(status=HTTPStatus.NO_CONTENT)
 
     def put(self, request, app_record):
-        if resp := check_etag(app_record, request):
-            return resp
         req = ResponseParameters.model_validate(request.GET.dict())
         existing_user = to_scim_user(app_record, resource_location(request, app_record))
         try:
@@ -185,8 +196,8 @@ class UserView(View):
         response_user = to_scim_user(
             updated_record, resource_location(request, updated_record)
         )
-        return scim_response(
-            response_user.model_dump_json(
+        return SCIMJsonResponse(
+            response_user.model_dump(
                 scim_ctx=Context.RESOURCE_REPLACEMENT_RESPONSE,
                 attributes=req.attributes,
                 excluded_attributes=req.excluded_attributes,
@@ -194,8 +205,6 @@ class UserView(View):
         )
 
     def patch(self, request, app_record):
-        if resp := check_etag(app_record, request):
-            return resp
         req = ResponseParameters.model_validate(request.GET.dict())
         try:
             patch = PatchOp[User].model_validate(
@@ -214,8 +223,8 @@ class UserView(View):
         except SCIMException as error:
             return scim_exception_error(error)
 
-        return scim_response(
-            scim_user.model_dump_json(
+        return SCIMJsonResponse(
+            scim_user.model_dump(
                 scim_ctx=Context.RESOURCE_PATCH_RESPONSE,
                 attributes=req.attributes,
                 excluded_attributes=req.excluded_attributes,
@@ -225,8 +234,7 @@ class UserView(View):
 
 
 # -- collection-start --
-@method_decorator(csrf_exempt, name="dispatch")
-class UsersView(View):
+class UsersView(SCIMView):
     """Handle GET and POST on the SCIM users collection."""
 
     def get(self, request):
@@ -245,8 +253,8 @@ class UsersView(View):
             items_per_page=len(resources),
             resources=resources,
         )
-        return scim_response(
-            response.model_dump_json(
+        return SCIMJsonResponse(
+            response.model_dump(
                 scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
                 attributes=req.attributes,
                 excluded_attributes=req.excluded_attributes,
@@ -270,13 +278,13 @@ class UsersView(View):
             return scim_exception_error(error)
 
         response_user = to_scim_user(app_record, resource_location(request, app_record))
-        return scim_response(
-            response_user.model_dump_json(
+        return SCIMJsonResponse(
+            response_user.model_dump(
                 scim_ctx=Context.RESOURCE_CREATION_RESPONSE,
                 attributes=req.attributes,
                 excluded_attributes=req.excluded_attributes,
             ),
-            HTTPStatus.CREATED,
+            status=HTTPStatus.CREATED,
         )
 
 
@@ -289,7 +297,7 @@ urlpatterns = [
 
 # -- discovery-start --
 # -- schemas-start --
-class SchemasView(View):
+class SchemasView(SCIMView):
     """Handle GET on the SCIM schemas collection."""
 
     def get(self, request):
@@ -305,12 +313,12 @@ class SchemasView(View):
             items_per_page=len(page),
             resources=page,
         )
-        return scim_response(
-            response.model_dump_json(scim_ctx=Context.RESOURCE_QUERY_RESPONSE)
+        return SCIMJsonResponse(
+            response.model_dump(scim_ctx=Context.RESOURCE_QUERY_RESPONSE)
         )
 
 
-class SchemaView(View):
+class SchemaView(SCIMView):
     """Handle GET on a single SCIM schema."""
 
     def get(self, request, schema_id):
@@ -318,15 +326,17 @@ class SchemaView(View):
             schema = get_schema(schema_id)
         except KeyError:
             scim_error = Error(status=404, detail=f"Schema {schema_id!r} not found")
-            return scim_response(scim_error.model_dump_json(), HTTPStatus.NOT_FOUND)
-        return scim_response(
-            schema.model_dump_json(scim_ctx=Context.RESOURCE_QUERY_RESPONSE)
+            return SCIMJsonResponse(
+                scim_error.model_dump(), status=HTTPStatus.NOT_FOUND
+            )
+        return SCIMJsonResponse(
+            schema.model_dump(scim_ctx=Context.RESOURCE_QUERY_RESPONSE)
         )
 # -- schemas-end --
 
 
 # -- resource-types-start --
-class ResourceTypesView(View):
+class ResourceTypesView(SCIMView):
     """Handle GET on the SCIM resource types collection."""
 
     def get(self, request):
@@ -342,12 +352,12 @@ class ResourceTypesView(View):
             items_per_page=len(page),
             resources=page,
         )
-        return scim_response(
-            response.model_dump_json(scim_ctx=Context.RESOURCE_QUERY_RESPONSE)
+        return SCIMJsonResponse(
+            response.model_dump(scim_ctx=Context.RESOURCE_QUERY_RESPONSE)
         )
 
 
-class ResourceTypeView(View):
+class ResourceTypeView(SCIMView):
     """Handle GET on a single SCIM resource type."""
 
     def get(self, request, resource_type_id):
@@ -357,20 +367,22 @@ class ResourceTypeView(View):
             scim_error = Error(
                 status=404, detail=f"ResourceType {resource_type_id!r} not found"
             )
-            return scim_response(scim_error.model_dump_json(), HTTPStatus.NOT_FOUND)
-        return scim_response(
-            rt.model_dump_json(scim_ctx=Context.RESOURCE_QUERY_RESPONSE)
+            return SCIMJsonResponse(
+                scim_error.model_dump(), status=HTTPStatus.NOT_FOUND
+            )
+        return SCIMJsonResponse(
+            rt.model_dump(scim_ctx=Context.RESOURCE_QUERY_RESPONSE)
         )
 # -- resource-types-end --
 
 
 # -- service-provider-config-start --
-class ServiceProviderConfigView(View):
+class ServiceProviderConfigView(SCIMView):
     """Handle GET on the SCIM service provider configuration."""
 
     def get(self, request):
-        return scim_response(
-            service_provider_config.model_dump_json(
+        return SCIMJsonResponse(
+            service_provider_config.model_dump(
                 scim_ctx=Context.RESOURCE_QUERY_RESPONSE
             )
         )
