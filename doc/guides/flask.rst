@@ -23,9 +23,8 @@ The complete runnable file is available in the `Complete example`_ section.
 Blueprint setup
 ===============
 
-Start with a Flask blueprint.
-The SCIM specifications indicates that the responses content type must be ``application/scim+json``,
-so lets enforce this on all the blueprint views with :meth:`~flask.Blueprint.after_request`.
+Start with a Flask blueprint and an :meth:`~flask.Blueprint.after_request` hook that
+sets the ``application/scim+json`` content type on every response.
 
 .. literalinclude:: _examples/flask_example.py
    :language: python

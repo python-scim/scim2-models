@@ -38,14 +38,9 @@ bp = Blueprint("scim", __name__, url_prefix="/scim/v2")
 
 
 @bp.after_request
-def scim_after_request(response):
-    """Set the SCIM media type, extract ETag, and handle conditional responses."""
+def set_scim_content_type(response):
+    """Expose every endpoint with the SCIM media type."""
     response.headers["Content-Type"] = "application/scim+json"
-    data = response.get_json(silent=True)
-    if meta := (data or {}).get("meta"):
-        if version := meta.get("version"):
-            response.headers["ETag"] = version
-    response.make_conditional(request)
     return response
 
 
@@ -56,6 +51,17 @@ def resource_location(app_record):
 
 
 # -- etag-start --
+@bp.after_request
+def set_etag_header(response):
+    """Extract ``ETag`` from ``meta.version`` and handle conditional responses."""
+    data = response.get_json(silent=True)
+    if meta := (data or {}).get("meta"):
+        if version := meta.get("version"):
+            response.headers["ETag"] = version
+    response.make_conditional(request)
+    return response
+
+
 @bp.before_request
 def check_etag():
     """Verify ``If-Match`` on write operations.
