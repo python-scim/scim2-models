@@ -24,8 +24,12 @@ The complete runnable file is available in the `Complete example`_ section.
 Application setup
 =================
 
-Start with a small response helper that sets the ``application/scim+json`` content type
-on every response.
+Start with a ``SCIMView`` base class that all SCIM views inherit from.
+It overrides :meth:`~django.views.View.dispatch` to centralise
+cross-cutting concerns: the ``application/scim+json`` content type,
+``ETag`` extraction from ``meta.version``, ``If-None-Match`` (304) on reads,
+and ``If-Match`` (412) on writes.
+The ``@csrf_exempt`` decorator is applied once on the base class.
 
 .. literalinclude:: _examples/django_example.py
    :language: python
@@ -94,7 +98,7 @@ Endpoints
 =========
 
 Django's CSRF middleware is enabled by default.
-The views below use ``@csrf_exempt`` to accept JSON API requests directly.
+``SCIMView`` applies ``@csrf_exempt`` to accept JSON API requests directly.
 
 The views serve ``/Users``, but the same structure applies to any resource type:
 replace the mapping helpers, the model class, and the URL prefix to expose ``/Groups`` or
@@ -133,7 +137,7 @@ For ``GET``, parse pagination and filtering parameters with
 :class:`~scim2_models.ListResponse` serialized with
 :attr:`~scim2_models.Context.RESOURCE_QUERY_RESPONSE`.
 ``req.attributes`` and ``req.excluded_attributes`` are passed to
-:meth:`~scim2_models.ListResponse.model_dump_json` to apply the ``attributes`` and
+:meth:`~scim2_models.ListResponse.model_dump` to apply the ``attributes`` and
 ``excludedAttributes`` query parameters to each embedded resource.
 For ``POST``, validate the creation payload with
 :attr:`~scim2_models.Context.RESOURCE_CREATION_REQUEST`, persist the record, then serialize
@@ -150,8 +154,16 @@ Resource versioning (ETags)
 
 SCIM supports resource versioning through HTTP ETags
 (:rfc:`RFC 7644 §3.14 <7644#section-3.14>`).
-``check_etag`` compares the record's ETag against the ``If-Match`` header and
-returns a 412 SCIM error response on mismatch, or :data:`None` if the check passes.
+All ETag handling is centralised in ``SCIMView.dispatch()``:
+
+- The ``ETag`` response header is extracted from ``meta.version`` in the JSON body.
+- On ``GET``, ``If-None-Match`` is checked to return ``304 Not Modified``
+  when the client already has the current version.
+- On write operations (``PUT``, ``PATCH``, ``DELETE``), the ``If-Match`` header
+  is checked before calling the handler.
+  If the client's ETag does not match, a ``412 Precondition Failed`` SCIM error
+  is returned.
+
 ``make_etag`` computes a weak ETag from each record and populates
 :attr:`~scim2_models.Meta.version`.
 
@@ -159,16 +171,6 @@ returns a 412 SCIM error response on mismatch, or :data:`None` if the check pass
    :language: python
    :start-after: # -- etag-start --
    :end-before: # -- etag-end --
-
-On ``GET`` single-resource responses, the ``ETag`` header is set and the ``If-None-Match``
-request header is checked manually to return a ``304 Not Modified`` when the client already
-has the current version.
-
-On write operations (``PUT``, ``PATCH``, ``DELETE``), the ``If-Match`` header is checked
-before processing.
-If the client's ETag does not match, a ``412 Precondition Failed`` SCIM error is returned.
-``POST`` and ``PUT``/``PATCH`` responses include the ``ETag`` header for the newly created or
-updated resource.
 
 .. tip::
 
