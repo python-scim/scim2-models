@@ -413,7 +413,7 @@ class BaseModel(PydanticBaseModel):
             and original is not None
         ):
             try:
-                obj._check_immutable_fields(original)
+                obj._apply_replace_constraints(original)
             except MutabilityException as exc:
                 raise exc.as_pydantic_error() from exc
         return obj
@@ -461,19 +461,36 @@ class BaseModel(PydanticBaseModel):
 
         return self
 
-    def _check_immutable_fields(self, original: Self) -> None:
-        """Check that immutable fields have not been modified compared to *original*.
+    def _apply_replace_constraints(self, original: Self) -> None:
+        """Enforce RFC 7644 §3.5.1 replace (PUT) semantics.
 
-        Recursively checks nested single-valued complex attributes.
+        - ``readOnly`` fields are copied from *original* unconditionally.
+        - ``immutable`` fields are copied from *original* when absent from
+          ``self``; a :class:`~scim2_models.MutabilityException` is raised
+          when the value differs.
+
+        Recursively applies to nested single-valued complex attributes.
         """
         from .attributes import is_complex_attribute
 
         for field_name in type(self).model_fields:
             mutability = type(self).get_field_annotation(field_name, Mutability)
-            if mutability == Mutability.immutable and getattr(
-                original, field_name
-            ) != getattr(self, field_name):
-                raise MutabilityException(attribute=field_name, mutability="immutable")
+            original_val = getattr(original, field_name)
+
+            if mutability == Mutability.read_only:
+                # RFC 7644 §3.5.1: "readOnly" values provided SHALL be ignored.
+                setattr(self, field_name, original_val)
+            elif mutability == Mutability.immutable:
+                self_val = getattr(self, field_name)
+                if self_val is None and original_val is not None:
+                    # RFC 7643 §7: "SHALL NOT be updated" — omitting an
+                    # immutable field is not a request to clear it.
+                    setattr(self, field_name, original_val)
+                elif self_val != original_val:
+                    # RFC 7644 §3.5.1: input values MUST match.
+                    raise MutabilityException(
+                        attribute=field_name, mutability="immutable"
+                    )
 
             attr_type = type(self).get_field_root_type(field_name)
             if (
@@ -481,10 +498,10 @@ class BaseModel(PydanticBaseModel):
                 and is_complex_attribute(attr_type)
                 and not type(self).get_field_multiplicity(field_name)
             ):
-                original_val = getattr(original, field_name)
-                replacement_val = getattr(self, field_name)
-                if original_val is not None and replacement_val is not None:
-                    replacement_val._check_immutable_fields(original_val)
+                original_sub = getattr(original, field_name)
+                replacement_sub = getattr(self, field_name)
+                if original_sub is not None and replacement_sub is not None:
+                    replacement_sub._apply_replace_constraints(original_sub)
 
     def _set_complex_attribute_urns(self) -> None:
         """Navigate through attributes and sub-attributes of type ComplexAttribute, and mark them with a '_attribute_urn' attribute.
