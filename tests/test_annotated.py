@@ -5,8 +5,18 @@ from pydantic import TypeAdapter
 from pydantic import ValidationError
 
 from scim2_models import Context
+from scim2_models import CreationRequestContext
+from scim2_models import CreationResponseContext
+from scim2_models import PatchRequestContext
+from scim2_models import PatchResponseContext
+from scim2_models import QueryRequestContext
+from scim2_models import QueryResponseContext
+from scim2_models import ReplacementRequestContext
+from scim2_models import ReplacementResponseContext
 from scim2_models import SCIMSerializer
 from scim2_models import SCIMValidator
+from scim2_models import SearchRequestContext
+from scim2_models import SearchResponseContext
 from scim2_models import User
 
 
@@ -135,4 +145,119 @@ def test_validator_and_serializer_combined():
     user.id = "server-assigned-id"
     data = output_adapter.dump_python(user)
     assert data["id"] == "server-assigned-id"
+    assert "password" not in data
+
+
+def test_creation_request_context_strips_read_only_fields():
+    """CreationRequestContext[User] strips read_only fields during validation."""
+    adapter = TypeAdapter(CreationRequestContext[User])
+    user = adapter.validate_python(
+        {
+            "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+            "userName": "bjensen",
+            "id": "should-be-stripped",
+        }
+    )
+    assert user.user_name == "bjensen"
+    assert user.id is None
+
+
+def test_creation_response_context_excludes_write_only_fields():
+    """CreationResponseContext[User] excludes write_only fields."""
+    adapter = TypeAdapter(CreationResponseContext[User])
+    user = User(user_name="bjensen", password="secret")
+    user.id = "123"
+    data = adapter.dump_python(user)
+    assert data["id"] == "123"
+    assert "password" not in data
+
+
+def test_query_request_context_rejects_write_only_fields():
+    """QueryRequestContext[User] rejects write_only fields during validation."""
+    adapter = TypeAdapter(QueryRequestContext[User])
+    with pytest.raises(ValidationError, match="writeOnly"):
+        adapter.validate_python(
+            {
+                "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+                "userName": "bjensen",
+                "password": "secret",
+            }
+        )
+
+
+def test_query_response_context_excludes_write_only_fields():
+    """QueryResponseContext[User] excludes write_only fields."""
+    adapter = TypeAdapter(QueryResponseContext[User])
+    user = User(user_name="bjensen", password="secret")
+    user.id = "123"
+    data = adapter.dump_python(user)
+    assert "password" not in data
+    assert data["userName"] == "bjensen"
+
+
+def test_replacement_request_context_accepts_read_write_fields():
+    """ReplacementRequestContext[User] accepts read_write fields."""
+    adapter = TypeAdapter(ReplacementRequestContext[User])
+    user = adapter.validate_python(
+        {
+            "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+            "userName": "bjensen",
+            "displayName": "Barbara Jensen",
+        }
+    )
+    assert user.display_name == "Barbara Jensen"
+
+
+def test_replacement_response_context_excludes_write_only_fields():
+    """ReplacementResponseContext[User] excludes write_only fields."""
+    adapter = TypeAdapter(ReplacementResponseContext[User])
+    user = User(user_name="bjensen", password="secret")
+    user.id = "123"
+    data = adapter.dump_python(user)
+    assert data["id"] == "123"
+    assert "password" not in data
+
+
+def test_search_request_context_rejects_write_only_fields():
+    """SearchRequestContext[User] rejects write_only fields during validation."""
+    adapter = TypeAdapter(SearchRequestContext[User])
+    with pytest.raises(ValidationError, match="writeOnly"):
+        adapter.validate_python(
+            {
+                "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+                "userName": "bjensen",
+                "password": "secret",
+            }
+        )
+
+
+def test_search_response_context_excludes_write_only_fields():
+    """SearchResponseContext[User] excludes write_only fields."""
+    adapter = TypeAdapter(SearchResponseContext[User])
+    user = User(user_name="bjensen", password="secret")
+    user.id = "123"
+    data = adapter.dump_python(user)
+    assert "password" not in data
+
+
+def test_patch_request_context_accepts_partial_payload():
+    """PatchRequestContext[User] accepts a partial payload."""
+    adapter = TypeAdapter(PatchRequestContext[User])
+    user = adapter.validate_python(
+        {
+            "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+            "displayName": "Barbara Jensen",
+        }
+    )
+    assert user.display_name == "Barbara Jensen"
+    assert user.user_name is None
+
+
+def test_patch_response_context_excludes_write_only_fields():
+    """PatchResponseContext[User] excludes write_only fields."""
+    adapter = TypeAdapter(PatchResponseContext[User])
+    user = User(user_name="bjensen", password="secret")
+    user.id = "123"
+    data = adapter.dump_python(user)
+    assert data["id"] == "123"
     assert "password" not in data

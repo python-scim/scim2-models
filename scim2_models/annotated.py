@@ -4,25 +4,35 @@ These markers can be used with :data:`typing.Annotated` to inject a SCIM
 :class:`~scim2_models.Context` into Pydantic validation and serialization,
 making integration with web frameworks like FastAPI idiomatic::
 
-    from typing import Annotated
+    from scim2_models import CreationRequestContext, CreationResponseContext, User
 
 
     @router.post("/Users", status_code=201)
     async def create_user(
-        user: Annotated[User, SCIMValidator(Context.RESOURCE_CREATION_REQUEST)],
-    ) -> Annotated[User, SCIMSerializer(Context.RESOURCE_CREATION_RESPONSE)]:
+        user: CreationRequestContext[User],
+    ) -> CreationResponseContext[User]:
         ...
         return response_user
 """
 
-import json
+import sys
+from typing import TYPE_CHECKING
+from typing import Annotated
 from typing import Any
+from typing import TypeVar
+
+if sys.version_info >= (3, 12):
+    from typing import TypeAliasType
+else:  # pragma: no cover
+    from typing_extensions import TypeAliasType
 
 from pydantic import GetCoreSchemaHandler
 from pydantic_core import CoreSchema
 from pydantic_core import core_schema
 
 from scim2_models.context import Context
+
+T = TypeVar("T")
 
 
 class SCIMValidator:
@@ -76,7 +86,7 @@ class SCIMSerializer:
         ctx = self.ctx
 
         def serialize_with_context(value: Any, _handler: Any) -> Any:
-            return json.loads(value.model_dump_json(scim_ctx=ctx))
+            return value.model_dump(scim_ctx=ctx)
 
         return core_schema.no_info_wrap_validator_function(
             lambda v, h: h(v),
@@ -86,3 +96,123 @@ class SCIMSerializer:
                 schema=schema,
             ),
         )
+
+
+if TYPE_CHECKING:
+    CreationRequestContext = TypeAliasType(
+        "CreationRequestContext",
+        Annotated[T, SCIMValidator(Context.RESOURCE_CREATION_REQUEST)],
+        type_params=(T,),
+    )
+    CreationResponseContext = TypeAliasType(
+        "CreationResponseContext",
+        Annotated[T, SCIMSerializer(Context.RESOURCE_CREATION_RESPONSE)],
+        type_params=(T,),
+    )
+    QueryRequestContext = TypeAliasType(
+        "QueryRequestContext",
+        Annotated[T, SCIMValidator(Context.RESOURCE_QUERY_REQUEST)],
+        type_params=(T,),
+    )
+    QueryResponseContext = TypeAliasType(
+        "QueryResponseContext",
+        Annotated[T, SCIMSerializer(Context.RESOURCE_QUERY_RESPONSE)],
+        type_params=(T,),
+    )
+    ReplacementRequestContext = TypeAliasType(
+        "ReplacementRequestContext",
+        Annotated[T, SCIMValidator(Context.RESOURCE_REPLACEMENT_REQUEST)],
+        type_params=(T,),
+    )
+    ReplacementResponseContext = TypeAliasType(
+        "ReplacementResponseContext",
+        Annotated[T, SCIMSerializer(Context.RESOURCE_REPLACEMENT_RESPONSE)],
+        type_params=(T,),
+    )
+    SearchRequestContext = TypeAliasType(
+        "SearchRequestContext",
+        Annotated[T, SCIMValidator(Context.SEARCH_REQUEST)],
+        type_params=(T,),
+    )
+    SearchResponseContext = TypeAliasType(
+        "SearchResponseContext",
+        Annotated[T, SCIMSerializer(Context.SEARCH_RESPONSE)],
+        type_params=(T,),
+    )
+    PatchRequestContext = TypeAliasType(
+        "PatchRequestContext",
+        Annotated[T, SCIMValidator(Context.RESOURCE_PATCH_REQUEST)],
+        type_params=(T,),
+    )
+    PatchResponseContext = TypeAliasType(
+        "PatchResponseContext",
+        Annotated[T, SCIMSerializer(Context.RESOURCE_PATCH_RESPONSE)],
+        type_params=(T,),
+    )
+else:
+
+    class _RequestContextAlias:
+        """Base class for request context type aliases."""
+
+        _ctx: Context
+
+        def __class_getitem__(cls, item: type) -> Any:
+            return Annotated[item, SCIMValidator(cls._ctx)]
+
+    class _ResponseContextAlias:
+        """Base class for response context type aliases."""
+
+        _ctx: Context
+
+        def __class_getitem__(cls, item: type) -> Any:
+            return Annotated[item, SCIMSerializer(cls._ctx)]
+
+    class CreationRequestContext(_RequestContextAlias):
+        """Shortcut for ``Annotated[T, SCIMValidator(Context.RESOURCE_CREATION_REQUEST)]``."""
+
+        _ctx = Context.RESOURCE_CREATION_REQUEST
+
+    class CreationResponseContext(_ResponseContextAlias):
+        """Shortcut for ``Annotated[T, SCIMSerializer(Context.RESOURCE_CREATION_RESPONSE)]``."""
+
+        _ctx = Context.RESOURCE_CREATION_RESPONSE
+
+    class QueryRequestContext(_RequestContextAlias):
+        """Shortcut for ``Annotated[T, SCIMValidator(Context.RESOURCE_QUERY_REQUEST)]``."""
+
+        _ctx = Context.RESOURCE_QUERY_REQUEST
+
+    class QueryResponseContext(_ResponseContextAlias):
+        """Shortcut for ``Annotated[T, SCIMSerializer(Context.RESOURCE_QUERY_RESPONSE)]``."""
+
+        _ctx = Context.RESOURCE_QUERY_RESPONSE
+
+    class ReplacementRequestContext(_RequestContextAlias):
+        """Shortcut for ``Annotated[T, SCIMValidator(Context.RESOURCE_REPLACEMENT_REQUEST)]``."""
+
+        _ctx = Context.RESOURCE_REPLACEMENT_REQUEST
+
+    class ReplacementResponseContext(_ResponseContextAlias):
+        """Shortcut for ``Annotated[T, SCIMSerializer(Context.RESOURCE_REPLACEMENT_RESPONSE)]``."""
+
+        _ctx = Context.RESOURCE_REPLACEMENT_RESPONSE
+
+    class SearchRequestContext(_RequestContextAlias):
+        """Shortcut for ``Annotated[T, SCIMValidator(Context.SEARCH_REQUEST)]``."""
+
+        _ctx = Context.SEARCH_REQUEST
+
+    class SearchResponseContext(_ResponseContextAlias):
+        """Shortcut for ``Annotated[T, SCIMSerializer(Context.SEARCH_RESPONSE)]``."""
+
+        _ctx = Context.SEARCH_RESPONSE
+
+    class PatchRequestContext(_RequestContextAlias):
+        """Shortcut for ``Annotated[T, SCIMValidator(Context.RESOURCE_PATCH_REQUEST)]``."""
+
+        _ctx = Context.RESOURCE_PATCH_REQUEST
+
+    class PatchResponseContext(_ResponseContextAlias):
+        """Shortcut for ``Annotated[T, SCIMSerializer(Context.RESOURCE_PATCH_RESPONSE)]``."""
+
+        _ctx = Context.RESOURCE_PATCH_RESPONSE
