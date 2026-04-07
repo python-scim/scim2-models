@@ -1,7 +1,6 @@
 from http import HTTPStatus
 
 from flask import Blueprint
-from flask import make_response
 from flask import request
 from flask import url_for
 from pydantic import ValidationError
@@ -39,9 +38,14 @@ bp = Blueprint("scim", __name__, url_prefix="/scim/v2")
 
 
 @bp.after_request
-def add_scim_content_type(response):
-    """Expose every endpoint with the SCIM media type."""
+def scim_after_request(response):
+    """Set the SCIM media type, extract ETag, and handle conditional responses."""
     response.headers["Content-Type"] = "application/scim+json"
+    data = response.get_json(silent=True)
+    if meta := (data or {}).get("meta"):
+        if version := meta.get("version"):
+            response.headers["ETag"] = version
+    response.make_conditional(request)
     return response
 
 
@@ -52,18 +56,23 @@ def resource_location(app_record):
 
 
 # -- etag-start --
-def check_etag(record):
-    """Compare the record's ETag against the ``If-Match`` request header.
+@bp.before_request
+def check_etag():
+    """Verify ``If-Match`` on write operations.
 
-    :param record: The application record.
     :raises ~werkzeug.exceptions.PreconditionFailed: If the header is present and does not match.
     """
+    if request.method not in ("PUT", "PATCH", "DELETE"):
+        return
+    app_record = request.view_args.get("app_record")
+    if app_record is None:
+        return
     if_match = request.headers.get("If-Match")
     if not if_match:
         return
     if if_match.strip() == "*":
         return
-    etag = make_etag(record)
+    etag = make_etag(app_record)
     tags = [t.strip() for t in if_match.split(",")]
     if etag not in tags:
         raise PreconditionFailed("ETag mismatch")
@@ -96,21 +105,21 @@ def _register_converter(state):
 def handle_validation_error(error):
     """Turn Pydantic validation errors into SCIM error responses."""
     scim_error = Error.from_validation_error(error.errors()[0])
-    return scim_error.model_dump_json(), scim_error.status
+    return scim_error.model_dump(), scim_error.status
 
 
 @bp.errorhandler(HTTPException)
 def handle_http_error(error):
     """Turn HTTP errors into SCIM error responses."""
     scim_error = Error(status=error.code, detail=str(error.description))
-    return scim_error.model_dump_json(), error.code
+    return scim_error.model_dump(), error.code
 
 
 @bp.errorhandler(SCIMException)
 def handle_scim_error(error):
     """Turn SCIM exceptions into SCIM error responses."""
     scim_error = error.to_error()
-    return scim_error.model_dump_json(), scim_error.status
+    return scim_error.model_dump(), scim_error.status
 # -- error-handlers-end --
 # -- refinements-end --
 
@@ -123,16 +132,11 @@ def get_user(app_record):
     """Return one SCIM user."""
     req = ResponseParameters.model_validate(request.args.to_dict())
     scim_user = to_scim_user(app_record, resource_location(app_record))
-    resp = make_response(
-        scim_user.model_dump_json(
-            scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
-            attributes=req.attributes,
-            excluded_attributes=req.excluded_attributes,
-        )
+    return scim_user.model_dump(
+        scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
+        attributes=req.attributes,
+        excluded_attributes=req.excluded_attributes,
     )
-    resp.headers["ETag"] = make_etag(app_record)
-    resp.make_conditional(request)
-    return resp
 # -- get-user-end --
 
 
@@ -140,7 +144,6 @@ def get_user(app_record):
 @bp.patch("/Users/<user:app_record>")
 def patch_user(app_record):
     """Apply a SCIM PatchOp to an existing user."""
-    check_etag(app_record)
     req = ResponseParameters.model_validate(request.args.to_dict())
     scim_user = to_scim_user(app_record, resource_location(app_record))
     patch = PatchOp[User].model_validate(
@@ -152,14 +155,10 @@ def patch_user(app_record):
     updated_record = from_scim_user(scim_user)
     save_record(updated_record)
 
-    return (
-        scim_user.model_dump_json(
-            scim_ctx=Context.RESOURCE_PATCH_RESPONSE,
-            attributes=req.attributes,
-            excluded_attributes=req.excluded_attributes,
-        ),
-        HTTPStatus.OK,
-        {"ETag": make_etag(updated_record)},
+    return scim_user.model_dump(
+        scim_ctx=Context.RESOURCE_PATCH_RESPONSE,
+        attributes=req.attributes,
+        excluded_attributes=req.excluded_attributes,
     )
 # -- patch-user-end --
 
@@ -168,7 +167,6 @@ def patch_user(app_record):
 @bp.put("/Users/<user:app_record>")
 def replace_user(app_record):
     """Replace an existing user with a full SCIM resource."""
-    check_etag(app_record)
     req = ResponseParameters.model_validate(request.args.to_dict())
     existing_user = to_scim_user(app_record, resource_location(app_record))
     replacement = User.model_validate(
@@ -181,14 +179,10 @@ def replace_user(app_record):
     save_record(updated_record)
 
     response_user = to_scim_user(updated_record, resource_location(updated_record))
-    return (
-        response_user.model_dump_json(
-            scim_ctx=Context.RESOURCE_REPLACEMENT_RESPONSE,
-            attributes=req.attributes,
-            excluded_attributes=req.excluded_attributes,
-        ),
-        HTTPStatus.OK,
-        {"ETag": make_etag(updated_record)},
+    return response_user.model_dump(
+        scim_ctx=Context.RESOURCE_REPLACEMENT_RESPONSE,
+        attributes=req.attributes,
+        excluded_attributes=req.excluded_attributes,
     )
 # -- put-user-end --
 
@@ -197,7 +191,6 @@ def replace_user(app_record):
 @bp.delete("/Users/<user:app_record>")
 def delete_user(app_record):
     """Delete an existing user."""
-    check_etag(app_record)
     delete_record(app_record["id"])
     return "", HTTPStatus.NO_CONTENT
 # -- delete-user-end --
@@ -218,13 +211,10 @@ def list_users():
         items_per_page=len(resources),
         resources=resources,
     )
-    return (
-        response.model_dump_json(
-            scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
-            attributes=req.attributes,
-            excluded_attributes=req.excluded_attributes,
-        ),
-        HTTPStatus.OK,
+    return response.model_dump(
+        scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
+        attributes=req.attributes,
+        excluded_attributes=req.excluded_attributes,
     )
 # -- list-users-end --
 
@@ -243,13 +233,12 @@ def create_user():
 
     response_user = to_scim_user(app_record, resource_location(app_record))
     return (
-        response_user.model_dump_json(
+        response_user.model_dump(
             scim_ctx=Context.RESOURCE_CREATION_RESPONSE,
             attributes=req.attributes,
             excluded_attributes=req.excluded_attributes,
         ),
         HTTPStatus.CREATED,
-        {"ETag": make_etag(app_record)},
     )
 # -- create-user-end --
 # -- collection-end --
@@ -268,10 +257,7 @@ def list_schemas():
         items_per_page=len(page),
         resources=page,
     )
-    return (
-        response.model_dump_json(scim_ctx=Context.RESOURCE_QUERY_RESPONSE),
-        HTTPStatus.OK,
-    )
+    return response.model_dump(scim_ctx=Context.RESOURCE_QUERY_RESPONSE)
 
 
 @bp.get("/Schemas/<path:schema_id>")
@@ -281,11 +267,8 @@ def get_schema_by_id(schema_id):
         schema = get_schema(schema_id)
     except KeyError:
         scim_error = Error(status=404, detail=f"Schema {schema_id!r} not found")
-        return scim_error.model_dump_json(), HTTPStatus.NOT_FOUND
-    return (
-        schema.model_dump_json(scim_ctx=Context.RESOURCE_QUERY_RESPONSE),
-        HTTPStatus.OK,
-    )
+        return scim_error.model_dump(), HTTPStatus.NOT_FOUND
+    return schema.model_dump(scim_ctx=Context.RESOURCE_QUERY_RESPONSE)
 # -- schemas-end --
 
 
@@ -301,10 +284,7 @@ def list_resource_types():
         items_per_page=len(page),
         resources=page,
     )
-    return (
-        response.model_dump_json(scim_ctx=Context.RESOURCE_QUERY_RESPONSE),
-        HTTPStatus.OK,
-    )
+    return response.model_dump(scim_ctx=Context.RESOURCE_QUERY_RESPONSE)
 
 
 @bp.get("/ResourceTypes/<resource_type_id>")
@@ -316,11 +296,8 @@ def get_resource_type_by_id(resource_type_id):
         scim_error = Error(
             status=404, detail=f"ResourceType {resource_type_id!r} not found"
         )
-        return scim_error.model_dump_json(), HTTPStatus.NOT_FOUND
-    return (
-        rt.model_dump_json(scim_ctx=Context.RESOURCE_QUERY_RESPONSE),
-        HTTPStatus.OK,
-    )
+        return scim_error.model_dump(), HTTPStatus.NOT_FOUND
+    return rt.model_dump(scim_ctx=Context.RESOURCE_QUERY_RESPONSE)
 # -- resource-types-end --
 
 
@@ -328,11 +305,8 @@ def get_resource_type_by_id(resource_type_id):
 @bp.get("/ServiceProviderConfig")
 def get_service_provider_config():
     """Return the SCIM service provider configuration."""
-    return (
-        service_provider_config.model_dump_json(
-            scim_ctx=Context.RESOURCE_QUERY_RESPONSE
-        ),
-        HTTPStatus.OK,
+    return service_provider_config.model_dump(
+        scim_ctx=Context.RESOURCE_QUERY_RESPONSE
     )
 # -- service-provider-config-end --
 # -- discovery-end --

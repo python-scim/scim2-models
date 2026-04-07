@@ -163,8 +163,17 @@ Resource versioning (ETags)
 
 SCIM supports resource versioning through HTTP ETags
 (:rfc:`RFC 7644 §3.14 <7644#section-3.14>`).
-``check_etag`` reads the ``If-Match`` header from the current request, compares it against
-the record's ETag and raises :class:`~werkzeug.exceptions.PreconditionFailed` on mismatch.
+Both ETag checks are handled centrally rather than in individual endpoints:
+
+- The ``after_request`` hook extracts ``meta.version`` from the response body and sets
+  the ``ETag`` response header.  Werkzeug's
+  :meth:`~werkzeug.wrappers.Response.make_conditional` handles ``If-None-Match`` to
+  return a ``304 Not Modified`` when the client already has the current version.
+- The ``before_request`` hook reads the ``If-Match`` header on write operations
+  (``PUT``, ``PATCH``, ``DELETE``) and raises
+  :class:`~werkzeug.exceptions.PreconditionFailed` on mismatch, since
+  :meth:`~werkzeug.wrappers.Response.make_conditional` only acts on ``GET``/``HEAD``.
+
 ``make_etag`` computes a weak ETag from each record and populates
 :attr:`~scim2_models.Meta.version`.
 
@@ -172,16 +181,6 @@ the record's ETag and raises :class:`~werkzeug.exceptions.PreconditionFailed` on
    :language: python
    :start-after: # -- etag-start --
    :end-before: # -- etag-end --
-
-On ``GET`` single-resource responses, the ``ETag`` header is set and Werkzeug's
-:meth:`~werkzeug.wrappers.Response.make_conditional` handles ``If-None-Match`` to return a
-``304 Not Modified`` when the client already has the current version.
-
-On write operations (``PUT``, ``PATCH``, ``DELETE``), the ``If-Match`` header is checked
-before processing.
-If the client's ETag does not match, a ``412 Precondition Failed`` SCIM error is returned.
-``POST`` and ``PUT``/``PATCH`` responses include the ``ETag`` header for the newly created or
-updated resource.
 
 .. tip::
 
