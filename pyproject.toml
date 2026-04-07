@@ -42,7 +42,7 @@ module-root = ""
 [dependency-groups]
 dev = [
     "django>=5.1",
-    "fastapi>=0.100.0",
+    "fastapi>=0.115.0",
     "flask>=3.0.0",
     "httpx>=0.24.0",
     "mypy>=1.13.0",

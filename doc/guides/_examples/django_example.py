@@ -163,6 +163,7 @@ class UserView(View):
     def put(self, request, app_record):
         if resp := check_etag(app_record, request):
             return resp
+        req = ResponseParameters.model_validate(request.GET.dict())
         existing_user = to_scim_user(app_record, resource_location(request, app_record))
         try:
             replacement = User.model_validate(
@@ -187,13 +188,16 @@ class UserView(View):
         )
         return scim_response(
             response_user.model_dump_json(
-                scim_ctx=Context.RESOURCE_REPLACEMENT_RESPONSE
+                scim_ctx=Context.RESOURCE_REPLACEMENT_RESPONSE,
+                attributes=req.attributes,
+                excluded_attributes=req.excluded_attributes,
             )
         )
 
     def patch(self, request, app_record):
         if resp := check_etag(app_record, request):
             return resp
+        req = ResponseParameters.model_validate(request.GET.dict())
         try:
             patch = PatchOp[User].model_validate(
                 json.loads(request.body),
@@ -212,7 +216,11 @@ class UserView(View):
             return scim_exception_error(error)
 
         return scim_response(
-            scim_user.model_dump_json(scim_ctx=Context.RESOURCE_PATCH_RESPONSE)
+            scim_user.model_dump_json(
+                scim_ctx=Context.RESOURCE_PATCH_RESPONSE,
+                attributes=req.attributes,
+                excluded_attributes=req.excluded_attributes,
+            )
         )
 # -- single-resource-end --
 
@@ -247,6 +255,7 @@ class UsersView(View):
         )
 
     def post(self, request):
+        req = ResponseParameters.model_validate(request.GET.dict())
         try:
             request_user = User.model_validate(
                 json.loads(request.body),
@@ -263,7 +272,11 @@ class UsersView(View):
 
         response_user = to_scim_user(app_record, resource_location(request, app_record))
         return scim_response(
-            response_user.model_dump_json(scim_ctx=Context.RESOURCE_CREATION_RESPONSE),
+            response_user.model_dump_json(
+                scim_ctx=Context.RESOURCE_CREATION_RESPONSE,
+                attributes=req.attributes,
+                excluded_attributes=req.excluded_attributes,
+            ),
             HTTPStatus.CREATED,
         )
 

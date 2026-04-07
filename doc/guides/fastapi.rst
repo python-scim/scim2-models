@@ -253,36 +253,35 @@ features the server supports (patch, bulk, filtering, etc.).
 Idiomatic type annotations
 ==========================
 
-The endpoints above use ``await request.json()`` and explicit
-:meth:`~scim2_models.Resource.model_validate` / :meth:`~scim2_models.Resource.model_dump_json` calls.
-:mod:`scim2_models` also provides two Pydantic-compatible annotations that let you use
-FastAPI's native body parsing and response serialization with the correct SCIM context:
-
-- :class:`~scim2_models.SCIMValidator` — injects a SCIM :class:`~scim2_models.Context` during
-  **input validation** (request body parsing).
-- :class:`~scim2_models.SCIMSerializer` — injects a SCIM :class:`~scim2_models.Context` during
-  **output serialization** (response rendering).
+The write endpoints above use the context type aliases provided by :mod:`scim2_models`.
+``*RequestContext`` aliases wrap :class:`~scim2_models.SCIMValidator` (input validation),
+``*ResponseContext`` aliases wrap :class:`~scim2_models.SCIMSerializer` (output serialization):
 
 .. code-block:: python
 
-   from typing import Annotated
-   from scim2_models import Context, SCIMSerializer, SCIMValidator, User
+   from scim2_models import CreationRequestContext, CreationResponseContext, User
 
    @router.post("/Users", status_code=201)
    async def create_user(
-       user: Annotated[User, SCIMValidator(Context.RESOURCE_CREATION_REQUEST)]
-   ) -> Annotated[User, SCIMSerializer(Context.RESOURCE_CREATION_RESPONSE)]:
+       user: CreationRequestContext[User],
+   ) -> CreationResponseContext[User]:
        app_record = from_scim_user(user)
        save_record(app_record)
        return to_scim_user(app_record, ...)
 
-These annotations are **pure Pydantic** and carry no dependency on FastAPI — they work with any
+Available aliases: ``CreationRequestContext`` / ``CreationResponseContext``,
+``QueryRequestContext`` / ``QueryResponseContext``,
+``ReplacementRequestContext`` / ``ReplacementResponseContext``,
+``SearchRequestContext`` / ``SearchResponseContext``, and
+``PatchRequestContext`` / ``PatchResponseContext``.
+
+These aliases are **pure Pydantic** and carry no dependency on FastAPI — they work with any
 framework that respects :data:`typing.Annotated` metadata.
 
-:class:`~scim2_models.SCIMSerializer` on the return type lets FastAPI handle the response
-serialization automatically.
-When you need to pass ``attributes`` or ``excluded_attributes`` (for ``GET`` endpoints),
-use the explicit ``model_dump_json`` approach shown in the previous sections instead.
+``*ResponseContext`` aliases do not support the ``attributes`` / ``excludedAttributes``
+query parameters defined in :rfc:`RFC 7644 §3.9 <7644#section-3.9>`.
+When you need to forward those parameters, use the explicit ``model_dump_json`` approach
+shown in the previous sections instead.
 
 Complete example
 ================

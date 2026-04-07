@@ -141,6 +141,7 @@ def get_user(app_record):
 def patch_user(app_record):
     """Apply a SCIM PatchOp to an existing user."""
     check_etag(app_record)
+    req = ResponseParameters.model_validate(request.args.to_dict())
     scim_user = to_scim_user(app_record, resource_location(app_record))
     patch = PatchOp[User].model_validate(
         request.get_json(),
@@ -152,7 +153,11 @@ def patch_user(app_record):
     save_record(updated_record)
 
     return (
-        scim_user.model_dump_json(scim_ctx=Context.RESOURCE_PATCH_RESPONSE),
+        scim_user.model_dump_json(
+            scim_ctx=Context.RESOURCE_PATCH_RESPONSE,
+            attributes=req.attributes,
+            excluded_attributes=req.excluded_attributes,
+        ),
         HTTPStatus.OK,
         {"ETag": make_etag(updated_record)},
     )
@@ -164,6 +169,7 @@ def patch_user(app_record):
 def replace_user(app_record):
     """Replace an existing user with a full SCIM resource."""
     check_etag(app_record)
+    req = ResponseParameters.model_validate(request.args.to_dict())
     existing_user = to_scim_user(app_record, resource_location(app_record))
     replacement = User.model_validate(
         request.get_json(),
@@ -177,7 +183,11 @@ def replace_user(app_record):
 
     response_user = to_scim_user(updated_record, resource_location(updated_record))
     return (
-        response_user.model_dump_json(scim_ctx=Context.RESOURCE_REPLACEMENT_RESPONSE),
+        response_user.model_dump_json(
+            scim_ctx=Context.RESOURCE_REPLACEMENT_RESPONSE,
+            attributes=req.attributes,
+            excluded_attributes=req.excluded_attributes,
+        ),
         HTTPStatus.OK,
         {"ETag": make_etag(updated_record)},
     )
@@ -224,6 +234,7 @@ def list_users():
 @bp.post("/Users")
 def create_user():
     """Validate a SCIM creation payload and store the new user."""
+    req = ResponseParameters.model_validate(request.args.to_dict())
     request_user = User.model_validate(
         request.get_json(),
         scim_ctx=Context.RESOURCE_CREATION_REQUEST,
@@ -233,7 +244,11 @@ def create_user():
 
     response_user = to_scim_user(app_record, resource_location(app_record))
     return (
-        response_user.model_dump_json(scim_ctx=Context.RESOURCE_CREATION_RESPONSE),
+        response_user.model_dump_json(
+            scim_ctx=Context.RESOURCE_CREATION_RESPONSE,
+            attributes=req.attributes,
+            excluded_attributes=req.excluded_attributes,
+        ),
         HTTPStatus.CREATED,
         {"ETag": make_etag(app_record)},
     )
