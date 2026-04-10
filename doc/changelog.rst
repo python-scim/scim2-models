@@ -1,6 +1,13 @@
 Changelog
 =========
 
+[0.6.11] - 2026-04-10
+---------------------
+
+Added
+^^^^^
+- add uniqueness, returned and case_exact filters to iter_paths
+
 [0.6.10] - 2026-04-07
 ---------------------
 
