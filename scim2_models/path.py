@@ -18,8 +18,11 @@ from .utils import _find_field_name
 from .utils import _to_camel
 
 if TYPE_CHECKING:
+    from .annotations import CaseExact
     from .annotations import Mutability
     from .annotations import Required
+    from .annotations import Returned
+    from .annotations import Uniqueness
     from .resources.resource import Resource
 
 from .exceptions import InvalidPathException
@@ -666,6 +669,9 @@ class Path(UserString, Generic[ResourceT]):
         include_extensions: bool = True,
         required: "list[Required] | None" = None,
         mutability: "list[Mutability] | None" = None,
+        uniqueness: "list[Uniqueness] | None" = None,
+        returned: "list[Returned] | None" = None,
+        case_exact: "list[CaseExact] | None" = None,
     ) -> "Iterator[Path[ResourceT]]":
         """Iterate over all paths for the bound model and its extensions.
 
@@ -675,10 +681,16 @@ class Path(UserString, Generic[ResourceT]):
         :param include_extensions: Whether to include extension attributes.
         :param required: Filter by Required annotation values (e.g., [Required.true]).
         :param mutability: Filter by Mutability annotation values (e.g., [Mutability.read_write]).
+        :param uniqueness: Filter by Uniqueness annotation values (e.g., [Uniqueness.server]).
+        :param returned: Filter by Returned annotation values (e.g., [Returned.always]).
+        :param case_exact: Filter by CaseExact annotation values (e.g., [CaseExact.true]).
         :yields: Path instances for each attribute matching the filters.
         """
+        from .annotations import CaseExact
         from .annotations import Mutability
         from .annotations import Required
+        from .annotations import Returned
+        from .annotations import Uniqueness
         from .attributes import ComplexAttribute
         from .resources.resource import Extension
         from .resources.resource import Resource
@@ -697,6 +709,22 @@ class Path(UserString, Generic[ResourceT]):
                     field_name, Mutability
                 )
                 if field_mutability not in mutability:
+                    return False
+            if uniqueness is not None:
+                field_uniqueness = target_model.get_field_annotation(
+                    field_name, Uniqueness
+                )
+                if field_uniqueness not in uniqueness:
+                    return False
+            if returned is not None:
+                field_returned = target_model.get_field_annotation(field_name, Returned)
+                if field_returned not in returned:
+                    return False
+            if case_exact is not None:
+                field_case_exact = target_model.get_field_annotation(
+                    field_name, CaseExact
+                )
+                if field_case_exact not in case_exact:
                     return False
             return True
 
