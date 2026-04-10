@@ -5,6 +5,7 @@ from typing import Any
 import pydantic
 import pytest
 
+from scim2_models import CaseExact
 from scim2_models import Email
 from scim2_models import EnterpriseUser
 from scim2_models import Group
@@ -14,6 +15,8 @@ from scim2_models import Mutability
 from scim2_models import Name
 from scim2_models import PathNotFoundException
 from scim2_models import Required
+from scim2_models import Returned
+from scim2_models import Uniqueness
 from scim2_models import User
 from scim2_models.base import BaseModel
 from scim2_models.path import Path
@@ -1417,6 +1420,44 @@ def test_iter_paths_filter_skips_non_matching_subattributes():
 
     assert "members" in path_strings
     assert len(paths_with_filter) < len(paths_no_filter)
+
+
+def test_iter_paths_filter_by_uniqueness():
+    """iter_paths with uniqueness filter only yields matching paths."""
+    paths = list(
+        Path[User].iter_paths(
+            include_subattributes=False, uniqueness=[Uniqueness.server]
+        )
+    )
+    path_strings = [str(p) for p in paths]
+
+    assert "userName" in path_strings
+    for path in paths:
+        assert path.get_annotation(Uniqueness) == Uniqueness.server
+
+
+def test_iter_paths_filter_by_returned():
+    """iter_paths with returned filter only yields matching paths."""
+    paths = list(
+        Path[User].iter_paths(include_subattributes=False, returned=[Returned.never])
+    )
+    path_strings = [str(p) for p in paths]
+
+    assert "password" in path_strings
+    for path in paths:
+        assert path.get_annotation(Returned) == Returned.never
+
+
+def test_iter_paths_filter_by_case_exact():
+    """iter_paths with case_exact filter only yields matching paths."""
+    paths = list(
+        Path[User].iter_paths(include_subattributes=False, case_exact=[CaseExact.true])
+    )
+    path_strings = [str(p) for p in paths]
+
+    assert "externalId" in path_strings
+    for path in paths:
+        assert path.get_annotation(CaseExact) == CaseExact.true
 
 
 def test_path_init_with_path_object():
