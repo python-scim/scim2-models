@@ -14,7 +14,7 @@ the `bugtracker <https://github.com/python-scim/scim2-models/issues>`_.
 Unit tests
 ----------
 
-To run the tests, you just can run `uv run pytest` and/or `tox` to test all the supported python environments.
+To run the tests, you just can run ``uv run pytest`` and/or ``tox`` to test all the supported python environments.
 Everything must be green before patches get merged.
 
 The test coverage is 100%, patches won't be accepted if not entirely covered. You can check the

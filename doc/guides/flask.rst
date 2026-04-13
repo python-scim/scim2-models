@@ -62,7 +62,7 @@ responses.
    :start-after: # -- error-handlers-start --
    :end-before: # -- error-handlers-end --
 
-If :meth:`~scim2_models.Resource.model_validate`, Flask routes the
+If :meth:`~scim2_models.Resource.model_validate` fails, Flask routes the
 :class:`~pydantic.ValidationError` to ``handle_validation_error`` and the client receives a
 SCIM :class:`~scim2_models.Error` response.
 ``handle_scim_error`` catches any :class:`~scim2_models.SCIMException` (uniqueness, mutability, …)

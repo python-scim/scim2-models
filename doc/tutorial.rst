@@ -59,7 +59,7 @@ Use Pydantic's :func:`~scim2_models.BaseModel.model_validate` method to parse an
 Model serialization
 ===================
 
-Pydantic :func:`~scim2_models.BaseModel.model_dump` method have been tuned to produce valid SCIM2 payloads.
+Pydantic :func:`~scim2_models.BaseModel.model_dump` method has been tuned to produce valid SCIM2 payloads.
 
 .. code-block:: python
     :emphasize-lines: 16
@@ -99,7 +99,7 @@ Contexts
 ========
 
 The SCIM specifications detail some :class:`~scim2_models.Mutability` and :class:`~scim2_models.Returned` parameters for model attributes.
-Depending on the context, they will indicate that attributes should be present, absent, be ignored.
+Depending on the context, they will indicate that attributes should be present, absent, or ignored.
 
 For instance, attributes marked as :attr:`~scim2_models.Mutability.read_only` should not be sent by SCIM clients on resource creation requests.
 By passing the right :class:`~scim2_models.Context` to the :meth:`~scim2_models.BaseModel.model_dump` method, only the expected fields will be dumped for this context:
@@ -117,11 +117,11 @@ fields with unexpected values will raise :class:`~pydantic.ValidationError`:
 .. code-block:: python
     :caption: Server validating a resource creation request payload
 
-    >>> from scim2_models import User, Context
+    >>> from scim2_models import User, Context, Error
     >>> from pydantic import ValidationError
     >>> try:
     ...    obj = User.model_validate(payload, scim_ctx=Context.RESOURCE_CREATION_REQUEST)
-    ... except pydantic.ValidationError:
+    ... except ValidationError:
     ...    obj = Error(...)
 
 Context annotations
@@ -210,7 +210,7 @@ Attributes inclusions and exclusions
 ====================================
 
 In some situations it might be needed to exclude, or only include a given set of attributes when serializing a model.
-This happens for instance when servers build response payloads for clients requesting only a sub-set the model attributes.
+This happens for instance when servers build response payloads for clients requesting only a subset of the model attributes.
 As defined in :rfc:`RFC7644 §3.9 <7644#section-3.9>`, :code:`attributes` and :code:`excluded_attributes` parameters can
 be passed to :meth:`~scim2_models.BaseModel.model_dump`.
 The expected attribute notation is the one detailed on :rfc:`RFC7644 §3.10 <7644#section-3.10>`,
@@ -222,23 +222,22 @@ like :code:`urn:ietf:params:scim:schemas:core:2.0:User:userName`, or :code:`user
     >>> from scim2_models import User, Context
     >>> user = User(user_name="bjensen@example.com", display_name="bjensen")
     >>> payload = user.model_dump(
-    ...     scim_ctx=Context.RESOURCE_QUERY_REQUEST,
+    ...     scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
     ...     excluded_attributes=["displayName"]
     ... )
     >>> assert payload == {
     ...     "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
     ...     "userName": "bjensen@example.com",
-    ...     "displayName": "bjensen",
     ... }
 
 Values read from :attr:`~scim2_models.SearchRequest.attributes` and :attr:`~scim2_models.SearchRequest.excluded_attributes` in :class:`~scim2_models.SearchRequest` objects can directly be used in :meth:`~scim2_models.BaseModel.model_dump`.
 
-Attribute inclusions and exclusions interact with attributes :class:`~scim2_models.Returned`, in the server response :class:`Contexts <scim2_models.Context>`:
+Attributes inclusions and exclusions interact with attributes :class:`~scim2_models.Returned`, in the server response :class:`Contexts <scim2_models.Context>`:
 
 - attributes annotated with :attr:`~scim2_models.Returned.always` will always be dumped;
 - attributes annotated with :attr:`~scim2_models.Returned.never` will never be dumped;
 - attributes annotated with :attr:`~scim2_models.Returned.default` will be dumped unless being explicitly excluded;
-- attributes annotated with :attr:`~scim2_models.Returned.request` will be not dumped unless being explicitly included.
+- attributes annotated with :attr:`~scim2_models.Returned.request` will not be dumped unless being explicitly included.
 
 Typed ListResponse
 ==================
@@ -403,7 +402,7 @@ Use :meth:`Error.from_validation_error <scim2_models.Error.from_validation_error
     >>> from scim2_models.base import Context
 
     >>> try:
-    ...     User.model_validate({"userName": None}, context={"scim": Context.RESOURCE_CREATION_REQUEST})
+    ...     User.model_validate({"userName": None}, scim_ctx=Context.RESOURCE_CREATION_REQUEST)
     ... except ValidationError as exc:
     ...     error = Error.from_validation_error(exc.errors()[0])
     >>> error.scim_type
@@ -427,7 +426,7 @@ The exhaustive list of exceptions is available in the :class:`reference <scim2_m
 Custom models
 =============
 
-You can write your own model and use it the same way than the other scim2-models models.
+You can write your own model and use it the same way as the other scim2-models models.
 Just inherit from :class:`~scim2_models.Resource` for your main resource, or :class:`~scim2_models.Extension` for extensions.
 Use :class:`~scim2_models.ComplexAttribute` as base class for complex attributes:
 
@@ -464,8 +463,11 @@ If unset the default values will be :attr:`~scim2_models.Mutability.read_write` 
 There is a dedicated type for :rfc:`RFC7643 §2.3.7 <7643#section-2.3.7>` :class:`~scim2_models.Reference`
 that can take type parameters to represent :rfc:`RFC7643 §7 'referenceTypes'<7643#section-7>`:
 
+.. code-block:: python
+
+    >>> from scim2_models import Reference
     >>> class PetOwner(Resource):
-    ...    pet: Reference["Pet"]
+    ...    pet: Optional[Reference["Pet"]]
 
 :class:`~scim2_models.Reference` has two special type parameters :class:`~scim2_models.External` and :class:`~scim2_models.URI` that matches :rfc:`RFC7643 §7 <7643#section-7>` external and URI reference types.
 
@@ -541,7 +543,7 @@ with the :meth:`Resource.from_schema <scim2_models.Resource.from_schema>` and :m
     Group = Resource.from_schema(schema)
     my_group = Group(display_name="This is my group")
 
-Client applications can use this to dynamically discover server resources by browsing the `/Schemas` endpoint.
+Client applications can use this to dynamically discover server resources by browsing the ``/Schemas`` endpoint.
 
 .. tip::
 
@@ -550,7 +552,7 @@ Client applications can use this to dynamically discover server resources by bro
 
    .. toggle::
 
-       .. literalinclude :: ../samples/rfc7643-8.7.1-schema-group.json
+       .. literalinclude:: ../samples/rfc7643-8.7.1-schema-group.json
           :language: json
           :caption: schema-group.json
 
@@ -566,7 +568,6 @@ modified.
 .. doctest::
 
     >>> from scim2_models import User, Context
-    >>> from scim2_models.exceptions import MutabilityException
     >>> existing = User(user_name="bjensen")
     >>> replacement = User.model_validate(
     ...     {"userName": "bjensen"},
@@ -581,7 +582,7 @@ Patch operations
 ================
 
 :class:`~scim2_models.PatchOp` allows you to apply patch operations to modify SCIM resources.
-The :meth:`~scim2_models.PatchOp.patch` method applies operations in sequence and returns whether the resource was modified. The return code is a boolean indicating whether the object have been modified by the operations.
+The :meth:`~scim2_models.PatchOp.patch` method applies operations in sequence and returns whether the resource was modified. The return code is a boolean indicating whether the object has been modified by the operations.
 
 .. note::
    :class:`~scim2_models.PatchOp` takes a type parameter that should be the class of the resource
