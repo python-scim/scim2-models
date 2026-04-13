@@ -1,3 +1,4 @@
+import copyreg
 from datetime import datetime
 from typing import TYPE_CHECKING
 from typing import Annotated
@@ -409,14 +410,10 @@ def _dedicated_attributes(
     """Return attributes that are not members the parent 'excluded_models'."""
 
     def compare_field_infos(fi1: Any, fi2: Any) -> bool:
-        return (
-            fi1
-            and fi2
-            and fi1.__slotnames__ == fi2.__slotnames__
-            and all(
-                getattr(fi1, attr) == getattr(fi2, attr) for attr in fi1.__slotnames__
-            )
-        )
+        if not fi1 or not fi2:
+            return False
+        slot_names = copyreg._slotnames(type(fi1))  # type: ignore[attr-defined]
+        return all(getattr(fi1, attr) == getattr(fi2, attr) for attr in slot_names)
 
     parent_field_infos = {
         field_name: field_info
