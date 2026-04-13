@@ -1,6 +1,8 @@
+import copyreg
 import operator
 
 import pytest
+from pydantic.fields import FieldInfo
 
 from scim2_models import URN
 from scim2_models.context import Context
@@ -153,6 +155,25 @@ def test_inheritance():
             "urn:ietf:params:scim:schemas:core:2.0:Schema",
         ],
     }
+
+
+def test_to_schema_without_slotnames_cache():
+    """Regression test for ``FieldInfo.__slotnames__`` usage.
+
+    ``FieldInfo.__slotnames__`` is a cache populated lazily by ``copy.copy`` /
+    ``copyreg._slotnames``. Computing a schema must not rely on that cache
+    being already warm, otherwise ``to_schema`` raises ``AttributeError`` on a
+    fresh process.
+    """
+    copyreg._slotnames(FieldInfo)
+    del FieldInfo.__slotnames__
+
+    class Foo(Resource):
+        __schema__ = URN("urn:ietf:params:scim:schemas:core:2.0:Foo")
+
+        foo: str | None = None
+
+    Foo.to_schema()
 
 
 def test_make_python_model_validates_name():
