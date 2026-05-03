@@ -2,6 +2,7 @@ import warnings
 from inspect import isclass
 from typing import Any
 from typing import Optional
+from typing import ClassVar
 from typing import get_args
 from typing import get_origin
 
@@ -111,6 +112,14 @@ class BaseModel(PydanticBaseModel):
         use_attribute_docstrings=True,
         extra="forbid",
     )
+
+    _allow_bulk_id: ClassVar[bool] = False
+    """Allow bulkId field for the model"""
+
+    @classmethod
+    def __pydantic_init_subclass__(cls, **kwargs) -> None:
+        # Validate field names
+        cls._check_bulk_id()
 
     @classmethod
     def get_field_annotation(cls, field_name: str, annotation_type: type) -> Any:
@@ -537,6 +546,19 @@ class BaseModel(PydanticBaseModel):
                         item._attribute_urn = schema
                 else:
                     attr_value._attribute_urn = schema
+
+    @classmethod
+    def _check_bulk_id(cls) -> None:
+        """Enforce bulkId as reserved field per RFC 7643 §3.1.
+
+        Check if a bulkdId field is defined and
+        raise error if `_allow_bulk_id` is set to `False`
+        """
+        if cls._allow_bulk_id:
+            return
+        for info in cls.model_fields.values():
+            if info.serialization_alias == "bulkId":
+                raise TypeError(f"{cls.__name__}: bulkId is reserved for BulkOperation")
 
     @field_serializer("*", mode="wrap")
     def scim_serializer(

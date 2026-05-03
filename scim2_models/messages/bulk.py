@@ -12,6 +12,8 @@ from .message import Message
 
 
 class BulkOperation(ComplexAttribute):
+    _allow_bulk_id = True
+
     class Method(str, Enum):
         post = "POST"
         put = "PUT"
