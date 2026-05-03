@@ -1,7 +1,7 @@
 import uuid
-import pytest
 from typing import Annotated
-from pydantic import Field
+
+import pytest
 
 from scim2_models import URN
 from scim2_models.annotations import Returned
@@ -382,8 +382,9 @@ def test_short_attr_path_with_plain_name():
 
 
 def test_forbid_bulk_id():
-    """Forbid bulkId from class definition"""
+    """Forbid bulkId from class definition."""
     with pytest.raises(TypeError) as exc_info:
+
         class CustomModel(Resource):
             __schema__ = URN("urn:example:schemas:CustomModel")
             bulk_id: str | None = None

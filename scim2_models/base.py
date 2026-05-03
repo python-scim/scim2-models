@@ -1,8 +1,8 @@
 import warnings
 from inspect import isclass
 from typing import Any
-from typing import Optional
 from typing import ClassVar
+from typing import Optional
 from typing import get_args
 from typing import get_origin
 
@@ -117,7 +117,7 @@ class BaseModel(PydanticBaseModel):
     """Allow bulkId field for the model"""
 
     @classmethod
-    def __pydantic_init_subclass__(cls, **kwargs) -> None:
+    def __pydantic_init_subclass__(cls, **kwargs: Any) -> None:
         # Validate field names
         cls._check_bulk_id()
 
