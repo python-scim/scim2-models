@@ -1,5 +1,7 @@
 import uuid
+import pytest
 from typing import Annotated
+from pydantic import Field
 
 from scim2_models import URN
 from scim2_models.annotations import Returned
@@ -377,3 +379,13 @@ def test_short_attr_path_with_plain_name():
 
     assert _short_attr_path("userName") == "userName"
     assert _short_attr_path("name.familyName") == "name.familyName"
+
+
+def test_forbid_bulk_id():
+    """Forbid bulkId from class definition"""
+    with pytest.raises(TypeError) as exc_info:
+        class CustomModel(Resource):
+            __schema__ = URN("urn:example:schemas:CustomModel")
+            bulk_id: str | None = None
+
+    assert str(exc_info.value) == "CustomModel: bulkId is reserved for BulkOperation"
