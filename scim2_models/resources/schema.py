@@ -7,6 +7,7 @@ from typing import List  # noqa : UP005,UP035
 from typing import Optional
 from typing import TypeVar
 from typing import Union
+from typing import cast
 
 from pydantic import Base64Bytes
 from pydantic import Field
@@ -69,7 +70,10 @@ def _make_python_model(
         raise ValueError("Schema or Attribute 'name' must be defined")
 
     model_name = to_pascal(to_snake(obj.name))
-    model: type[T] = create_model(model_name, __base__=base, **pydantic_attributes)  # type: ignore[call-overload]
+    model = cast(
+        type[T],
+        create_model(model_name, __base__=base, **pydantic_attributes),  # type: ignore[call-overload]
+    )
 
     if isinstance(obj, Schema) and obj.id:
         model.__schema__ = URN(obj.id)  # type: ignore[attr-defined]
