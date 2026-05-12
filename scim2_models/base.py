@@ -271,8 +271,7 @@ class BaseModel(PydanticBaseModel):
             # Alias -> field name mapping
             serialization_alias = field.serialization_alias or field_name
             alias_to_field[serialization_alias] = field_name
-            if isinstance(field.validation_alias, str):
-                alias_to_field[field.validation_alias] = field_name
+            alias_to_field[field.validation_alias] = field_name
 
             root_type = cls.get_field_root_type(field_name)
 
@@ -321,8 +320,6 @@ class BaseModel(PydanticBaseModel):
 
         from scim2_models.resources.resource import Resource
 
-        is_request = Context.is_request(scim_context)
-        is_response = Context.is_response(scim_context)
         is_create_or_replace = scim_context in (
             Context.RESOURCE_CREATION_REQUEST,
             Context.RESOURCE_REPLACEMENT_REQUEST,
@@ -333,12 +330,13 @@ class BaseModel(PydanticBaseModel):
         for field_name in self.__class__.model_fields:
             value = getattr(self, field_name)
 
-            if is_request:
+            if Context.is_request(scim_context):
                 if field_name in fields_set:
                     self._check_mutability(field_name, scim_context)
                 if is_create_or_replace:
                     self._check_necessity(field_name, value)
-            elif is_response:
+            else:
+                # Must be response
                 self._check_returnability(field_name, value)
 
             if (
@@ -524,10 +522,6 @@ class BaseModel(PydanticBaseModel):
             return
 
         is_complex = getattr(cls, "__is_complex_attribute__", False)
-        if is_complex and self._attribute_urn is None:
-            return
-        if not is_complex and not info.attribute_urns:
-            return
 
         for field_name in complex_fields:
             attr_value = getattr(self, field_name)
@@ -552,34 +546,29 @@ class BaseModel(PydanticBaseModel):
     ) -> dict[str, Any]:
         """Serialize the fields according to mutability indications passed in the serialization context."""
         scim_ctx = info.context.get("scim") if info.context else None
-        is_request = Context.is_request(scim_ctx)
         is_response = Context.is_response(scim_ctx)
 
         if is_response:
             # Complex attribute urns are only used in responses
             self._set_complex_attribute_urns()
 
-        serialized = handler(self)
-        if not isinstance(serialized, dict):
-            return serialized
+        serialized: dict[str, Any] = handler(self)
 
         if scim_ctx and scim_ctx != Context.DEFAULT:
-            if is_request:
-                self._scim_request_serializer(serialized, scim_ctx)
-            elif is_response:
+            if is_response:
                 included_attrs = info.context.get("scim_attributes", []) if info.context else []
                 excluded_attrs = info.context.get("scim_excluded_attributes", []) if info.context else []
                 self._scim_response_serializer(serialized, included_attrs, excluded_attrs)
+            else:
+                # Must be request
+                self._scim_request_serializer(serialized, scim_ctx)
 
         return serialized
 
     def _scim_request_serializer(self, serialized: dict[str, Any], scim_ctx: Context) -> None:
         """Serialize the fields according to mutability indications passed in the serialization context."""
         for alias in set(serialized):
-            field_name = self.__scim_info__.alias_to_field.get(alias)
-            if field_name is None:
-                continue
-
+            field_name = self.__scim_info__.alias_to_field[alias]
             mutability = self.get_field_annotation(field_name, Mutability)
 
             if (
@@ -608,10 +597,7 @@ class BaseModel(PydanticBaseModel):
     ) -> None:
         """Serialize the fields according to returnability indications passed in the serialization context."""
         for alias in set(serialized):
-            field_name = self.__scim_info__.alias_to_field.get(alias)
-            if field_name is None:
-                continue
-
+            field_name = self.__scim_info__.alias_to_field[alias]
             returnability = self.get_field_annotation(field_name, Returned)
             attribute_urn = self.get_attribute_urn(field_name)
 
