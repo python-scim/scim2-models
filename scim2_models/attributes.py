@@ -1,6 +1,7 @@
 from inspect import isclass
 from typing import Annotated
 from typing import Any
+from typing import ClassVar
 from typing import get_origin
 
 from pydantic import Field
@@ -14,6 +15,8 @@ from .reference import Reference
 
 class ComplexAttribute(BaseModel):
     """A complex attribute as defined in :rfc:`RFC7643 §2.3.8 <7643#section-2.3.8>`."""
+
+    __is_complex_attribute__: ClassVar[bool] = True
 
     _attribute_urn: str | None = None
 

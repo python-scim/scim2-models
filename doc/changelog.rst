@@ -1,6 +1,23 @@
 Changelog
 =========
 
+[Unreleased]
+------------
+
+Performance
+^^^^^^^^^^^
+- Cached commonly used metadata of fields to :attr:`~scim2_models.BaseModel.__scim_info__`.
+- Collapsed all scim context validators in :class:`~scim2_models.BaseModel` to one model validator.
+- Collapsed serialization to one model serializer in :class:`~scim2_models.BaseModel`.
+- Moved ``model_dump`` and ``model_dump_json`` to :class:`~scim2_models.BaseModel`.
+- Cached ``_normalize_attribute_name``.
+- Simplified ``normalize_attribute_names``
+
+Fixed
+^^^^^
+- Check recursively extensions' replace constraints.
+- The result of ``model_dump`` does not differ from native pydantic's dump if ``scim_ctx`` is set to ``None``.
+
 [0.6.12] - 2026-04-13
 ---------------------
 
