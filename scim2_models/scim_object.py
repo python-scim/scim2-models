@@ -14,6 +14,7 @@ from pydantic_core import PydanticCustomError
 from typing_extensions import Self
 
 from .annotations import Required
+from .annotations import Returned
 from .base import BaseModel
 from .context import Context
 from .path import URN
@@ -65,7 +66,7 @@ class ScimMetaclass(ModelMetaclass):
 class ScimObject(BaseModel, metaclass=ScimMetaclass):
     __schema__: ClassVar[URN | None] = None
 
-    schemas: Annotated[list[str], Required.true]
+    schemas: Annotated[list[str], Required.true, Returned.always]
     """The "schemas" attribute is a REQUIRED attribute and is an array of
     Strings containing URIs that are used to indicate the namespaces of the
     SCIM schemas that define the attributes present in the current JSON

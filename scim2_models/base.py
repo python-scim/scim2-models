@@ -539,87 +539,86 @@ class BaseModel(PydanticBaseModel):
             else:
                 attr_value._attribute_urn = schema
 
-    @field_serializer("*", mode="wrap")
-    def scim_serializer(
-        self,
-        value: Any,
-        handler: SerializerFunctionWrapHandler,
-        info: FieldSerializationInfo,
-    ) -> Any:
-        """Serialize the fields according to mutability indications passed in the serialization context."""
-        value = handler(value)
-        scim_ctx = info.context.get("scim") if info.context else None
-
-        if scim_ctx and Context.is_request(scim_ctx):
-            value = self._scim_request_serializer(value, info)
-
-        if scim_ctx and Context.is_response(scim_ctx):
-            value = self._scim_response_serializer(value, info)
-
-        return value
-
-    def _scim_request_serializer(self, value: Any, info: FieldSerializationInfo) -> Any:
-        """Serialize the fields according to mutability indications passed in the serialization context."""
-        mutability = self.get_field_annotation(info.field_name, Mutability)
-        scim_ctx = info.context.get("scim") if info.context else None
-
-        if (
-            scim_ctx
-            in (Context.RESOURCE_CREATION_REQUEST, Context.RESOURCE_REPLACEMENT_REQUEST)
-            and mutability == Mutability.read_only
-        ):
-            return None
-
-        if (
-            scim_ctx
-            in (
-                Context.RESOURCE_QUERY_REQUEST,
-                Context.SEARCH_REQUEST,
-            )
-            and mutability == Mutability.write_only
-        ):
-            return None
-
-        return value
-
-    def _scim_response_serializer(
-        self, value: Any, info: FieldSerializationInfo
-    ) -> Any:
-        """Serialize the fields according to returnability indications passed in the serialization context."""
-        returnability = self.get_field_annotation(info.field_name, Returned)
-        attribute_urn = self.get_attribute_urn(info.field_name)
-        included_attrs = info.context.get("scim_attributes", []) if info.context else []
-        excluded_attrs = (
-            info.context.get("scim_excluded_attributes", []) if info.context else []
-        )
-
-        if returnability == Returned.never:
-            return None
-
-        if returnability == Returned.default and (
-            (
-                included_attrs
-                and not _is_attribute_requested(included_attrs, attribute_urn)
-            )
-            or _exact_attr_match(excluded_attrs, attribute_urn)
-        ):
-            return None
-
-        if returnability == Returned.request and not _exact_attr_match(
-            included_attrs, attribute_urn
-        ):
-            return None
-
-        return value
-
     @model_serializer(mode="wrap")
-    def model_serializer_exclude_none(
+    def scim_serializer(
         self, handler: SerializerFunctionWrapHandler, info: SerializationInfo
     ) -> dict[str, Any]:
-        """Remove `None` values inserted by the :meth:`~scim2_models.base.BaseModel.scim_serializer`."""
-        self._set_complex_attribute_urns()
-        result = handler(self)
-        return {key: value for key, value in result.items() if value is not None}
+        """Serialize the fields according to mutability indications passed in the serialization context."""
+        scim_ctx = info.context.get("scim") if info.context else None
+        is_request = Context.is_request(scim_ctx)
+        is_response = Context.is_response(scim_ctx)
+
+        if is_response:
+            # Complex attribute urns are only used in responses
+            self._set_complex_attribute_urns()
+
+        serialized = handler(self)
+        if not isinstance(serialized, dict):
+            return serialized
+
+        if scim_ctx and scim_ctx != Context.DEFAULT:
+            if is_request:
+                self._scim_request_serializer(serialized, scim_ctx)
+            elif is_response:
+                included_attrs = info.context.get("scim_attributes", []) if info.context else []
+                excluded_attrs = info.context.get("scim_excluded_attributes", []) if info.context else []
+                self._scim_response_serializer(serialized, included_attrs, excluded_attrs)
+
+        return {key: value for key, value in serialized.items() if value is not None}
+
+    def _scim_request_serializer(self, serialized: dict[str, Any], scim_ctx: Context) -> None:
+        """Serialize the fields according to mutability indications passed in the serialization context."""
+        for alias in set(serialized):
+            field_name = self.__scim_info__.alias_to_field.get(alias)
+            if field_name is None:
+                continue
+
+            mutability = self.get_field_annotation(field_name, Mutability)
+
+            if (
+                scim_ctx in (
+                    Context.RESOURCE_CREATION_REQUEST,
+                    Context.RESOURCE_REPLACEMENT_REQUEST
+                )
+                and mutability == Mutability.read_only
+            ):
+                del serialized[alias]
+
+            elif (
+                scim_ctx in (
+                    Context.RESOURCE_QUERY_REQUEST,
+                    Context.SEARCH_REQUEST,
+                )
+                and mutability == Mutability.write_only
+            ):
+                del serialized[alias]
+
+    def _scim_response_serializer(
+        self,
+        serialized: dict[str, Any],
+        included_attrs: list[str],
+        excluded_attrs: list[str]
+    ) -> None:
+        """Serialize the fields according to returnability indications passed in the serialization context."""
+        for alias in set(serialized):
+            field_name = self.__scim_info__.alias_to_field.get(alias)
+            if field_name is None:
+                continue
+
+            returnability = self.get_field_annotation(field_name, Returned)
+            attribute_urn = self.get_attribute_urn(field_name)
+
+            if returnability == Returned.never:
+                del serialized[alias]
+            elif returnability == Returned.default and (
+                (included_attrs and not _is_attribute_requested(included_attrs, attribute_urn))
+                or _exact_attr_match(excluded_attrs, attribute_urn)
+            ):
+                del serialized[alias]
+            elif returnability == Returned.request and not _exact_attr_match(
+                included_attrs, attribute_urn
+            ):
+                del serialized[alias]
 
     @classmethod
     def model_validate(
