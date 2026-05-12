@@ -2,6 +2,8 @@ import warnings
 from inspect import isclass
 from typing import Any
 from typing import Optional
+from typing import ClassVar
+from typing import NamedTuple
 from typing import get_args
 from typing import get_origin
 
@@ -98,6 +100,22 @@ def _is_attribute_requested(requested_attrs: list[str], current_urn: str) -> boo
     return any(_attr_matches(req, current_urn) for req in requested_attrs)
 
 
+class _SCIMClassInfo(NamedTuple):
+    """SCIM metadata for BaseModel."""
+
+    alias_to_field: dict[str, str] = {}
+    """Alias -> Python field name.
+
+    Holds both validation and serialization aliases.
+    """
+
+    attribute_urns: dict[str, str] = {}
+    """Python field name -> fully resolved SCIM attribute URN."""
+
+    complex_fields: frozenset[str] = frozenset()
+    """Field names whose root type is a ``ComplexAttribute`` subclass."""
+
+
 class BaseModel(PydanticBaseModel):
     """Base Model for everything."""
 
@@ -111,6 +129,9 @@ class BaseModel(PydanticBaseModel):
         use_attribute_docstrings=True,
         extra="forbid",
     )
+
+    __scim_info__: ClassVar[_SCIMClassInfo] = _SCIMClassInfo()
+    """Cached model metadata"""
 
     @classmethod
     def get_field_annotation(cls, field_name: str, annotation_type: type) -> Any:
@@ -225,6 +246,57 @@ class BaseModel(PydanticBaseModel):
 
         origin = get_origin(attribute_type)
         return isinstance(origin, type) and issubclass(origin, list)
+
+    @classmethod
+    def __pydantic_on_complete__(cls) -> None:
+        """Build the per-class SCIM metadata table on ``cls.__scim_info__``.
+
+        Fires after pydantic resolves field types (re-fires after ``model_rebuild``). Idempotent.
+        """
+        if not cls.model_fields:
+            return
+
+        alias_to_field: dict[str, str] = {}
+        attribute_urns: dict[str, str] = {}
+        complex_fields: set[str] = set()
+
+        main_schema = getattr(cls, "__schema__", None)
+        extension_cls: type | None = None
+        if main_schema is not None:
+            from scim2_models.resources.resource import Extension
+
+            extension_cls = Extension
+
+        for field_name, field in cls.model_fields.items():
+            # Alias -> field name mapping
+            serialization_alias = field.serialization_alias or field_name
+            alias_to_field[serialization_alias] = field_name
+            if isinstance(field.validation_alias, str):
+                alias_to_field[field.validation_alias] = field_name
+
+            root_type = cls.get_field_root_type(field_name)
+
+            # Is complex field
+            if root_type is not None and getattr(
+                root_type, "__is_complex_attribute__", False
+            ):
+                complex_fields.add(field_name)
+
+            # Attribute URNs
+            if main_schema is not None and not (
+                extension_cls is not None
+                and isclass(root_type)
+                and issubclass(root_type, extension_cls)
+            ):
+                attribute_urns[field_name] = f"{main_schema}:{serialization_alias}"
+            else:
+                attribute_urns[field_name] = serialization_alias
+
+        cls.__scim_info__ = _SCIMClassInfo(
+            alias_to_field=alias_to_field,
+            attribute_urns=attribute_urns,
+            complex_fields=frozenset(complex_fields),
+        )
 
     @field_validator("*")
     @classmethod
@@ -504,39 +576,38 @@ class BaseModel(PydanticBaseModel):
                     replacement_sub._apply_replace_constraints(original_sub)
 
     def _set_complex_attribute_urns(self) -> None:
-        """Navigate through attributes and sub-attributes of type ComplexAttribute, and mark them with a '_attribute_urn' attribute.
+        """Mark each ``ComplexAttribute`` child with its ``_attribute_urn``.
 
-        '_attribute_urn' will later be used by 'get_attribute_urn'.
+        ``_attribute_urn`` is later read by :meth:`get_attribute_urn`.
         """
-        from .attributes import ComplexAttribute
-        from .attributes import is_complex_attribute
+        cls = self.__class__
+        info = cls.__scim_info__
+        complex_fields = info.complex_fields
+        if not complex_fields:
+            return
 
-        if isinstance(self, ComplexAttribute):
-            main_schema = self._attribute_urn
-            separator = "."
-        else:
-            main_schema = getattr(self.__class__, "__schema__", None)
-            if main_schema is None:
-                return
-            separator = ":"
+        is_complex = getattr(cls, "__is_complex_attribute__", False)
+        if is_complex and self._attribute_urn is None:
+            return
+        if not is_complex and not info.attribute_urns:
+            return
 
-        for field_name in self.__class__.model_fields:
-            attr_type = self.get_field_root_type(field_name)
-            if not attr_type or not is_complex_attribute(attr_type):
+        for field_name in complex_fields:
+            attr_value = getattr(self, field_name)
+            if not attr_value:
                 continue
 
-            alias = (
-                self.__class__.model_fields[field_name].serialization_alias
-                or field_name
-            )
-            schema = f"{main_schema}{separator}{alias}"
+            if is_complex:
+                alias = cls.model_fields[field_name].serialization_alias or field_name
+                schema = f"{self._attribute_urn}.{alias}"
+            else:
+                schema = info.attribute_urns[field_name]
 
-            if attr_value := getattr(self, field_name):
-                if isinstance(attr_value, list):
-                    for item in attr_value:
-                        item._attribute_urn = schema
-                else:
-                    attr_value._attribute_urn = schema
+            if isinstance(attr_value, list):
+                for item in attr_value:
+                    item._attribute_urn = schema
+            else:
+                attr_value._attribute_urn = schema
 
     @field_serializer("*", mode="wrap")
     def scim_serializer(
@@ -659,14 +730,4 @@ class BaseModel(PydanticBaseModel):
 
         See :rfc:`RFC7644 §3.10 <7644#section-3.10>`.
         """
-        from scim2_models.resources.resource import Extension
-
-        main_schema = getattr(self.__class__, "__schema__", None)
-        field = self.__class__.model_fields[field_name]
-        alias = field.serialization_alias or field_name
-        field_type = self.get_field_root_type(field_name)
-        if isclass(field_type) and issubclass(field_type, Extension):
-            return alias
-        if main_schema is None:
-            return alias
-        return f"{main_schema}:{alias}"
+        return self.__scim_info__.attribute_urns[field_name]
