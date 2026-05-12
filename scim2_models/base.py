@@ -298,47 +298,6 @@ class BaseModel(PydanticBaseModel):
             complex_fields=frozenset(complex_fields),
         )
 
-    @field_validator("*")
-    @classmethod
-    def check_request_attributes_mutability(
-        cls, value: Any, info: ValidationInfo
-    ) -> Any:
-        """Check and fix that the field mutability is expected according to the requests validation context, as defined in :rfc:`RFC7643 §7 <7643#section-7>`."""
-        if (
-            not info.context
-            or not info.field_name
-            or not info.context.get("scim")
-            or not Context.is_request(info.context["scim"])
-        ):
-            return value
-
-        context = info.context.get("scim")
-        mutability = cls.get_field_annotation(info.field_name, Mutability)
-        exc = PydanticCustomError(
-            "mutability_error",
-            "Field '{field_name}' has mutability '{field_mutability}' but this in not valid in {context} context",
-            {
-                "field_name": info.field_name,
-                "field_mutability": mutability,
-                "context": context.name.lower().replace("_", " "),
-            },
-        )
-
-        if (
-            context in (Context.RESOURCE_QUERY_REQUEST, Context.SEARCH_REQUEST)
-            and mutability == Mutability.write_only
-        ):
-            raise exc
-
-        if (
-            context
-            in (Context.RESOURCE_CREATION_REQUEST, Context.RESOURCE_REPLACEMENT_REQUEST)
-            and mutability == Mutability.read_only
-        ):
-            return None
-
-        return value
-
     @model_validator(mode="wrap")
     @classmethod
     def normalize_attribute_names(
@@ -354,145 +313,155 @@ class BaseModel(PydanticBaseModel):
             value = {_normalize_attribute_name(k): v for k, v in value.items()}
         return handler(value)
 
-    @model_validator(mode="wrap")
-    @classmethod
-    def check_response_attributes_returnability(
-        cls, value: Any, handler: ValidatorFunctionWrapHandler, info: ValidationInfo
-    ) -> Self:
-        """Check that the fields returnability is expected according to the responses validation context, as defined in :rfc:`RFC7643 §7 <7643#section-7>`."""
-        obj = handler(value)
-        assert isinstance(obj, cls)
-
-        if (
-            not info.context
-            or not info.context.get("scim")
-            or not Context.is_response(info.context["scim"])
-        ):
-            return obj
-
-        for field_name in cls.model_fields:
-            returnability = cls.get_field_annotation(field_name, Returned)
-
-            if returnability == Returned.always and getattr(obj, field_name) is None:
-                raise PydanticCustomError(
-                    "returned_error",
-                    "Field '{field_name}' has returnability 'always' but value is missing or null",
-                    {
-                        "field_name": field_name,
-                    },
-                )
-
-            if returnability == Returned.never and getattr(obj, field_name) is not None:
-                raise PydanticCustomError(
-                    "returned_error",
-                    "Field '{field_name}' has returnability 'never' but value is set",
-                    {
-                        "field_name": field_name,
-                    },
-                )
-
-        return obj
-
-    @model_validator(mode="wrap")
-    @classmethod
-    def check_response_attributes_necessity(
-        cls, value: Any, handler: ValidatorFunctionWrapHandler, info: ValidationInfo
-    ) -> Self:
-        """Check that the required attributes are present in creations and replacement requests."""
-        obj = handler(value)
-        assert isinstance(obj, cls)
-
-        if (
-            not info.context
-            or not info.context.get("scim")
-            or info.context["scim"]
-            not in (
-                Context.RESOURCE_CREATION_REQUEST,
-                Context.RESOURCE_REPLACEMENT_REQUEST,
-            )
-        ):
-            return obj
-
-        for field_name in cls.model_fields:
-            necessity = cls.get_field_annotation(field_name, Required)
-
-            if necessity == Required.true and getattr(obj, field_name) is None:
-                raise PydanticCustomError(
-                    "required_error",
-                    "Field '{field_name}' is required but value is missing or null",
-                    {
-                        "field_name": field_name,
-                    },
-                )
-
-        return obj
-
-    @model_validator(mode="wrap")
-    @classmethod
-    def check_replacement_request_mutability(
-        cls, value: Any, handler: ValidatorFunctionWrapHandler, info: ValidationInfo
-    ) -> Self:
-        """Check if 'immutable' attributes have been mutated in replacement requests."""
-        from scim2_models.resources.resource import Resource
-
-        obj = handler(value)
-        assert isinstance(obj, cls)
-
-        context = info.context.get("scim") if info.context else None
-        original = info.context.get("original") if info.context else None
-        if (
-            context == Context.RESOURCE_REPLACEMENT_REQUEST
-            and issubclass(cls, Resource)
-            and original is not None
-        ):
-            try:
-                obj._apply_replace_constraints(original)
-            except MutabilityException as exc:
-                raise exc.as_pydantic_error() from exc
-        return obj
-
     @model_validator(mode="after")
-    def check_primary_attribute_uniqueness(self, info: ValidationInfo) -> Self:
-        """Validate that only one attribute can be marked as primary in multi-valued lists.
-
-        Per RFC 7643 Section 2.4: The primary attribute value 'true' MUST appear no more than once.
-        """
+    def enforce_scim_context(self, info: ValidationInfo) -> Self:
         scim_context = info.context.get("scim") if info.context else None
         if not scim_context or scim_context == Context.DEFAULT:
             return self
 
+        from scim2_models.resources.resource import Resource
+
+        is_request = Context.is_request(scim_context)
+        is_response = Context.is_response(scim_context)
+        is_create_or_replace = scim_context in (
+            Context.RESOURCE_CREATION_REQUEST,
+            Context.RESOURCE_REPLACEMENT_REQUEST,
+        )
+        original = info.context.get("original") if info.context else None
+        fields_set = self.model_fields_set
+
         for field_name in self.__class__.model_fields:
-            if not self.get_field_multiplicity(field_name):
-                continue
+            value = getattr(self, field_name)
 
-            field_value = getattr(self, field_name)
-            if field_value is None:
-                continue
+            if is_request:
+                if field_name in fields_set:
+                    self._check_mutability(field_name, scim_context)
+                if is_create_or_replace:
+                    self._check_necessity(field_name, value)
+            elif is_response:
+                self._check_returnability(field_name, value)
 
-            element_type = self.get_field_root_type(field_name)
             if (
-                element_type is None
-                or not isclass(element_type)
-                or not issubclass(element_type, PydanticBaseModel)
-                or "primary" not in element_type.model_fields
+                self.get_field_multiplicity(field_name)
+                and value is not None
             ):
-                continue
+                self._check_primary_uniqueness(field_name, value)
 
-            primary_count = sum(
-                1 for item in field_value if getattr(item, "primary", None) is True
-            )
-
-            if primary_count > 1:
-                raise PydanticCustomError(
-                    "primary_uniqueness_error",
-                    "Field '{field_name}' has {count} items marked as primary, but only one is allowed per RFC 7643",
-                    {
-                        "field_name": field_name,
-                        "count": primary_count,
-                    },
-                )
+        if (
+            scim_context == Context.RESOURCE_REPLACEMENT_REQUEST
+            and original is not None
+            and issubclass(type(self), Resource)
+        ):
+            # TODO: We loop all the fields a second time
+            # Could replace with field specific mutability check
+            self._check_replacement_mutability(original)
 
         return self
+
+    def _check_mutability(self, field_name: str, scim_context: Context) -> None:
+        """Check and fix that the field mutability is expected according to the
+        requests validation context, as defined in
+        :rfc:`RFC7643 §7 <7643#section-7>`.
+        """
+        mutability = self.__class__.get_field_annotation(field_name, Mutability)
+
+        if (
+            scim_context in (Context.RESOURCE_QUERY_REQUEST, Context.SEARCH_REQUEST)
+            and mutability == Mutability.write_only
+        ):
+            raise PydanticCustomError(
+                "mutability_error",
+                "Field '{field_name}' has mutability '{field_mutability}' but this in not valid in {context} context",
+                {
+                    "field_name": field_name,
+                    "field_mutability": mutability,
+                    "context": scim_context.name.lower().replace("_", " "),
+                },
+            )
+
+        elif (
+            scim_context
+            in (Context.RESOURCE_CREATION_REQUEST, Context.RESOURCE_REPLACEMENT_REQUEST)
+            and mutability == Mutability.read_only
+        ):
+            # Avoid re-triggering this validation by using __dict__
+            self.__dict__[field_name] = None
+
+    def _check_necessity(self, field_name: str, value: Any) -> None:
+        """Check that the required attributes are present in creations and
+        replacement requests.
+        """
+        necessity = self.__class__.get_field_annotation(field_name, Required)
+
+        if necessity == Required.true and value is None:
+            raise PydanticCustomError(
+                "required_error",
+                "Field '{field_name}' is required but value is missing or null",
+                {
+                    "field_name": field_name,
+                },
+            )
+
+    def _check_returnability(self, field_name: str, value: Any) -> None:
+        """Check that the fields returnability is expected according to the
+        responses validation context, as defined in
+        :rfc:`RFC7643 §7 <7643#section-7>`.
+        """
+        returnability = self.__class__.get_field_annotation(field_name, Returned)
+
+        if returnability == Returned.always and value is None:
+            raise PydanticCustomError(
+                "returned_error",
+                "Field '{field_name}' has returnability 'always' but value is missing or null",
+                {
+                    "field_name": field_name,
+                },
+            )
+
+        elif returnability == Returned.never and value is not None:
+            raise PydanticCustomError(
+                "returned_error",
+                "Field '{field_name}' has returnability 'never' but value is set",
+                {
+                    "field_name": field_name,
+                },
+            )
+
+    def _check_replacement_mutability(self, original: "BaseModel") -> None:
+        """Check if 'immutable' attributes have been mutated in replacement
+        requests.
+        """
+        try:
+            self._apply_replace_constraints(original)
+        except MutabilityException as exc:
+            raise exc.as_pydantic_error() from exc
+
+    def _check_primary_uniqueness(self, field_name: str, value: Any) -> None:
+        """Validate that only one attribute can be marked as primary in
+        multi-valued lists, per :rfc:`RFC7643 §2.4 <7643#section-2.4>`.
+        """
+        element_type = self.get_field_root_type(field_name)
+        if (
+            element_type is None
+            or not isclass(element_type)
+            or not issubclass(element_type, PydanticBaseModel)
+            or "primary" not in element_type.model_fields
+        ):
+            return
+
+        primary_count = sum(
+            1 for item in value if getattr(item, "primary", None) is True
+        )
+
+        if primary_count > 1:
+            raise PydanticCustomError(
+                "primary_uniqueness_error",
+                "Field '{field_name}' has {count} items marked as primary, but only one is allowed per RFC 7643",
+                {
+                    "field_name": field_name,
+                    "count": primary_count,
+                },
+            )
 
     def _apply_replace_constraints(self, original: Self) -> None:
         """Enforce RFC 7644 §3.5.1 replace (PUT) semantics.
