@@ -1,7 +1,6 @@
 """Base SCIM object classes with schema identification."""
 
 import warnings
-from typing import TYPE_CHECKING
 from typing import Annotated
 from typing import Any
 from typing import ClassVar
@@ -18,10 +17,6 @@ from .annotations import Returned
 from .base import BaseModel
 from .context import Context
 from .path import URN
-from .path import Path
-
-if TYPE_CHECKING:
-    pass
 
 
 class ScimMetaclass(ModelMetaclass):
@@ -103,81 +98,3 @@ class ScimObject(BaseModel, metaclass=ScimMetaclass):
             )
 
         return obj
-
-    def _prepare_model_dump(
-        self,
-        scim_ctx: Context | None = Context.DEFAULT,
-        attributes: list[str | Path[Any]] | None = None,
-        excluded_attributes: list[str | Path[Any]] | None = None,
-        **kwargs: Any,
-    ) -> dict[str, Any]:
-        kwargs.setdefault("context", {}).setdefault("scim", scim_ctx)
-
-        if scim_ctx:
-            kwargs.setdefault("exclude_none", True)
-            kwargs.setdefault("by_alias", True)
-
-        if attributes:
-            kwargs["context"]["scim_attributes"] = [str(a) for a in attributes]
-        if excluded_attributes:
-            kwargs["context"]["scim_excluded_attributes"] = [
-                str(a) for a in excluded_attributes
-            ]
-
-        return kwargs
-
-    def model_dump(
-        self,
-        *args: Any,
-        scim_ctx: Context | None = Context.DEFAULT,
-        attributes: list[str | Path[Any]] | None = None,
-        excluded_attributes: list[str | Path[Any]] | None = None,
-        **kwargs: Any,
-    ) -> dict[str, Any]:
-        """Create a model representation that can be included in SCIM messages by using Pydantic :code:`BaseModel.model_dump`.
-
-        :param scim_ctx: If a SCIM context is passed, some default values of
-            Pydantic :code:`BaseModel.model_dump` are tuned to generate valid SCIM
-            messages. Pass :data:`None` to get the default Pydantic behavior.
-        :param attributes: A multi-valued list of strings indicating the names of resource
-            attributes to return in the response, overriding the set of attributes that
-            would be returned by default. Invalid values are ignored.
-        :param excluded_attributes: A multi-valued list of strings indicating the names of resource
-            attributes to be removed from the default set of attributes to return. Invalid values are ignored.
-        """
-        dump_kwargs = self._prepare_model_dump(
-            scim_ctx,
-            attributes=attributes,
-            excluded_attributes=excluded_attributes,
-            **kwargs,
-        )
-        if scim_ctx:
-            dump_kwargs.setdefault("mode", "json")
-        return super(BaseModel, self).model_dump(*args, **dump_kwargs)
-
-    def model_dump_json(
-        self,
-        *args: Any,
-        scim_ctx: Context | None = Context.DEFAULT,
-        attributes: list[str | Path[Any]] | None = None,
-        excluded_attributes: list[str | Path[Any]] | None = None,
-        **kwargs: Any,
-    ) -> str:
-        """Create a JSON model representation that can be included in SCIM messages by using Pydantic :code:`BaseModel.model_dump_json`.
-
-        :param scim_ctx: If a SCIM context is passed, some default values of
-            Pydantic :code:`BaseModel.model_dump` are tuned to generate valid SCIM
-            messages. Pass :data:`None` to get the default Pydantic behavior.
-        :param attributes: A multi-valued list of strings indicating the names of resource
-            attributes to return in the response, overriding the set of attributes that
-            would be returned by default. Invalid values are ignored.
-        :param excluded_attributes: A multi-valued list of strings indicating the names of resource
-            attributes to be removed from the default set of attributes to return. Invalid values are ignored.
-        """
-        dump_kwargs = self._prepare_model_dump(
-            scim_ctx,
-            attributes=attributes,
-            excluded_attributes=excluded_attributes,
-            **kwargs,
-        )
-        return super(BaseModel, self).model_dump_json(*args, **dump_kwargs)

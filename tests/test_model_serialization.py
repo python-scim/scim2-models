@@ -96,6 +96,17 @@ def test_dump_default(mut_resource):
     assert mut_resource.model_dump(scim_ctx=None) == {
         "schemas": ["org:example:MutResource"],
         "id": "id",
+        "external_id": None,
+        "meta": None,
+        "read_only": "x",
+        "read_write": "x",
+        "immutable": "x",
+        "write_only": "x",
+    }
+
+    assert mut_resource.model_dump(scim_ctx=None, exclude_none=True) == {
+        "schemas": ["org:example:MutResource"],
+        "id": "id",
         "read_only": "x",
         "read_write": "x",
         "immutable": "x",

@@ -1,5 +1,6 @@
 import warnings
 from inspect import isclass
+from typing import TYPE_CHECKING
 from typing import Any
 from typing import Optional
 from typing import ClassVar
@@ -10,13 +11,10 @@ from typing import get_origin
 from pydantic import AliasGenerator
 from pydantic import BaseModel as PydanticBaseModel
 from pydantic import ConfigDict
-from pydantic import FieldSerializationInfo
 from pydantic import SerializationInfo
 from pydantic import SerializerFunctionWrapHandler
 from pydantic import ValidationInfo
 from pydantic import ValidatorFunctionWrapHandler
-from pydantic import field_serializer
-from pydantic import field_validator
 from pydantic import model_serializer
 from pydantic import model_validator
 from pydantic_core import PydanticCustomError
@@ -28,9 +26,11 @@ from scim2_models.annotations import Returned
 from scim2_models.context import Context
 from scim2_models.exceptions import MutabilityException
 from scim2_models.utils import UNION_TYPES
-from scim2_models.utils import _find_field_name
 from scim2_models.utils import _normalize_attribute_name
 from scim2_models.utils import _to_camel
+
+if TYPE_CHECKING:
+    from scim2_models.path import Path
 
 
 def _short_attr_path(urn: str) -> str:
@@ -505,6 +505,13 @@ class BaseModel(PydanticBaseModel):
                 if original_sub is not None and replacement_sub is not None:
                     replacement_sub._apply_replace_constraints(original_sub)
 
+    def get_attribute_urn(self, field_name: str) -> str:
+        """Build the full URN of the attribute.
+
+        See :rfc:`RFC7644 §3.10 <7644#section-3.10>`.
+        """
+        return self.__scim_info__.attribute_urns[field_name]
+
     def _set_complex_attribute_urns(self) -> None:
         """Mark each ``ComplexAttribute`` child with its ``_attribute_urn``.
 
@@ -564,7 +571,7 @@ class BaseModel(PydanticBaseModel):
                 excluded_attrs = info.context.get("scim_excluded_attributes", []) if info.context else []
                 self._scim_response_serializer(serialized, included_attrs, excluded_attrs)
 
-        return {key: value for key, value in serialized.items() if value is not None}
+        return serialized
 
     def _scim_request_serializer(self, serialized: dict[str, Any], scim_ctx: Context) -> None:
         """Serialize the fields according to mutability indications passed in the serialization context."""
@@ -654,9 +661,80 @@ class BaseModel(PydanticBaseModel):
 
         return super().model_validate(*args, **kwargs)
 
-    def get_attribute_urn(self, field_name: str) -> str:
-        """Build the full URN of the attribute.
+    def _prepare_model_dump(
+        self,
+        scim_ctx: Context | None = Context.DEFAULT,
+        attributes: list["str | Path[Any]"] | None = None,
+        excluded_attributes: list["str | Path[Any]"] | None = None,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        kwargs.setdefault("context", {}).setdefault("scim", scim_ctx)
 
-        See :rfc:`RFC7644 §3.10 <7644#section-3.10>`.
+        if scim_ctx:
+            kwargs.setdefault("exclude_none", True)
+            kwargs.setdefault("by_alias", True)
+
+        if attributes:
+            kwargs["context"]["scim_attributes"] = [str(a) for a in attributes]
+        if excluded_attributes:
+            kwargs["context"]["scim_excluded_attributes"] = [
+                str(a) for a in excluded_attributes
+            ]
+
+        return kwargs
+
+    def model_dump(
+        self,
+        *args: Any,
+        scim_ctx: Context | None = Context.DEFAULT,
+        attributes: list["str | Path[Any]"] | None = None,
+        excluded_attributes: list["str | Path[Any]"] | None = None,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        """Create a model representation that can be included in SCIM messages by using Pydantic :code:`BaseModel.model_dump`.
+
+        :param scim_ctx: If a SCIM context is passed, some default values of
+            Pydantic :code:`BaseModel.model_dump` are tuned to generate valid SCIM
+            messages. Pass :data:`None` to get the default Pydantic behavior.
+        :param attributes: A multi-valued list of strings indicating the names of resource
+            attributes to return in the response, overriding the set of attributes that
+            would be returned by default. Invalid values are ignored.
+        :param excluded_attributes: A multi-valued list of strings indicating the names of resource
+            attributes to be removed from the default set of attributes to return. Invalid values are ignored.
         """
-        return self.__scim_info__.attribute_urns[field_name]
+        dump_kwargs = self._prepare_model_dump(
+            scim_ctx,
+            attributes=attributes,
+            excluded_attributes=excluded_attributes,
+            **kwargs,
+        )
+        if scim_ctx:
+            dump_kwargs.setdefault("mode", "json")
+        return super().model_dump(*args, **dump_kwargs)
+
+    def model_dump_json(
+        self,
+        *args: Any,
+        scim_ctx: Context | None = Context.DEFAULT,
+        attributes: list["str | Path[Any]"] | None = None,
+        excluded_attributes: list["str | Path[Any]"] | None = None,
+        **kwargs: Any,
+    ) -> str:
+        """Create a JSON model representation that can be included in SCIM messages by using Pydantic :code:`BaseModel.model_dump_json`.
+
+        :param scim_ctx: If a SCIM context is passed, some default values of
+            Pydantic :code:`BaseModel.model_dump` are tuned to generate valid SCIM
+            messages. Pass :data:`None` to get the default Pydantic behavior.
+        :param attributes: A multi-valued list of strings indicating the names of resource
+            attributes to return in the response, overriding the set of attributes that
+            would be returned by default. Invalid values are ignored.
+        :param excluded_attributes: A multi-valued list of strings indicating the names of resource
+            attributes to be removed from the default set of attributes to return. Invalid values are ignored.
+        """
+        dump_kwargs = self._prepare_model_dump(
+            scim_ctx,
+            attributes=attributes,
+            excluded_attributes=excluded_attributes,
+            **kwargs,
+        )
+        return super().model_dump_json(*args, **dump_kwargs)
