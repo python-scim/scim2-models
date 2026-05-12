@@ -19,9 +19,7 @@ from ..utils import UNION_TYPES
 class Message(ScimObject):
     """SCIM protocol messages as defined by :rfc:`RFC7644 §3.1 <7644#section-3.1>`."""
 
-    def _scim_response_serializer(
-        self, *args: Any, **kwargs: Any
-    ) -> None:
+    def _scim_response_serializer(self, *args: Any, **kwargs: Any) -> None:
         """Message fields are not subject to attribute filtering."""
 
 

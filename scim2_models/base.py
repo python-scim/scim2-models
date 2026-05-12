@@ -2,9 +2,10 @@ import warnings
 from inspect import isclass
 from typing import TYPE_CHECKING
 from typing import Any
-from typing import Optional
 from typing import ClassVar
 from typing import NamedTuple
+from typing import Optional
+from typing import cast
 from typing import get_args
 from typing import get_origin
 
@@ -271,7 +272,7 @@ class BaseModel(PydanticBaseModel):
             # Alias -> field name mapping
             serialization_alias = field.serialization_alias or field_name
             alias_to_field[serialization_alias] = field_name
-            alias_to_field[field.validation_alias] = field_name
+            alias_to_field[cast(str, field.validation_alias)] = field_name
 
             root_type = cls.get_field_root_type(field_name)
 
@@ -310,7 +311,7 @@ class BaseModel(PydanticBaseModel):
         """
         if isinstance(value, dict):
             value = {_normalize_attribute_name(k): v for k, v in value.items()}
-        return handler(value)
+        return cast(Self, handler(value))
 
     @model_validator(mode="after")
     def enforce_scim_context(self, info: ValidationInfo) -> Self:
@@ -339,10 +340,7 @@ class BaseModel(PydanticBaseModel):
                 # Must be response
                 self._check_returnability(field_name, value)
 
-            if (
-                self.get_field_multiplicity(field_name)
-                and value is not None
-            ):
+            if self.get_field_multiplicity(field_name) and value is not None:
                 self._check_primary_uniqueness(field_name, value)
 
         if (
@@ -357,10 +355,7 @@ class BaseModel(PydanticBaseModel):
         return self
 
     def _check_mutability(self, field_name: str, scim_context: Context) -> None:
-        """Check and fix that the field mutability is expected according to the
-        requests validation context, as defined in
-        :rfc:`RFC7643 §7 <7643#section-7>`.
-        """
+        """Check and fix that the field mutability is expected according to the requests validation context, as defined in :rfc:`RFC7643 §7 <7643#section-7>`."""
         mutability = self.__class__.get_field_annotation(field_name, Mutability)
 
         if (
@@ -386,9 +381,7 @@ class BaseModel(PydanticBaseModel):
             self.__dict__[field_name] = None
 
     def _check_necessity(self, field_name: str, value: Any) -> None:
-        """Check that the required attributes are present in creations and
-        replacement requests.
-        """
+        """Check that the required attributes are present in creations and replacement requests."""
         necessity = self.__class__.get_field_annotation(field_name, Required)
 
         if necessity == Required.true and value is None:
@@ -401,10 +394,7 @@ class BaseModel(PydanticBaseModel):
             )
 
     def _check_returnability(self, field_name: str, value: Any) -> None:
-        """Check that the fields returnability is expected according to the
-        responses validation context, as defined in
-        :rfc:`RFC7643 §7 <7643#section-7>`.
-        """
+        """Check that the fields returnability is expected according to the responses validation context, as defined in :rfc:`RFC7643 §7 <7643#section-7>`."""
         returnability = self.__class__.get_field_annotation(field_name, Returned)
 
         if returnability == Returned.always and value is None:
@@ -426,18 +416,14 @@ class BaseModel(PydanticBaseModel):
             )
 
     def _check_replacement_mutability(self, original: "BaseModel") -> None:
-        """Check if 'immutable' attributes have been mutated in replacement
-        requests.
-        """
+        """Check if 'immutable' attributes have been mutated in replacement requests."""
         try:
             self._apply_replace_constraints(original)
         except MutabilityException as exc:
             raise exc.as_pydantic_error() from exc
 
     def _check_primary_uniqueness(self, field_name: str, value: Any) -> None:
-        """Validate that only one attribute can be marked as primary in
-        multi-valued lists, per :rfc:`RFC7643 §2.4 <7643#section-2.4>`.
-        """
+        """Validate that only one attribute can be marked as primary in multi-valued lists, per :rfc:`RFC7643 §2.4 <7643#section-2.4>`."""
         element_type = self.get_field_root_type(field_name)
         if (
             element_type is None
@@ -518,21 +504,13 @@ class BaseModel(PydanticBaseModel):
         cls = self.__class__
         info = cls.__scim_info__
         complex_fields = info.complex_fields
-        if not complex_fields:
-            return
-
-        is_complex = getattr(cls, "__is_complex_attribute__", False)
 
         for field_name in complex_fields:
             attr_value = getattr(self, field_name)
             if not attr_value:
                 continue
 
-            if is_complex:
-                alias = cls.model_fields[field_name].serialization_alias or field_name
-                schema = f"{self._attribute_urn}.{alias}"
-            else:
-                schema = info.attribute_urns[field_name]
+            schema = info.attribute_urns[field_name]
 
             if isinstance(attr_value, list):
                 for item in attr_value:
@@ -546,7 +524,7 @@ class BaseModel(PydanticBaseModel):
     ) -> dict[str, Any]:
         """Serialize the fields according to mutability indications passed in the serialization context."""
         scim_ctx = info.context.get("scim") if info.context else None
-        is_response = Context.is_response(scim_ctx)
+        is_response = Context.is_response(scim_ctx) if scim_ctx else False
 
         if is_response:
             # Complex attribute urns are only used in responses
@@ -556,32 +534,44 @@ class BaseModel(PydanticBaseModel):
 
         if scim_ctx and scim_ctx != Context.DEFAULT:
             if is_response:
-                included_attrs = info.context.get("scim_attributes", []) if info.context else []
-                excluded_attrs = info.context.get("scim_excluded_attributes", []) if info.context else []
-                self._scim_response_serializer(serialized, included_attrs, excluded_attrs)
+                included_attrs = (
+                    info.context.get("scim_attributes", []) if info.context else []
+                )
+                excluded_attrs = (
+                    info.context.get("scim_excluded_attributes", [])
+                    if info.context
+                    else []
+                )
+                self._scim_response_serializer(
+                    serialized, included_attrs, excluded_attrs
+                )
             else:
                 # Must be request
                 self._scim_request_serializer(serialized, scim_ctx)
 
         return serialized
 
-    def _scim_request_serializer(self, serialized: dict[str, Any], scim_ctx: Context) -> None:
+    def _scim_request_serializer(
+        self, serialized: dict[str, Any], scim_ctx: Context
+    ) -> None:
         """Serialize the fields according to mutability indications passed in the serialization context."""
         for alias in set(serialized):
             field_name = self.__scim_info__.alias_to_field[alias]
             mutability = self.get_field_annotation(field_name, Mutability)
 
             if (
-                scim_ctx in (
+                scim_ctx
+                in (
                     Context.RESOURCE_CREATION_REQUEST,
-                    Context.RESOURCE_REPLACEMENT_REQUEST
+                    Context.RESOURCE_REPLACEMENT_REQUEST,
                 )
                 and mutability == Mutability.read_only
             ):
                 del serialized[alias]
 
             elif (
-                scim_ctx in (
+                scim_ctx
+                in (
                     Context.RESOURCE_QUERY_REQUEST,
                     Context.SEARCH_REQUEST,
                 )
@@ -593,7 +583,7 @@ class BaseModel(PydanticBaseModel):
         self,
         serialized: dict[str, Any],
         included_attrs: list[str],
-        excluded_attrs: list[str]
+        excluded_attrs: list[str],
     ) -> None:
         """Serialize the fields according to returnability indications passed in the serialization context."""
         for alias in set(serialized):
@@ -604,7 +594,10 @@ class BaseModel(PydanticBaseModel):
             if returnability == Returned.never:
                 del serialized[alias]
             elif returnability == Returned.default and (
-                (included_attrs and not _is_attribute_requested(included_attrs, attribute_urn))
+                (
+                    included_attrs
+                    and not _is_attribute_requested(included_attrs, attribute_urn)
+                )
                 or _exact_attr_match(excluded_attrs, attribute_urn)
             ):
                 del serialized[alias]

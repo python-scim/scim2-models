@@ -1,7 +1,7 @@
 import re
+from functools import lru_cache
 from typing import TYPE_CHECKING
 from typing import Union
-from functools import lru_cache
 
 from pydantic.alias_generators import to_snake
 
