@@ -123,6 +123,10 @@ def _extension_serializer(
 
     partial_result = handler(value)
 
+    scim_context = info.context.get("scim") if info.context else None
+    if not scim_context:
+        return partial_result
+
     result = {
         attr_name: value
         for attr_name, value in partial_result.items()

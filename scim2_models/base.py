@@ -532,7 +532,18 @@ class BaseModel(PydanticBaseModel):
 
         serialized: dict[str, Any] = handler(self)
 
-        if scim_ctx and scim_ctx != Context.DEFAULT:
+        if not scim_ctx:
+            return serialized
+
+        # Delete empty extensions
+        if (get_extension_models := getattr(self, "get_extension_models", None)) is not None:
+            for ext_urn, ext_cls in get_extension_models().items():
+                key = ext_urn if info.by_alias else ext_cls.__name__
+                if key in serialized and serialized[key] is None:
+                    del serialized[key]
+
+        # Serialize according to given context
+        if scim_ctx != Context.DEFAULT:
             if is_response:
                 included_attrs = (
                     info.context.get("scim_attributes", []) if info.context else []
@@ -556,7 +567,7 @@ class BaseModel(PydanticBaseModel):
     ) -> None:
         """Serialize the fields according to mutability indications passed in the serialization context."""
         for alias in set(serialized):
-            field_name = self.__scim_info__.alias_to_field[alias]
+            field_name = self.__scim_info__.alias_to_field.get(alias, alias)
             mutability = self.get_field_annotation(field_name, Mutability)
 
             if (
@@ -587,7 +598,7 @@ class BaseModel(PydanticBaseModel):
     ) -> None:
         """Serialize the fields according to returnability indications passed in the serialization context."""
         for alias in set(serialized):
-            field_name = self.__scim_info__.alias_to_field[alias]
+            field_name = self.__scim_info__.alias_to_field.get(alias, alias)
             returnability = self.get_field_annotation(field_name, Returned)
             attribute_urn = self.get_attribute_urn(field_name)
 

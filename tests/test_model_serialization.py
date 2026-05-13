@@ -181,6 +181,7 @@ def test_dump_extension(mut_resource_extension):
         "immutable": "x",
         "write_only": "x",
         "MutExtension": {
+            "schemas": ["urn:org:extensions:MutExtension"],
             "read_only": "y",
             "read_write": "y",
             "immutable": "y",
@@ -196,6 +197,7 @@ def test_dump_extension(mut_resource_extension):
         "immutable": "x",
         "write_only": "x",
         "MutExtension": {
+            "schemas": ["urn:org:extensions:MutExtension"],
             "read_only": "y",
             "read_write": "y",
             "immutable": "y",
@@ -228,12 +230,14 @@ def test_dump_extension(mut_resource_extension):
         "immutable": "x",
         "writeOnly": "x",
         "urn:org:extensions:MutExtension": {
+            "schemas": ["urn:org:extensions:MutExtension"],
             "readOnly": "y",
             "readWrite": "y",
             "immutable": "y",
             "writeOnly": "y",
         }
     }
+
 
 def test_dump_empty_extension(mut_resource_extension_empty):
     """Test dumps with empty extension"""
@@ -256,6 +260,7 @@ def test_dump_empty_extension(mut_resource_extension_empty):
         "immutable": "x",
         "write_only": "x",
         "MutExtension": {
+            "schemas": ["urn:org:extensions:MutExtension"],
             "read_only": None,
             "read_write": None,
             "immutable": None,
@@ -270,6 +275,7 @@ def test_dump_empty_extension(mut_resource_extension_empty):
         "read_write": "x",
         "immutable": "x",
         "write_only": "x",
+        "MutExtension": {"schemas": ["urn:org:extensions:MutExtension"]}
     }
 
     assert mut_resource_extension_empty.model_dump(by_alias=False) == {
@@ -291,6 +297,7 @@ def test_dump_empty_extension(mut_resource_extension_empty):
         "immutable": "x",
         "writeOnly": "x",
         "urn:org:extensions:MutExtension": {
+            "schemas": ["urn:org:extensions:MutExtension"],
             "readOnly": None,
             "readWrite": None,
             "immutable": None,
