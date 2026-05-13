@@ -4,11 +4,11 @@ import pytest
 
 from scim2_models import URN
 from scim2_models.annotations import Mutability
-from scim2_models.annotations import Required
 from scim2_models.annotations import Returned
 from scim2_models.attributes import ComplexAttribute
 from scim2_models.context import Context
 from scim2_models.resources.resource import Resource
+from scim2_models.resources.resource import Extension
 
 
 class SubRetModel(ComplexAttribute):
@@ -30,7 +30,16 @@ class SupRetResource(Resource):
 
 
 class MutResource(Resource):
-    schemas: Annotated[list[str], Required.true] = ["org:example:MutResource"]
+    __schema__ = URN("urn:org:example:MutResource")
+
+    read_only: Annotated[str | None, Mutability.read_only] = None
+    read_write: Annotated[str | None, Mutability.read_write] = None
+    immutable: Annotated[str | None, Mutability.immutable] = None
+    write_only: Annotated[str | None, Mutability.write_only] = None
+
+
+class MutExtension(Extension):
+    __schema__ = URN("urn:org:extensions:MutExtension")
 
     read_only: Annotated[str | None, Mutability.read_only] = None
     read_write: Annotated[str | None, Mutability.read_write] = None
@@ -66,17 +75,48 @@ def mut_resource():
     )
 
 
+@pytest.fixture
+def mut_resource_extension():
+    resource = MutResource[MutExtension](
+        id="id",
+        read_only="x",
+        read_write="x",
+        immutable="x",
+        write_only="x",
+    )
+    resource[MutExtension] = MutExtension(
+        read_only="y",
+        read_write="y",
+        immutable="y",
+        write_only="y",
+    )
+    return resource
+
+
+@pytest.fixture
+def mut_resource_extension_empty():
+    resource = MutResource[MutExtension](
+        id="id",
+        read_only="x",
+        read_write="x",
+        immutable="x",
+        write_only="x",
+    )
+    resource[MutExtension] = MutExtension()
+    return resource
+
+
 def test_model_dump_json(mut_resource):
     assert (
         mut_resource.model_dump_json()
-        == '{"schemas":["org:example:MutResource"],"id":"id","readOnly":"x","readWrite":"x","immutable":"x","writeOnly":"x"}'
+        == '{"schemas":["urn:org:example:MutResource"],"id":"id","readOnly":"x","readWrite":"x","immutable":"x","writeOnly":"x"}'
     )
 
 
 def test_dump_default(mut_resource):
     """By default, everything is dumped."""
     assert mut_resource.model_dump() == {
-        "schemas": ["org:example:MutResource"],
+        "schemas": ["urn:org:example:MutResource"],
         "id": "id",
         "readOnly": "x",
         "readWrite": "x",
@@ -85,7 +125,7 @@ def test_dump_default(mut_resource):
     }
 
     assert mut_resource.model_dump(scim_ctx=Context.DEFAULT) == {
-        "schemas": ["org:example:MutResource"],
+        "schemas": ["urn:org:example:MutResource"],
         "id": "id",
         "readOnly": "x",
         "readWrite": "x",
@@ -94,7 +134,7 @@ def test_dump_default(mut_resource):
     }
 
     assert mut_resource.model_dump(scim_ctx=None) == {
-        "schemas": ["org:example:MutResource"],
+        "schemas": ["urn:org:example:MutResource"],
         "id": "id",
         "external_id": None,
         "meta": None,
@@ -105,12 +145,157 @@ def test_dump_default(mut_resource):
     }
 
     assert mut_resource.model_dump(scim_ctx=None, exclude_none=True) == {
-        "schemas": ["org:example:MutResource"],
+        "schemas": ["urn:org:example:MutResource"],
         "id": "id",
         "read_only": "x",
         "read_write": "x",
         "immutable": "x",
         "write_only": "x",
+    }
+
+
+def test_dump_extension(mut_resource_extension):
+    """Test dumps with extension"""
+    assert mut_resource_extension.model_dump() == {
+        "schemas": ["urn:org:example:MutResource", "urn:org:extensions:MutExtension"],
+        "id": "id",
+        "readOnly": "x",
+        "readWrite": "x",
+        "immutable": "x",
+        "writeOnly": "x",
+        "urn:org:extensions:MutExtension": {
+            "readOnly": "y",
+            "readWrite": "y",
+            "immutable": "y",
+            "writeOnly": "y",
+        }
+    }
+
+    assert mut_resource_extension.model_dump(scim_ctx=None) == {
+        "schemas": ["urn:org:example:MutResource", "urn:org:extensions:MutExtension"],
+        "id": "id",
+        "external_id": None,
+        "meta": None,
+        "read_only": "x",
+        "read_write": "x",
+        "immutable": "x",
+        "write_only": "x",
+        "MutExtension": {
+            "read_only": "y",
+            "read_write": "y",
+            "immutable": "y",
+            "write_only": "y",
+        }
+    }
+
+    assert mut_resource_extension.model_dump(scim_ctx=None, exclude_none=True) == {
+        "schemas": ["urn:org:example:MutResource", "urn:org:extensions:MutExtension"],
+        "id": "id",
+        "read_only": "x",
+        "read_write": "x",
+        "immutable": "x",
+        "write_only": "x",
+        "MutExtension": {
+            "read_only": "y",
+            "read_write": "y",
+            "immutable": "y",
+            "write_only": "y",
+        }
+    }
+
+    assert mut_resource_extension.model_dump(by_alias=False) == {
+        "schemas": ["urn:org:example:MutResource", "urn:org:extensions:MutExtension"],
+        "id": "id",
+        "read_only": "x",
+        "read_write": "x",
+        "immutable": "x",
+        "write_only": "x",
+        "MutExtension": {
+            "read_only": "y",
+            "read_write": "y",
+            "immutable": "y",
+            "write_only": "y",
+        }
+    }
+
+    assert mut_resource_extension.model_dump(scim_ctx=None, by_alias=True) == {
+        "schemas": ["urn:org:example:MutResource", "urn:org:extensions:MutExtension"],
+        "id": "id",
+        "externalId": None,
+        "meta": None,
+        "readOnly": "x",
+        "readWrite": "x",
+        "immutable": "x",
+        "writeOnly": "x",
+        "urn:org:extensions:MutExtension": {
+            "readOnly": "y",
+            "readWrite": "y",
+            "immutable": "y",
+            "writeOnly": "y",
+        }
+    }
+
+def test_dump_empty_extension(mut_resource_extension_empty):
+    """Test dumps with empty extension"""
+    assert mut_resource_extension_empty.model_dump() == {
+        "schemas": ["urn:org:example:MutResource", "urn:org:extensions:MutExtension"],
+        "id": "id",
+        "readOnly": "x",
+        "readWrite": "x",
+        "immutable": "x",
+        "writeOnly": "x",
+    }
+
+    assert mut_resource_extension_empty.model_dump(scim_ctx=None) == {
+        "schemas": ["urn:org:example:MutResource", "urn:org:extensions:MutExtension"],
+        "id": "id",
+        "external_id": None,
+        "meta": None,
+        "read_only": "x",
+        "read_write": "x",
+        "immutable": "x",
+        "write_only": "x",
+        "MutExtension": {
+            "read_only": None,
+            "read_write": None,
+            "immutable": None,
+            "write_only": None,
+        }
+    }
+
+    assert mut_resource_extension_empty.model_dump(scim_ctx=None, exclude_none=True) == {
+        "schemas": ["urn:org:example:MutResource", "urn:org:extensions:MutExtension"],
+        "id": "id",
+        "read_only": "x",
+        "read_write": "x",
+        "immutable": "x",
+        "write_only": "x",
+    }
+
+    assert mut_resource_extension_empty.model_dump(by_alias=False) == {
+        "schemas": ["urn:org:example:MutResource", "urn:org:extensions:MutExtension"],
+        "id": "id",
+        "read_only": "x",
+        "read_write": "x",
+        "immutable": "x",
+        "write_only": "x",
+    }
+
+    assert mut_resource_extension_empty.model_dump(scim_ctx=None, by_alias=True) == {
+        "schemas": ["urn:org:example:MutResource", "urn:org:extensions:MutExtension"],
+        "id": "id",
+        "externalId": None,
+        "meta": None,
+        "readOnly": "x",
+        "readWrite": "x",
+        "immutable": "x",
+        "writeOnly": "x",
+        "urn:org:extensions:MutExtension": {
+            "readOnly": None,
+            "readWrite": None,
+            "immutable": None,
+            "writeOnly": None,
+        }
     }
 
 
@@ -124,7 +309,7 @@ def test_dump_creation_request(mut_resource):
     - Mutability.read_only are not dumped
     """
     assert mut_resource.model_dump(scim_ctx=Context.RESOURCE_CREATION_REQUEST) == {
-        "schemas": ["org:example:MutResource"],
+        "schemas": ["urn:org:example:MutResource"],
         "readWrite": "x",
         "immutable": "x",
         "writeOnly": "x",
@@ -141,7 +326,7 @@ def test_dump_query_request(mut_resource):
     - Mutability.read_only are dumped
     """
     assert mut_resource.model_dump(scim_ctx=Context.RESOURCE_QUERY_REQUEST) == {
-        "schemas": ["org:example:MutResource"],
+        "schemas": ["urn:org:example:MutResource"],
         "id": "id",
         "readOnly": "x",
         "readWrite": "x",
@@ -159,7 +344,7 @@ def test_dump_replacement_request(mut_resource):
     - Mutability.read_only are not dumped
     """
     assert mut_resource.model_dump(scim_ctx=Context.RESOURCE_REPLACEMENT_REQUEST) == {
-        "schemas": ["org:example:MutResource"],
+        "schemas": ["urn:org:example:MutResource"],
         "readWrite": "x",
         "writeOnly": "x",
         "immutable": "x",
@@ -176,7 +361,7 @@ def test_dump_search_request(mut_resource):
     - Mutability.read_only are dumped
     """
     assert mut_resource.model_dump(scim_ctx=Context.RESOURCE_QUERY_REQUEST) == {
-        "schemas": ["org:example:MutResource"],
+        "schemas": ["urn:org:example:MutResource"],
         "id": "id",
         "readOnly": "x",
         "readWrite": "x",
