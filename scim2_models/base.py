@@ -541,11 +541,10 @@ class BaseModel(PydanticBaseModel):
             return serialized
 
         # Delete empty extensions
-        if (get_extension_models := getattr(self, "get_extension_models", None)) is not None:
-            for ext_urn, ext_cls in get_extension_models().items():
-                key = ext_urn if info.by_alias else ext_cls.__name__
-                if key in serialized and serialized[key] is None:
-                    del serialized[key]
+        for extension_field in self.__scim_info__.extensions:
+            key = self.__scim_info__.attribute_urns[extension_field] if info.by_alias else extension_field
+            if key in serialized and serialized[key] is None:
+                del serialized[key]
 
         # Serialize according to given context
         if scim_ctx != Context.DEFAULT:
