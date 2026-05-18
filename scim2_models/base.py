@@ -116,6 +116,9 @@ class _SCIMClassInfo(NamedTuple):
     complex_fields: frozenset[str] = frozenset()
     """Field names whose root type is a ``ComplexAttribute`` subclass."""
 
+    extensions: frozenset[set] = frozenset()
+    """Field names whose root type is a ``Extension`` subclass."""
+
 
 class BaseModel(PydanticBaseModel):
     """Base Model for everything."""
@@ -260,6 +263,7 @@ class BaseModel(PydanticBaseModel):
         alias_to_field: dict[str, str] = {}
         attribute_urns: dict[str, str] = {}
         complex_fields: set[str] = set()
+        extensions: set[str] = set()
 
         main_schema = getattr(cls, "__schema__", None)
         extension_cls: type | None = None
@@ -282,12 +286,16 @@ class BaseModel(PydanticBaseModel):
             ):
                 complex_fields.add(field_name)
 
-            # Attribute URNs
-            if main_schema is not None and not (
-                extension_cls is not None
+            # Is extension
+            if (
+                main_schema
                 and isclass(root_type)
                 and issubclass(root_type, extension_cls)
             ):
+                extensions.add(field_name)
+
+            # Attribute URNs
+            if main_schema is not None and field_name not in extensions:
                 attribute_urns[field_name] = f"{main_schema}:{serialization_alias}"
             else:
                 attribute_urns[field_name] = serialization_alias
@@ -296,6 +304,7 @@ class BaseModel(PydanticBaseModel):
             alias_to_field=alias_to_field,
             attribute_urns=attribute_urns,
             complex_fields=frozenset(complex_fields),
+            extensions=frozenset(extensions),
         )
 
     @model_validator(mode="wrap")
@@ -343,13 +352,12 @@ class BaseModel(PydanticBaseModel):
             if self.get_field_multiplicity(field_name) and value is not None:
                 self._check_primary_uniqueness(field_name, value)
 
+        # DEPRECATED: Remove when original is not used in validation
         if (
             scim_context == Context.RESOURCE_REPLACEMENT_REQUEST
             and original is not None
             and issubclass(type(self), Resource)
         ):
-            # TODO: We loop all the fields a second time
-            # Could replace with field specific mutability check
             self._check_replacement_mutability(original)
 
         return self
@@ -457,7 +465,6 @@ class BaseModel(PydanticBaseModel):
 
         Recursively applies to nested single-valued complex attributes.
         """
-        from .attributes import is_complex_attribute
 
         for field_name in type(self).model_fields:
             mutability = type(self).get_field_annotation(field_name, Mutability)
@@ -465,29 +472,27 @@ class BaseModel(PydanticBaseModel):
 
             if mutability == Mutability.read_only:
                 # RFC 7644 §3.5.1: "readOnly" values provided SHALL be ignored.
-                setattr(self, field_name, original_val)
+                self.__dict__[field_name] = original_val
             elif mutability == Mutability.immutable:
                 self_val = getattr(self, field_name)
                 if self_val is None and original_val is not None:
                     # RFC 7643 §7: "SHALL NOT be updated" — omitting an
                     # immutable field is not a request to clear it.
-                    setattr(self, field_name, original_val)
+                    self.__dict__[field_name] = original_val
                 elif self_val != original_val:
                     # RFC 7644 §3.5.1: input values MUST match.
                     raise MutabilityException(
                         attribute=field_name, mutability="immutable"
                     )
 
-            attr_type = type(self).get_field_root_type(field_name)
-            if (
-                attr_type
-                and is_complex_attribute(attr_type)
-                and not type(self).get_field_multiplicity(field_name)
-            ):
-                original_sub = getattr(original, field_name)
-                replacement_sub = getattr(self, field_name)
+        complex_and_extensions = self.__scim_info__.complex_fields.union(self.__scim_info__.extensions)
+        for complex_attr in complex_and_extensions:
+            if not type(self).get_field_multiplicity(complex_attr):
+                original_sub = getattr(original, complex_attr)
+                replacement_sub = getattr(self, complex_attr)
                 if original_sub is not None and replacement_sub is not None:
                     replacement_sub._apply_replace_constraints(original_sub)
+
 
     def get_attribute_urn(self, field_name: str) -> str:
         """Build the full URN of the attribute.
