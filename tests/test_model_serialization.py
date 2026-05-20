@@ -7,8 +7,8 @@ from scim2_models.annotations import Mutability
 from scim2_models.annotations import Returned
 from scim2_models.attributes import ComplexAttribute
 from scim2_models.context import Context
-from scim2_models.resources.resource import Resource
 from scim2_models.resources.resource import Extension
+from scim2_models.resources.resource import Resource
 
 
 class SubRetModel(ComplexAttribute):
@@ -155,7 +155,7 @@ def test_dump_default(mut_resource):
 
 
 def test_dump_extension(mut_resource_extension):
-    """Test dumps with extension"""
+    """Test dumps with extension."""
     assert mut_resource_extension.model_dump() == {
         "schemas": ["urn:org:example:MutResource", "urn:org:extensions:MutExtension"],
         "id": "id",
@@ -168,7 +168,7 @@ def test_dump_extension(mut_resource_extension):
             "readWrite": "y",
             "immutable": "y",
             "writeOnly": "y",
-        }
+        },
     }
 
     assert mut_resource_extension.model_dump(scim_ctx=None) == {
@@ -186,7 +186,7 @@ def test_dump_extension(mut_resource_extension):
             "read_write": "y",
             "immutable": "y",
             "write_only": "y",
-        }
+        },
     }
 
     assert mut_resource_extension.model_dump(scim_ctx=None, exclude_none=True) == {
@@ -202,7 +202,7 @@ def test_dump_extension(mut_resource_extension):
             "read_write": "y",
             "immutable": "y",
             "write_only": "y",
-        }
+        },
     }
 
     assert mut_resource_extension.model_dump(by_alias=False) == {
@@ -217,7 +217,7 @@ def test_dump_extension(mut_resource_extension):
             "read_write": "y",
             "immutable": "y",
             "write_only": "y",
-        }
+        },
     }
 
     assert mut_resource_extension.model_dump(scim_ctx=None, by_alias=True) == {
@@ -235,12 +235,12 @@ def test_dump_extension(mut_resource_extension):
             "readWrite": "y",
             "immutable": "y",
             "writeOnly": "y",
-        }
+        },
     }
 
 
 def test_dump_empty_extension(mut_resource_extension_empty):
-    """Test dumps with empty extension"""
+    """Test dumps with empty extension."""
     assert mut_resource_extension_empty.model_dump() == {
         "schemas": ["urn:org:example:MutResource", "urn:org:extensions:MutExtension"],
         "id": "id",
@@ -265,17 +265,19 @@ def test_dump_empty_extension(mut_resource_extension_empty):
             "read_write": None,
             "immutable": None,
             "write_only": None,
-        }
+        },
     }
 
-    assert mut_resource_extension_empty.model_dump(scim_ctx=None, exclude_none=True) == {
+    assert mut_resource_extension_empty.model_dump(
+        scim_ctx=None, exclude_none=True
+    ) == {
         "schemas": ["urn:org:example:MutResource", "urn:org:extensions:MutExtension"],
         "id": "id",
         "read_only": "x",
         "read_write": "x",
         "immutable": "x",
         "write_only": "x",
-        "MutExtension": {"schemas": ["urn:org:extensions:MutExtension"]}
+        "MutExtension": {"schemas": ["urn:org:extensions:MutExtension"]},
     }
 
     assert mut_resource_extension_empty.model_dump(by_alias=False) == {
@@ -302,7 +304,7 @@ def test_dump_empty_extension(mut_resource_extension_empty):
             "readWrite": None,
             "immutable": None,
             "writeOnly": None,
-        }
+        },
     }
 
 

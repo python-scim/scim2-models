@@ -112,7 +112,7 @@ _PARAMETERIZED_CLASSES: dict[tuple[type, tuple[Any, ...]], type] = {}
 
 def _extension_serializer(
     value: Any, handler: SerializerFunctionWrapHandler, info: SerializationInfo
-) -> dict[str, Any] | None:
+) -> Any:
     """Exclude the Resource attributes from the extension dump.
 
     For instance, attributes 'meta', 'id' or 'schemas' should not be

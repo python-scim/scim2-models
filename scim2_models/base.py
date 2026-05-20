@@ -116,7 +116,7 @@ class _SCIMClassInfo(NamedTuple):
     complex_fields: frozenset[str] = frozenset()
     """Field names whose root type is a ``ComplexAttribute`` subclass."""
 
-    extensions: frozenset[set] = frozenset()
+    extensions: frozenset[str] = frozenset()
     """Field names whose root type is a ``Extension`` subclass."""
 
 
@@ -288,7 +288,7 @@ class BaseModel(PydanticBaseModel):
 
             # Is extension
             if (
-                main_schema
+                extension_cls is not None
                 and isclass(root_type)
                 and issubclass(root_type, extension_cls)
             ):
@@ -465,7 +465,6 @@ class BaseModel(PydanticBaseModel):
 
         Recursively applies to nested single-valued complex attributes.
         """
-
         for field_name in type(self).model_fields:
             mutability = type(self).get_field_annotation(field_name, Mutability)
             original_val = getattr(original, field_name)
@@ -485,14 +484,15 @@ class BaseModel(PydanticBaseModel):
                         attribute=field_name, mutability="immutable"
                     )
 
-        complex_and_extensions = self.__scim_info__.complex_fields.union(self.__scim_info__.extensions)
+        complex_and_extensions = self.__scim_info__.complex_fields.union(
+            self.__scim_info__.extensions
+        )
         for complex_attr in complex_and_extensions:
             if not type(self).get_field_multiplicity(complex_attr):
                 original_sub = getattr(original, complex_attr)
                 replacement_sub = getattr(self, complex_attr)
                 if original_sub is not None and replacement_sub is not None:
                     replacement_sub._apply_replace_constraints(original_sub)
-
 
     def get_attribute_urn(self, field_name: str) -> str:
         """Build the full URN of the attribute.
@@ -542,7 +542,11 @@ class BaseModel(PydanticBaseModel):
 
         # Delete empty extensions
         for extension_field in self.__scim_info__.extensions:
-            key = self.__scim_info__.attribute_urns[extension_field] if info.by_alias else extension_field
+            key = (
+                self.__scim_info__.attribute_urns[extension_field]
+                if info.by_alias
+                else extension_field
+            )
             if key in serialized and serialized[key] is None:
                 del serialized[key]
 
