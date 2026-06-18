@@ -332,6 +332,49 @@ def test_replace_copies_read_only_in_nested_complex_attribute():
     assert replacement.sub.read_write == "new"
 
 
+def test_replace_detects_changed_immutable_in_extension():
+    """Replace detects changes in immutable fields inside extensions."""
+    from scim2_models import URN
+    from scim2_models import Extension
+    from scim2_models.exceptions import MutabilityException
+
+    class MyExt(Extension):
+        __schema__ = URN("urn:example:extensions:2.0:MyExt")
+        immutable: Annotated[str | None, Mutability.immutable] = None
+
+    class MyResource(Resource):
+        __schema__ = URN("urn:example:resources:2.0:MyResource")
+
+    original = MyResource[MyExt]()
+    original[MyExt] = MyExt(immutable="x")
+    replacement = MyResource[MyExt]()
+    replacement[MyExt] = MyExt(immutable="y")
+    with pytest.raises(MutabilityException):
+        replacement.replace(original)
+
+
+def test_replace_copies_read_only_in_extension():
+    """Replace copies readOnly fields from original inside extensions."""
+    from scim2_models import URN
+    from scim2_models import Extension
+
+    class MyExt(Extension):
+        __schema__ = URN("urn:example:extensions:2.0:MyExt")
+        read_only: Annotated[str | None, Mutability.read_only] = None
+        read_write: Annotated[str | None, Mutability.read_write] = None
+
+    class MyResource(Resource):
+        __schema__ = URN("urn:example:resources:2.0:MyResource")
+
+    original = MyResource[MyExt]()
+    original[MyExt] = MyExt(read_only="server", read_write="old")
+    replacement = MyResource[MyExt]()
+    replacement[MyExt] = MyExt(read_only="client", read_write="new")
+    replacement.replace(original)
+    assert replacement[MyExt].read_only == "server"
+    assert replacement[MyExt].read_write == "new"
+
+
 def test_original_parameter_emits_deprecation_warning():
     """Passing 'original' to model_validate emits a DeprecationWarning."""
     original = MutResource(immutable="y")
