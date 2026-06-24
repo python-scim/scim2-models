@@ -153,7 +153,7 @@ def get_resource_type(resource_type_id):
 
 service_provider_config = ServiceProviderConfig(
     patch=Patch(supported=True),
-    bulk=Bulk(supported=False, max_operations=0, max_payload_size=0),
+    bulk=Bulk(supported=True, max_operations=100, max_payload_size=1048576),
     filter=Filter(supported=False, max_results=0),
     change_password=ChangePassword(supported=False),
     sort=Sort(supported=False),

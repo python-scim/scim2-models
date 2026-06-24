@@ -621,6 +621,53 @@ The :meth:`~scim2_models.PatchOp.patch` method applies operations in sequence an
 Bulk operations
 ===============
 
-.. todo::
+:class:`~scim2_models.BulkRequest` allows you to execute multiple operations at once (bulk operations) to create, modify or delete SCIM resources (see :rfc:`RFC7644 §3.7 <7644#section-3.7>`).
+The :attr:`~scim2_models.BulkRequest.operations` attribute contains multiple :class:`scim2_models.BulkOperation` that each represent a single POST, PUT, PATCH or DELETE operation.
 
-   Bulk operations are not implemented yet, but any help is welcome!
+.. code-block:: python
+
+    >>> from scim2_models import BulkRequest
+
+    >>> payload = {
+    ...   "schemas": [
+    ...       "urn:ietf:params:scim:api:messages:2.0:BulkRequest"
+    ...   ],
+    ...   "Operations": [
+    ...       {
+    ...           "method": "POST",
+    ...           "path": "/Users",
+    ...           "bulkId": "qwerty",
+    ...           "data": {
+    ...               "schemas": [
+    ...                   "urn:ietf:params:scim:schemas:core:2.0:User"
+    ...               ],
+    ...               "userName": "Alice"
+    ...           }
+    ...       },
+    ...       {
+    ...           "method": "POST",
+    ...           "path": "/Groups",
+    ...           "bulkId": "ytrewq",
+    ...           "data": {
+    ...               "schemas": [
+    ...                   "urn:ietf:params:scim:schemas:core:2.0:Group"
+    ...               ],
+    ...               "displayName": "Tour Guides",
+    ...               "members": [
+    ...                   {
+    ...                       "type": "User",
+    ...                       "value": "bulkId:qwerty"
+    ...                   }
+    ...               ]
+    ...           }
+    ...       }
+    ...   ]
+    ... }
+    >>> bulk = BulkRequest.model_validate(
+    ...     payload, scim_ctx=Context.RESOURCE_CREATION_REQUEST
+    ... )
+
+    >>> print(bulk.operations[0].data)
+    {'schemas': ['urn:ietf:params:scim:schemas:core:2.0:User'], 'userName': 'Alice'}
+    >>> print(bulk.operations[1].path)
+    /Groups

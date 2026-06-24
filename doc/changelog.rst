@@ -1,6 +1,13 @@
 Changelog
 =========
 
+[0.6.14] - Next release
+--------------------
+
+Added
+^^^^^
+- Support for bulk operations.
+
 [0.6.13] - 2026-07-27
 ---------------------
 
