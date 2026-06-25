@@ -51,6 +51,23 @@ class ETag(ComplexAttribute):
     supported: Annotated[bool | None, Mutability.read_only, Required.true] = None
     """A Boolean value specifying whether or not the operation is supported."""
 
+class Pagination(ComplexAttribute):
+    supported: Annotated[bool | None, Mutability.read_only, Required.true] = None
+    """A Boolean value specifying whether or not the operation is supported."""
+
+    cursor: Annotated[bool | None, Mutability.read_only, Required.true] = None
+    """A Boolean value specifying whether or not the operation is supported."""
+
+    index: Annotated[bool | None, Mutability.read_only, Required.true] = None
+    """A Boolean value specifying whether or not the operation is supported."""
+
+    default_page_size: Annotated[int | None, Mutability.read_only, Required.true] = None
+    """An integer value specifying the default page size."""
+
+    max_page_size: Annotated[int | None, Mutability.read_only, Required.true] = None
+    """An integer value specifying the maximum page size."""
+
+
 
 class AuthenticationScheme(ComplexAttribute):
     class Type(ExtensibleStringEnum):
@@ -130,3 +147,6 @@ class ServiceProviderConfig(Resource[Any]):
     ] = None
     """A complex type that specifies supported authentication scheme
     properties."""
+    
+    pagination: Annotated[Pagination | None, Mutability.read_only, Required.true] = None
+    """A complex type that specifies pagination configuration options."""
