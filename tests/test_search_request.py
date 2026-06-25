@@ -206,6 +206,29 @@ def test_comma_separated_empty_string():
     assert req.attributes == []
 
 
+def test_cursor_field():
+    sr = SearchRequest(cursor="cursor-abc")
+    assert sr.cursor == "cursor-abc"
+
+
+def test_cursor_model_validate():
+    payload = {
+        "schemas": ["urn:ietf:params:scim:api:messages:2.0:SearchRequest"],
+        "cursor": "cursor-xyz",
+        "count": 10,
+    }
+    sr = SearchRequest.model_validate(payload)
+    assert sr.cursor == "cursor-xyz"
+    assert sr.count == 10
+
+
+def test_cursor_with_count():
+    """Count is valid alongside cursor per RFC 9875."""
+    sr = SearchRequest(cursor="cursor-abc", count=25)
+    assert sr.cursor == "cursor-abc"
+    assert sr.count == 25
+
+
 def test_search_request_empty_lists():
     """Test that empty attribute lists are handled correctly."""
     valid_data = {
