@@ -41,6 +41,10 @@ class SearchRequest(Message, ResponseParameters):
         """
         return None if value is None else max(1, value)
 
+    cursor: str | None = None
+    """A string value that can be used to retrieve the next page of results. 
+    The cursor value is defined in :rfc:`RFC9875 §2 <9875#section-2>`."""
+
     count: int | None = None
     """An integer indicating the desired maximum number of query results per
     page."""

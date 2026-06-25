@@ -66,6 +66,7 @@ from .resources.service_provider_config import Bulk
 from .resources.service_provider_config import ChangePassword
 from .resources.service_provider_config import ETag
 from .resources.service_provider_config import Filter
+from .resources.service_provider_config import Pagination
 from .resources.service_provider_config import Patch
 from .resources.service_provider_config import ServiceProviderConfig
 from .resources.service_provider_config import Sort
@@ -125,6 +126,7 @@ __all__ = [
     "MultiValuedComplexAttribute",
     "Name",
     "NoTargetException",
+    "Pagination",
     "Patch",
     "PatchOp",
     "PatchOperation",

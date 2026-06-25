@@ -28,6 +28,14 @@ class ListResponse(Message, Generic[AnyResource], metaclass=_GenericMessageMetac
     items_per_page: int | None = None
     """The number of resources returned in a list response page."""
 
+    next_cursor: str | None = None
+    """A string value that can be used to retrieve the next page of list
+    results."""
+
+    prev_cursor: str | None = None
+    """A string value that can be used to retrieve the previous page of list
+    results."""
+
     resources: list[AnyResource] | None = Field(None, serialization_alias="Resources")
     """A multi-valued list of complex objects containing the requested
     resources."""

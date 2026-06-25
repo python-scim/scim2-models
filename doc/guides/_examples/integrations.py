@@ -11,6 +11,7 @@ from scim2_models import ChangePassword
 from scim2_models import ETag
 from scim2_models import Filter
 from scim2_models import Meta
+from scim2_models import Pagination
 from scim2_models import Patch
 from scim2_models import ResourceType
 from scim2_models import ServiceProviderConfig
@@ -165,5 +166,6 @@ service_provider_config = ServiceProviderConfig(
             description="Authentication via HTTP Basic",
         ),
     ],
+    pagination=Pagination(supported=True, cursor=True, index=False, default_page_size=10, max_page_size=100),
 )
 # -- discovery-end --

@@ -109,6 +109,74 @@
             ]
         },
         {
+            "name": "pagination",
+            "type": "complex",
+            "multiValued": false,
+            "description": "none",
+            "required": true,
+            "caseExact": false,
+            "mutability": "readOnly",
+            "returned": "default",
+            "uniqueness": "none",
+            "subAttributes": [
+                {
+                    "name": "cursor",
+                    "type": "boolean",
+                    "multiValued": false,
+                    "description": "none",
+                    "required": true,
+                    "caseExact": false,
+                    "mutability": "readOnly",
+                    "returned": "default",
+                    "uniqueness": "none"
+                },
+                {
+                    "name": "defaultPageSize",
+                    "type": "integer",
+                    "multiValued": false,
+                    "description": "none",
+                    "required": true,
+                    "caseExact": false,
+                    "mutability": "readOnly",
+                    "returned": "default",
+                    "uniqueness": "none"
+                },
+                {
+                    "name": "index",
+                    "type": "boolean",
+                    "multiValued": false,
+                    "description": "none",
+                    "required": true,
+                    "caseExact": false,
+                    "mutability": "readOnly",
+                    "returned": "default",
+                    "uniqueness": "none"
+                },
+                {
+                    "name": "maxPageSize",
+                    "type": "integer",
+                    "multiValued": false,
+                    "description": "none",
+                    "required": true,
+                    "caseExact": false,
+                    "mutability": "readOnly",
+                    "returned": "default",
+                    "uniqueness": "none"
+                },
+                {
+                    "name": "supported",
+                    "type": "boolean",
+                    "multiValued": false,
+                    "description": "none",
+                    "required": true,
+                    "caseExact": false,
+                    "mutability": "readOnly",
+                    "returned": "default",
+                    "uniqueness": "none"
+                }
+            ]
+        },
+        {
             "name": "changePassword",
             "type": "complex",
             "multiValued": false,
