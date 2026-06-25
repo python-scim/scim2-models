@@ -294,6 +294,41 @@ class SensitiveException(SCIMException):
         "information in a request URI"
     )
 
+class InvalidCursorException(SCIMException):
+    """Cursor value is invalid.
+    
+    Corresponds to scimType ``invalidCursor`` with HTTP status 400.
+
+    :rfc:`RFC 9865 Section 2.1  <9865#section-2.1>`
+    """
+
+    status = 400
+    scim_type = "invalidCursor"
+    _default_detail = "Cursor value is invalid. Cursor value SHOULD be empty to request the first page and set to the nextCursor or previousCursor value for subsequent queries."
+
+class ExpiredCursorException(SCIMException):
+    """Cursor has expired.
+    
+    Corresponds to scimType ``expiredCursor`` with HTTP status 400.
+
+    :rfc:`RFC 9865 Section 2.3  <9865#section-2.3>`
+    """
+
+    status = 400
+    scim_type = "expiredCursor"
+    _default_detail = "Cursor has expired. Do not wait longer than service provider's cursorTimeout to request additional pages."
+
+class InvalidCountException(SCIMException):
+    """Count value is invalid.
+    
+    Corresponds to scimType ``invalidCount`` with HTTP status 400.
+
+    :rfc:`RFC 9865 Section 2.4  <9865#section-2.4>`
+    """
+
+    status = 400
+    scim_type = "invalidCount"
+    _default_detail = "Count value is invalid. Count value must be between 0 and service provider's maxPageSize and must be equal to the count value of the initial query."
 
 _SCIM_TYPE_TO_EXCEPTION: dict[str, type[SCIMException]] = {
     "invalidFilter": InvalidFilterException,
