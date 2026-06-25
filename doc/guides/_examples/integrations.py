@@ -166,6 +166,6 @@ service_provider_config = ServiceProviderConfig(
             description="Authentication via HTTP Basic",
         ),
     ],
-    pagination=Pagination(supported=True, cursor=True, index=False, default_page_size=10, max_page_size=100),
+    pagination=Pagination(supported=True, cursor=True, index=True, default_page_size=10, max_page_size=100),
 )
 # -- discovery-end --
