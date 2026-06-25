@@ -19,6 +19,9 @@ from .attributes import ComplexAttribute
 from .attributes import MultiValuedComplexAttribute
 from .base import BaseModel
 from .context import Context
+from .exceptions import ExpiredCursorException
+from .exceptions import InvalidCountException
+from .exceptions import InvalidCursorException
 from .exceptions import InvalidFilterException
 from .exceptions import InvalidPathException
 from .exceptions import InvalidSyntaxException
@@ -104,6 +107,7 @@ __all__ = [
     "EnterpriseUser",
     "Entitlement",
     "Error",
+    "ExpiredCursorException",
     "Extension",
     "External",
     "ExternalReference",
@@ -112,6 +116,8 @@ __all__ = [
     "GroupMember",
     "GroupMembership",
     "Im",
+    "InvalidCountException",
+    "InvalidCursorException",
     "InvalidFilterException",
     "InvalidPathException",
     "InvalidSyntaxException",

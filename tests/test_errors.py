@@ -1,5 +1,8 @@
 import warnings
 
+from scim2_models.exceptions import ExpiredCursorException
+from scim2_models.exceptions import InvalidCountException
+from scim2_models.exceptions import InvalidCursorException
 from scim2_models.exceptions import InvalidFilterException
 from scim2_models.exceptions import InvalidPathException
 from scim2_models.exceptions import InvalidSyntaxException
@@ -25,6 +28,9 @@ def test_predefined_errors():
         InvalidValueException(),
         InvalidVersionException(),
         SensitiveException(),
+        InvalidCursorException(),
+        ExpiredCursorException(),
+        InvalidCountException(),
     ):
         assert isinstance(exc.to_error(), Error)
 
