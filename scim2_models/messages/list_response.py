@@ -1,14 +1,17 @@
+import re
 from typing import Any
 from typing import Generic
 
 from pydantic import Field
 from pydantic import ValidationInfo
 from pydantic import ValidatorFunctionWrapHandler
+from pydantic import field_validator
 from pydantic import model_validator
 from pydantic_core import PydanticCustomError
 from typing_extensions import Self
 
 from ..context import Context
+from ..exceptions import InvalidCursorException
 from ..path import URN
 from ..resources.resource import AnyResource
 from .message import Message
@@ -35,6 +38,17 @@ class ListResponse(Message, Generic[AnyResource], metaclass=_GenericMessageMetac
     prev_cursor: str | None = None
     """A string value that can be used to retrieve the previous page of list
     results."""
+
+    @field_validator("next_cursor", "prev_cursor")
+    @classmethod
+    def validate_cursor_chars(cls, value: str | None) -> str | None:
+        """According to :rfc:`RFC9865 §2 <9865#section-2>`, cursor values may only contain unreserved characters as defined in :rfc:`RFC3986 §2.3 <3986#section-2.3>`."""
+
+        if value == "":
+            return None
+        if value is not None and not re.fullmatch(r"[A-Za-z0-9\-._~]*", value):
+            raise InvalidCursorException().as_pydantic_error()
+        return value
 
     resources: list[AnyResource] | None = Field(None, serialization_alias="Resources")
     """A multi-valued list of complex objects containing the requested

@@ -1,8 +1,10 @@
+import re
 from enum import Enum
 from typing import Any
 
 from pydantic import field_validator
 
+from ..exceptions import InvalidCursorException
 from ..path import URN
 from ..path import Path
 from .message import Message
@@ -42,8 +44,21 @@ class SearchRequest(Message, ResponseParameters):
         return None if value is None else max(1, value)
 
     cursor: str | None = None
-    """A string value that can be used to retrieve the next page of results. 
-    The cursor value is defined in :rfc:`RFC9875 §2 <9875#section-2>`."""
+    """A string value that can be used to retrieve the next page of results.
+    The cursor value is defined in :rfc:`RFC9865 §2 <9865#section-2>`."""
+
+    @field_validator("cursor")
+    @classmethod
+    def validate_cursor_chars(cls, value: str | None) -> str | None:
+        """According to :rfc:`RFC9865 §2 <9865#section-2>`, cursor values may only contain unreserved characters as defined in :rfc:`RFC3986 §2.3 <3986#section-2.3>`.
+
+        unreserved = ALPHA / DIGIT / "-" / "." / "_" / "~"
+        """
+        if value == "":
+            return None
+        if value is not None and not re.fullmatch(r"[A-Za-z0-9\-._~]*", value):
+            raise InvalidCursorException().as_pydantic_error()
+        return value
 
     count: int | None = None
     """An integer indicating the desired maximum number of query results per
