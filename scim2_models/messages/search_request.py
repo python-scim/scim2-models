@@ -2,7 +2,11 @@ import re
 from enum import Enum
 from typing import Any
 
+from pydantic import ValidationInfo
 from pydantic import field_validator
+from pydantic import model_validator
+from pydantic_core import PydanticCustomError
+from typing_extensions import Self
 
 from ..exceptions import InvalidCursorException
 from ..path import URN
@@ -54,8 +58,6 @@ class SearchRequest(Message, ResponseParameters):
 
         unreserved = ALPHA / DIGIT / "-" / "." / "_" / "~"
         """
-        if value == "":
-            return None
         if value is not None and not re.fullmatch(r"[A-Za-z0-9\-._~]*", value):
             raise InvalidCursorException().as_pydantic_error()
         return value
@@ -86,3 +88,12 @@ class SearchRequest(Message, ResponseParameters):
             if self.start_index_0 is not None and self.count is not None
             else None
         )
+
+    @model_validator(mode="after")
+    def check_cursor_and_index(self, info: ValidationInfo) -> Self:
+        if self.cursor is not None and self.start_index is not None:
+            raise PydanticCustomError(
+                "index_and_cursor_error",
+                "'cursor' and 'start_index' are mutually exclusive",
+            )
+        return self

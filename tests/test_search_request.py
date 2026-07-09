@@ -221,6 +221,17 @@ def test_cursor_model_validate():
     assert sr.cursor == "cursor-xyz"
     assert sr.count == 10
 
+def test_cursor_with_start_index():
+    """Cursor and start_index are mutually exclusive."""
+    invalid_search = {
+        "schemas": ["urn:ietf:params:scim:api:messages:2.0:SearchRequest"],
+        "cursor": "",
+        "count": 10,
+        "start_index": 1
+    }
+    with pytest.raises(ValidationError):
+        SearchRequest.model_validate(invalid_search)
+    
 
 def test_cursor_with_count():
     """Count is valid alongside cursor per RFC 9875."""
