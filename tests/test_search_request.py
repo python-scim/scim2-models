@@ -77,6 +77,20 @@ def test_index_0_properties():
     req = SearchRequest(start_index=1, count=10)
     assert req.start_index_0 == 0
     assert req.stop_index_0 == 10
+    assert not req.cursor
+
+def test_default_pagination():
+    req = SearchRequest(count=10)
+    assert req.start_index == 1
+    assert req.start_index_0 == 0
+    assert req.stop_index_0 == 10
+
+def test_pagination_does_not_default_if_cursor():
+    req = SearchRequest(count=10, cursor="")
+    assert not req.start_index
+    assert req.cursor == ""
+    assert not req.start_index_0
+    assert not req.stop_index_0
 
 
 def test_search_request_valid_attributes():

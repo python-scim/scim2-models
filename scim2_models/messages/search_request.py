@@ -3,6 +3,7 @@ from enum import Enum
 from typing import Any
 
 from pydantic import ValidationInfo
+from pydantic import ValidatorFunctionWrapHandler
 from pydantic import field_validator
 from pydantic import model_validator
 from pydantic_core import PydanticCustomError
@@ -89,6 +90,20 @@ class SearchRequest(Message, ResponseParameters):
             else None
         )
 
+    @model_validator(mode="wrap")
+    @classmethod
+    def default_start_index(
+        cls, value: Any, handler: ValidatorFunctionWrapHandler, info: ValidationInfo
+    ) -> Self:
+        """Default to start_index 1 if no start_index or cursor is provided."""
+        obj = handler(value)
+        assert isinstance(obj, cls)
+
+        if obj.cursor is None and obj.start_index is None:
+            obj.start_index = 1
+
+        return obj
+    
     @model_validator(mode="after")
     def check_cursor_and_index(self, info: ValidationInfo) -> Self:
         if self.cursor is not None and self.start_index is not None:
