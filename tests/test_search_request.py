@@ -84,6 +84,7 @@ def test_default_pagination():
     assert req.start_index == 1
     assert req.start_index_0 == 0
     assert req.stop_index_0 == 10
+    assert not req.cursor
 
 def test_pagination_does_not_default_if_cursor():
     req = SearchRequest(count=10, cursor="")
@@ -218,12 +219,6 @@ def test_comma_separated_empty_string():
     """An empty string produces an empty list."""
     req = SearchRequest.model_validate({"attributes": ""})
     assert req.attributes == []
-
-
-def test_cursor_field():
-    sr = SearchRequest(cursor="cursor-abc")
-    assert sr.cursor == "cursor-abc"
-
 
 def test_cursor_model_validate():
     payload = {
