@@ -43,7 +43,6 @@ class ListResponse(Message, Generic[AnyResource], metaclass=_GenericMessageMetac
     @classmethod
     def validate_cursor_chars(cls, value: str | None) -> str | None:
         """According to :rfc:`RFC9865 §2 <9865#section-2>`, cursor values may only contain unreserved characters as defined in :rfc:`RFC3986 §2.3 <3986#section-2.3>`."""
-
         if value == "":
             return None
         if value is not None and not re.fullmatch(r"[A-Za-z0-9\-._~]*", value):
