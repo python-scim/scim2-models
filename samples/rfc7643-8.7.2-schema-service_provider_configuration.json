@@ -13,7 +13,7 @@
             "multiValued": false,
             "description": "An HTTP-addressable URL pointing to the service provider's human-consumable help documentation.",
             "required": false,
-            "caseExact": false,
+            "caseExact": true,
             "mutability": "readOnly",
             "returned": "default",
             "uniqueness": "none"
@@ -226,7 +226,7 @@
                     "multiValued": false,
                     "description": "An HTTP-addressable URL pointing to the authentication scheme's specification.",
                     "required": false,
-                    "caseExact": false,
+                    "caseExact": true,
                     "mutability": "readOnly",
                     "returned": "default",
                     "uniqueness": "none"
@@ -240,7 +240,7 @@
                     "multiValued": false,
                     "description": "An HTTP-addressable URL pointing to the authentication scheme's usage documentation.",
                     "required": false,
-                    "caseExact": false,
+                    "caseExact": true,
                     "mutability": "readOnly",
                     "returned": "default",
                     "uniqueness": "none"

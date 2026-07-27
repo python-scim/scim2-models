@@ -46,7 +46,7 @@
             "multiValued": false,
             "description": "The resource type's HTTP-addressable endpoint relative to the Base URL, e.g., '/Users'.",
             "required": true,
-            "caseExact": false,
+            "caseExact": true,
             "mutability": "readOnly",
             "returned": "default",
             "uniqueness": "server"

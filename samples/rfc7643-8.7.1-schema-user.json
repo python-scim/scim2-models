@@ -125,7 +125,7 @@
       "multiValued": false,
       "description": "A fully qualified URL pointing to a page representing the User's online profile.",
       "required": false,
-      "caseExact": false,
+      "caseExact": true,
       "mutability": "readWrite",
       "returned": "default",
       "uniqueness": "none"
@@ -562,7 +562,7 @@
           "multiValued": false,
           "description": "The identifier of the User's group.",
           "required": false,
-          "caseExact": false,
+          "caseExact": true,
           "mutability": "readOnly",
           "returned": "default",
           "uniqueness": "none"
@@ -576,7 +576,7 @@
           "multiValued": false,
           "description": "The URI of the corresponding 'Group' resource to which the user belongs.",
           "required": false,
-          "caseExact": false,
+          "caseExact": true,
           "mutability": "readOnly",
           "returned": "default",
           "uniqueness": "none"

@@ -62,7 +62,7 @@ def test_make_group_model_from_schema(load_sample):
         == "Identifier of the member of this Group."
     )
     assert Members.get_field_annotation("value", Required) == Required.false
-    assert Members.get_field_annotation("value", CaseExact) == CaseExact.false
+    assert Members.get_field_annotation("value", CaseExact) == CaseExact.true
     assert Members.get_field_annotation("value", Mutability) == Mutability.immutable
     assert Members.get_field_annotation("value", Returned) == Returned.default
     assert Members.get_field_annotation("value", Uniqueness) == Uniqueness.none
@@ -78,7 +78,7 @@ def test_make_group_model_from_schema(load_sample):
     )
     assert Members.model_fields["ref"].serialization_alias == "$ref"
     assert Members.get_field_annotation("ref", Required) == Required.false
-    assert Members.get_field_annotation("ref", CaseExact) == CaseExact.false
+    assert Members.get_field_annotation("ref", CaseExact) == CaseExact.true
     assert Members.get_field_annotation("ref", Mutability) == Mutability.immutable
     assert Members.get_field_annotation("ref", Returned) == Returned.default
     assert Members.get_field_annotation("ref", Uniqueness) == Uniqueness.none
@@ -298,7 +298,7 @@ def test_make_user_model_from_schema(load_sample):
         == "A fully qualified URL pointing to a page representing the User's online profile."
     )
     assert User.get_field_annotation("profile_url", Required) == Required.false
-    assert User.get_field_annotation("profile_url", CaseExact) == CaseExact.false
+    assert User.get_field_annotation("profile_url", CaseExact) == CaseExact.true
     assert User.get_field_annotation("profile_url", Mutability) == Mutability.read_write
     assert User.get_field_annotation("profile_url", Returned) == Returned.default
     assert User.get_field_annotation("profile_url", Uniqueness) == Uniqueness.none
@@ -851,7 +851,7 @@ def test_make_user_model_from_schema(load_sample):
         == "The identifier of the User's group."
     )
     assert Groups.get_field_annotation("value", Required) == Required.false
-    assert Groups.get_field_annotation("value", CaseExact) == CaseExact.false
+    assert Groups.get_field_annotation("value", CaseExact) == CaseExact.true
     assert Groups.get_field_annotation("value", Mutability) == Mutability.read_only
     assert Groups.get_field_annotation("value", Returned) == Returned.default
     assert Groups.get_field_annotation("value", Uniqueness) == Uniqueness.none
@@ -864,7 +864,7 @@ def test_make_user_model_from_schema(load_sample):
         == "The URI of the corresponding 'Group' resource to which the user belongs."
     )
     assert Groups.get_field_annotation("ref", Required) == Required.false
-    assert Groups.get_field_annotation("ref", CaseExact) == CaseExact.false
+    assert Groups.get_field_annotation("ref", CaseExact) == CaseExact.true
     assert Groups.get_field_annotation("ref", Mutability) == Mutability.read_only
     assert Groups.get_field_annotation("ref", Returned) == Returned.default
     assert Groups.get_field_annotation("ref", Uniqueness) == Uniqueness.none
@@ -1399,7 +1399,7 @@ def test_make_enterprise_user_model_from_schema(load_sample):
         == "The URI of the SCIM resource representing the User's manager.  REQUIRED."
     )
     assert Manager.get_field_annotation("ref", Required) == Required.true
-    assert Manager.get_field_annotation("ref", CaseExact) == CaseExact.false
+    assert Manager.get_field_annotation("ref", CaseExact) == CaseExact.true
     assert Manager.get_field_annotation("ref", Mutability) == Mutability.read_write
     assert Manager.get_field_annotation("ref", Returned) == Returned.default
     assert Manager.get_field_annotation("ref", Uniqueness) == Uniqueness.none
@@ -1485,7 +1485,7 @@ def test_make_resource_type_model_from_schema(load_sample):
         == "The resource type's HTTP-addressable endpoint relative to the Base URL, e.g., '/Users'."
     )
     assert ResourceType.get_field_annotation("endpoint", Required) == Required.true
-    assert ResourceType.get_field_annotation("endpoint", CaseExact) == CaseExact.false
+    assert ResourceType.get_field_annotation("endpoint", CaseExact) == CaseExact.true
     assert (
         ResourceType.get_field_annotation("endpoint", Mutability)
         == Mutability.read_only
@@ -1641,7 +1641,7 @@ def test_make_service_provider_config_model_from_schema(load_sample):
     )
     assert (
         ServiceProviderConfig.get_field_annotation("documentation_uri", CaseExact)
-        == CaseExact.false
+        == CaseExact.true
     )
     assert (
         ServiceProviderConfig.get_field_annotation("documentation_uri", Mutability)
@@ -2048,7 +2048,7 @@ def test_make_service_provider_config_model_from_schema(load_sample):
     )
     assert (
         AuthenticationSchemes.get_field_annotation("spec_uri", CaseExact)
-        == CaseExact.false
+        == CaseExact.true
     )
     assert (
         AuthenticationSchemes.get_field_annotation("spec_uri", Mutability)
@@ -2079,7 +2079,7 @@ def test_make_service_provider_config_model_from_schema(load_sample):
     )
     assert (
         AuthenticationSchemes.get_field_annotation("documentation_uri", CaseExact)
-        == CaseExact.false
+        == CaseExact.true
     )
     assert (
         AuthenticationSchemes.get_field_annotation("documentation_uri", Mutability)
@@ -2730,7 +2730,7 @@ def test_make_schema_model_from_schema(load_sample):
         == "Identifier of the member of this Group."
     )
     assert not obj.attributes[1].sub_attributes[0].required
-    assert not obj.attributes[1].sub_attributes[0].case_exact
+    assert obj.attributes[1].sub_attributes[0].case_exact
     assert obj.attributes[1].sub_attributes[0].mutability == Mutability.immutable
     assert obj.attributes[1].sub_attributes[0].returned == Returned.default
     assert obj.attributes[1].sub_attributes[0].uniqueness == Uniqueness.none
@@ -2742,7 +2742,7 @@ def test_make_schema_model_from_schema(load_sample):
         "The URI corresponding to a SCIM resource that is a member of this Group."
     )
     assert not obj.attributes[1].sub_attributes[1].required
-    assert not obj.attributes[1].sub_attributes[1].case_exact
+    assert obj.attributes[1].sub_attributes[1].case_exact
     assert obj.attributes[1].sub_attributes[1].mutability == Mutability.immutable
     assert obj.attributes[1].sub_attributes[1].returned == Returned.default
     assert obj.attributes[1].sub_attributes[1].uniqueness == Uniqueness.none
@@ -2771,3 +2771,55 @@ def test_make_schema_model_from_schema(load_sample):
 def test_empty_attribute():
     """Attributes must at least have a name to be pythonizable."""
     assert Attribute()._to_python() is None
+
+
+def _single_attribute_schema(attribute):
+    return Schema.model_validate(
+        {
+            "id": "urn:example:2.0:Single",
+            "name": "Single",
+            "attributes": [attribute],
+        }
+    )
+
+
+def test_schemas_omitting_case_exact_on_references_and_binaries():
+    """Schemas that do not advertise caseExact on a binary or reference attribute get the case sensitivity of their type, as stated in RFC7643 §2.3.6 and §2.3.7."""
+    schema = _single_attribute_schema(
+        {"name": "attr", "type": "reference", "referenceTypes": ["User"]}
+    )
+    Model = Resource.from_schema(schema)
+    assert Model.get_field_annotation("attr", CaseExact) == CaseExact.true
+
+    schema = _single_attribute_schema({"name": "attr", "type": "binary"})
+    Model = Resource.from_schema(schema)
+    assert Model.get_field_annotation("attr", CaseExact) == CaseExact.true
+
+    schema = _single_attribute_schema({"name": "attr", "type": "string"})
+    Model = Resource.from_schema(schema)
+    assert Model.get_field_annotation("attr", CaseExact) == CaseExact.false
+
+
+def test_schemas_advertising_case_insensitive_references():
+    """A schema explicitly advertising a case insensitive reference is taken at its word."""
+    schema = _single_attribute_schema(
+        {
+            "name": "attr",
+            "type": "reference",
+            "referenceTypes": ["User"],
+            "caseExact": False,
+        }
+    )
+    Model = Resource.from_schema(schema)
+    assert Model.get_field_annotation("attr", CaseExact) == CaseExact.false
+
+
+def test_references_without_reference_types():
+    """RFC7643 §7 does not require 'referenceTypes', and a reference is a URI per RFC7643 §2.3.7."""
+    for attribute in (
+        {"name": "attr", "type": "reference"},
+        {"name": "attr", "type": "reference", "referenceTypes": []},
+    ):
+        Model = Resource.from_schema(_single_attribute_schema(attribute))
+        assert Model.get_field_root_type("attr") == Reference[URI]
+        assert Model.to_schema().attributes[0].reference_types == ["uri"]

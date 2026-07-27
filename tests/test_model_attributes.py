@@ -1,7 +1,10 @@
 import uuid
 from typing import Annotated
 
+from pydantic import Base64Bytes
+
 from scim2_models import URN
+from scim2_models.annotations import CaseExact
 from scim2_models.annotations import Returned
 from scim2_models.attributes import ComplexAttribute
 from scim2_models.base import BaseModel
@@ -38,6 +41,32 @@ def test_guess_root_type():
     assert Sup.get_field_root_type("subs") == Sub
     assert Sup.get_field_root_type("ref") == Reference[Sub]
     assert Sup.get_field_root_type("refunion") == Reference[Sub | User]
+
+
+class CaseSensitivity(Resource):
+    __schema__ = URN("urn:example:2.0:CaseSensitivity")
+
+    text: str | None = None
+    ref: Reference[Sub] | None = None
+    certificate: Base64Bytes | None = None
+    insensitive_ref: Annotated[Reference[Sub] | None, CaseExact.false] = None
+
+
+def test_reference_and_binary_values_are_case_exact():
+    """RFC7643 §2.3.6 and §2.3.7 state that binary and reference values are case exact, whatever the schema representations of §8.7 say."""
+    assert CaseSensitivity.get_field_annotation("text", CaseExact) == CaseExact.false
+    assert CaseSensitivity.get_field_annotation("ref", CaseExact) == CaseExact.true
+    assert (
+        CaseSensitivity.get_field_annotation("certificate", CaseExact) == CaseExact.true
+    )
+
+
+def test_case_exact_annotation_takes_precedence_over_the_field_type():
+    """Models can declare a reference to be case insensitive."""
+    assert (
+        CaseSensitivity.get_field_annotation("insensitive_ref", CaseExact)
+        == CaseExact.false
+    )
 
 
 class ReturnedModel(BaseModel):
