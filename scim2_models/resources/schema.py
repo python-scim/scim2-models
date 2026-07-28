@@ -101,11 +101,13 @@ class Attribute(ComplexAttribute):
             self,
             reference_types: list[str] | None = None,
         ) -> type:
-            if self.value == self.reference and reference_types is not None:
+            if self.value == self.reference:
                 if reference_types == ["external"]:
                     return Reference[External]
 
-                if reference_types == ["uri"]:
+                # 'referenceTypes' is not required by RFC7643 §7, and a
+                # reference is a URI per §2.3.7.
+                if not reference_types or reference_types == ["uri"]:
                     return Reference[URI]
 
                 if len(reference_types) == 1:
@@ -224,7 +226,7 @@ class Attribute(ComplexAttribute):
         annotation = Annotated[
             attr_type | None,  # type: ignore
             self.required,
-            self.case_exact,
+            self._implicit_case_exact(),
             self.mutability,
             self.returned,
             self.uniqueness,
@@ -239,6 +241,22 @@ class Attribute(ComplexAttribute):
         )
 
         return annotation, field
+
+    def _implicit_case_exact(self) -> CaseExact:
+        """Return the case sensitivity the built field must be annotated with.
+
+        Binary and reference values are case exact per
+        :rfc:`RFC7643 §2.3.6 <7643#section-2.3.6>` and
+        :rfc:`§2.3.7 <7643#section-2.3.7>`, unless the schema explicitly states
+        otherwise.
+        """
+        if "case_exact" in self.model_fields_set:
+            return self.case_exact
+
+        if self.type in (self.Type.reference, self.Type.binary):
+            return CaseExact.true
+
+        return self.case_exact
 
     def get_attribute(self, attribute_name: str) -> Optional["Attribute"]:
         """Find an attribute by its name."""

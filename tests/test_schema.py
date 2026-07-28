@@ -39,7 +39,7 @@ def test_group_schema(load_sample):
         == "Identifier of the member of this Group."
     )
     assert not obj.attributes[1].sub_attributes[0].required
-    assert not obj.attributes[1].sub_attributes[0].case_exact
+    assert obj.attributes[1].sub_attributes[0].case_exact
     assert obj.attributes[1].sub_attributes[0].mutability == Mutability.immutable
     assert obj.attributes[1].sub_attributes[0].returned == Returned.default
     assert obj.attributes[1].sub_attributes[0].uniqueness == Uniqueness.none
@@ -51,7 +51,7 @@ def test_group_schema(load_sample):
         "The URI corresponding to a SCIM resource that is a member of this Group."
     )
     assert not obj.attributes[1].sub_attributes[1].required
-    assert not obj.attributes[1].sub_attributes[1].case_exact
+    assert obj.attributes[1].sub_attributes[1].case_exact
     assert obj.attributes[1].sub_attributes[1].mutability == Mutability.immutable
     assert obj.attributes[1].sub_attributes[1].returned == Returned.default
     assert obj.attributes[1].sub_attributes[1].uniqueness == Uniqueness.none

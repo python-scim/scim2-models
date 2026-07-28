@@ -1,6 +1,16 @@
 Changelog
 =========
 
+[0.6.13] - 2026-07-27
+---------------------
+
+Fixed
+^^^^^
+- ``reference`` and ``binary`` attributes are case-exact, unless a schema explicitly states otherwise. :rfc:`7643` §2.3.6 and §2.3.7, `erratum 6001 <https://www.rfc-editor.org/errata/eid6001>`_
+- :class:`~scim2_models.ResourceType` ``endpoint`` is case-exact. :rfc:`7643` `erratum 8475 <https://www.rfc-editor.org/errata/eid8475>`_
+- :class:`~scim2_models.GroupMember` and :class:`~scim2_models.GroupMembership` ``value`` are case-exact, as they hold resource ``id`` values. :rfc:`7643` §3.1, in the spirit of `erratum 8472 <https://www.rfc-editor.org/errata/eid8472>`_
+- :meth:`~scim2_models.Resource.from_schema` no longer crashes on ``reference`` attributes missing the optional ``referenceTypes``, and reads them as :class:`~scim2_models.URI` references.
+
 [0.6.12] - 2026-04-13
 ---------------------
 

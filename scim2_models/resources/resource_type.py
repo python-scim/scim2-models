@@ -21,7 +21,6 @@ class SchemaExtension(ComplexAttribute):
         Reference[URI] | None,
         Mutability.read_only,
         Required.true,
-        CaseExact.true,
     ] = Field(None, alias="schema")
     """The URI of a schema extension."""
 
@@ -74,7 +73,6 @@ class ResourceType(Resource[Any]):
         Reference[URI] | None,
         Mutability.read_only,
         Required.true,
-        CaseExact.true,
     ] = Field(None, alias="schema")
     """The resource type's primary/base schema URI."""
 

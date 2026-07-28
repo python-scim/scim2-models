@@ -28,7 +28,7 @@
                     "multiValued": false,
                     "description": "Identifier of the member of this Group.",
                     "required": false,
-                    "caseExact": false,
+                    "caseExact": true,
                     "mutability": "immutable",
                     "returned": "default",
                     "uniqueness": "none"
@@ -43,7 +43,7 @@
                     "multiValued": false,
                     "description": "The URI corresponding to a SCIM resource that is a member of this Group.",
                     "required": false,
-                    "caseExact": false,
+                    "caseExact": true,
                     "mutability": "immutable",
                     "returned": "default",
                     "uniqueness": "none"

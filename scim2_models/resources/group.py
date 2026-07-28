@@ -6,6 +6,7 @@ from typing import Union
 
 from pydantic import Field
 
+from ..annotations import CaseExact
 from ..annotations import Mutability
 from ..annotations import Required
 from ..attributes import ComplexAttribute
@@ -18,7 +19,7 @@ if TYPE_CHECKING:
 
 
 class GroupMember(ComplexAttribute):
-    value: Annotated[str | None, Mutability.immutable] = None
+    value: Annotated[str | None, Mutability.immutable, CaseExact.true] = None
     """Identifier of the member of this Group."""
 
     ref: Annotated[  # type: ignore[type-arg]

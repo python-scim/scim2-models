@@ -130,7 +130,7 @@ class Photo(ComplexAttribute):
         photo = "photo"
         thumbnail = "thumbnail"
 
-    value: Annotated[Reference[External] | None, CaseExact.true] = None
+    value: Reference[External] | None = None
     """URL of a photo of the User."""
 
     display: str | None = None
@@ -198,7 +198,7 @@ class Entitlement(ComplexAttribute):
 
 
 class GroupMembership(ComplexAttribute):
-    value: Annotated[str | None, Mutability.read_only] = None
+    value: Annotated[str | None, Mutability.read_only, CaseExact.true] = None
     """The identifier of the User's group."""
 
     ref: Annotated[
@@ -234,7 +234,7 @@ class Role(ComplexAttribute):
 
 
 class X509Certificate(ComplexAttribute):
-    value: Annotated[Base64Bytes | None, CaseExact.true] = None
+    value: Base64Bytes | None = None
     """The value of an X.509 certificate."""
 
     display: str | None = None
