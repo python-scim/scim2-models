@@ -36,6 +36,23 @@ class ReqResource(Resource):
     optional: Annotated[str | None, Required.false] = None
 
 
+def test_validate_bulkId_not_in_resource_id():
+    """Test that the reserved keyword "bulkId" is not present in any resource id.
+
+    :rfc:`RFC7643` §3.1 <7643#section-3.1>: "The string 'bulkId' is a reserved keyword
+    and MUST NOT be used within any unique identifier value."
+    """
+    with pytest.raises(
+        ValidationError, match="'bulkId' is reserved for bulk operations"
+    ):
+        Resource.model_validate(
+            {
+                "schemas": ["org:example:Resource"],
+                "id": "bulkId:foo",
+            },
+        )
+
+
 def test_validate_default_mutability():
     """Test query validation for resource creation request."""
     assert MutResource.model_validate(
