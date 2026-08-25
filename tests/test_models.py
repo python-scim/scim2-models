@@ -1,5 +1,7 @@
 import os
 
+import pytest
+
 from scim2_models import BulkRequest
 from scim2_models import BulkResponse
 from scim2_models import EnterpriseUser
@@ -13,6 +15,8 @@ from scim2_models import Schema
 from scim2_models import SearchRequest
 from scim2_models import ServiceProviderConfig
 from scim2_models import User
+from scim2_models import get_model_by_payload
+from scim2_models import get_model_by_schema
 
 
 def test_parse_and_serialize_examples(load_sample):
@@ -72,22 +76,22 @@ def test_parse_and_serialize_examples(load_sample):
         assert obj.model_dump(exclude_unset=True) == payload
 
 
-def test_get_resource_by_schema():
+def test_get_model_by_schema():
     resource_types = [Group, User[EnterpriseUser]]
     assert (
-        Resource.get_by_schema(
+        get_model_by_schema(
             resource_types, "urn:ietf:params:scim:schemas:core:2.0:Group"
         )
         == Group
     )
     assert (
-        Resource.get_by_schema(
+        get_model_by_schema(
             resource_types, "urn:ietf:params:scim:schemas:core:2.0:User"
         )
         == User[EnterpriseUser]
     )
     assert (
-        Resource.get_by_schema(
+        get_model_by_schema(
             resource_types,
             "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User",
             with_extensions=False,
@@ -95,7 +99,7 @@ def test_get_resource_by_schema():
         is None
     )
     assert (
-        Resource.get_by_schema(
+        get_model_by_schema(
             resource_types,
             "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User",
         )
@@ -103,19 +107,55 @@ def test_get_resource_by_schema():
     )
 
 
-def test_get_resource_by_payload():
+def test_get_by_schema_deprecation():
+    """Resource.get_by_schema is kept as a deprecated alias."""
+    with pytest.warns(DeprecationWarning, match="get_model_by_schema"):
+        assert (
+            Resource.get_by_schema(
+                [Group], "urn:ietf:params:scim:schemas:core:2.0:Group"
+            )
+            == Group
+        )
+
+
+def test_get_by_payload_deprecation():
+    """Resource.get_by_payload is kept as a deprecated alias."""
+    payload = {"schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"]}
+    with pytest.warns(DeprecationWarning, match="get_model_by_payload"):
+        assert Resource.get_by_payload([Group], payload) == Group
+
+
+def test_get_message_by_schema_along_resources():
+    """Messages such as ListResponse can be looked up next to resources carrying extensions."""
+    resource_types = [ListResponse[User], User[EnterpriseUser]]
+    assert (
+        get_model_by_schema(
+            resource_types, "urn:ietf:params:scim:api:messages:2.0:ListResponse"
+        )
+        == ListResponse[User]
+    )
+    assert (
+        get_model_by_schema(
+            resource_types,
+            "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User",
+        )
+        == EnterpriseUser
+    )
+
+
+def test_get_model_by_payload():
     resource_types = [Group, User[EnterpriseUser]]
     payload = {"schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"]}
-    assert Resource.get_by_payload(resource_types, payload) == Group
+    assert get_model_by_payload(resource_types, payload) == Group
 
     payload = {"schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"]}
-    assert Resource.get_by_payload(resource_types, payload) == User[EnterpriseUser]
+    assert get_model_by_payload(resource_types, payload) == User[EnterpriseUser]
 
     payload = {
         "schemas": ["urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"]
     }
     assert (
-        Resource.get_by_payload(
+        get_model_by_payload(
             resource_types,
             payload,
             with_extensions=False,
@@ -126,16 +166,16 @@ def test_get_resource_by_payload():
     payload = {
         "schemas": ["urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"]
     }
-    assert Resource.get_by_payload(resource_types, payload) == EnterpriseUser
+    assert get_model_by_payload(resource_types, payload) == EnterpriseUser
 
     payload = {"schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"]}
     assert (
-        Resource.get_by_payload([ListResponse[User]], payload, with_extensions=False)
+        get_model_by_payload([ListResponse[User]], payload, with_extensions=False)
         == ListResponse[User]
     )
 
     payload = {"foo": "bar"}
-    assert Resource.get_by_payload(resource_types, payload) is None
+    assert get_model_by_payload(resource_types, payload) is None
 
 
 def test_everything_is_optional():

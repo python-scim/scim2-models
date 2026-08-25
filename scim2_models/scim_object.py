@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 from typing import Annotated
 from typing import Any
 from typing import ClassVar
+from typing import TypeVar
 
 from pydantic import ValidationInfo
 from pydantic import ValidatorFunctionWrapHandler
@@ -180,3 +181,6 @@ class ScimObject(BaseModel, metaclass=ScimMetaclass):
             **kwargs,
         )
         return super(BaseModel, self).model_dump_json(*args, **dump_kwargs)
+
+
+AnyScimObject = TypeVar("AnyScimObject", bound=ScimObject)

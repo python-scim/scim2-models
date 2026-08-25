@@ -10,6 +10,21 @@ Fixed
 - :class:`~scim2_models.ResourceType` ``endpoint`` is case-exact. :rfc:`7643` `erratum 8475 <https://www.rfc-editor.org/errata/eid8475>`_
 - :class:`~scim2_models.GroupMember` and :class:`~scim2_models.GroupMembership` ``value`` are case-exact, as they hold resource ``id`` values. :rfc:`7643` §3.1, in the spirit of `erratum 8472 <https://www.rfc-editor.org/errata/eid8472>`_
 - :meth:`~scim2_models.Resource.from_schema` no longer crashes on ``reference`` attributes missing the optional ``referenceTypes``, and reads them as :class:`~scim2_models.URI` references.
+- Looking a model up by schema no longer crashes when the model list mixes resources with messages such as :class:`~scim2_models.ListResponse`.
+
+Added
+^^^^^
+- :func:`~scim2_models.get_model_by_schema` and :func:`~scim2_models.get_model_by_payload` module functions.
+  They look models up by schema, accept any sequence of :class:`~scim2_models.ScimObject` subclasses,
+  and reflect the input types in the returned type.
+- :class:`~scim2_models.ScimObject` and ``AnyScimObject`` are exposed in the public API, so that downstream projects can annotate values that are either resources or messages.
+
+Deprecated
+^^^^^^^^^^
+- ``Resource.get_by_schema`` and ``Resource.get_by_payload`` are deprecated in favor of
+  :func:`~scim2_models.get_model_by_schema` and :func:`~scim2_models.get_model_by_payload`.
+  Their ``resource_types`` parameter is named ``models`` in the new functions.
+  They will be removed in 0.8.0.
 
 [0.6.12] - 2026-04-13
 ---------------------
