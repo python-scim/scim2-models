@@ -31,6 +31,8 @@ from .exceptions import SCIMException
 from .exceptions import SensitiveException
 from .exceptions import TooManyException
 from .exceptions import UniquenessException
+from .lookup import get_model_by_payload
+from .lookup import get_model_by_schema
 from .messages.bulk import BulkOperation
 from .messages.bulk import BulkRequest
 from .messages.bulk import BulkResponse
@@ -80,11 +82,14 @@ from .resources.user import Photo
 from .resources.user import Role
 from .resources.user import User
 from .resources.user import X509Certificate
+from .scim_object import AnyScimObject
+from .scim_object import ScimObject
 
 __all__ = [
     "Address",
     "AnyExtension",
     "AnyResource",
+    "AnyScimObject",
     "Attribute",
     "AuthenticationScheme",
     "BaseModel",
@@ -150,6 +155,7 @@ __all__ = [
     "SCIMValidator",
     "Schema",
     "SchemaExtension",
+    "ScimObject",
     "SearchRequest",
     "SearchRequestContext",
     "SearchResponseContext",
@@ -164,4 +170,6 @@ __all__ = [
     "UniquenessException",
     "User",
     "X509Certificate",
+    "get_model_by_payload",
+    "get_model_by_schema",
 ]

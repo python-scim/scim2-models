@@ -4,6 +4,7 @@ import warnings
 from typing import Annotated
 from typing import Any
 from typing import ClassVar
+from typing import TypeVar
 
 from pydantic import ValidationInfo
 from pydantic import ValidatorFunctionWrapHandler
@@ -98,3 +99,6 @@ class ScimObject(BaseModel, metaclass=ScimMetaclass):
             )
 
         return obj
+
+
+AnyScimObject = TypeVar("AnyScimObject", bound=ScimObject)

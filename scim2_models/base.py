@@ -10,6 +10,7 @@ from typing import get_args
 from typing import get_origin
 
 from pydantic import AliasGenerator
+from pydantic import Base64Bytes
 from pydantic import BaseModel as PydanticBaseModel
 from pydantic import ConfigDict
 from pydantic import SerializationInfo
@@ -21,11 +22,13 @@ from pydantic import model_validator
 from pydantic_core import PydanticCustomError
 from typing_extensions import Self
 
+from scim2_models.annotations import CaseExact
 from scim2_models.annotations import Mutability
 from scim2_models.annotations import Required
 from scim2_models.annotations import Returned
 from scim2_models.context import Context
 from scim2_models.exceptions import MutabilityException
+from scim2_models.reference import Reference
 from scim2_models.utils import UNION_TYPES
 from scim2_models.utils import _normalize_attribute_name
 from scim2_models.utils import _to_camel
@@ -170,15 +173,35 @@ class BaseModel(PydanticBaseModel):
         """
         field_metadata = cls.model_fields[field_name].metadata
 
-        default_value = getattr(annotation_type, "_default", None)
-
         def annotation_type_filter(item: Any) -> bool:
             return isinstance(item, annotation_type)
 
-        field_annotation = next(
-            filter(annotation_type_filter, field_metadata), default_value
-        )
-        return field_annotation
+        field_annotation = next(filter(annotation_type_filter, field_metadata), None)
+        if field_annotation is not None:
+            return field_annotation
+
+        if annotation_type is CaseExact:
+            return cls._default_case_exact(field_name)
+
+        return getattr(annotation_type, "_default", None)
+
+    @classmethod
+    def _default_case_exact(cls, field_name: str) -> CaseExact:
+        """Return the implicit case sensitivity of a field, based on its type.
+
+        :rfc:`RFC7643 §2.3.6 <7643#section-2.3.6>` and
+        :rfc:`§2.3.7 <7643#section-2.3.7>` state that binary and reference
+        values are case exact, whatever the schema representations of
+        :rfc:`§8.7 <7643#section-8.7>` say.
+        """
+        root_type = cls.get_field_root_type(field_name)
+        if root_type == Base64Bytes:
+            return CaseExact.true
+
+        if isclass(root_type) and issubclass(root_type, Reference):
+            return CaseExact.true
+
+        return CaseExact.false
 
     @classmethod
     def get_field_root_type(cls, attribute_name: str) -> type | None:

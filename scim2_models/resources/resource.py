@@ -1,4 +1,6 @@
 import copyreg
+import warnings
+from collections.abc import Sequence
 from datetime import datetime
 from typing import TYPE_CHECKING
 from typing import Annotated
@@ -30,7 +32,10 @@ from ..attributes import is_complex_attribute
 from ..base import BaseModel
 from ..context import Context
 from ..exceptions import InvalidPathException
+from ..lookup import get_model_by_payload
+from ..lookup import get_model_by_schema
 from ..path import Path
+from ..scim_object import AnyScimObject
 from ..scim_object import ScimObject
 from ..utils import UNION_TYPES
 from ..utils import _normalize_attribute_name
@@ -319,38 +324,41 @@ class Resource(ScimObject, Generic[AnyExtension]):
 
     @staticmethod
     def get_by_schema(
-        resource_types: list[type["Resource[Any]"]],
+        resource_types: Sequence[type[AnyScimObject]],
         schema: str,
         with_extensions: bool = True,
-    ) -> type["Resource[Any]"] | type["Extension"] | None:
-        """Given a resource type list and a schema, find the matching resource type."""
-        by_schema: dict[str, type[Resource[Any]] | type[Extension]] = {
-            getattr(resource_type, "__schema__", "").lower(): resource_type
-            for resource_type in (resource_types or [])
-        }
-        if with_extensions:
-            for resource_type in resource_types:
-                by_schema.update(
-                    {
-                        schema.lower(): extension
-                        for schema, extension in resource_type.get_extension_models().items()
-                    }
-                )
+    ) -> type[AnyScimObject] | type["Extension"] | None:
+        """Given a resource type list and a schema, find the matching resource type.
 
-        return by_schema.get(schema.lower())
+        .. deprecated:: 0.6.13
+            Use :func:`~scim2_models.get_model_by_schema` instead.
+        """
+        warnings.warn(
+            "Resource.get_by_schema is deprecated, use "
+            "scim2_models.get_model_by_schema instead. Will be removed in 0.8.0.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return get_model_by_schema(resource_types, schema, with_extensions)
 
     @staticmethod
     def get_by_payload(
-        resource_types: list[type["Resource[Any]"]],
+        resource_types: Sequence[type[AnyScimObject]],
         payload: dict[str, Any],
         **kwargs: Any,
-    ) -> type | None:
-        """Given a resource type list and a payload, find the matching resource type."""
-        if not payload or not payload.get("schemas"):
-            return None
+    ) -> type[AnyScimObject] | type["Extension"] | None:
+        """Given a resource type list and a payload, find the matching resource type.
 
-        schema = payload["schemas"][0]
-        return Resource.get_by_schema(resource_types, schema, **kwargs)
+        .. deprecated:: 0.6.13
+            Use :func:`~scim2_models.get_model_by_payload` instead.
+        """
+        warnings.warn(
+            "Resource.get_by_payload is deprecated, use "
+            "scim2_models.get_model_by_payload instead. Will be removed in 0.8.0.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return get_model_by_payload(resource_types, payload, **kwargs)
 
     @field_serializer("schemas")
     def set_extension_schemas(
