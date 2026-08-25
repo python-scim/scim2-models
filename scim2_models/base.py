@@ -677,6 +677,18 @@ class BaseModel(PydanticBaseModel):
                 del serialized[alias]
 
     @classmethod
+    def _prepare_model_validate(
+        cls,
+        scim_ctx: Context | None = Context.DEFAULT,
+        original: Optional["BaseModel"] = None,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        context = kwargs.setdefault("context", {})
+        context.setdefault("scim", scim_ctx)
+        context.setdefault("original", original)
+        return kwargs
+
+    @classmethod
     def model_validate(
         cls,
         *args: Any,
@@ -704,11 +716,25 @@ class BaseModel(PydanticBaseModel):
                 stacklevel=2,
             )
 
-        context = kwargs.setdefault("context", {})
-        context.setdefault("scim", scim_ctx)
-        context.setdefault("original", original)
+        validate_kwargs = cls._prepare_model_validate(scim_ctx, original, **kwargs)
+        return super().model_validate(*args, **validate_kwargs)
 
-        return super().model_validate(*args, **kwargs)
+    @classmethod
+    def model_validate_json(
+        cls,
+        *args: Any,
+        scim_ctx: Context | None = Context.DEFAULT,
+        **kwargs: Any,
+    ) -> Self:
+        """Validate SCIM JSON payloads and generate model representation by using Pydantic :meth:`~pydantic.BaseModel.model_validate_json`.
+
+        Malformed JSON payloads raise a :class:`~pydantic.ValidationError`, like
+        any other SCIM validation failure.
+
+        :param scim_ctx: The SCIM :class:`~scim2_models.Context` in which the validation happens.
+        """
+        validate_kwargs = cls._prepare_model_validate(scim_ctx, **kwargs)
+        return super().model_validate_json(*args, **validate_kwargs)
 
     def _prepare_model_dump(
         self,

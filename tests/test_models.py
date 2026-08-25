@@ -1,6 +1,8 @@
+import json
 import os
 
 import pytest
+from pydantic import ValidationError
 
 from scim2_models import BulkRequest
 from scim2_models import BulkResponse
@@ -19,28 +21,32 @@ from scim2_models import get_model_by_payload
 from scim2_models import get_model_by_schema
 
 
+def _error_summary(exc: ValidationError) -> list[tuple[str, tuple]]:
+    return [(error["type"], error["loc"]) for error in exc.errors()]
+
+
+SAMPLE_MODELS = {
+    "user": User,
+    "enterprise_user": User[EnterpriseUser],
+    "group": Group,
+    "schema": Schema,
+    "resource_type": ResourceType,
+    "service_provider_configuration": ServiceProviderConfig,
+    "list_response": ListResponse[User[EnterpriseUser] | Group | Schema | ResourceType],
+    "patch_op": PatchOp[User],
+    "bulk_request": BulkRequest,
+    "bulk_response": BulkResponse,
+    "search_request": SearchRequest,
+    "error": Error,
+}
+
+
 def test_parse_and_serialize_examples(load_sample):
     samples = list(os.walk("samples"))[0][2]
-    models = {
-        "user": User,
-        "enterprise_user": User[EnterpriseUser],
-        "group": Group,
-        "schema": Schema,
-        "resource_type": ResourceType,
-        "service_provider_configuration": ServiceProviderConfig,
-        "list_response": ListResponse[
-            User[EnterpriseUser] | Group | Schema | ResourceType
-        ],
-        "patch_op": PatchOp[User],
-        "bulk_request": BulkRequest,
-        "bulk_response": BulkResponse,
-        "search_request": SearchRequest,
-        "error": Error,
-    }
 
     for sample in samples:
         model_name = sample.replace(".json", "").split("-")[2]
-        model = models[model_name]
+        model = SAMPLE_MODELS[model_name]
 
         skipped = [
             # resources without schemas are not yet supported
@@ -74,6 +80,32 @@ def test_parse_and_serialize_examples(load_sample):
         payload = load_sample(sample)
         obj = model.model_validate(payload)
         assert obj.model_dump(exclude_unset=True) == payload
+
+
+def test_parse_json_and_decoded_examples(load_sample):
+    """JSON payloads and already decoded payloads are validated the same way."""
+    samples = list(os.walk("samples"))[0][2]
+
+    for sample in samples:
+        model_name = sample.replace(".json", "").split("-")[2]
+        model = SAMPLE_MODELS[model_name]
+
+        payload = load_sample(sample)
+        raw = json.dumps(payload)
+
+        try:
+            obj = model.model_validate(payload)
+        except ValidationError as exc:
+            with pytest.raises(ValidationError) as json_exc:
+                model.model_validate_json(raw)
+            assert _error_summary(json_exc.value) == _error_summary(exc)
+            continue
+
+        json_obj = model.model_validate_json(raw)
+        assert obj == json_obj
+        assert obj.model_dump(exclude_unset=True) == json_obj.model_dump(
+            exclude_unset=True
+        )
 
 
 def test_get_model_by_schema():

@@ -10,6 +10,9 @@ Added
   They look models up by schema, accept any sequence of :class:`~scim2_models.ScimObject` subclasses,
   and reflect the input types in the returned type.
 - :class:`~scim2_models.ScimObject` and ``AnyScimObject`` are exposed in the public API, so that downstream projects can annotate values that are either resources or messages.
+- :meth:`~scim2_models.BaseModel.model_validate_json` takes a ``scim_ctx`` parameter, like the
+  other validation and serialization methods, so JSON payloads can be validated without being
+  decoded first. :issue:`150`
 
 Changed
 ^^^^^^^
