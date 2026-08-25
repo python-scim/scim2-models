@@ -10,6 +10,8 @@ Added
   They look models up by schema, accept any sequence of :class:`~scim2_models.ScimObject` subclasses,
   and reflect the input types in the returned type.
 - :class:`~scim2_models.ScimObject` and ``AnyScimObject`` are exposed in the public API, so that downstream projects can annotate values that are either resources or messages.
+- :class:`~scim2_models.ExtensibleStringEnum` is exposed in the public API, so custom models
+  can define string attributes that suggest canonical values without restricting them.
 - :meth:`~scim2_models.BaseModel.model_validate_json` takes a ``scim_ctx`` parameter, like the
   other validation and serialization methods, so JSON payloads can be validated without being
   decoded first. :issue:`150`
@@ -27,6 +29,18 @@ Changed
 - :meth:`~scim2_models.Resource.replace` does not mark the fields it copies from the original
   resource as set anymore, so ``model_fields_set`` only holds the attributes asserted by the
   client, as defined by :rfc:`7644` §3.5.1.
+- Attributes suggesting :rfc:`7643` canonical values accept values outside of their canonical
+  set, as :rfc:`7643` §2.3.1 only allows service providers to restrict them. This covers the
+  ``type`` attribute of :class:`~scim2_models.Email`, :class:`~scim2_models.PhoneNumber`,
+  :class:`~scim2_models.Im`, :class:`~scim2_models.Photo`, :class:`~scim2_models.Address` and
+  :class:`~scim2_models.AuthenticationScheme`.
+  :issue:`34`
+- ``str()`` on those attributes returns the SCIM value instead of the enum representation:
+  ``str(Email.Type.work)`` returns ``"work"`` instead of ``"Type.work"``.
+- Canonical values are matched case-insensitively, as :rfc:`7643` §2.2 makes those attributes
+  case-insensitive: ``Email(type="WORK").type`` is ``Email.Type.work``.
+- The JSON schema of those attributes advertises the canonical values as ``examples`` instead of
+  a restrictive ``enum``.
 
 Fixed
 ^^^^^
