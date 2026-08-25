@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 from typing import Any
 from typing import ClassVar
 from typing import NamedTuple
+from typing import NoReturn
 from typing import Optional
 from typing import cast
 from typing import get_args
@@ -15,10 +16,12 @@ from pydantic import BaseModel as PydanticBaseModel
 from pydantic import ConfigDict
 from pydantic import SerializationInfo
 from pydantic import SerializerFunctionWrapHandler
+from pydantic import ValidationError
 from pydantic import ValidationInfo
 from pydantic import ValidatorFunctionWrapHandler
 from pydantic import model_serializer
 from pydantic import model_validator
+from pydantic_core import InitErrorDetails
 from pydantic_core import PydanticCustomError
 from typing_extensions import Self
 
@@ -385,6 +388,26 @@ class BaseModel(PydanticBaseModel):
 
         return self
 
+    def _raise_field_error(
+        self, field_name: str, error: PydanticCustomError
+    ) -> NoReturn:
+        """Raise a validation error located on a field, from a model validator.
+
+        Errors raised by model validators are attached to the whole model.
+        Wrapping the error keeps the field location, which pydantic prefixes
+        with the path of the parent models.
+        """
+        raise ValidationError.from_exception_data(
+            self.__class__.__name__,
+            [
+                InitErrorDetails(
+                    type=error,
+                    loc=(field_name,),
+                    input=getattr(self, field_name),
+                )
+            ],
+        )
+
     def _check_mutability(self, field_name: str, scim_context: Context) -> None:
         """Check and fix that the field mutability is expected according to the requests validation context, as defined in :rfc:`RFC7643 §7 <7643#section-7>`."""
         mutability = self.__class__.get_field_annotation(field_name, Mutability)
@@ -393,14 +416,17 @@ class BaseModel(PydanticBaseModel):
             scim_context in (Context.RESOURCE_QUERY_REQUEST, Context.SEARCH_REQUEST)
             and mutability == Mutability.write_only
         ):
-            raise PydanticCustomError(
-                "mutability_error",
-                "Field '{field_name}' has mutability '{field_mutability}' but this in not valid in {context} context",
-                {
-                    "field_name": field_name,
-                    "field_mutability": mutability,
-                    "context": scim_context.name.lower().replace("_", " "),
-                },
+            self._raise_field_error(
+                field_name,
+                PydanticCustomError(
+                    "mutability_error",
+                    "Field '{field_name}' has mutability '{field_mutability}' but this in not valid in {context} context",
+                    {
+                        "field_name": field_name,
+                        "field_mutability": mutability,
+                        "context": scim_context.name.lower().replace("_", " "),
+                    },
+                ),
             )
 
         elif (

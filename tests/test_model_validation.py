@@ -140,6 +140,37 @@ def test_validate_query_request_mutability():
         )
 
 
+def test_mutability_error_is_located_on_the_field():
+    """Mutability errors carry the location of the offending field."""
+    with pytest.raises(ValidationError) as exc_info:
+        MutResource.model_validate(
+            {"writeOnly": "x"}, scim_ctx=Context.RESOURCE_QUERY_REQUEST
+        )
+
+    assert [error["loc"] for error in exc_info.value.errors()] == [("write_only",)]
+
+
+def test_mutability_error_location_is_prefixed_by_its_parents():
+    """Mutability errors raised in a sub-attribute are located by their whole path."""
+
+    class Sub(ComplexAttribute):
+        write_only: Annotated[str | None, Mutability.write_only] = None
+
+    class SubResource(Resource):
+        schemas: Annotated[list[str], Required.true] = ["org:example:SubResource"]
+
+        subs: list[Sub] | None = None
+
+    with pytest.raises(ValidationError) as exc_info:
+        SubResource.model_validate(
+            {"subs": [{"writeOnly": "x"}]}, scim_ctx=Context.RESOURCE_QUERY_REQUEST
+        )
+
+    assert [error["loc"] for error in exc_info.value.errors()] == [
+        ("subs", 0, "write_only")
+    ]
+
+
 def test_validate_replacement_request_mutability():
     """Test query validation for resource model replacement requests.
 
