@@ -1,7 +1,9 @@
 import uuid
 from typing import Annotated
 
+from pydantic import AliasChoices
 from pydantic import Base64Bytes
+from pydantic import Field
 
 from scim2_models import URN
 from scim2_models.annotations import CaseExact
@@ -436,6 +438,29 @@ def test_extension_excluded_by_full_urn():
     ext = result["urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"]
     assert "employeeNumber" not in ext
     assert ext["department"] == "Engineering"
+
+
+def test_field_with_custom_validation_aliases():
+    """A field may bring its own validation aliases, which are not indexed as names."""
+
+    class AliasedResource(Resource):
+        __schema__ = URN("urn:example:2.0:AliasedResource")
+
+        value: str | None = Field(
+            None, validation_alias=AliasChoices("value", "legacyvalue")
+        )
+
+    assert all(
+        isinstance(alias, str) for alias in AliasedResource.__scim_info__.alias_to_field
+    )
+
+    obj = AliasedResource.model_validate({"legacyValue": "x"})
+
+    assert obj.value == "x"
+    assert obj.model_dump(scim_ctx=Context.RESOURCE_QUERY_RESPONSE) == {
+        "schemas": ["urn:example:2.0:AliasedResource"],
+        "value": "x",
+    }
 
 
 def test_short_attr_path_with_plain_name():

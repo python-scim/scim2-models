@@ -1,5 +1,7 @@
 import warnings
+from collections.abc import Mapping
 from inspect import isclass
+from types import MappingProxyType
 from typing import TYPE_CHECKING
 from typing import Any
 from typing import ClassVar
@@ -110,13 +112,13 @@ def _is_attribute_requested(requested_attrs: list[str], current_urn: str) -> boo
 class _SCIMClassInfo(NamedTuple):
     """SCIM metadata for BaseModel."""
 
-    alias_to_field: dict[str, str] = {}
+    alias_to_field: Mapping[str, str] = MappingProxyType({})
     """Alias -> Python field name.
 
     Holds both validation and serialization aliases.
     """
 
-    attribute_urns: dict[str, str] = {}
+    attribute_urns: Mapping[str, str] = MappingProxyType({})
     """Python field name -> fully resolved SCIM attribute URN."""
 
     complex_fields: frozenset[str] = frozenset()
@@ -302,7 +304,8 @@ class BaseModel(PydanticBaseModel):
             # Alias -> field name mapping
             serialization_alias = field.serialization_alias or field_name
             alias_to_field[serialization_alias] = field_name
-            alias_to_field[cast(str, field.validation_alias)] = field_name
+            if isinstance(field.validation_alias, str):
+                alias_to_field[field.validation_alias] = field_name
 
             root_type = cls.get_field_root_type(field_name)
 
@@ -313,15 +316,16 @@ class BaseModel(PydanticBaseModel):
                 complex_fields.add(field_name)
 
             # Is extension
-            if (
+            is_extension = (
                 extension_cls is not None
                 and isclass(root_type)
                 and issubclass(root_type, extension_cls)
-            ):
+            )
+            if is_extension:
                 extensions.add(field_name)
 
             # Attribute URNs
-            if main_schema is not None and field_name not in extensions:
+            if main_schema is not None and not is_extension:
                 attribute_urns[field_name] = f"{main_schema}:{serialization_alias}"
             else:
                 attribute_urns[field_name] = serialization_alias

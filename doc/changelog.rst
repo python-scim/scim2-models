@@ -6,7 +6,7 @@ Changelog
 
 Performance
 ^^^^^^^^^^^
-- Cached commonly used metadata of fields to :attr:`~scim2_models.BaseModel.__scim_info__`.
+- Cached commonly used metadata of fields to ``__scim_info__``.
 - Collapsed all scim context validators in :class:`~scim2_models.BaseModel` to one model validator.
 - Collapsed serialization to one model serializer in :class:`~scim2_models.BaseModel`.
 - Moved ``model_dump`` and ``model_dump_json`` to :class:`~scim2_models.BaseModel`.
