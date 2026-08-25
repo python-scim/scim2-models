@@ -4,14 +4,12 @@ Changelog
 [Unreleased]
 ------------
 
-Performance
-^^^^^^^^^^^
-- Cached commonly used metadata of fields to ``__scim_info__``.
-- Collapsed all scim context validators in :class:`~scim2_models.BaseModel` to one model validator.
-- Collapsed serialization to one model serializer in :class:`~scim2_models.BaseModel`.
-- Moved ``model_dump`` and ``model_dump_json`` to :class:`~scim2_models.BaseModel`.
-- Cached ``_normalize_attribute_name``.
-- Simplified ``normalize_attribute_names``
+Added
+^^^^^
+- :func:`~scim2_models.get_model_by_schema` and :func:`~scim2_models.get_model_by_payload` module functions.
+  They look models up by schema, accept any sequence of :class:`~scim2_models.ScimObject` subclasses,
+  and reflect the input types in the returned type.
+- :class:`~scim2_models.ScimObject` and ``AnyScimObject`` are exposed in the public API, so that downstream projects can annotate values that are either resources or messages.
 
 Changed
 ^^^^^^^
@@ -29,25 +27,12 @@ Changed
 
 Fixed
 ^^^^^
-- Check recursively extensions' replace constraints.
-
-[0.6.13] - 2026-07-27
----------------------
-
-Fixed
-^^^^^
 - ``reference`` and ``binary`` attributes are case-exact, unless a schema explicitly states otherwise. :rfc:`7643` §2.3.6 and §2.3.7, `erratum 6001 <https://www.rfc-editor.org/errata/eid6001>`_
 - :class:`~scim2_models.ResourceType` ``endpoint`` is case-exact. :rfc:`7643` `erratum 8475 <https://www.rfc-editor.org/errata/eid8475>`_
 - :class:`~scim2_models.GroupMember` and :class:`~scim2_models.GroupMembership` ``value`` are case-exact, as they hold resource ``id`` values. :rfc:`7643` §3.1, in the spirit of `erratum 8472 <https://www.rfc-editor.org/errata/eid8472>`_
 - :meth:`~scim2_models.Resource.from_schema` no longer crashes on ``reference`` attributes missing the optional ``referenceTypes``, and reads them as :class:`~scim2_models.URI` references.
 - Looking a model up by schema no longer crashes when the model list mixes resources with messages such as :class:`~scim2_models.ListResponse`.
-
-Added
-^^^^^
-- :func:`~scim2_models.get_model_by_schema` and :func:`~scim2_models.get_model_by_payload` module functions.
-  They look models up by schema, accept any sequence of :class:`~scim2_models.ScimObject` subclasses,
-  and reflect the input types in the returned type.
-- :class:`~scim2_models.ScimObject` and ``AnyScimObject`` are exposed in the public API, so that downstream projects can annotate values that are either resources or messages.
+- Check recursively extensions' replace constraints.
 
 Deprecated
 ^^^^^^^^^^
@@ -55,6 +40,15 @@ Deprecated
   :func:`~scim2_models.get_model_by_schema` and :func:`~scim2_models.get_model_by_payload`.
   Their ``resource_types`` parameter is named ``models`` in the new functions.
   They will be removed in 0.8.0.
+
+Performance
+^^^^^^^^^^^
+- Cached commonly used metadata of fields to ``__scim_info__``.
+- Collapsed all scim context validators in :class:`~scim2_models.BaseModel` to one model validator.
+- Collapsed serialization to one model serializer in :class:`~scim2_models.BaseModel`.
+- Moved ``model_dump`` and ``model_dump_json`` to :class:`~scim2_models.BaseModel`.
+- Cached ``_normalize_attribute_name``.
+- Simplified ``normalize_attribute_names``.
 
 [0.6.12] - 2026-04-13
 ---------------------
