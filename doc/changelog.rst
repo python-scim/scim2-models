@@ -15,6 +15,14 @@ Performance
 
 Changed
 ^^^^^^^
+- ``model_dump`` and ``model_dump_json`` are defined on :class:`~scim2_models.BaseModel` instead of
+  :class:`~scim2_models.ScimObject`, so every model is dumped in a SCIM context by default.
+  Complex attributes dumped on their own use their SCIM attribute names:
+  ``Name(family_name="Doe").model_dump()`` returns ``{"familyName": "Doe"}``
+  instead of ``{"family_name": "Doe"}``.
+- :meth:`~scim2_models.BaseModel.model_dump` with ``scim_ctx=None`` returns the native pydantic
+  dump, ``None`` values included, as its documentation states. Pass ``exclude_none=True`` to get
+  the former output.
 - :meth:`~scim2_models.Resource.replace` does not mark the fields it copies from the original
   resource as set anymore, so ``model_fields_set`` only holds the attributes asserted by the
   client, as defined by :rfc:`7644` §3.5.1.
@@ -22,7 +30,6 @@ Changed
 Fixed
 ^^^^^
 - Check recursively extensions' replace constraints.
-- The result of ``model_dump`` does not differ from native pydantic's dump if ``scim_ctx`` is set to ``None``.
 
 [0.6.13] - 2026-07-27
 ---------------------
