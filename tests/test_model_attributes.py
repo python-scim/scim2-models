@@ -1,7 +1,9 @@
 import uuid
 from typing import Annotated
 
+from pydantic import AliasChoices
 from pydantic import Base64Bytes
+from pydantic import Field
 
 from scim2_models import URN
 from scim2_models.annotations import CaseExact
@@ -102,6 +104,21 @@ class MyExtension(Extension):
     __schema__ = URN("urn:example:2.0:MyExtension")
 
     baz: str
+
+
+class DeepSubAttribute(ComplexAttribute):
+    name: str | None = None
+
+
+class DeepAttribute(ComplexAttribute):
+    name: str | None = None
+    sub_attributes: list[DeepSubAttribute] | None = None
+
+
+class DeepResource(Resource):
+    __schema__ = URN("urn:example:2.0:DeepResource")
+
+    attributes: list[DeepAttribute] | None = None
 
 
 def test_payload_attribute_case_sensitivity():
@@ -378,6 +395,29 @@ def test_multivalued_complex_attribute_inclusion_includes_sub_attributes():
     ]
 
 
+def test_nested_complex_attribute_urn_is_prefixed_by_its_parents():
+    """Sub-attributes of a nested complex attribute are marked with the URN of their whole parent chain."""
+    resource = DeepResource(
+        id="deep",
+        attributes=[
+            DeepAttribute(
+                name="name",
+                sub_attributes=[DeepSubAttribute(name="formatted")],
+            )
+        ],
+    )
+    resource.model_dump(scim_ctx=Context.RESOURCE_QUERY_RESPONSE)
+    attribute = resource.attributes[0]
+    sub_attribute = attribute.sub_attributes[0]
+
+    assert attribute.get_attribute_urn("name") == (
+        "urn:example:2.0:DeepResource:attributes.name"
+    )
+    assert sub_attribute.get_attribute_urn("name") == (
+        "urn:example:2.0:DeepResource:attributes.subAttributes.name"
+    )
+
+
 def test_extension_excluded_by_full_urn():
     """Excluding an extension attribute with its full URN removes only that attribute."""
     user = User[EnterpriseUser].model_validate(
@@ -398,6 +438,29 @@ def test_extension_excluded_by_full_urn():
     ext = result["urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"]
     assert "employeeNumber" not in ext
     assert ext["department"] == "Engineering"
+
+
+def test_field_with_custom_validation_aliases():
+    """A field may bring its own validation aliases, which are not indexed as names."""
+
+    class AliasedResource(Resource):
+        __schema__ = URN("urn:example:2.0:AliasedResource")
+
+        value: str | None = Field(
+            None, validation_alias=AliasChoices("value", "legacyvalue")
+        )
+
+    assert all(
+        isinstance(alias, str) for alias in AliasedResource.__scim_info__.alias_to_field
+    )
+
+    obj = AliasedResource.model_validate({"legacyValue": "x"})
+
+    assert obj.value == "x"
+    assert obj.model_dump(scim_ctx=Context.RESOURCE_QUERY_RESPONSE) == {
+        "schemas": ["urn:example:2.0:AliasedResource"],
+        "value": "x",
+    }
 
 
 def test_short_attr_path_with_plain_name():

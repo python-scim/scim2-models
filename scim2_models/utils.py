@@ -1,4 +1,5 @@
 import re
+from functools import lru_cache
 from typing import TYPE_CHECKING
 from typing import Union
 
@@ -36,6 +37,7 @@ def _to_camel(string: str) -> str:
     return camel
 
 
+@lru_cache(maxsize=256)
 def _normalize_attribute_name(attribute_name: str) -> str:
     """Remove all non-alphabetical characters and lowerise a string.
 

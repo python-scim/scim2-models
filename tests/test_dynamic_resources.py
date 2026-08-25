@@ -9,6 +9,7 @@ from scim2_models.annotations import Required
 from scim2_models.annotations import Returned
 from scim2_models.annotations import Uniqueness
 from scim2_models.attributes import ComplexAttribute
+from scim2_models.context import Context
 from scim2_models.reference import URI
 from scim2_models.reference import External
 from scim2_models.reference import Reference
@@ -2823,3 +2824,47 @@ def test_references_without_reference_types():
         Model = Resource.from_schema(_single_attribute_schema(attribute))
         assert Model.get_field_root_type("attr") == Reference[URI]
         assert Model.to_schema().attributes[0].reference_types == ["uri"]
+
+
+def test_models_built_from_a_schema_know_their_attribute_urns():
+    """Attributes of a model built from a schema are identified by their full URN.
+
+    The URN is needed to honour the 'attributes' and 'excludedAttributes'
+    parameters when they are qualified by a schema, as RFC 7644 §3.10 allows.
+    """
+    Model = Resource.from_schema(
+        _single_attribute_schema({"name": "attr", "type": "string"})
+    )
+    obj = Model(attr="value")
+
+    assert obj.get_attribute_urn("attr") == "urn:example:2.0:Single:attr"
+    assert obj.model_dump(
+        scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
+        attributes=["urn:example:2.0:Single:attr"],
+    ) == {"schemas": ["urn:example:2.0:Single"], "attr": "value"}
+
+
+def test_extensions_built_from_a_schema_know_their_attribute_urns():
+    """Attributes of an extension built from a schema are identified by their full URN."""
+    extension_schema = Schema.model_validate(
+        {
+            "id": "urn:example:2.0:Ext",
+            "name": "Ext",
+            "attributes": [{"name": "attr", "type": "string"}],
+        }
+    )
+    ExtModel = Extension.from_schema(extension_schema)
+    Model = Resource.from_schema(
+        _single_attribute_schema({"name": "other", "type": "string"})
+    )[ExtModel]
+    obj = Model()
+    obj[ExtModel] = ExtModel(attr="value")
+
+    assert obj[ExtModel].get_attribute_urn("attr") == "urn:example:2.0:Ext:attr"
+    assert obj.model_dump(
+        scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
+        attributes=["urn:example:2.0:Ext:attr"],
+    ) == {
+        "schemas": ["urn:example:2.0:Single", "urn:example:2.0:Ext"],
+        "urn:example:2.0:Ext": {"attr": "value"},
+    }

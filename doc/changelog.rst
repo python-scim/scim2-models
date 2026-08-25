@@ -1,16 +1,8 @@
 Changelog
 =========
 
-[0.6.13] - 2026-07-27
----------------------
-
-Fixed
-^^^^^
-- ``reference`` and ``binary`` attributes are case-exact, unless a schema explicitly states otherwise. :rfc:`7643` §2.3.6 and §2.3.7, `erratum 6001 <https://www.rfc-editor.org/errata/eid6001>`_
-- :class:`~scim2_models.ResourceType` ``endpoint`` is case-exact. :rfc:`7643` `erratum 8475 <https://www.rfc-editor.org/errata/eid8475>`_
-- :class:`~scim2_models.GroupMember` and :class:`~scim2_models.GroupMembership` ``value`` are case-exact, as they hold resource ``id`` values. :rfc:`7643` §3.1, in the spirit of `erratum 8472 <https://www.rfc-editor.org/errata/eid8472>`_
-- :meth:`~scim2_models.Resource.from_schema` no longer crashes on ``reference`` attributes missing the optional ``referenceTypes``, and reads them as :class:`~scim2_models.URI` references.
-- Looking a model up by schema no longer crashes when the model list mixes resources with messages such as :class:`~scim2_models.ListResponse`.
+[Unreleased]
+------------
 
 Added
 ^^^^^
@@ -19,12 +11,44 @@ Added
   and reflect the input types in the returned type.
 - :class:`~scim2_models.ScimObject` and ``AnyScimObject`` are exposed in the public API, so that downstream projects can annotate values that are either resources or messages.
 
+Changed
+^^^^^^^
+- ``model_dump`` and ``model_dump_json`` are defined on :class:`~scim2_models.BaseModel` instead of
+  :class:`~scim2_models.ScimObject`, so every model is dumped in a SCIM context by default.
+  Complex attributes dumped on their own use their SCIM attribute names:
+  ``Name(family_name="Doe").model_dump()`` returns ``{"familyName": "Doe"}``
+  instead of ``{"family_name": "Doe"}``.
+- :meth:`~scim2_models.BaseModel.model_dump` with ``scim_ctx=None`` returns the native pydantic
+  dump, ``None`` values included, as its documentation states. Pass ``exclude_none=True`` to get
+  the former output.
+- :meth:`~scim2_models.Resource.replace` does not mark the fields it copies from the original
+  resource as set anymore, so ``model_fields_set`` only holds the attributes asserted by the
+  client, as defined by :rfc:`7644` §3.5.1.
+
+Fixed
+^^^^^
+- ``reference`` and ``binary`` attributes are case-exact, unless a schema explicitly states otherwise. :rfc:`7643` §2.3.6 and §2.3.7, `erratum 6001 <https://www.rfc-editor.org/errata/eid6001>`_
+- :class:`~scim2_models.ResourceType` ``endpoint`` is case-exact. :rfc:`7643` `erratum 8475 <https://www.rfc-editor.org/errata/eid8475>`_
+- :class:`~scim2_models.GroupMember` and :class:`~scim2_models.GroupMembership` ``value`` are case-exact, as they hold resource ``id`` values. :rfc:`7643` §3.1, in the spirit of `erratum 8472 <https://www.rfc-editor.org/errata/eid8472>`_
+- :meth:`~scim2_models.Resource.from_schema` no longer crashes on ``reference`` attributes missing the optional ``referenceTypes``, and reads them as :class:`~scim2_models.URI` references.
+- Looking a model up by schema no longer crashes when the model list mixes resources with messages such as :class:`~scim2_models.ListResponse`.
+- Check recursively extensions' replace constraints.
+
 Deprecated
 ^^^^^^^^^^
 - ``Resource.get_by_schema`` and ``Resource.get_by_payload`` are deprecated in favor of
   :func:`~scim2_models.get_model_by_schema` and :func:`~scim2_models.get_model_by_payload`.
   Their ``resource_types`` parameter is named ``models`` in the new functions.
   They will be removed in 0.8.0.
+
+Performance
+^^^^^^^^^^^
+- Cached commonly used metadata of fields to ``__scim_info__``.
+- Collapsed all scim context validators in :class:`~scim2_models.BaseModel` to one model validator.
+- Collapsed serialization to one model serializer in :class:`~scim2_models.BaseModel`.
+- Moved ``model_dump`` and ``model_dump_json`` to :class:`~scim2_models.BaseModel`.
+- Cached ``_normalize_attribute_name``.
+- Simplified ``normalize_attribute_names``.
 
 [0.6.12] - 2026-04-13
 ---------------------

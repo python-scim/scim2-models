@@ -77,6 +77,8 @@ def _make_python_model(
 
     if isinstance(obj, Schema) and obj.id:
         model.__schema__ = URN(obj.id)  # type: ignore[attr-defined]
+        # __scim_info__ was built by pydantic before __schema__ was known
+        model.__pydantic_on_complete__()
 
     for attr_name in model.model_fields:
         attr_type = model.get_field_root_type(attr_name)

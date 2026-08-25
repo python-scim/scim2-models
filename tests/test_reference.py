@@ -75,7 +75,7 @@ def test_reference_serialization():
     model = ReferenceTestModel(uri_ref=ref)
 
     dumped = model.model_dump()
-    assert dumped["uri_ref"] == "https://example.com"
+    assert dumped["uriRef"] == "https://example.com"
 
 
 def test_reference_validation_error():

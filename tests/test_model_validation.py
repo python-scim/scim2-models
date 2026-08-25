@@ -140,6 +140,37 @@ def test_validate_query_request_mutability():
         )
 
 
+def test_mutability_error_is_located_on_the_field():
+    """Mutability errors carry the location of the offending field."""
+    with pytest.raises(ValidationError) as exc_info:
+        MutResource.model_validate(
+            {"writeOnly": "x"}, scim_ctx=Context.RESOURCE_QUERY_REQUEST
+        )
+
+    assert [error["loc"] for error in exc_info.value.errors()] == [("write_only",)]
+
+
+def test_mutability_error_location_is_prefixed_by_its_parents():
+    """Mutability errors raised in a sub-attribute are located by their whole path."""
+
+    class Sub(ComplexAttribute):
+        write_only: Annotated[str | None, Mutability.write_only] = None
+
+    class SubResource(Resource):
+        schemas: Annotated[list[str], Required.true] = ["org:example:SubResource"]
+
+        subs: list[Sub] | None = None
+
+    with pytest.raises(ValidationError) as exc_info:
+        SubResource.model_validate(
+            {"subs": [{"writeOnly": "x"}]}, scim_ctx=Context.RESOURCE_QUERY_REQUEST
+        )
+
+    assert [error["loc"] for error in exc_info.value.errors()] == [
+        ("subs", 0, "write_only")
+    ]
+
+
 def test_validate_replacement_request_mutability():
     """Test query validation for resource model replacement requests.
 
@@ -314,6 +345,22 @@ def test_replace_preserves_immutable_when_absent():
     assert replacement.immutable == "y"
 
 
+def test_replace_does_not_assert_the_fields_it_copies():
+    """The fields replace copies from the original are not reported as set.
+
+    RFC 7644 §3.5.1 lets service providers treat the attributes omitted from a
+    replacement request as not asserted by the client, so the copied values must
+    not be mistaken for client input.
+    """
+    original = MutResource(id="id", read_only="server", immutable="y")
+    replacement = MutResource(read_write="new")
+    replacement.replace(original)
+
+    assert replacement.read_only == "server"
+    assert replacement.immutable == "y"
+    assert replacement.model_fields_set == {"read_write"}
+
+
 def test_replace_copies_read_only_in_nested_complex_attribute():
     """Replace copies readOnly sub-attributes from original in nested complex attributes."""
 
@@ -330,6 +377,49 @@ def test_replace_copies_read_only_in_nested_complex_attribute():
     replacement.replace(original)
     assert replacement.sub.read_only == "server"
     assert replacement.sub.read_write == "new"
+
+
+def test_replace_detects_changed_immutable_in_extension():
+    """Replace detects changes in immutable fields inside extensions."""
+    from scim2_models import URN
+    from scim2_models import Extension
+    from scim2_models.exceptions import MutabilityException
+
+    class MyExt(Extension):
+        __schema__ = URN("urn:example:extensions:2.0:MyExt")
+        immutable: Annotated[str | None, Mutability.immutable] = None
+
+    class MyResource(Resource):
+        __schema__ = URN("urn:example:resources:2.0:MyResource")
+
+    original = MyResource[MyExt]()
+    original[MyExt] = MyExt(immutable="x")
+    replacement = MyResource[MyExt]()
+    replacement[MyExt] = MyExt(immutable="y")
+    with pytest.raises(MutabilityException):
+        replacement.replace(original)
+
+
+def test_replace_copies_read_only_in_extension():
+    """Replace copies readOnly fields from original inside extensions."""
+    from scim2_models import URN
+    from scim2_models import Extension
+
+    class MyExt(Extension):
+        __schema__ = URN("urn:example:extensions:2.0:MyExt")
+        read_only: Annotated[str | None, Mutability.read_only] = None
+        read_write: Annotated[str | None, Mutability.read_write] = None
+
+    class MyResource(Resource):
+        __schema__ = URN("urn:example:resources:2.0:MyResource")
+
+    original = MyResource[MyExt]()
+    original[MyExt] = MyExt(read_only="server", read_write="old")
+    replacement = MyResource[MyExt]()
+    replacement[MyExt] = MyExt(read_only="client", read_write="new")
+    replacement.replace(original)
+    assert replacement[MyExt].read_only == "server"
+    assert replacement[MyExt].read_write == "new"
 
 
 def test_original_parameter_emits_deprecation_warning():
