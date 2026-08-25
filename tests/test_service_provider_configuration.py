@@ -62,3 +62,29 @@ def test_service_provider_configuration(load_sample):
     assert obj.meta.version == 'W\\/"3694e05e9dff594"'
 
     assert obj.model_dump() == payload
+
+
+def test_authentication_scheme_type_is_case_insensitive():
+    """Test that canonical authentication scheme types are read whatever their case is."""
+    scheme = AuthenticationScheme.model_validate(
+        {
+            "type": "HttpBasic",
+            "name": "HTTP Basic",
+            "description": "Authentication scheme using the HTTP Basic Standard",
+        }
+    )
+    assert scheme.type is AuthenticationScheme.Type.httpbasic
+    assert scheme.model_dump()["type"] == "httpbasic"
+
+
+def test_authentication_scheme_type_accepts_unknown_schemes():
+    """Test that authentication schemes beyond those defined by RFC7643 are read."""
+    scheme = AuthenticationScheme.model_validate(
+        {
+            "type": "oauth2bearer",
+            "name": "OAuth 2 Bearer Token",
+            "description": "Authentication scheme using an OAuth 2 bearer token",
+        }
+    )
+    assert str(scheme.type) == "oauth2bearer"
+    assert scheme.model_dump()["type"] == "oauth2bearer"

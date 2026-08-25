@@ -5,6 +5,7 @@ from pydantic import ValidationError
 
 from scim2_models import Address
 from scim2_models import Email
+from scim2_models import ExtensibleStringEnum
 from scim2_models import Im
 from scim2_models import PhoneNumber
 from scim2_models import Photo
@@ -192,3 +193,94 @@ def test_multiple_primary_validation_skipped_without_strict_context(scim_ctx):
     }
     user = User.model_validate(user_data, scim_ctx=scim_ctx)
     assert len(user.emails) == 2
+
+
+def test_extensible_enum_canonical_values():
+    """Test that canonical enum values work as expected."""
+
+    class TestEnum(ExtensibleStringEnum):
+        foo = "foo"
+        bar = "bar"
+
+    assert TestEnum.foo == "foo"
+    assert TestEnum.bar == "bar"
+    assert str(TestEnum.foo) == "foo"
+
+
+def test_extensible_enum_matches_canonical_values_case_insensitively():
+    """Test that canonical values are matched whatever their case is."""
+
+    class TestEnum(ExtensibleStringEnum):
+        foo = "foo"
+
+    assert TestEnum("FOO") is TestEnum.foo
+    assert TestEnum("Foo") is TestEnum.foo
+
+
+def test_extensible_enum_preserves_the_case_of_arbitrary_values():
+    """Test that arbitrary values keep the case they have been submitted with."""
+
+    class TestEnum(ExtensibleStringEnum):
+        foo = "foo"
+
+    assert str(TestEnum("BarBaz")) == "BarBaz"
+
+
+def test_extensible_enum_arbitrary_values():
+    """Test that arbitrary string values are accepted."""
+
+    class TestEnum(ExtensibleStringEnum):
+        foo = "foo"
+        bar = "bar"
+
+    custom = TestEnum("custom_value")
+    another = TestEnum("another_value")
+
+    assert str(custom) == "custom_value"
+    assert str(another) == "another_value"
+    assert custom == "custom_value"
+    assert another == "another_value"
+
+
+def test_extensible_enum_non_string_rejected():
+    """Test that non-string values are rejected."""
+
+    class TestEnum(ExtensibleStringEnum):
+        foo = "foo"
+
+    with pytest.raises(ValueError, match="is not a valid string value"):
+        TestEnum(123)
+
+    with pytest.raises(ValueError, match="is not a valid string value"):
+        TestEnum(None)
+
+
+def test_complex_attribute_extensible_types():
+    """Test that complex attribute types support RFC 7643 extensibility."""
+    email_canonical = Email(value="test@example.com", type=Email.Type.work)
+    assert str(email_canonical.type) == "work"
+
+    email_custom = Email(value="john.doe@example.com", type="company")
+    assert str(email_custom.type) == "company"
+
+    data = email_custom.model_dump()
+    assert data["type"] == "company"
+
+    restored = Email.model_validate(data)
+    assert str(restored.type) == "company"
+    assert restored.value == "john.doe@example.com"
+
+
+def test_complex_attribute_types_are_case_insensitive():
+    """Test that canonical attribute types are read whatever their case is."""
+    email = Email.model_validate({"value": "john.doe@example.com", "type": "WORK"})
+    assert email.type is Email.Type.work
+    assert email.model_dump()["type"] == "work"
+
+
+def test_complex_attribute_types_json_schema_does_not_restrict_values():
+    """Test that canonical values are advertised as examples in the JSON schema."""
+    schema = Email.model_json_schema()["$defs"]["Type"]
+    assert "enum" not in schema
+    assert schema["examples"] == ["work", "home", "other"]
+    assert schema["type"] == "string"

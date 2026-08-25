@@ -16,6 +16,7 @@ from .annotations import Required
 from .annotations import Returned
 from .annotations import Uniqueness
 from .attributes import ComplexAttribute
+from .attributes import ExtensibleStringEnum
 from .attributes import MultiValuedComplexAttribute
 from .base import BaseModel
 from .context import Context
@@ -108,6 +109,7 @@ __all__ = [
     "EnterpriseUser",
     "Entitlement",
     "Error",
+    "ExtensibleStringEnum",
     "Extension",
     "External",
     "ExternalReference",

@@ -1,4 +1,3 @@
-from enum import Enum
 from typing import Annotated
 from typing import Any
 
@@ -9,6 +8,7 @@ from ..annotations import Required
 from ..annotations import Returned
 from ..annotations import Uniqueness
 from ..attributes import ComplexAttribute
+from ..attributes import ExtensibleStringEnum
 from ..path import URN
 from ..reference import External
 from ..reference import Reference
@@ -55,7 +55,7 @@ class ETag(ComplexAttribute):
 
 
 class AuthenticationScheme(ComplexAttribute):
-    class Type(str, Enum):
+    class Type(ExtensibleStringEnum):
         oauth = "oauth"
         oauth2 = "oauth2"
         oauthbearertoken = "oauthbearertoken"
