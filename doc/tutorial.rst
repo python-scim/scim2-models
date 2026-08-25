@@ -55,6 +55,18 @@ Use Pydantic's :func:`~scim2_models.BaseModel.model_validate` method to parse an
     >>> user.meta.created  # doctest: +ELLIPSIS
     datetime.datetime(2010, 1, 23, 4, 56, 22, tzinfo=...)
 
+Payloads that have not been decoded yet can be handled by
+:func:`~scim2_models.BaseModel.model_validate_json`.
+Malformed JSON raises a :class:`~pydantic.ValidationError`, like any other invalid payload.
+
+.. code-block:: python
+
+    >>> import json
+
+    >>> user = User.model_validate_json(json.dumps(payload))
+    >>> user.user_name
+    'bjensen@example.com'
+
 
 Model serialization
 ===================
@@ -123,6 +135,8 @@ fields with unexpected values will raise :class:`~pydantic.ValidationError`:
     ...    obj = User.model_validate(payload, scim_ctx=Context.RESOURCE_CREATION_REQUEST)
     ... except ValidationError:
     ...    obj = Error(...)
+
+:meth:`~scim2_models.BaseModel.model_validate_json` takes the same :paramref:`~scim2_models.BaseModel.model_validate_json.scim_ctx` parameter.
 
 Context annotations
 ===================

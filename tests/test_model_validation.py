@@ -746,3 +746,49 @@ def test_validate_query_and_search_request_necessity(context):
         id="x",
         optional="x",
     )
+
+
+def test_validate_json_payload():
+    """JSON payloads are validated like already decoded payloads."""
+    assert MutResource.model_validate_json('{"readWrite": "x"}') == MutResource(
+        schemas=["org:example:MutResource"],
+        readWrite="x",
+    )
+
+
+def test_validate_json_bytes_payload():
+    """JSON payloads can be passed as bytes."""
+    assert MutResource.model_validate_json(b'{"readWrite": "x"}') == MutResource(
+        schemas=["org:example:MutResource"],
+        readWrite="x",
+    )
+
+
+def test_validate_json_applies_the_scim_context():
+    """The SCIM context drives the validation of JSON payloads."""
+    with pytest.raises(
+        ValidationError,
+        match="Field 'write_only' has mutability 'writeOnly' but this in not valid in resource query request context",
+    ):
+        MutResource.model_validate_json(
+            '{"writeOnly": "x"}',
+            scim_ctx=Context.RESOURCE_QUERY_REQUEST,
+        )
+
+
+def test_validate_json_with_an_explicit_validation_context():
+    """An explicit Pydantic validation context takes precedence over the SCIM context."""
+    with pytest.raises(
+        ValidationError,
+        match="Field 'write_only' has mutability 'writeOnly' but this in not valid in resource query request context",
+    ):
+        MutResource.model_validate_json(
+            '{"writeOnly": "x"}',
+            context={"scim": Context.RESOURCE_QUERY_REQUEST},
+        )
+
+
+def test_validate_json_rejects_malformed_payloads():
+    """Malformed JSON payloads raise a ValidationError like any invalid payload."""
+    with pytest.raises(ValidationError, match="Invalid JSON"):
+        MutResource.model_validate_json("{invalid")
