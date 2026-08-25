@@ -529,16 +529,14 @@ class BaseModel(PydanticBaseModel):
 
         ``_attribute_urn`` is later read by :meth:`get_attribute_urn`.
         """
-        cls = self.__class__
-        info = cls.__scim_info__
-        complex_fields = info.complex_fields
-
-        for field_name in complex_fields:
+        for field_name in self.__class__.__scim_info__.complex_fields:
             attr_value = getattr(self, field_name)
             if not attr_value:
                 continue
 
-            schema = info.attribute_urns[field_name]
+            # ComplexAttribute overrides get_attribute_urn to prefix the URN
+            # with the one of its parent, which is unknown at class creation.
+            schema = self.get_attribute_urn(field_name)
 
             if isinstance(attr_value, list):
                 for item in attr_value:

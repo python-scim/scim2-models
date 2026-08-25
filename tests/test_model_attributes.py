@@ -104,6 +104,21 @@ class MyExtension(Extension):
     baz: str
 
 
+class DeepSubAttribute(ComplexAttribute):
+    name: str | None = None
+
+
+class DeepAttribute(ComplexAttribute):
+    name: str | None = None
+    sub_attributes: list[DeepSubAttribute] | None = None
+
+
+class DeepResource(Resource):
+    __schema__ = URN("urn:example:2.0:DeepResource")
+
+    attributes: list[DeepAttribute] | None = None
+
+
 def test_payload_attribute_case_sensitivity():
     """RFC7643 §2.1 indicates that attribute names should be case insensitive.
 
@@ -376,6 +391,29 @@ def test_multivalued_complex_attribute_inclusion_includes_sub_attributes():
         {"value": "user-1", "type": "User"},
         {"value": "user-2", "type": "User"},
     ]
+
+
+def test_nested_complex_attribute_urn_is_prefixed_by_its_parents():
+    """Sub-attributes of a nested complex attribute are marked with the URN of their whole parent chain."""
+    resource = DeepResource(
+        id="deep",
+        attributes=[
+            DeepAttribute(
+                name="name",
+                sub_attributes=[DeepSubAttribute(name="formatted")],
+            )
+        ],
+    )
+    resource.model_dump(scim_ctx=Context.RESOURCE_QUERY_RESPONSE)
+    attribute = resource.attributes[0]
+    sub_attribute = attribute.sub_attributes[0]
+
+    assert attribute.get_attribute_urn("name") == (
+        "urn:example:2.0:DeepResource:attributes.name"
+    )
+    assert sub_attribute.get_attribute_urn("name") == (
+        "urn:example:2.0:DeepResource:attributes.subAttributes.name"
+    )
 
 
 def test_extension_excluded_by_full_urn():
