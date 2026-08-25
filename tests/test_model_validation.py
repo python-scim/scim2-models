@@ -345,6 +345,22 @@ def test_replace_preserves_immutable_when_absent():
     assert replacement.immutable == "y"
 
 
+def test_replace_does_not_assert_the_fields_it_copies():
+    """The fields replace copies from the original are not reported as set.
+
+    RFC 7644 §3.5.1 lets service providers treat the attributes omitted from a
+    replacement request as not asserted by the client, so the copied values must
+    not be mistaken for client input.
+    """
+    original = MutResource(id="id", read_only="server", immutable="y")
+    replacement = MutResource(read_write="new")
+    replacement.replace(original)
+
+    assert replacement.read_only == "server"
+    assert replacement.immutable == "y"
+    assert replacement.model_fields_set == {"read_write"}
+
+
 def test_replace_copies_read_only_in_nested_complex_attribute():
     """Replace copies readOnly sub-attributes from original in nested complex attributes."""
 

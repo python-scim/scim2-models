@@ -13,6 +13,12 @@ Performance
 - Cached ``_normalize_attribute_name``.
 - Simplified ``normalize_attribute_names``
 
+Changed
+^^^^^^^
+- :meth:`~scim2_models.Resource.replace` does not mark the fields it copies from the original
+  resource as set anymore, so ``model_fields_set`` only holds the attributes asserted by the
+  client, as defined by :rfc:`7644` §3.5.1.
+
 Fixed
 ^^^^^
 - Check recursively extensions' replace constraints.
