@@ -164,6 +164,29 @@ def test_missing_resource_schema(load_sample):
     ListResponse[User].model_validate(payload, strict=True)
 
 
+def test_missing_resource_schemas_in_response_context():
+    """Resources lacking their 'schemas' attribute are reported instead of being typed after the ListResponse parameter.
+
+    :rfc:`RFC7644 §3.4.3 <7644#section-3.4.3>` displays partial responses
+    where resources bear no 'schemas' attribute, but nothing in
+    :rfc:`RFC7643` allows to guess their type.
+    """
+    payload = {
+        "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
+        "totalResults": 1,
+        "Resources": [{"id": "2819c223-7f76-413861904646", "userName": "jsmith"}],
+    }
+
+    with pytest.raises(ValidationError) as exc_info:
+        ListResponse[User].model_validate(
+            payload, scim_ctx=Context.RESOURCE_QUERY_RESPONSE
+        )
+
+    assert [error["loc"] for error in exc_info.value.errors()] == [
+        ("resources", 0, "schemas")
+    ]
+
+
 def test_zero_results():
     """:rfc:`RFC7644 §3.4.2 <7644#section-3.4.2>` indicates that ListResponse.Resources is required when ListResponse.totalResults is non- zero.
 
@@ -172,6 +195,7 @@ def test_zero_results():
     zero.
     """
     payload = {
+        "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
         "totalResults": 1,
         "Resources": [
             {
@@ -183,10 +207,17 @@ def test_zero_results():
     }
     ListResponse[User].model_validate(payload, scim_ctx=Context.RESOURCE_QUERY_RESPONSE)
 
-    payload = {"totalResults": 1, "Resources": []}
+    payload = {
+        "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
+        "totalResults": 1,
+        "Resources": [],
+    }
     ListResponse[User].model_validate(payload, scim_ctx=Context.RESOURCE_QUERY_RESPONSE)
 
-    payload = {"totalResults": 1}
+    payload = {
+        "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
+        "totalResults": 1,
+    }
     with pytest.raises(ValidationError):
         ListResponse[User].model_validate(
             payload, scim_ctx=Context.RESOURCE_QUERY_RESPONSE
@@ -328,6 +359,7 @@ def test_model_dump_without_scim_context():
 def test_total_results_required():
     """ListResponse.total_results is required."""
     payload = {
+        "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
         "Resources": [
             {
                 "schemas": [

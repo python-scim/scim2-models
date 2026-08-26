@@ -41,6 +41,12 @@ Changed
   case-insensitive: ``Email(type="WORK").type`` is ``Email.Type.work``.
 - The JSON schema of those attributes advertises the canonical values as ``examples`` instead of
   a restrictive ``enum``.
+- The ``schemas`` attribute is not guessed from the model definition anymore when payloads are
+  validated in a SCIM context. Such payloads come from a peer that :rfc:`7643` §3 requires to
+  send the attribute, and filling it hid their non-compliance: resources missing it were
+  silently typed after the model they were validated against. Objects built by the caller,
+  which are validated without a SCIM context, are still filled, and so are extensions, which
+  are never standalone representations.
 
 Fixed
 ^^^^^

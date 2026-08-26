@@ -584,7 +584,10 @@ modified.
     >>> from scim2_models import User, Context
     >>> existing = User(user_name="bjensen")
     >>> replacement = User.model_validate(
-    ...     {"userName": "bjensen"},
+    ...     {
+    ...         "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+    ...         "userName": "bjensen",
+    ...     },
     ...     scim_ctx=Context.RESOURCE_REPLACEMENT_REQUEST,
     ... )
     >>> replacement.replace(existing)

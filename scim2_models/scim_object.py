@@ -29,13 +29,31 @@ class ScimObject(BaseModel):
 
     @model_validator(mode="before")
     @classmethod
-    def _populate_schemas_default(cls, data: Any) -> Any:
-        """Auto-generate schemas from __schema__ if not provided."""
-        if isinstance(data, dict) and "schemas" not in data:
-            schema = getattr(cls, "__schema__", None)
-            if schema:
-                data = {**data, "schemas": [schema]}
-        return data
+    def _populate_schemas_default(cls, data: Any, info: ValidationInfo) -> Any:
+        """Auto-generate schemas from __schema__ if not provided.
+
+        Objects built by the caller are filled, as the model they are built
+        from asserts their type. Payloads validated in a SCIM context come
+        from a peer that :rfc:`RFC7643 §3 <7643#section-3>` requires to send
+        the attribute, so the omission is reported instead of being papered
+        over. Extensions are never standalone representations, and bear no
+        'schemas' attribute of their own.
+        """
+        if not isinstance(data, dict) or "schemas" in data:
+            return data
+
+        schema = getattr(cls, "__schema__", None)
+        if not schema:
+            return data
+
+        scim_ctx = info.context.get("scim") if info.context else None
+        if scim_ctx and scim_ctx != Context.DEFAULT:
+            from .resources.resource import Extension
+
+            if not issubclass(cls, Extension):
+                return data
+
+        return {**data, "schemas": [schema]}
 
     @model_validator(mode="wrap")
     @classmethod

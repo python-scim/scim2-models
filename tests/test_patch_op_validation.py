@@ -119,6 +119,7 @@ def test_validate_patchop_case_insensitivity():
     """
     assert PatchOp[User].model_validate(
         {
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
             "operations": [
                 {"op": "Replace", "path": "userName", "value": "Rivard"},
                 {"op": "ADD", "path": "userName", "value": "Rivard"},
@@ -144,6 +145,7 @@ def test_validate_patchop_case_insensitivity():
     ):
         PatchOp[User].model_validate(
             {
+                "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
                 "operations": [{"op": 42, "path": "userName", "value": "Rivard"}],
             },
         )
@@ -157,6 +159,7 @@ def test_path_required_for_remove_operations():
     """
     PatchOp[User].model_validate(
         {
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
             "operations": [
                 {"op": "replace", "value": "foobar"},
             ],
@@ -165,6 +168,7 @@ def test_path_required_for_remove_operations():
     )
     PatchOp[User].model_validate(
         {
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
             "operations": [
                 {"op": "add", "value": "foobar"},
             ],
@@ -176,6 +180,7 @@ def test_path_required_for_remove_operations():
     with pytest.raises(ValidationError, match="Remove operation requires a path"):
         PatchOp[User].model_validate(
             {
+                "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
                 "operations": [
                     {"op": "remove", "value": "foobar"},
                 ],
@@ -192,6 +197,7 @@ def test_value_required_for_add_operations():
     """
     PatchOp[User].model_validate(
         {
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
             "operations": [
                 {"op": "replace", "path": "foobar"},
             ],
@@ -201,6 +207,7 @@ def test_value_required_for_add_operations():
     with pytest.raises(ValidationError):
         PatchOp[User].model_validate(
             {
+                "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
                 "operations": [
                     {"op": "add", "path": "foobar"},
                 ],
@@ -210,6 +217,7 @@ def test_value_required_for_add_operations():
 
     PatchOp[User].model_validate(
         {
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
             "operations": [
                 {"op": "remove", "path": "foobar"},
             ],
@@ -256,7 +264,10 @@ def test_validate_mutability_readonly_error():
     ]:
         with pytest.raises(ValidationError, match="mutability"):
             PatchOp[User].model_validate(
-                {"operations": [{"op": op, "path": "id", **extra}]},
+                {
+                    "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+                    "operations": [{"op": op, "path": "id", **extra}],
+                },
                 context={"scim": Context.RESOURCE_PATCH_REQUEST},
             )
 
@@ -266,13 +277,14 @@ def test_validate_mutability_readonly_via_complex_path():
     with pytest.raises(ValidationError, match="mutability"):
         PatchOp[User].model_validate(
             {
+                "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
                 "operations": [
                     {
                         "op": "replace",
                         "path": "groups.value",
                         "value": "new-group-id",
                     }
-                ]
+                ],
             },
             context={"scim": Context.RESOURCE_PATCH_REQUEST},
         )
@@ -282,7 +294,10 @@ def test_patch_remove_on_immutable_field_with_value_is_rejected():
     """Removing an existing immutable attribute via PATCH is rejected at runtime."""
     resource = ImmutableFieldResource.model_construct(locked="existing")
     patch_op = PatchOp[ImmutableFieldResource].model_validate(
-        {"operations": [{"op": "remove", "path": "locked"}]},
+        {
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+            "operations": [{"op": "remove", "path": "locked"}],
+        },
         context={"scim": Context.RESOURCE_PATCH_REQUEST},
     )
     with pytest.raises(MutabilityException):
@@ -293,7 +308,10 @@ def test_patch_remove_on_immutable_field_without_value_is_allowed():
     """Removing an unset immutable attribute is a no-op and is allowed."""
     resource = ImmutableFieldResource.model_construct()
     patch_op = PatchOp[ImmutableFieldResource].model_validate(
-        {"operations": [{"op": "remove", "path": "locked"}]},
+        {
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+            "operations": [{"op": "remove", "path": "locked"}],
+        },
         context={"scim": Context.RESOURCE_PATCH_REQUEST},
     )
     patch_op.patch(resource)
@@ -304,7 +322,10 @@ def test_patch_add_on_immutable_field_with_existing_value_is_rejected():
     """Adding to an immutable attribute that already has a value is rejected."""
     resource = ImmutableFieldResource.model_construct(locked="existing")
     patch_op = PatchOp[ImmutableFieldResource].model_validate(
-        {"operations": [{"op": "add", "path": "locked", "value": "new"}]},
+        {
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+            "operations": [{"op": "add", "path": "locked", "value": "new"}],
+        },
         context={"scim": Context.RESOURCE_PATCH_REQUEST},
     )
     with pytest.raises(MutabilityException):
@@ -315,7 +336,10 @@ def test_patch_add_on_immutable_field_without_value_is_allowed():
     """Adding to an immutable attribute with no previous value is allowed per RFC 7644."""
     resource = ImmutableFieldResource.model_construct()
     patch_op = PatchOp[ImmutableFieldResource].model_validate(
-        {"operations": [{"op": "add", "path": "locked", "value": "initial"}]},
+        {
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+            "operations": [{"op": "add", "path": "locked", "value": "initial"}],
+        },
         context={"scim": Context.RESOURCE_PATCH_REQUEST},
     )
     patch_op.patch(resource)
@@ -326,7 +350,10 @@ def test_patch_replace_on_immutable_field_with_different_value_is_rejected():
     """Replacing an immutable attribute with a different value is rejected."""
     resource = ImmutableFieldResource.model_construct(locked="existing")
     patch_op = PatchOp[ImmutableFieldResource].model_validate(
-        {"operations": [{"op": "replace", "path": "locked", "value": "other"}]},
+        {
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+            "operations": [{"op": "replace", "path": "locked", "value": "other"}],
+        },
         context={"scim": Context.RESOURCE_PATCH_REQUEST},
     )
     with pytest.raises(MutabilityException):
@@ -337,7 +364,10 @@ def test_patch_replace_on_immutable_field_with_same_value_is_allowed():
     """Replacing an immutable attribute with its current value is a no-op and is allowed."""
     resource = ImmutableFieldResource.model_construct(locked="existing")
     patch_op = PatchOp[ImmutableFieldResource].model_validate(
-        {"operations": [{"op": "replace", "path": "locked", "value": "existing"}]},
+        {
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+            "operations": [{"op": "replace", "path": "locked", "value": "existing"}],
+        },
         context={"scim": Context.RESOURCE_PATCH_REQUEST},
     )
     patch_op.patch(resource)
@@ -348,7 +378,10 @@ def test_patch_remove_on_readonly_field_is_rejected():
     """Removing a readOnly attribute via PATCH is rejected per RFC 7643 §7."""
     with pytest.raises(ValidationError, match="mutability"):
         PatchOp[User].model_validate(
-            {"operations": [{"op": "remove", "path": "id"}]},
+            {
+                "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+                "operations": [{"op": "remove", "path": "id"}],
+            },
             context={"scim": Context.RESOURCE_PATCH_REQUEST},
         )
 
@@ -357,9 +390,10 @@ def test_patch_validation_allows_unknown_fields():
     """Patch operations on unknown fields pass without mutability checks."""
     patch_op = PatchOp[User].model_validate(
         {
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
             "operations": [
                 {"op": "add", "path": "unknownField", "value": "some-value"},
-            ]
+            ],
         },
         context={"scim": Context.RESOURCE_PATCH_REQUEST},
     )
@@ -371,10 +405,11 @@ def test_patch_operations_on_readwrite_fields_allowed():
     """All patch operations are allowed on readWrite fields."""
     patch_op = PatchOp[User].model_validate(
         {
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
             "operations": [
                 {"op": "add", "path": "nickName", "value": "test-nick"},
                 {"op": "remove", "path": "nickName"},
-            ]
+            ],
         },
         context={"scim": Context.RESOURCE_PATCH_REQUEST},
     )
@@ -385,9 +420,10 @@ def test_remove_operation_on_unknown_field_validates():
     """Test remove operation on unknown field validates successfully."""
     patch_op = PatchOp[User].model_validate(
         {
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
             "operations": [
                 {"op": "remove", "path": "unknownField"},
-            ]
+            ],
         },
         context={"scim": Context.RESOURCE_PATCH_REQUEST},
     )
@@ -400,9 +436,10 @@ def test_remove_operation_on_non_required_field_allowed():
     # nickName is not required, so remove should be allowed
     PatchOp[User].model_validate(
         {
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
             "operations": [
                 {"op": "remove", "path": "nickName"},
-            ]
+            ],
         },
         context={"scim": Context.RESOURCE_PATCH_REQUEST},
     )
@@ -452,6 +489,7 @@ def test_add_remove_operations_on_group_members_allowed():
     # Test operations on group collection (not the immutable value field)
     patch_op = PatchOp[User].model_validate(
         {
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
             "operations": [
                 {"op": "add", "path": "emails", "value": {"value": "test@example.com"}},
                 {
@@ -459,7 +497,7 @@ def test_add_remove_operations_on_group_members_allowed():
                     "path": "emails",
                     "value": {"value": "test@example.com"},
                 },
-            ]
+            ],
         },
         context={"scim": Context.RESOURCE_PATCH_REQUEST},
     )
@@ -556,7 +594,10 @@ def test_validate_required_field_removal():
     # Test removing schemas (required field) should raise validation error
     with pytest.raises(ValidationError, match="required attribute cannot be removed"):
         PatchOp[User].model_validate(
-            {"operations": [{"op": "remove", "path": "schemas"}]},
+            {
+                "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+                "operations": [{"op": "remove", "path": "schemas"}],
+            },
             context={"scim": Context.RESOURCE_PATCH_REQUEST},
         )
 
