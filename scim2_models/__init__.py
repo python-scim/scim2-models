@@ -48,9 +48,7 @@ from .path import URN
 from .path import Path
 from .reference import URI
 from .reference import External
-from .reference import ExternalReference
 from .reference import Reference
-from .reference import URIReference
 from .resources.enterprise_user import EnterpriseUser
 from .resources.enterprise_user import Manager
 from .resources.group import Group
@@ -112,7 +110,6 @@ __all__ = [
     "ExtensibleStringEnum",
     "Extension",
     "External",
-    "ExternalReference",
     "Filter",
     "Group",
     "GroupMember",
@@ -166,7 +163,6 @@ __all__ = [
     "Sort",
     "TooManyException",
     "URI",
-    "URIReference",
     "URN",
     "Uniqueness",
     "UniquenessException",

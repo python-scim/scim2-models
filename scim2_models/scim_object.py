@@ -1,6 +1,5 @@
 """Base SCIM object classes with schema identification."""
 
-import warnings
 from typing import Annotated
 from typing import Any
 from typing import ClassVar
@@ -9,7 +8,6 @@ from typing import TypeVar
 from pydantic import ValidationInfo
 from pydantic import ValidatorFunctionWrapHandler
 from pydantic import model_validator
-from pydantic._internal._model_construction import ModelMetaclass
 from pydantic_core import PydanticCustomError
 from typing_extensions import Self
 
@@ -20,46 +18,7 @@ from .context import Context
 from .path import URN
 
 
-class ScimMetaclass(ModelMetaclass):
-    """Metaclass for SCIM objects that handles __schema__ backward compatibility."""
-
-    def __new__(
-        mcs,
-        name: str,
-        bases: tuple[type, ...],
-        namespace: dict[str, Any],
-        **kwargs: Any,
-    ) -> type:
-        cls = super().__new__(mcs, name, bases, namespace, **kwargs)
-
-        if name in ("ScimObject", "Resource", "Extension"):
-            return cls
-
-        if getattr(cls, "__schema__", None) is None:
-            schemas_field = cls.model_fields.get("schemas")  # type: ignore[attr-defined]
-            if (
-                schemas_field
-                and schemas_field.default
-                and isinstance(schemas_field.default, list)
-                and schemas_field.default
-            ):
-                schema_value = schemas_field.default[0]
-                try:
-                    cls.__schema__ = URN(schema_value)  # type: ignore[attr-defined]
-                    warnings.warn(
-                        f"{name}: Defining schemas with a default value is deprecated "
-                        f"and will be removed in version 0.7. "
-                        f'Use __schema__ = URN("{schema_value}") instead.',
-                        DeprecationWarning,
-                        stacklevel=2,
-                    )
-                except ValueError:
-                    pass
-
-        return cls
-
-
-class ScimObject(BaseModel, metaclass=ScimMetaclass):
+class ScimObject(BaseModel):
     __schema__: ClassVar[URN | None] = None
 
     schemas: Annotated[list[str], Required.true, Returned.always]

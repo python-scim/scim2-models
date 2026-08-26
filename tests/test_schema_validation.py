@@ -57,14 +57,6 @@ def test_schemas_auto_populated():
     assert user.schemas == ["urn:ietf:params:scim:schemas:core:2.0:User"]
 
 
-def test_deprecation_warning_old_style():
-    """DeprecationWarning is raised for old-style schema definition."""
-    with pytest.warns(DeprecationWarning, match="removed in version 0.7"):
-
-        class OldStyleResource(Resource):
-            schemas: list[str] = ["urn:test:old"]
-
-
 def test_no_validation_without_context():
     """No schema validation without SCIM context."""
     user = User.model_validate({"schemas": ["wrong:schema"], "userName": "foo"})
@@ -187,3 +179,18 @@ def test_from_resource_without_schema():
 
     with pytest.raises(ValueError, match="has no __schema__ defined"):
         ResourceType.from_resource(NoSchemaResource)
+
+
+def test_extension_schemas_validation_without_schema():
+    """Extension schemas are not checked when the model defines no __schema__."""
+
+    class NoSchemaResource(Resource):
+        pass
+
+    NoSchemaResource.__schema__ = None  # type: ignore[assignment]
+
+    resource = NoSchemaResource.model_validate(
+        {"schemas": ["urn:example:whatever"], "id": "id"},
+        scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
+    )
+    assert resource.schemas == ["urn:example:whatever"]

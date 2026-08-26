@@ -1,19 +1,15 @@
 """Test Reference type functionality."""
 
-from typing import Annotated
 from typing import Any
-from typing import Literal
 from typing import Union
 
 import pytest
 
 from scim2_models import URI
 from scim2_models import External
-from scim2_models import ExternalReference
 from scim2_models import Reference
-from scim2_models import URIReference
-from scim2_models.annotations import Required
 from scim2_models.base import BaseModel
+from scim2_models.path import URN
 
 
 class User:
@@ -27,7 +23,7 @@ class Group:
 class ReferenceTestModel(BaseModel):
     """Test model with Reference fields."""
 
-    schemas: Annotated[list[str], Required.true] = ["urn:example:test"]
+    __schema__ = URN("urn:example:test")
     uri_ref: Reference[URI] | None = None
     ext_ref: Reference[External] | None = None
     resource_ref: Reference["User"] | None = None
@@ -157,51 +153,6 @@ def test_reference_class_name():
     """Test that Reference subclass has descriptive name."""
     ref_type = Reference[Union["User", "Group"]]
     assert ref_type.__name__ == "Reference[User | Group]"
-
-
-# Deprecation warnings tests
-
-
-def test_external_reference_deprecation_warning():
-    """Test that ExternalReference emits a deprecation warning."""
-    with pytest.warns(DeprecationWarning, match="Reference\\[ExternalReference\\]"):
-        Reference[ExternalReference]
-
-
-def test_uri_reference_deprecation_warning():
-    """Test that URIReference emits a deprecation warning."""
-    with pytest.warns(DeprecationWarning, match="Reference\\[URIReference\\]"):
-        Reference[URIReference]
-
-
-def test_literal_reference_deprecation_warning():
-    """Test that Literal type parameter emits a deprecation warning."""
-    with pytest.warns(DeprecationWarning, match='Reference\\[Literal\\["User"\\]\\]'):
-        Reference[Literal["User"]]
-
-
-def test_deprecated_external_reference_still_works():
-    """Test that deprecated ExternalReference still produces valid Reference."""
-    with pytest.warns(DeprecationWarning):
-        ref_type = Reference[ExternalReference]
-
-    assert ref_type.get_scim_reference_types() == ["external"]
-
-
-def test_deprecated_uri_reference_still_works():
-    """Test that deprecated URIReference still produces valid Reference."""
-    with pytest.warns(DeprecationWarning):
-        ref_type = Reference[URIReference]
-
-    assert ref_type.get_scim_reference_types() == ["uri"]
-
-
-def test_deprecated_literal_still_works():
-    """Test that deprecated Literal syntax still produces valid Reference."""
-    with pytest.warns(DeprecationWarning):
-        ref_type = Reference[Literal["User"]]
-
-    assert ref_type.get_scim_reference_types() == ["User"]
 
 
 def test_reference_any_type():

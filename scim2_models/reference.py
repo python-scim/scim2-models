@@ -1,7 +1,5 @@
-import warnings
 from typing import Any
 from typing import Generic
-from typing import Literal
 from typing import TypeVar
 from typing import get_args
 from typing import get_origin
@@ -36,14 +34,6 @@ class URI:
     """
 
 
-class ExternalReference:
-    """Deprecated. Use :class:`External` instead."""
-
-
-class URIReference:
-    """Deprecated. Use :class:`URI` instead."""
-
-
 class Reference(str, Generic[ReferenceTypes]):
     """Reference type as defined in :rfc:`RFC7643 §2.3.7 <7643#section-2.3.7>`.
 
@@ -62,13 +52,6 @@ class Reference(str, Generic[ReferenceTypes]):
             manager: Reference["User"] | None = None
             members: Reference[Union["User", "Group"]] | None = None
 
-    .. versionchanged:: 0.6.0
-
-        - ``Reference[ExternalReference]`` becomes ``Reference[External]``
-        - ``Reference[URIReference]`` becomes ``Reference[URI]``
-        - ``Reference[Literal["User"]]`` becomes ``Reference["User"]``
-        - ``Reference[Literal["User"] | Literal["Group"]]`` becomes
-          ``Reference[Union["User", "Group"]]``
     """
 
     __slots__ = ()
@@ -134,23 +117,7 @@ def _to_type_string(item: Any) -> str:
         return "uri"
     if item is External:
         return "external"
-    if item is ExternalReference:
-        warnings.warn(
-            "Reference[ExternalReference] is deprecated, "
-            "use Reference[External] instead. Will be removed in 0.7.0.",
-            DeprecationWarning,
-            stacklevel=4,
-        )
-        return "external"
     if item is URI:
-        return "uri"
-    if item is URIReference:
-        warnings.warn(
-            "Reference[URIReference] is deprecated, "
-            "use Reference[URI] instead. Will be removed in 0.7.0.",
-            DeprecationWarning,
-            stacklevel=4,
-        )
         return "uri"
     if isinstance(item, str):
         return item
@@ -158,16 +125,6 @@ def _to_type_string(item: Any) -> str:
         return item.__name__
     if hasattr(item, "__forward_arg__"):
         return item.__forward_arg__  # type: ignore[no-any-return]
-    # Support Literal["User"] for backwards compatibility
-    if get_origin(item) is Literal:
-        value = get_args(item)[0]
-        warnings.warn(
-            f'Reference[Literal["{value}"]] is deprecated, '
-            f'use Reference["{value}"] instead. Will be removed in 0.7.0.',
-            DeprecationWarning,
-            stacklevel=4,
-        )
-        return value  # type: ignore[no-any-return]
     raise TypeError(f"Invalid reference type: {item!r}")
 
 

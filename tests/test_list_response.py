@@ -1,5 +1,3 @@
-from typing import Annotated
-
 import pytest
 from pydantic import ValidationError
 
@@ -7,11 +5,11 @@ from scim2_models import Context
 from scim2_models import EnterpriseUser
 from scim2_models import Group
 from scim2_models import ListResponse
-from scim2_models import Required
 from scim2_models import Resource
 from scim2_models import ResourceType
 from scim2_models import ServiceProviderConfig
 from scim2_models import User
+from scim2_models.path import URN
 
 
 def test_user(load_sample):
@@ -108,7 +106,7 @@ def test_mixed_types(load_sample):
 
 
 class Foobar(Resource):
-    schemas: Annotated[list[str], Required.true] = ["foobarschema"]
+    __schema__ = URN("urn:example:foobar")
 
 
 def test_mixed_types_type_missing(load_sample):

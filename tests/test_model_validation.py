@@ -8,11 +8,12 @@ from scim2_models.annotations import Required
 from scim2_models.annotations import Returned
 from scim2_models.attributes import ComplexAttribute
 from scim2_models.context import Context
+from scim2_models.path import URN
 from scim2_models.resources.resource import Resource
 
 
 class RetResource(Resource):
-    schemas: Annotated[list[str], Required.true] = ["org:example:RetResource"]
+    __schema__ = URN("urn:example:RetResource")
 
     always_returned: Annotated[str | None, Returned.always] = None
     never_returned: Annotated[str | None, Returned.never] = None
@@ -21,7 +22,7 @@ class RetResource(Resource):
 
 
 class MutResource(Resource):
-    schemas: Annotated[list[str], Required.true] = ["org:example:MutResource"]
+    __schema__ = URN("urn:example:MutResource")
 
     read_only: Annotated[str | None, Mutability.read_only] = None
     read_write: Annotated[str | None, Mutability.read_write] = None
@@ -30,7 +31,7 @@ class MutResource(Resource):
 
 
 class ReqResource(Resource):
-    schemas: Annotated[list[str], Required.true] = ["org:example:ReqResource"]
+    __schema__ = URN("urn:example:ReqResource")
 
     required: Annotated[str | None, Required.true] = None
     optional: Annotated[str | None, Required.false] = None
@@ -46,7 +47,7 @@ def test_validate_default_mutability():
             "writeOnly": "x",
         },
     ) == MutResource(
-        schemas=["org:example:MutResource"],
+        schemas=["urn:example:MutResource"],
         readWrite="x",
         immutable="x",
         writeOnly="x",
@@ -62,7 +63,7 @@ def test_validate_default_mutability():
         },
         scim_ctx=None,
     ) == MutResource(
-        schemas=["org:example:MutResource"],
+        schemas=["urn:example:MutResource"],
         readWrite="x",
         immutable="x",
         writeOnly="x",
@@ -78,7 +79,7 @@ def test_validate_default_mutability():
         },
         scim_ctx=Context.DEFAULT,
     ) == MutResource(
-        schemas=["org:example:MutResource"],
+        schemas=["urn:example:MutResource"],
         readWrite="x",
         immutable="x",
         writeOnly="x",
@@ -101,7 +102,7 @@ def test_validate_creation_request_mutability():
         },
         scim_ctx=Context.RESOURCE_CREATION_REQUEST,
     ) == MutResource(
-        schemas=["org:example:MutResource"],
+        schemas=["urn:example:MutResource"],
         readWrite="x",
         immutable="x",
         writeOnly="x",
@@ -122,7 +123,7 @@ def test_validate_query_request_mutability():
         },
         scim_ctx=Context.RESOURCE_QUERY_REQUEST,
     ) == MutResource(
-        schemas=["org:example:MutResource"],
+        schemas=["urn:example:MutResource"],
         readOnly="x",
         readWrite="x",
         immutable="x",
@@ -157,7 +158,7 @@ def test_mutability_error_location_is_prefixed_by_its_parents():
         write_only: Annotated[str | None, Mutability.write_only] = None
 
     class SubResource(Resource):
-        schemas: Annotated[list[str], Required.true] = ["org:example:SubResource"]
+        __schema__ = URN("urn:example:SubResource")
 
         subs: list[Sub] | None = None
 
@@ -190,7 +191,7 @@ def test_validate_replacement_request_mutability():
             scim_ctx=Context.RESOURCE_REPLACEMENT_REQUEST,
             original=original,
         ) == MutResource(
-            schemas=["org:example:MutResource"],
+            schemas=["urn:example:MutResource"],
             read_only="y",
             readWrite="x",
             writeOnly="x",
@@ -232,7 +233,7 @@ def test_validate_replacement_request_mutability_sub_attributes():
         immutable: Annotated[str | None, Mutability.immutable] = None
 
     class Super(Resource):
-        schemas: Annotated[list[str], Required.true] = ["org:example:Super"]
+        __schema__ = URN("urn:example:Super")
         sub: Sub | None = None
 
     original = Super(sub=Sub(immutable="y"))
@@ -246,7 +247,7 @@ def test_validate_replacement_request_mutability_sub_attributes():
             scim_ctx=Context.RESOURCE_REPLACEMENT_REQUEST,
             original=original,
         ) == Super(
-            schemas=["org:example:Super"],
+            schemas=["urn:example:Super"],
             sub=Sub(
                 immutable="y",
             ),
@@ -304,7 +305,7 @@ def test_replace_recurses_into_complex_attributes():
         immutable: Annotated[str | None, Mutability.immutable] = None
 
     class Super(Resource):
-        schemas: Annotated[list[str], Required.true] = ["org:example:Super"]
+        __schema__ = URN("urn:example:Super")
         sub: Sub | None = None
 
     original = Super(sub=Sub(immutable="y"))
@@ -358,7 +359,9 @@ def test_replace_does_not_assert_the_fields_it_copies():
 
     assert replacement.read_only == "server"
     assert replacement.immutable == "y"
-    assert replacement.model_fields_set == {"read_write"}
+    assert "read_write" in replacement.model_fields_set
+    assert "read_only" not in replacement.model_fields_set
+    assert "immutable" not in replacement.model_fields_set
 
 
 def test_replace_copies_read_only_in_nested_complex_attribute():
@@ -369,7 +372,7 @@ def test_replace_copies_read_only_in_nested_complex_attribute():
         read_write: Annotated[str | None, Mutability.read_write] = None
 
     class Super(Resource):
-        schemas: Annotated[list[str], Required.true] = ["org:example:Super"]
+        __schema__ = URN("urn:example:Super")
         sub: Sub | None = None
 
     original = Super(sub=Sub(read_only="server", read_write="old"))
@@ -470,7 +473,7 @@ def test_validate_search_request_mutability():
         },
         scim_ctx=Context.SEARCH_REQUEST,
     ) == MutResource(
-        schemas=["org:example:MutResource"],
+        schemas=["urn:example:MutResource"],
         readOnly="x",
         readWrite="x",
         immutable="x",
@@ -492,7 +495,7 @@ def test_validate_default_response_returnability():
     """When no scim context is passed, every attributes are dumped."""
     assert RetResource.model_validate(
         {
-            "schemas": ["org:example:RetResource"],
+            "schemas": ["urn:example:RetResource"],
             "id": "id",
             "alwaysReturned": "x",
             "neverReturned": "x",
@@ -500,7 +503,7 @@ def test_validate_default_response_returnability():
             "requestReturned": "x",
         },
     ) == RetResource(
-        schemas=["org:example:RetResource"],
+        schemas=["urn:example:RetResource"],
         id="id",
         alwaysReturned="x",
         neverReturned="x",
@@ -510,7 +513,7 @@ def test_validate_default_response_returnability():
 
     assert RetResource.model_validate(
         {
-            "schemas": ["org:example:RetResource"],
+            "schemas": ["urn:example:RetResource"],
             "id": "id",
             "alwaysReturned": "x",
             "neverReturned": "x",
@@ -519,7 +522,7 @@ def test_validate_default_response_returnability():
         },
         scim_ctx=None,
     ) == RetResource(
-        schemas=["org:example:RetResource"],
+        schemas=["urn:example:RetResource"],
         id="id",
         alwaysReturned="x",
         neverReturned="x",
@@ -529,7 +532,7 @@ def test_validate_default_response_returnability():
 
     assert RetResource.model_validate(
         {
-            "schemas": ["org:example:RetResource"],
+            "schemas": ["urn:example:RetResource"],
             "id": "id",
             "alwaysReturned": "x",
             "neverReturned": "x",
@@ -538,7 +541,7 @@ def test_validate_default_response_returnability():
         },
         scim_ctx=Context.DEFAULT,
     ) == RetResource(
-        schemas=["org:example:RetResource"],
+        schemas=["urn:example:RetResource"],
         id="id",
         alwaysReturned="x",
         neverReturned="x",
@@ -565,7 +568,7 @@ def test_validate_response_returnability(context):
     """
     assert RetResource.model_validate(
         {
-            "schemas": ["org:example:RetResource"],
+            "schemas": ["urn:example:RetResource"],
             "id": "id",
             "alwaysReturned": "x",
             "defaultReturned": "x",
@@ -573,7 +576,7 @@ def test_validate_response_returnability(context):
         },
         scim_ctx=context,
     ) == RetResource(
-        schemas=["org:example:RetResource"],
+        schemas=["urn:example:RetResource"],
         id="id",
         alwaysReturned="x",
         defaultReturned="x",
@@ -619,7 +622,7 @@ def test_validate_default_necessity():
             "optional": "x",
         },
     ) == ReqResource(
-        schemas=["org:example:ReqResource"],
+        schemas=["urn:example:ReqResource"],
         required="x",
         optional="x",
     )
@@ -631,7 +634,7 @@ def test_validate_default_necessity():
         },
         scim_ctx=None,
     ) == ReqResource(
-        schemas=["org:example:ReqResource"],
+        schemas=["urn:example:ReqResource"],
         required="x",
         optional="x",
     )
@@ -643,7 +646,7 @@ def test_validate_default_necessity():
         },
         scim_ctx=Context.DEFAULT,
     ) == ReqResource(
-        schemas=["org:example:ReqResource"],
+        schemas=["urn:example:ReqResource"],
         required="x",
         optional="x",
     )
@@ -669,7 +672,7 @@ def test_validate_creation_and_replacement_request_necessity(context):
         },
         scim_ctx=context,
     ) == ReqResource(
-        schemas=["org:example:ReqResource"],
+        schemas=["urn:example:ReqResource"],
         required="x",
         optional="x",
     )
@@ -680,7 +683,7 @@ def test_validate_creation_and_replacement_request_necessity(context):
         },
         scim_ctx=context,
     ) == ReqResource(
-        schemas=["org:example:ReqResource"],
+        schemas=["urn:example:ReqResource"],
         required="x",
     )
 
@@ -717,7 +720,7 @@ def test_validate_query_and_search_request_necessity(context):
         },
         scim_ctx=context,
     ) == ReqResource(
-        schemas=["org:example:ReqResource"],
+        schemas=["urn:example:ReqResource"],
         id="x",
         required="x",
         optional="x",
@@ -730,7 +733,7 @@ def test_validate_query_and_search_request_necessity(context):
         },
         scim_ctx=context,
     ) == ReqResource(
-        schemas=["org:example:ReqResource"],
+        schemas=["urn:example:ReqResource"],
         id="x",
         required="x",
     )
@@ -742,7 +745,7 @@ def test_validate_query_and_search_request_necessity(context):
         },
         scim_ctx=context,
     ) == ReqResource(
-        schemas=["org:example:ReqResource"],
+        schemas=["urn:example:ReqResource"],
         id="x",
         optional="x",
     )
@@ -751,7 +754,7 @@ def test_validate_query_and_search_request_necessity(context):
 def test_validate_json_payload():
     """JSON payloads are validated like already decoded payloads."""
     assert MutResource.model_validate_json('{"readWrite": "x"}') == MutResource(
-        schemas=["org:example:MutResource"],
+        schemas=["urn:example:MutResource"],
         readWrite="x",
     )
 
@@ -759,7 +762,7 @@ def test_validate_json_payload():
 def test_validate_json_bytes_payload():
     """JSON payloads can be passed as bytes."""
     assert MutResource.model_validate_json(b'{"readWrite": "x"}') == MutResource(
-        schemas=["org:example:MutResource"],
+        schemas=["urn:example:MutResource"],
         readWrite="x",
     )
 

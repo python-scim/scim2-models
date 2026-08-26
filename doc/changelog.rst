@@ -51,6 +51,17 @@ Fixed
 - Looking a model up by schema no longer crashes when the model list mixes resources with messages such as :class:`~scim2_models.ListResponse`.
 - Check recursively extensions' replace constraints.
 
+Removed
+^^^^^^^
+- ``Error.make_*_error()`` class methods, deprecated in 0.6.0. Use the matching
+  :class:`~scim2_models.SCIMException` subclass and its ``to_error()`` method instead.
+- The ``ExternalReference`` and ``URIReference`` aliases, deprecated in 0.6.0. Use
+  :class:`~scim2_models.External` and :class:`~scim2_models.URI` instead.
+- The ``Reference[Literal["X"]]`` syntax, deprecated in 0.6.0. Use ``Reference["X"]`` instead.
+- Defining a model schema with a ``schemas`` default value, deprecated in 0.6.0. Use
+  ``__schema__ = URN("...")`` instead. Note that ``__schema__`` only accepts valid URNs, while
+  the removed syntax silently ignored invalid ones.
+
 Deprecated
 ^^^^^^^^^^
 - ``Resource.get_by_schema`` and ``Resource.get_by_payload`` are deprecated in favor of
