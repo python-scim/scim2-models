@@ -7,7 +7,8 @@ name = "scim2-models"
 version = "0.6.12"
 description = "SCIM2 models serialization and validation with pydantic"
 authors = [{name="Yaal Coop", email="contact@yaal.coop"}]
-license = {file = "LICENSE"}
+license = "Apache-2.0"
+license-files = ["LICENSE"]
 readme = "README.md"
 keywords = ["scim", "scim2", "provisioning", "pydantic", "rfc7643", "rfc7644"]
 classifiers = [
@@ -19,7 +20,6 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: Implementation :: CPython",
-    "License :: OSI Approved :: Apache Software License",
     "Environment :: Web Environment",
     "Programming Language :: Python",
     "Operating System :: OS Independent",
