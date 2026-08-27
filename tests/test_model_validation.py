@@ -9,7 +9,9 @@ from scim2_models.annotations import Returned
 from scim2_models.attributes import ComplexAttribute
 from scim2_models.context import Context
 from scim2_models.path import URN
+from scim2_models.resources.enterprise_user import EnterpriseUser
 from scim2_models.resources.resource import Resource
+from scim2_models.resources.user import User
 
 
 class RetResource(Resource):
@@ -41,6 +43,7 @@ def test_validate_default_mutability():
     """Test query validation for resource creation request."""
     assert MutResource.model_validate(
         {
+            "schemas": ["urn:example:MutResource"],
             "readOnly": "x",
             "readWrite": "x",
             "immutable": "x",
@@ -56,6 +59,7 @@ def test_validate_default_mutability():
 
     assert MutResource.model_validate(
         {
+            "schemas": ["urn:example:MutResource"],
             "readOnly": "x",
             "readWrite": "x",
             "immutable": "x",
@@ -72,6 +76,7 @@ def test_validate_default_mutability():
 
     assert MutResource.model_validate(
         {
+            "schemas": ["urn:example:MutResource"],
             "readOnly": "x",
             "readWrite": "x",
             "immutable": "x",
@@ -95,6 +100,7 @@ def test_validate_creation_request_mutability():
     """
     assert MutResource.model_validate(
         {
+            "schemas": ["urn:example:MutResource"],
             "readWrite": "x",
             "immutable": "x",
             "writeOnly": "x",
@@ -117,6 +123,7 @@ def test_validate_query_request_mutability():
     """
     assert MutResource.model_validate(
         {
+            "schemas": ["urn:example:MutResource"],
             "readOnly": "x",
             "readWrite": "x",
             "immutable": "x",
@@ -135,6 +142,7 @@ def test_validate_query_request_mutability():
     ):
         MutResource.model_validate(
             {
+                "schemas": ["urn:example:MutResource"],
                 "writeOnly": "x",
             },
             scim_ctx=Context.RESOURCE_QUERY_REQUEST,
@@ -145,7 +153,8 @@ def test_mutability_error_is_located_on_the_field():
     """Mutability errors carry the location of the offending field."""
     with pytest.raises(ValidationError) as exc_info:
         MutResource.model_validate(
-            {"writeOnly": "x"}, scim_ctx=Context.RESOURCE_QUERY_REQUEST
+            {"schemas": ["urn:example:MutResource"], "writeOnly": "x"},
+            scim_ctx=Context.RESOURCE_QUERY_REQUEST,
         )
 
     assert [error["loc"] for error in exc_info.value.errors()] == [("write_only",)]
@@ -164,7 +173,8 @@ def test_mutability_error_location_is_prefixed_by_its_parents():
 
     with pytest.raises(ValidationError) as exc_info:
         SubResource.model_validate(
-            {"subs": [{"writeOnly": "x"}]}, scim_ctx=Context.RESOURCE_QUERY_REQUEST
+            {"schemas": ["urn:example:SubResource"], "subs": [{"writeOnly": "x"}]},
+            scim_ctx=Context.RESOURCE_QUERY_REQUEST,
         )
 
     assert [error["loc"] for error in exc_info.value.errors()] == [
@@ -183,6 +193,7 @@ def test_validate_replacement_request_mutability():
     with pytest.warns(DeprecationWarning, match="original"):
         assert MutResource.model_validate(
             {
+                "schemas": ["urn:example:MutResource"],
                 "readOnly": "x",
                 "readWrite": "x",
                 "writeOnly": "x",
@@ -201,6 +212,7 @@ def test_validate_replacement_request_mutability():
     with pytest.warns(DeprecationWarning, match="original"):
         MutResource.model_validate(
             {
+                "schemas": ["urn:example:MutResource"],
                 "immutable": "y",
             },
             scim_ctx=Context.RESOURCE_REPLACEMENT_REQUEST,
@@ -214,6 +226,7 @@ def test_validate_replacement_request_mutability():
         ):
             MutResource.model_validate(
                 {
+                    "schemas": ["urn:example:MutResource"],
                     "immutable": "x",
                 },
                 scim_ctx=Context.RESOURCE_REPLACEMENT_REQUEST,
@@ -240,9 +253,10 @@ def test_validate_replacement_request_mutability_sub_attributes():
     with pytest.warns(DeprecationWarning, match="original"):
         assert Super.model_validate(
             {
+                "schemas": ["urn:example:Super"],
                 "sub": {
                     "immutable": "y",
-                }
+                },
             },
             scim_ctx=Context.RESOURCE_REPLACEMENT_REQUEST,
             original=original,
@@ -256,9 +270,10 @@ def test_validate_replacement_request_mutability_sub_attributes():
     with pytest.warns(DeprecationWarning, match="original"):
         Super.model_validate(
             {
+                "schemas": ["urn:example:Super"],
                 "sub": {
                     "immutable": "y",
-                }
+                },
             },
             scim_ctx=Context.RESOURCE_REPLACEMENT_REQUEST,
             original=original,
@@ -271,9 +286,10 @@ def test_validate_replacement_request_mutability_sub_attributes():
         ):
             Super.model_validate(
                 {
+                    "schemas": ["urn:example:Super"],
                     "sub": {
                         "immutable": "x",
-                    }
+                    },
                 },
                 scim_ctx=Context.RESOURCE_REPLACEMENT_REQUEST,
                 original=original,
@@ -430,7 +446,7 @@ def test_original_parameter_emits_deprecation_warning():
     original = MutResource(immutable="y")
     with pytest.warns(DeprecationWarning, match="original"):
         MutResource.model_validate(
-            {"immutable": "y"},
+            {"schemas": ["urn:example:MutResource"], "immutable": "y"},
             scim_ctx=Context.RESOURCE_REPLACEMENT_REQUEST,
             original=original,
         )
@@ -442,7 +458,7 @@ def test_replacement_request_without_original_parameter():
 
     original = MutResource(immutable="y")
     replacement = MutResource.model_validate(
-        {"immutable": "x"},
+        {"schemas": ["urn:example:MutResource"], "immutable": "x"},
         scim_ctx=Context.RESOURCE_REPLACEMENT_REQUEST,
     )
     with pytest.raises(MutabilityException):
@@ -453,7 +469,7 @@ def test_replacement_request_without_original_allows_matching_values():
     """Replacement requests validate and replace succeeds with identical immutable values."""
     original = MutResource(immutable="y")
     replacement = MutResource.model_validate(
-        {"immutable": "y"},
+        {"schemas": ["urn:example:MutResource"], "immutable": "y"},
         scim_ctx=Context.RESOURCE_REPLACEMENT_REQUEST,
     )
     replacement.replace(original)
@@ -467,6 +483,7 @@ def test_validate_search_request_mutability():
     """
     assert MutResource.model_validate(
         {
+            "schemas": ["urn:example:MutResource"],
             "readOnly": "x",
             "readWrite": "x",
             "immutable": "x",
@@ -485,6 +502,7 @@ def test_validate_search_request_mutability():
     ):
         MutResource.model_validate(
             {
+                "schemas": ["urn:example:MutResource"],
                 "writeOnly": "x",
             },
             scim_ctx=Context.SEARCH_REQUEST,
@@ -588,7 +606,9 @@ def test_validate_response_returnability(context):
         ValidationError,
         match="Field 'always_returned' has returnability 'always' but value is missing or null",
     ):
-        RetResource.model_validate({"id": "id"}, scim_ctx=context)
+        RetResource.model_validate(
+            {"schemas": ["urn:example:RetResource"], "id": "id"}, scim_ctx=context
+        )
 
     # always is None
     with pytest.raises(
@@ -596,7 +616,12 @@ def test_validate_response_returnability(context):
         match="Field 'always_returned' has returnability 'always' but value is missing or null",
     ):
         RetResource.model_validate(
-            {"id": "id", "alwaysReturned": None}, scim_ctx=context
+            {
+                "schemas": ["urn:example:RetResource"],
+                "id": "id",
+                "alwaysReturned": None,
+            },
+            scim_ctx=context,
         )
 
     # never is not None
@@ -606,6 +631,7 @@ def test_validate_response_returnability(context):
     ):
         RetResource.model_validate(
             {
+                "schemas": ["urn:example:RetResource"],
                 "id": "id",
                 "alwaysReturned": "x",
                 "neverReturned": "x",
@@ -618,6 +644,7 @@ def test_validate_default_necessity():
     """Test query validation for resource creation request."""
     assert ReqResource.model_validate(
         {
+            "schemas": ["urn:example:ReqResource"],
             "required": "x",
             "optional": "x",
         },
@@ -629,6 +656,7 @@ def test_validate_default_necessity():
 
     assert ReqResource.model_validate(
         {
+            "schemas": ["urn:example:ReqResource"],
             "required": "x",
             "optional": "x",
         },
@@ -641,6 +669,7 @@ def test_validate_default_necessity():
 
     assert ReqResource.model_validate(
         {
+            "schemas": ["urn:example:ReqResource"],
             "required": "x",
             "optional": "x",
         },
@@ -667,6 +696,7 @@ def test_validate_creation_and_replacement_request_necessity(context):
     """
     assert ReqResource.model_validate(
         {
+            "schemas": ["urn:example:ReqResource"],
             "required": "x",
             "optional": "x",
         },
@@ -679,6 +709,7 @@ def test_validate_creation_and_replacement_request_necessity(context):
 
     assert ReqResource.model_validate(
         {
+            "schemas": ["urn:example:ReqResource"],
             "required": "x",
         },
         scim_ctx=context,
@@ -693,6 +724,7 @@ def test_validate_creation_and_replacement_request_necessity(context):
     ):
         ReqResource.model_validate(
             {
+                "schemas": ["urn:example:ReqResource"],
                 "optional": "x",
             },
             scim_ctx=context,
@@ -714,6 +746,7 @@ def test_validate_query_and_search_request_necessity(context):
     """
     assert ReqResource.model_validate(
         {
+            "schemas": ["urn:example:ReqResource"],
             "id": "x",
             "required": "x",
             "optional": "x",
@@ -728,6 +761,7 @@ def test_validate_query_and_search_request_necessity(context):
 
     assert ReqResource.model_validate(
         {
+            "schemas": ["urn:example:ReqResource"],
             "id": "x",
             "required": "x",
         },
@@ -740,6 +774,7 @@ def test_validate_query_and_search_request_necessity(context):
 
     assert ReqResource.model_validate(
         {
+            "schemas": ["urn:example:ReqResource"],
             "id": "x",
             "optional": "x",
         },
@@ -754,16 +789,14 @@ def test_validate_query_and_search_request_necessity(context):
 def test_validate_json_payload():
     """JSON payloads are validated like already decoded payloads."""
     assert MutResource.model_validate_json('{"readWrite": "x"}') == MutResource(
-        schemas=["urn:example:MutResource"],
-        readWrite="x",
+        readWrite="x"
     )
 
 
 def test_validate_json_bytes_payload():
     """JSON payloads can be passed as bytes."""
     assert MutResource.model_validate_json(b'{"readWrite": "x"}') == MutResource(
-        schemas=["urn:example:MutResource"],
-        readWrite="x",
+        readWrite="x"
     )
 
 
@@ -774,7 +807,7 @@ def test_validate_json_applies_the_scim_context():
         match="Field 'write_only' has mutability 'writeOnly' but this in not valid in resource query request context",
     ):
         MutResource.model_validate_json(
-            '{"writeOnly": "x"}',
+            '{"schemas": ["urn:example:MutResource"], "writeOnly": "x"}',
             scim_ctx=Context.RESOURCE_QUERY_REQUEST,
         )
 
@@ -786,7 +819,7 @@ def test_validate_json_with_an_explicit_validation_context():
         match="Field 'write_only' has mutability 'writeOnly' but this in not valid in resource query request context",
     ):
         MutResource.model_validate_json(
-            '{"writeOnly": "x"}',
+            '{"schemas": ["urn:example:MutResource"], "writeOnly": "x"}',
             context={"scim": Context.RESOURCE_QUERY_REQUEST},
         )
 
@@ -795,3 +828,118 @@ def test_validate_json_rejects_malformed_payloads():
     """Malformed JSON payloads raise a ValidationError like any invalid payload."""
     with pytest.raises(ValidationError, match="Invalid JSON"):
         MutResource.model_validate_json("{invalid")
+
+
+@pytest.mark.parametrize(
+    "context",
+    [Context.RESOURCE_CREATION_REQUEST, Context.RESOURCE_QUERY_RESPONSE],
+)
+def test_missing_schemas_is_tolerated(context):
+    """A payload omitting 'schemas' asserts nothing, so it contradicts nothing.
+
+    :rfc:`RFC7644 §3.4.3 <7644#section-3.4.3>` displays partial responses
+    where resources bear no 'schemas' attribute. Their type comes from the
+    model they are validated against, so they are read as-is, and the
+    omission stays visible.
+    """
+    obj = User.model_validate({"id": "id", "userName": "foobar"}, scim_ctx=context)
+
+    assert obj.schemas == []
+    assert "schemas" not in obj.model_fields_set
+
+
+def test_serialized_schemas_come_from_the_model():
+    """The 'schemas' attribute of SCIM payloads is built from the model definition.
+
+    It describes the serialized document rather than the object, so it is
+    written even when the validated payload omitted it.
+    """
+    obj = User.model_validate(
+        {"id": "id", "userName": "foobar"}, scim_ctx=Context.RESOURCE_QUERY_RESPONSE
+    )
+    assert obj.schemas == []
+    assert obj.model_dump()["schemas"] == ["urn:ietf:params:scim:schemas:core:2.0:User"]
+
+    assert User[EnterpriseUser](user_name="foobar").model_dump()["schemas"] == [
+        "urn:ietf:params:scim:schemas:core:2.0:User",
+        "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User",
+    ]
+
+
+def test_serialized_schemas_keep_unknown_schemas():
+    """Schemas a peer sent that the model does not know of are kept.
+
+    :rfc:`RFC7643 §3 <7643#section-3>` does not restrict the array to the
+    schemas a given implementation knows about.
+    """
+    obj = User.model_validate(
+        {
+            "schemas": [
+                "urn:ietf:params:scim:schemas:core:2.0:User",
+                "urn:example:unknown",
+            ],
+            "userName": "foobar",
+        }
+    )
+
+    assert obj.model_dump()["schemas"] == [
+        "urn:ietf:params:scim:schemas:core:2.0:User",
+        "urn:example:unknown",
+    ]
+
+
+@pytest.mark.parametrize(
+    "context",
+    [
+        Context.DEFAULT,
+        Context.RESOURCE_CREATION_REQUEST,
+        Context.RESOURCE_QUERY_RESPONSE,
+    ],
+)
+def test_contradicting_schemas_are_reported(context):
+    """A 'schemas' attribute that does not contain the model base schema contradicts it."""
+    with pytest.raises(ValidationError, match="schemas must contain the base schema"):
+        User.model_validate(
+            {
+                "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
+                "id": "id",
+                "userName": "foobar",
+            },
+            scim_ctx=context,
+        )
+
+
+def test_extension_schemas_are_left_to_the_resource():
+    """Extensions are not standalone representations, and bear no 'schemas' attribute of their own."""
+    payload = {
+        "schemas": [
+            "urn:ietf:params:scim:schemas:core:2.0:User",
+            "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User",
+        ],
+        "id": "id",
+        "userName": "foobar",
+        "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User": {
+            "employeeNumber": "701984",
+        },
+    }
+    obj = User[EnterpriseUser].model_validate(
+        payload, scim_ctx=Context.RESOURCE_QUERY_RESPONSE
+    )
+
+    assert obj[EnterpriseUser].employee_number == "701984"
+    assert obj[EnterpriseUser].schemas == []
+    assert (
+        "schemas"
+        not in obj.model_dump()[
+            "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"
+        ]
+    )
+
+
+def test_serialized_schemas_can_be_excluded():
+    """An explicitly excluded 'schemas' attribute is not built back.
+
+    :class:`~scim2_models.SearchRequest` is dumped that way to build query
+    strings, which bear no 'schemas' parameter.
+    """
+    assert "schemas" not in User(user_name="foobar").model_dump(exclude={"schemas"})

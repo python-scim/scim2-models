@@ -41,6 +41,22 @@ Changed
   case-insensitive: ``Email(type="WORK").type`` is ``Email.Type.work``.
 - The JSON schema of those attributes advertises the canonical values as ``examples`` instead of
   a restrictive ``enum``.
+- The ``schemas`` attribute of SCIM payloads is built from the model definition on
+  serialization, as it describes the serialized document rather than the object. It holds what
+  a peer asserted, and is empty when a payload omitted it, so the omission stays visible in
+  ``model_fields_set``. Objects built by the caller are still filled, as the model they are
+  built from asserts their type.
+- Resources omitting their ``schemas`` attribute are read instead of being rejected, which
+  covers the partial responses of :rfc:`7644` §3.4.3. Their type comes from the
+  :class:`~scim2_models.ListResponse` parameter, so a response holding several resource types
+  still cannot decide the type of an unlabelled resource. :issue:`20`
+- A ``schemas`` attribute that does not contain the model base schema is rejected whatever the
+  validation context, as an object cannot contradict the model it is an instance of. It used to
+  be accepted without a SCIM context.
+- The ``schemas`` attribute is not subject to attribute filtering anymore, as :rfc:`7643` §3
+  requires it in every representation. It lost its :attr:`~scim2_models.Returned.always`
+  annotation, which :rfc:`7643` does not define for it, and which the filtering exemption
+  replaces.
 
 Fixed
 ^^^^^
