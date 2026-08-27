@@ -49,8 +49,9 @@ def test_parse_and_serialize_examples(load_sample):
         model = SAMPLE_MODELS[model_name]
 
         skipped = [
-            # resources without schemas are not yet supported
-            # https://github.com/python-scim/scim2-models/issues/20
+            # Those resources bear no schemas, and the model they are validated
+            # against holds several types, so their type cannot be decided.
+            # tests/test_list_response.py covers the single-typed case.
             "rfc7644-3.4.2-list_response-partial_attributes.json",
             "rfc7644-3.4.3-list_response-post_query.json",
             # BulkOperation.data PatchOperation.value should be of type resource

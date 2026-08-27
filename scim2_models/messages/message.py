@@ -46,9 +46,12 @@ def _create_schema_discriminator(
         if not payload:
             return None
 
-        payload_schemas = (
-            payload.get("schemas", []) if isinstance(payload, dict) else payload.schemas
-        )
+        if isinstance(payload, dict):
+            payload_schemas = payload.get("schemas", [])
+        else:
+            # An instance asserts its type by its class.
+            schema = getattr(type(payload), "__schema__", None)
+            payload_schemas = ([str(schema)] if schema else []) + list(payload.schemas)
 
         common_schemas = [
             schema for schema in payload_schemas if schema in resource_types_schemas

@@ -164,26 +164,48 @@ def test_missing_resource_schema(load_sample):
     ListResponse[User].model_validate(payload, strict=True)
 
 
-def test_missing_resource_schemas_in_response_context():
-    """Resources lacking their 'schemas' attribute are reported instead of being typed after the ListResponse parameter.
+def test_resources_without_schemas_are_read(load_sample):
+    """Resources omitting their 'schemas' attribute are read against the ListResponse parameter.
 
     :rfc:`RFC7644 §3.4.3 <7644#section-3.4.3>` displays partial responses
-    where resources bear no 'schemas' attribute, but nothing in
-    :rfc:`RFC7643` allows to guess their type.
+    where resources bear no 'schemas' attribute. A single-typed ListResponse
+    knows their type, so they are read as-is and the attribute is rebuilt on
+    serialization.
     """
-    payload = {
-        "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
-        "totalResults": 1,
-        "Resources": [{"id": "2819c223-7f76-413861904646", "userName": "jsmith"}],
-    }
+    payload = load_sample("rfc7644-3.4.3-list_response-post_query.json")
+
+    response = ListResponse[User].model_validate(
+        payload, scim_ctx=Context.RESOURCE_QUERY_RESPONSE
+    )
+
+    assert [resource.id for resource in response.resources] == [
+        "2819c223-7f76-413861904646",
+        "c8596b90-7539-4f20968d1908",
+    ]
+    assert all(resource.schemas == [] for resource in response.resources)
+    assert all(
+        resource["schemas"] == ["urn:ietf:params:scim:schemas:core:2.0:User"]
+        for resource in response.model_dump()["Resources"]
+    )
+
+
+def test_resources_without_schemas_need_a_single_type(load_sample):
+    """A ListResponse holding several types cannot guess the type of an unlabelled resource.
+
+    The :rfc:`RFC7644 §3.4.3 <7644#section-3.4.3>` example is undecidable:
+    its second resource only bears 'id' and 'displayName', which both
+    :class:`~scim2_models.User` and :class:`~scim2_models.Group` define.
+    """
+    payload = load_sample("rfc7644-3.4.3-list_response-post_query.json")
 
     with pytest.raises(ValidationError) as exc_info:
-        ListResponse[User].model_validate(
+        ListResponse[User | Group].model_validate(
             payload, scim_ctx=Context.RESOURCE_QUERY_RESPONSE
         )
 
-    assert [error["loc"] for error in exc_info.value.errors()] == [
-        ("resources", 0, "schemas")
+    assert [error["type"] for error in exc_info.value.errors()] == [
+        "union_tag_not_found",
+        "union_tag_not_found",
     ]
 
 

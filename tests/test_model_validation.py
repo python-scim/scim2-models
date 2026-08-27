@@ -789,16 +789,14 @@ def test_validate_query_and_search_request_necessity(context):
 def test_validate_json_payload():
     """JSON payloads are validated like already decoded payloads."""
     assert MutResource.model_validate_json('{"readWrite": "x"}') == MutResource(
-        schemas=["urn:example:MutResource"],
-        readWrite="x",
+        readWrite="x"
     )
 
 
 def test_validate_json_bytes_payload():
     """JSON payloads can be passed as bytes."""
     assert MutResource.model_validate_json(b'{"readWrite": "x"}') == MutResource(
-        schemas=["urn:example:MutResource"],
-        readWrite="x",
+        readWrite="x"
     )
 
 
@@ -834,50 +832,85 @@ def test_validate_json_rejects_malformed_payloads():
 
 @pytest.mark.parametrize(
     "context",
-    [
-        Context.RESOURCE_CREATION_REQUEST,
-        Context.RESOURCE_QUERY_REQUEST,
-        Context.RESOURCE_REPLACEMENT_REQUEST,
-        Context.SEARCH_REQUEST,
-        Context.RESOURCE_PATCH_REQUEST,
-        Context.RESOURCE_CREATION_RESPONSE,
-        Context.RESOURCE_QUERY_RESPONSE,
-        Context.RESOURCE_REPLACEMENT_RESPONSE,
-        Context.SEARCH_RESPONSE,
-        Context.RESOURCE_PATCH_RESPONSE,
-    ],
+    [Context.RESOURCE_CREATION_REQUEST, Context.RESOURCE_QUERY_RESPONSE],
 )
-def test_missing_schemas_is_reported_in_scim_contexts(context):
-    """:rfc:`RFC7643 §3 <7643#section-3>` requires 'schemas' in every SCIM representation.
+def test_missing_schemas_is_tolerated(context):
+    """A payload omitting 'schemas' asserts nothing, so it contradicts nothing.
 
-    Payloads validated in a SCIM context come from a peer, so guessing the
-    attribute would hide their non-compliance.
+    :rfc:`RFC7644 §3.4.3 <7644#section-3.4.3>` displays partial responses
+    where resources bear no 'schemas' attribute. Their type comes from the
+    model they are validated against, so they are read as-is, and the
+    omission stays visible.
     """
-    with pytest.raises(ValidationError) as exc_info:
-        User.model_validate({"id": "id", "userName": "foobar"}, scim_ctx=context)
+    obj = User.model_validate({"id": "id", "userName": "foobar"}, scim_ctx=context)
 
-    assert [error["loc"] for error in exc_info.value.errors()] == [("schemas",)]
+    assert obj.schemas == []
+    assert "schemas" not in obj.model_fields_set
 
 
-def test_missing_schemas_is_guessed_in_default_context():
-    """Objects built by the caller are filled from the model they are built from."""
-    assert User.model_validate({"userName": "foobar"}).schemas == [
-        "urn:ietf:params:scim:schemas:core:2.0:User"
+def test_serialized_schemas_come_from_the_model():
+    """The 'schemas' attribute of SCIM payloads is built from the model definition.
+
+    It describes the serialized document rather than the object, so it is
+    written even when the validated payload omitted it.
+    """
+    obj = User.model_validate(
+        {"id": "id", "userName": "foobar"}, scim_ctx=Context.RESOURCE_QUERY_RESPONSE
+    )
+    assert obj.schemas == []
+    assert obj.model_dump()["schemas"] == ["urn:ietf:params:scim:schemas:core:2.0:User"]
+
+    assert User[EnterpriseUser](user_name="foobar").model_dump()["schemas"] == [
+        "urn:ietf:params:scim:schemas:core:2.0:User",
+        "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User",
     ]
-    assert User.model_validate(
-        {"userName": "foobar"}, scim_ctx=Context.DEFAULT
-    ).schemas == ["urn:ietf:params:scim:schemas:core:2.0:User"]
-    assert User(user_name="foobar").schemas == [
-        "urn:ietf:params:scim:schemas:core:2.0:User"
+
+
+def test_serialized_schemas_keep_unknown_schemas():
+    """Schemas a peer sent that the model does not know of are kept.
+
+    :rfc:`RFC7643 §3 <7643#section-3>` does not restrict the array to the
+    schemas a given implementation knows about.
+    """
+    obj = User.model_validate(
+        {
+            "schemas": [
+                "urn:ietf:params:scim:schemas:core:2.0:User",
+                "urn:example:unknown",
+            ],
+            "userName": "foobar",
+        }
+    )
+
+    assert obj.model_dump()["schemas"] == [
+        "urn:ietf:params:scim:schemas:core:2.0:User",
+        "urn:example:unknown",
     ]
 
 
 @pytest.mark.parametrize(
     "context",
-    [Context.RESOURCE_CREATION_REQUEST, Context.RESOURCE_QUERY_RESPONSE],
+    [
+        Context.DEFAULT,
+        Context.RESOURCE_CREATION_REQUEST,
+        Context.RESOURCE_QUERY_RESPONSE,
+    ],
 )
-def test_extension_schemas_is_guessed_in_scim_contexts(context):
-    """Extensions are not standalone SCIM representations, and bear no 'schemas' attribute of their own."""
+def test_contradicting_schemas_are_reported(context):
+    """A 'schemas' attribute that does not contain the model base schema contradicts it."""
+    with pytest.raises(ValidationError, match="schemas must contain the base schema"):
+        User.model_validate(
+            {
+                "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
+                "id": "id",
+                "userName": "foobar",
+            },
+            scim_ctx=context,
+        )
+
+
+def test_extension_schemas_are_left_to_the_resource():
+    """Extensions are not standalone representations, and bear no 'schemas' attribute of their own."""
     payload = {
         "schemas": [
             "urn:ietf:params:scim:schemas:core:2.0:User",
@@ -889,8 +922,24 @@ def test_extension_schemas_is_guessed_in_scim_contexts(context):
             "employeeNumber": "701984",
         },
     }
-    obj = User[EnterpriseUser].model_validate(payload, scim_ctx=context)
+    obj = User[EnterpriseUser].model_validate(
+        payload, scim_ctx=Context.RESOURCE_QUERY_RESPONSE
+    )
+
     assert obj[EnterpriseUser].employee_number == "701984"
-    assert obj[EnterpriseUser].schemas == [
-        "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"
-    ]
+    assert obj[EnterpriseUser].schemas == []
+    assert (
+        "schemas"
+        not in obj.model_dump()[
+            "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"
+        ]
+    )
+
+
+def test_serialized_schemas_can_be_excluded():
+    """An explicitly excluded 'schemas' attribute is not built back.
+
+    :class:`~scim2_models.SearchRequest` is dumped that way to build query
+    strings, which bear no 'schemas' parameter.
+    """
+    assert "schemas" not in User(user_name="foobar").model_dump(exclude={"schemas"})

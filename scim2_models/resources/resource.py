@@ -17,7 +17,6 @@ from pydantic import SerializerFunctionWrapHandler
 from pydantic import ValidationInfo
 from pydantic import ValidatorFunctionWrapHandler
 from pydantic import WrapSerializer
-from pydantic import field_serializer
 from pydantic import model_validator
 from pydantic_core import PydanticCustomError
 from typing_extensions import Self
@@ -360,16 +359,9 @@ class Resource(ScimObject, Generic[AnyExtension]):
         )
         return get_model_by_payload(resource_types, payload, **kwargs)
 
-    @field_serializer("schemas")
-    def set_extension_schemas(
-        self, schemas: Annotated[list[str], Required.true]
-    ) -> list[str]:
-        """Add model extension ids to the 'schemas' attribute."""
-        extension_schemas = self.get_extension_models().keys()
-        schemas = self.schemas + [
-            schema for schema in extension_schemas if schema not in self.schemas
-        ]
-        return schemas
+    def _model_schemas(self) -> list[str]:
+        """List the base schema and the schemas of the declared extensions."""
+        return super()._model_schemas() + list(self.get_extension_models())
 
     @model_validator(mode="wrap")
     @classmethod

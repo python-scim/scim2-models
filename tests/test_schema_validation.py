@@ -51,25 +51,34 @@ def test_validation_valid_extension_schema():
     assert len(user.schemas) == 2
 
 
-def test_schemas_auto_populated():
-    """Schemas is auto-populated from __schema__ when not provided."""
-    user = User(user_name="foo")
-    assert user.schemas == ["urn:ietf:params:scim:schemas:core:2.0:User"]
-
-
-def test_no_validation_without_context():
-    """No schema validation without SCIM context."""
-    user = User.model_validate({"schemas": ["wrong:schema"], "userName": "foo"})
-    assert user.schemas == ["wrong:schema"]
-
-
-def test_no_validation_with_default_context():
-    """No schema validation with DEFAULT context."""
+def test_schemas_built_from_the_model():
+    """The serialized 'schemas' attribute comes from __schema__."""
     user = User.model_validate(
-        {"schemas": ["wrong:schema"], "userName": "foo"},
-        context={"scim": Context.DEFAULT},
+        {"id": "id", "userName": "foo"}, scim_ctx=Context.RESOURCE_QUERY_RESPONSE
     )
-    assert user.schemas == ["wrong:schema"]
+    assert user.schemas == []
+    assert user.model_dump()["schemas"] == [
+        "urn:ietf:params:scim:schemas:core:2.0:User"
+    ]
+
+
+def test_validation_without_context():
+    """A payload contradicting the model is rejected without a SCIM context.
+
+    An object cannot contradict the model it is an instance of, so the check
+    does not depend on the validation context.
+    """
+    with pytest.raises(ValidationError, match="schemas must contain"):
+        User.model_validate({"schemas": ["wrong:schema"], "userName": "foo"})
+
+
+def test_validation_with_default_context():
+    """A payload contradicting the model is rejected in the DEFAULT context."""
+    with pytest.raises(ValidationError, match="schemas must contain"):
+        User.model_validate(
+            {"schemas": ["wrong:schema"], "userName": "foo"},
+            context={"scim": Context.DEFAULT},
+        )
 
 
 def test_schema_classvar_defined():
@@ -194,3 +203,14 @@ def test_extension_schemas_validation_without_schema():
         scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
     )
     assert resource.schemas == ["urn:example:whatever"]
+
+
+def test_serialized_schemas_of_a_model_without_schema():
+    """A model with no schema of its own has no schemas to build."""
+
+    class NoSchemaResource(Resource):
+        pass
+
+    NoSchemaResource.__schema__ = None  # type: ignore[assignment]
+
+    assert NoSchemaResource(id="id").model_dump()["schemas"] == []

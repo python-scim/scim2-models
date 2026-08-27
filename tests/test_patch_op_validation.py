@@ -127,6 +127,7 @@ def test_validate_patchop_case_insensitivity():
             ],
         },
     ) == PatchOp[User](
+        schemas=["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
         operations=[
             PatchOperation[User](
                 op=PatchOperation.Op.replace_, path="userName", value="Rivard"
@@ -137,7 +138,7 @@ def test_validate_patchop_case_insensitivity():
             PatchOperation[User](
                 op=PatchOperation.Op.remove, path="userName", value="Rivard"
             ),
-        ]
+        ],
     )
     with pytest.raises(
         ValidationError,

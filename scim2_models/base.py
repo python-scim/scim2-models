@@ -657,6 +657,10 @@ class BaseModel(PydanticBaseModel):
     ) -> None:
         """Serialize the fields according to returnability indications passed in the serialization context."""
         for alias in set(serialized):
+            # RFC7643 §3 requires 'schemas' in every representation
+            if alias == "schemas":
+                continue
+
             field_name = self.__scim_info__.alias_to_field.get(alias, alias)
             returnability = self.get_field_annotation(field_name, Returned)
             attribute_urn = self.get_attribute_urn(field_name)
