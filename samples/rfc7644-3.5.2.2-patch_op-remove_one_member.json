@@ -5,7 +5,7 @@
     "Operations": [
         {
             "op": "remove",
-            "path": "members[value eq \"2819c223-7f76-...413861904646\"]"
+            "path": "members[value eq \"2819c223-7f76-453a-919d-413861904646\"]"
         }
     ]
 }

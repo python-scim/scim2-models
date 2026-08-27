@@ -64,16 +64,6 @@ def test_parse_and_serialize_examples(load_sample):
             "rfc7644-3.7.3-bulk_response-error_invalid_syntax.json",
             "rfc7644-3.7.3-bulk_response-multiple_errors.json",
             "rfc7644-3.7.3-bulk_response-multiple_operations.json",
-            "rfc7644-3.5.2.1-patch_op-add_emails.json",
-            "rfc7644-3.5.2.1-patch_op-add_members.json",
-            "rfc7644-3.5.2.2-patch_op-remove_all_members.json",
-            "rfc7644-3.5.2.2-patch_op-remove_and_add_one_member.json",
-            "rfc7644-3.5.2.2-patch_op-remove_multi_complex_value.json",
-            "rfc7644-3.5.2.2-patch_op-remove_one_member.json",
-            "rfc7644-3.5.2.3-patch_op-replace_all_email_values.json",
-            "rfc7644-3.5.2.3-patch_op-replace_all_members.json",
-            "rfc7644-3.5.2.3-patch_op-replace_street_address.json",
-            "rfc7644-3.5.2.3-patch_op-replace_user_work_address.json",
         ]
         if sample in skipped:
             continue

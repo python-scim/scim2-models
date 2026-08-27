@@ -5,7 +5,7 @@
     "Operations": [
         {
             "op": "remove",
-            "path": "members[value eq\"2819c223...919d-413861904646\"]"
+            "path": "members[value eq\"2819c223-7f76-453a-919d-413861904646\"]"
         },
         {
             "op": "add",
@@ -13,8 +13,8 @@
             "value": [
                 {
                     "display": "James Smith",
-                    "$ref": "https://example.com/v2/Users/08e1d05d...473d93df9210",
-                    "value": "08e1d05d...473d93df9210"
+                    "$ref": "https://example.com/v2/Users/08e1d05d-121c-4561-8b96-473d93df9210",
+                    "value": "08e1d05d-121c-4561-8b96-473d93df9210"
                 }
             ]
         }
