@@ -363,6 +363,98 @@ Extensions attributes are accessed with brackets, e.g. ``user[EnterpriseUser].em
     ... }
 
 
+.. _tutorial-filters:
+
+Filters
+=======
+
+:class:`~scim2_models.ScimFilter` parses the filters defined at :rfc:`RFC7644 §3.4.2.2 <7644#section-3.4.2.2>`,
+the ones a client sends in a ``filter`` query parameter or in :attr:`~scim2_models.SearchRequest.filter`.
+A filter behaves as the string it was built from, and its syntax is checked as soon as it is created:
+
+.. doctest::
+
+    >>> from scim2_models import ScimFilter, User
+
+    >>> ScimFilter('userName eq "bjensen"') == 'userName eq "bjensen"'
+    True
+
+    >>> from scim2_models import InvalidFilterException
+    >>> try:
+    ...     ScimFilter('userName eq')
+    ... except InvalidFilterException as exc:
+    ...     print(exc.detail)
+    invalid syntax at column 10
+
+Matching resources
+^^^^^^^^^^^^^^^^^^
+
+Binding a filter to a model with ``ScimFilter[User]`` is what resolves attribute names against
+that model, and lets you check whether a resource satisfies it:
+
+.. doctest::
+
+    >>> user = User(
+    ...     user_name="bjensen",
+    ...     emails=[{"type": "work", "value": "bjensen@example.com"}],
+    ... )
+
+    >>> ScimFilter[User]('emails[type eq "work"]').match(user)
+    True
+    >>> ScimFilter[User]('userName sw "bj" and title pr').match(user)
+    False
+
+A collection is filtered by keeping what matches, which is how a server answers a ``filter``
+query parameter when its store is not a database it can query:
+
+.. doctest::
+
+    >>> users = [user, User(user_name="rsanchez")]
+    >>> scim_filter = ScimFilter[User]("emails pr")
+    >>> [candidate.user_name for candidate in users if scim_filter.match(candidate)]
+    ['bjensen']
+
+Attribute names are always compared case-insensitively, and so are string values unless the
+attribute is annotated :attr:`~scim2_models.CaseExact.true`.
+A filter over a multi-valued attribute matches when *any* of its values matches.
+
+Comparing a multi-valued complex attribute without naming a sub-attribute compares the ``value``
+of its entries, which is how :rfc:`RFC7644 §3.4.2.2 <7644#section-3.4.2.2>` uses the two forms
+side by side. Presence keeps its own meaning, since ``pr`` matches a non-empty *node*:
+
+.. doctest::
+
+    >>> ScimFilter[User]('emails co "example.com"').match(user)
+    True
+    >>> ScimFilter[User]('emails.value co "example.com"').match(user)
+    True
+
+    >>> without_value = User(user_name="bjensen", emails=[{"type": "work"}])
+    >>> ScimFilter[User]("emails pr").match(without_value)
+    True
+    >>> ScimFilter[User]("emails.value pr").match(without_value)
+    False
+
+Validating against a model
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:meth:`~scim2_models.ScimFilter.validate_semantics` goes past the syntax and checks the filter
+against the model: that every attribute exists, that each value fits the type of its attribute,
+and that no operator is applied to a boolean or binary attribute that forbids it.
+This is what lets a server answer ``400 invalidFilter`` with a precise reason:
+
+.. doctest::
+
+    >>> try:
+    ...     ScimFilter[User]("active gt true").validate_semantics()
+    ... except InvalidFilterException as exc:
+    ...     print(exc.detail)
+    operator 'gt' cannot be applied to the boolean attribute 'urn:ietf:params:scim:schemas:core:2.0:User:active'
+
+Filters do more than match: they compose into expressions, they turn into backend queries, and
+they follow a grammar the published ABNF only describes once its errata are applied.
+See :doc:`filters`.
+
 Errors and Exceptions
 =====================
 
@@ -634,6 +726,116 @@ The :meth:`~scim2_models.PatchOp.patch` method applies operations in sequence an
    Patch operations are validated in the :attr:`~scim2_models.Context.RESOURCE_PATCH_REQUEST`
    context. Make sure to validate patch operations with the correct context to
    ensure proper validation of mutability and required constraints.
+
+.. _patch-value-selection:
+
+Selecting values to patch
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:attr:`~scim2_models.PatchOperation.path` follows a grammar of its own,
+:rfc:`RFC7644 §3.5.2 <7644#section-3.5.2>`, where a filter between brackets selects which
+entries of a multi-valued attribute an operation applies to:
+
+.. doctest::
+
+    >>> from scim2_models import PatchOp, PatchOperation
+
+    >>> user = User(
+    ...     user_name="bjensen",
+    ...     emails=[
+    ...         {"type": "work", "value": "work@example.com"},
+    ...         {"type": "home", "value": "home@example.com"},
+    ...     ],
+    ... )
+
+    >>> patch = PatchOp[User](
+    ...     operations=[
+    ...         PatchOperation(
+    ...             op=PatchOperation.Op.replace_,
+    ...             path='emails[type eq "work"].value',
+    ...             value="new@example.com",
+    ...         )
+    ...     ]
+    ... )
+    >>> patch.patch(user)
+    True
+    >>> [email.value for email in user.emails]
+    ['new@example.com', 'home@example.com']
+
+What a selection matching nothing means depends on the operation. For ``replace``,
+:rfc:`RFC7644 §3.5.2.3 <7644#section-3.5.2.3>` requires a ``noTarget`` failure:
+
+.. doctest::
+
+    >>> from scim2_models import NoTargetException
+
+    >>> patch = PatchOp[User](
+    ...     operations=[
+    ...         PatchOperation(
+    ...             op=PatchOperation.Op.replace_,
+    ...             path='emails[type eq "other"].value',
+    ...             value="other@example.com",
+    ...         )
+    ...     ]
+    ... )
+    >>> try:
+    ...     patch.patch(user)
+    ... except NoTargetException as exc:
+    ...     print(exc.scim_type)
+    noTarget
+
+For ``remove``, :rfc:`RFC7644 §3.5.2.2 <7644#section-3.5.2.2>` asks for the opposite: its
+removal example states that "if the user was not a member of this group, no changes should
+be made to the resource, and a success response should be returned". The operation is a
+no-op, and reports that nothing changed:
+
+.. doctest::
+
+    >>> patch = PatchOp[User](
+    ...     operations=[
+    ...         PatchOperation(
+    ...             op=PatchOperation.Op.remove, path='emails[type eq "other"]'
+    ...         )
+    ...     ]
+    ... )
+    >>> patch.patch(user)
+    False
+
+``add`` behaves the same way. :rfc:`RFC7644 §3.5.2.1 <7644#section-3.5.2.1>` does not say what
+a selection matching nothing means for it, so the operation is a no-op rather than a failure.
+`Errata 8097 <https://www.rfc-editor.org/errata/eid8097>`_ asks for value selections in ``add``
+to be clarified at all, implementations differing on whether they are allowed. Note that Microsoft Entra ID emits exactly this payload expecting
+the entry to be created, which scim2-models does not do.
+
+The same selection is available on :class:`~scim2_models.Path` itself, through
+:meth:`~scim2_models.Path.get`, :meth:`~scim2_models.Path.set` and
+:meth:`~scim2_models.Path.delete`:
+
+.. doctest::
+
+    >>> from scim2_models import Path
+
+    >>> Path[User]('emails[type eq "home"].value').get(user)
+    ['home@example.com']
+
+A multi-valued attribute that is not complex holds plain values with no sub-attribute to compare.
+Those are addressed either with a bare comparison, which errata 7122 adds to the grammar, or with
+the ``value`` convention that implementations use:
+
+.. doctest::
+
+    >>> user = User(
+    ...     user_name="bjensen",
+    ...     schemas=["urn:ietf:params:scim:schemas:core:2.0:User", "urn:a:b:c"],
+    ... )
+
+    >>> Path[User]('schemas eq "urn:a:b:c"').delete(user)
+    True
+    >>> user.schemas
+    ['urn:ietf:params:scim:schemas:core:2.0:User']
+
+    >>> Path[User]('schemas[value eq "urn:ietf:params:scim:schemas:core:2.0:User"]').get(user)
+    ['urn:ietf:params:scim:schemas:core:2.0:User']
 
 Bulk operations
 ===============

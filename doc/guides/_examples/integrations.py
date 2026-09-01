@@ -21,6 +21,8 @@ from scim2_models import User
 # -- storage-start --
 records = {}
 
+MAX_RESULTS = 50
+
 
 def get_record(record_id):
     """Return the record for *record_id*, raising KeyError if absent."""
@@ -29,15 +31,25 @@ def get_record(record_id):
     return records[record_id]
 
 
-def list_records(start=None, stop=None):
-    """Return a page of stored records and the total count.
+def list_records():
+    """Return every stored record."""
+    return list(records.values())
+
+
+def paginate(resources, start=None, stop=None):
+    """Return the total count and the requested page of resources.
+
+    A page never exceeds ``MAX_RESULTS`` entries, which is the bound the
+    :class:`~scim2_models.ServiceProviderConfig` advertises.
 
     :param start: 0-based start index.
     :param stop: 0-based stop index (exclusive).
     :return: A ``(total, page)`` tuple.
     """
-    all_records = list(records.values())
-    return len(all_records), all_records[start:stop]
+    start = start or 0
+    limit = start + MAX_RESULTS
+    stop = limit if stop is None else min(stop, limit)
+    return len(resources), resources[start:stop]
 
 
 def save_record(record):
@@ -76,7 +88,11 @@ def to_scim_user(record, location=None):
         user_name=record["user_name"],
         display_name=record.get("display_name"),
         active=record.get("active", True),
-        emails=[User.Emails(value=record["email"])] if record.get("email") else None,
+        emails=(
+            [User.Emails(value=record["email"], type=record.get("email_type"))]
+            if record.get("email")
+            else None
+        ),
         meta=Meta(
             resource_type="User",
             version=make_etag(record),
@@ -89,12 +105,14 @@ def to_scim_user(record, location=None):
 
 def from_scim_user(scim_user):
     """Convert a validated SCIM payload into the application shape."""
+    email = scim_user.emails[0] if scim_user.emails else None
     return {
         "id": scim_user.id,
         "user_name": scim_user.user_name,
         "display_name": scim_user.display_name,
         "active": True if scim_user.active is None else scim_user.active,
-        "email": scim_user.emails[0].value if scim_user.emails else None,
+        "email": email.value if email else None,
+        "email_type": str(email.type) if email and email.type else None,
     }
 
 
@@ -109,15 +127,9 @@ def make_etag(record):
 RESOURCE_MODELS = [User]
 
 
-def get_schemas(start=None, stop=None):
-    """Return a page of :class:`~scim2_models.Schema` and the total count.
-
-    :param start: 0-based start index.
-    :param stop: 0-based stop index (exclusive).
-    :return: A ``(total, page)`` tuple.
-    """
-    all_schemas = [model.to_schema() for model in RESOURCE_MODELS]
-    return len(all_schemas), all_schemas[start:stop]
+def get_schemas():
+    """Return the :class:`~scim2_models.Schema` of every exposed model."""
+    return [model.to_schema() for model in RESOURCE_MODELS]
 
 
 def get_schema(schema_id):
@@ -129,17 +141,9 @@ def get_schema(schema_id):
     raise KeyError(schema_id)
 
 
-def get_resource_types(start=None, stop=None):
-    """Return a page of :class:`~scim2_models.ResourceType` and the total count.
-
-    :param start: 0-based start index.
-    :param stop: 0-based stop index (exclusive).
-    :return: A ``(total, page)`` tuple.
-    """
-    all_resource_types = [
-        ResourceType.from_resource(model) for model in RESOURCE_MODELS
-    ]
-    return len(all_resource_types), all_resource_types[start:stop]
+def get_resource_types():
+    """Return the :class:`~scim2_models.ResourceType` of every exposed model."""
+    return [ResourceType.from_resource(model) for model in RESOURCE_MODELS]
 
 
 def get_resource_type(resource_type_id):
@@ -154,7 +158,7 @@ def get_resource_type(resource_type_id):
 service_provider_config = ServiceProviderConfig(
     patch=Patch(supported=True),
     bulk=Bulk(supported=False, max_operations=0, max_payload_size=0),
-    filter=Filter(supported=False, max_results=0),
+    filter=Filter(supported=True, max_results=MAX_RESULTS),
     change_password=ChangePassword(supported=False),
     sort=Sort(supported=False),
     etag=ETag(supported=True),
