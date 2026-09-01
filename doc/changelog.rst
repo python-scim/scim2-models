@@ -20,6 +20,10 @@ Added
   operators and render back to SCIM syntax, and
   :class:`~scim2_models.filters.FilterVisitor` walks them, so a SQL or ORM query can be built
   on top. See :doc:`filters`. :issue:`17`
+- :attr:`~scim2_models.PatchOperation.path` supports value selections such as
+  ``emails[type eq "work"].value``, honoured by :meth:`~scim2_models.PatchOp.patch` and by
+  :meth:`Path.get <scim2_models.Path.get>`, :meth:`~scim2_models.Path.set` and
+  :meth:`~scim2_models.Path.delete`.
 - lark is a new dependency.
 
 Changed

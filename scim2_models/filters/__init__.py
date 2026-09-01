@@ -20,6 +20,7 @@ from ..resolution import resolve_comparison_path
 from ..resolution import validate_operator
 from ..resolution import validate_value_selection
 from .filter import ScimFilter
+from .filter import validate_value_filter
 from .visitor import Evaluator
 from .visitor import FilterVisitor
 from .visitor import compare
@@ -51,5 +52,6 @@ __all__ = [
     "resolve_attr_path",
     "resolve_comparison_path",
     "validate_operator",
+    "validate_value_filter",
     "validate_value_selection",
 ]

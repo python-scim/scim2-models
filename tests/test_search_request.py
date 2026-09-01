@@ -143,7 +143,7 @@ def test_search_request_invalid_excluded_attributes():
         "excluded_attributes": ["valid", "123invalid"],  # Second one starts with digit
     }
 
-    with pytest.raises(ValidationError, match="Paths cannot start with a digit"):
+    with pytest.raises(ValidationError, match="not a valid SCIM path"):
         SearchRequest.model_validate(invalid_data)
 
 
