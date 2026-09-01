@@ -22,10 +22,25 @@ from ..exceptions import NoTargetException
 from ..path import URN
 from ..path import Path
 from ..resources.resource import Resource
+from ..utils import _find_field_name
 from .message import Message
 from .message import _get_resource_class
 
 ResourceT = TypeVar("ResourceT", bound=Resource[Any])
+
+
+def _resolved_field(
+    resource_class: type[Resource[Any]], attr_name: str | None
+) -> str | None:
+    """Return the Python field a SCIM attribute name designates.
+
+    Attribute names are case-insensitive per :rfc:`RFC7643 §2.1 <7643#section-2.1>`
+    and differ from the field names of the model, so the constraint checks
+    resolve the name instead of matching it against ``model_fields``.
+    """
+    if attr_name is None:
+        return None
+    return _find_field_name(resource_class, attr_name)
 
 
 class PatchOperation(ComplexAttribute, Generic[ResourceT]):
@@ -50,7 +65,7 @@ class PatchOperation(ComplexAttribute, Generic[ResourceT]):
     describing the target of the operation."""
 
     def _validate_mutability(
-        self, resource_class: type[Resource[Any]], field_name: str
+        self, resource_class: type[Resource[Any]], field_name: str | None
     ) -> None:
         """Validate mutability constraints at parse-time.
 
@@ -59,10 +74,10 @@ class PatchOperation(ComplexAttribute, Generic[ResourceT]):
         to the resource instance and is enforced at runtime in
         :meth:`PatchOp._check_immutable`.
         """
-        if field_name not in resource_class.model_fields:
+        if (field := _resolved_field(resource_class, field_name)) is None:
             return
 
-        mutability = resource_class.get_field_annotation(field_name, Mutability)
+        mutability = resource_class.get_field_annotation(field, Mutability)
 
         if mutability == Mutability.read_only:
             raise MutabilityException(
@@ -70,7 +85,7 @@ class PatchOperation(ComplexAttribute, Generic[ResourceT]):
             ).as_pydantic_error()
 
     def _validate_required_attribute(
-        self, resource_class: type[Resource[Any]], field_name: str
+        self, resource_class: type[Resource[Any]], field_name: str | None
     ) -> None:
         """Validate required attribute constraints for remove operations."""
         # RFC 7644 Section 3.5.2.3: Only validate for remove operations
@@ -78,10 +93,10 @@ class PatchOperation(ComplexAttribute, Generic[ResourceT]):
             return
 
         # RFC 7644 Section 3.5.2: "Servers should be tolerant of schema extensions"
-        if field_name not in resource_class.model_fields:
+        if (field := _resolved_field(resource_class, field_name)) is None:
             return
 
-        required = resource_class.get_field_annotation(field_name, Required)
+        required = resource_class.get_field_annotation(field, Required)
 
         # RFC 7643 Section 7: "Required attributes SHALL NOT be removed"
         if required == Required.true:
@@ -238,8 +253,8 @@ class PatchOp(Message, Generic[ResourceT]):
                 continue
 
             field_name = operation.path.parts[0] if operation.path.parts else None
-            operation._validate_mutability(resource_class, field_name)  # type: ignore[arg-type]
-            operation._validate_required_attribute(resource_class, field_name)  # type: ignore[arg-type]
+            operation._validate_mutability(resource_class, field_name)
+            operation._validate_required_attribute(resource_class, field_name)
 
         return self
 
@@ -311,14 +326,14 @@ class PatchOp(Message, Generic[ResourceT]):
         resource_class = type(resource)
         assert operation.path is not None
         field_name = operation.path.parts[0] if operation.path.parts else None
-        if field_name is None or field_name not in resource_class.model_fields:
+        if (field := _resolved_field(resource_class, field_name)) is None:
             return
 
-        mutability = resource_class.get_field_annotation(field_name, Mutability)
+        mutability = resource_class.get_field_annotation(field, Mutability)
         if mutability != Mutability.immutable:
             return
 
-        current_value = getattr(resource, field_name, None)
+        current_value = getattr(resource, field, None)
 
         if operation.op == PatchOperation.Op.add and current_value is None:
             return
