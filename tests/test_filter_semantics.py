@@ -16,6 +16,7 @@ from scim2_models import PathNotFoundException
 from scim2_models import Required
 from scim2_models import Schema
 from scim2_models import ScimFilter
+from scim2_models import SearchRequest
 from scim2_models import User
 from scim2_models.filters import AttrPath
 from scim2_models.filters import CompareOperator
@@ -859,6 +860,26 @@ def test_a_visitor_can_transpile_a_filter():
 
 
 # --- Remaining corners ---
+
+
+def test_a_filter_field_rejects_a_value_that_is_neither_string_nor_filter():
+
+    with pytest.raises(Exception, match="Expected str or ScimFilter"):
+        SearchRequest.model_validate({"filter": 42})
+
+
+def test_a_filter_field_accepts_a_string_and_a_filter():
+
+    assert SearchRequest(filter='userName eq "x"').filter == 'userName eq "x"'
+    assert (
+        SearchRequest(filter=ScimFilter('userName eq "x"')).filter == 'userName eq "x"'
+    )
+
+
+def test_a_filter_field_rejects_a_malformed_filter():
+
+    with pytest.raises(InvalidFilterException):
+        SearchRequest.model_validate({"filter": "nonsense @"})
 
 
 def test_validating_a_negation_tolerantly_walks_its_operand():

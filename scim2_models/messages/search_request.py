@@ -3,6 +3,7 @@ from typing import Any
 
 from pydantic import field_validator
 
+from ..filters import ScimFilter
 from ..path import URN
 from ..path import Path
 from .message import Message
@@ -14,8 +15,17 @@ class SearchRequest(Message, ResponseParameters):
 
     __schema__ = URN("urn:ietf:params:scim:api:messages:2.0:SearchRequest")
 
-    filter: str | None = None
-    """The filter string used to request a subset of resources."""
+    filter: ScimFilter[Any] | None = None
+    """The filter used to request a subset of resources.
+
+    Assigning a string parses and validates it, so a malformed filter is
+    rejected at validation time rather than by the server. Only the syntax is
+    checked here: a ``/.search`` request may target several resource types at
+    once, so there is no single model to resolve attribute names against. Bind
+    it to one with :class:`~scim2_models.ScimFilter` to go further::
+
+        ScimFilter[User](search_request.filter).match(user)
+    """
 
     sort_by: Path[Any] | None = None
     """A string indicating the attribute whose value SHALL be used to order the
