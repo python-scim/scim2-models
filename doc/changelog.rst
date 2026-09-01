@@ -15,6 +15,12 @@ Added
 - :meth:`~scim2_models.BaseModel.model_validate_json` takes a ``scim_ctx`` parameter, like the
   other validation and serialization methods, so JSON payloads can be validated without being
   decoded first. :issue:`150`
+- :class:`~scim2_models.ScimFilter` parses, validates and evaluates the filters of
+  :rfc:`RFC7644 §3.4.2.2 <7644#section-3.4.2.2>`. Expressions compose with the Python boolean
+  operators and render back to SCIM syntax, and
+  :class:`~scim2_models.filters.FilterVisitor` walks them, so a SQL or ORM query can be built
+  on top. See :doc:`filters`. :issue:`17`
+- lark is a new dependency.
 
 Changed
 ^^^^^^^
