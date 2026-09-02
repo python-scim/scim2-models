@@ -92,6 +92,10 @@ Fixed
   read the rendered expression instead of the attribute it designates. Accordingly,
   :attr:`Path.attr <scim2_models.Path.attr>` leaves the value selection out:
   ``emails[type eq "work"].value`` reports ``emails.value``.
+- :meth:`Path.is_prefix_of <scim2_models.Path.is_prefix_of>` and
+  :meth:`~scim2_models.Path.has_prefix` compare the attributes two paths designate rather than
+  their text, so a value selection does not hide the relation:
+  ``emails`` is a prefix of ``emails[type eq "work"].value``.
 
 Removed
 ^^^^^^^

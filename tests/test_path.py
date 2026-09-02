@@ -1568,3 +1568,20 @@ def test_every_enumerated_path_agrees_with_its_resolution(model):
         assert path.field_type is not None
         assert path.is_multivalued is not None
         assert path.urn.endswith(path.attr)
+
+
+def test_a_value_selection_does_not_hide_the_prefix_relation():
+    """The selection narrows the attribute, it is not part of its name."""
+    assert Path("emails").is_prefix_of('emails[type eq "work"].value')
+    assert Path('emails[type eq "work"].value').has_prefix("emails")
+
+
+def test_a_narrowed_attribute_is_not_a_descendant_of_itself():
+    """``emails[type eq "work"]`` designates a subset of ``emails``, not a child."""
+    assert Path("emails").is_prefix_of('emails[type eq "work"]') is False
+
+
+def test_the_resource_root_is_a_prefix_of_nothing():
+    """The empty path has no segment to compare."""
+    assert Path("").is_prefix_of("emails") is False
+    assert Path("emails").has_prefix("") is False

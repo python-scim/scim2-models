@@ -306,27 +306,38 @@ class Path(UserString, Generic[ResourceT]):
             return node
         return None
 
+    def _prefix_segments(self) -> tuple[str, ...]:
+        """Return the segments this path designates, schema included.
+
+        A schema URN contributes its own colon-separated segments, so that a
+        schema ranks as an ancestor of the attributes it declares. A value
+        selection contributes none, since it narrows an attribute rather than
+        naming a deeper one.
+        """
+        segments = tuple(self.schema.lower().split(":")) if self.schema else ()
+        return segments + tuple(part.lower() for part in self.parts)
+
     def is_prefix_of(self, other: "str | Path[Any]") -> bool:
         """Check if this path is a prefix of another path.
 
-        A path is a prefix if the other path starts with this path
-        followed by a separator ("." or ":").
+        A path is a prefix of another when it designates one of its ancestors.
+        The resource root is a prefix of nothing, having no segment to compare.
 
         Examples::
 
             Path("emails").is_prefix_of("emails.value")  # True
+            Path("emails").is_prefix_of('emails[type eq "work"].value')  # True
             Path("emails").is_prefix_of("emails")  # False (equal, not prefix)
             Path("urn:...:User").is_prefix_of("urn:...:User:name")  # True
         """
-        other_str = str(other).lower()
-        self_str = self.data.lower()
+        other_path = other if isinstance(other, Path) else Path(str(other))
 
-        if self_str == other_str:
+        mine = self._prefix_segments()
+        theirs = other_path._prefix_segments()
+        if not mine or len(mine) >= len(theirs):
             return False
 
-        return other_str.startswith(f"{self_str}.") or other_str.startswith(
-            f"{self_str}:"
-        )
+        return theirs[: len(mine)] == mine
 
     def has_prefix(self, prefix: "str | Path[Any]") -> bool:
         """Check if this path has the given prefix.
@@ -334,6 +345,7 @@ class Path(UserString, Generic[ResourceT]):
         Examples::
 
             Path("emails.value").has_prefix("emails")  # True
+            Path('emails[type eq "work"].value').has_prefix("emails")  # True
             Path("emails").has_prefix("emails")  # False (equal, not prefix)
             Path("urn:...:User:name").has_prefix("urn:...:User")  # True
         """
