@@ -1,5 +1,6 @@
 from collections import UserString
 from collections.abc import Iterator
+from dataclasses import replace
 from inspect import isclass
 from typing import TYPE_CHECKING
 from typing import Any
@@ -40,6 +41,7 @@ from .expressions import ValuePath
 from .filters.filter import validate_value_filter
 from .filters.visitor import Evaluator
 from .grammar import parse_path
+from .resolution import ResolvedAttribute
 from .resolution import attribute_host
 from .resolution import resolve_attr_path
 from .resolution import validate_value_selection
@@ -233,25 +235,38 @@ class Path(UserString, Generic[ResourceT]):
         node = self.ast
         return None if node is None else _node_attr_path(node).uri
 
+    def _designated_attr_path(self) -> AttrPath | None:
+        """Return the attribute path this path designates, selection excluded.
+
+        A value selection carries its sub-attribute past the brackets, so
+        ``emails[type eq "work"].value`` designates ``emails.value``. The
+        resource root designates no attribute at all.
+        """
+        node = self.ast
+        if node is None:
+            return None
+
+        attr_path = _node_attr_path(node)
+        sub_attr = node.sub_attr if isinstance(node, ValuePath) else attr_path.sub_attr
+        return AttrPath(attr_path.attr, sub_attr, attr_path.uri)
+
     @property
     def attr(self) -> str:
-        """The attribute portion of the path.
+        """The attribute portion of the path, selection and filter excluded.
 
         For paths like "urn:...:User:userName", returns "userName".
         For simple paths like "userName", returns "userName".
+        For 'emails[type eq "work"].value', returns "emails.value".
         For the empty path, which designates the resource itself, returns "".
 
         Nothing tells a schema-only path from a qualified one, since the URN of
         a schema is itself a colon-separated name: "urn:...:User" reads as the
         attribute "User" of the schema "urn:...:2.0".
         """
-        node = self.ast
-        if node is None:
+        designated = self._designated_attr_path()
+        if designated is None:
             return ""
-
-        rendered = str(node)
-        uri = _node_attr_path(node).uri
-        return rendered[len(uri) + 1 :] if uri else rendered
+        return str(replace(designated, uri=None))
 
     @property
     def parts(self) -> tuple[str, ...]:
@@ -265,13 +280,12 @@ class Path(UserString, Generic[ResourceT]):
         For 'emails[type eq "work"].value', returns ("emails", "value").
         For "", returns ().
         """
-        node = self.ast
-        if node is None:
+        designated = self._designated_attr_path()
+        if designated is None:
             return ()
-
-        attr_path = _node_attr_path(node)
-        sub_attr = node.sub_attr if isinstance(node, ValuePath) else attr_path.sub_attr
-        return (attr_path.attr, sub_attr) if sub_attr else (attr_path.attr,)
+        if designated.sub_attr:
+            return (designated.attr, designated.sub_attr)
+        return (designated.attr,)
 
     @property
     def value_filter(self) -> "FilterNode | None":
@@ -326,9 +340,64 @@ class Path(UserString, Generic[ResourceT]):
         prefix_path = prefix if isinstance(prefix, Path) else Path(str(prefix))
         return prefix_path.is_prefix_of(self)
 
+    def _designated_model(self) -> type[BaseModel] | None:
+        """Return the model this path designates when it names no attribute.
+
+        The resource root and a bare schema URN both designate a model rather
+        than one of its attributes, and neither can go through attribute
+        resolution: the root names nothing, and nothing tells a schema URN from
+        a qualified path syntactically, so it is recognised by comparing the
+        whole path to the schemas the bound model knows.
+        """
+        from .resources.resource import Extension
+        from .resources.resource import Resource
+
+        model = self.__scim_model__
+        if model is None:
+            return None
+
+        if self.ast is None:
+            return model
+
+        if not (isclass(model) and issubclass(model, Resource | Extension)):
+            return None
+
+        path = self.data.lower()
+        if model.__schema__ and path == model.__schema__.lower():
+            return model
+
+        if not issubclass(model, Resource):
+            return None
+
+        for schema, extension_model in model.get_extension_models().items():
+            if path == schema.lower():
+                return extension_model
+
+        return None
+
+    def resolve(self) -> "ResolvedAttribute | None":
+        """Bind this path to the attribute it designates on the bound model.
+
+        This is the single resolution the model-aware properties are built on.
+
+        :returns: The resolved attribute, or :data:`None` when the path is
+            unbound, designates a model rather than an attribute, or names an
+            attribute the model does not declare.
+        """
+        model = self.__scim_model__
+        if model is None or self._designated_model() is not None:
+            return None
+
+        # A path that designates no attribute has already returned above,
+        # since _designated_model answers for the resource root.
+        designated = self._designated_attr_path()
+        assert designated is not None
+
+        return resolve_attr_path(model, designated, strict=False)
+
     @property
     def model(self) -> type[BaseModel] | None:
-        """The target model type for this path.
+        """The model holding the attribute this path designates.
 
         Requires the Path to be bound to a model type via ``Path[Model]``.
         Returns None if the path is unbound or invalid.
@@ -336,67 +405,66 @@ class Path(UserString, Generic[ResourceT]):
         For "name.familyName" on Path[User], returns Name.
         For "userName" on Path[User], returns User.
         """
-        if (result := self._resolve_model()) is None:
-            return None
-        return result[0]
+        if (designated := self._designated_model()) is not None:
+            return designated
+
+        resolved = self.resolve()
+        return resolved.target_model if resolved is not None else None
 
     @property
     def field_name(self) -> str | None:
         """The Python attribute name (snake_case) for this path.
 
         Requires the Path to be bound to a model type via ``Path[Model]``.
-        Returns None if the path is unbound or invalid.
+        Returns None if the path is unbound, invalid, or designates a model
+        rather than one of its attributes.
 
         For "name.familyName" on Path[User], returns "family_name".
         For "userName" on Path[User], returns "user_name".
         """
-        if (result := self._resolve_model()) is None:
-            return None
-        return result[1]
+        resolved = self.resolve()
+        return resolved.target_field_name if resolved is not None else None
 
     @property
     def field_type(self) -> type | None:
         """The Python type of the field this path points to.
 
-        Requires the Path to be bound to a model type via ``Path[Model]``.
-        Returns None if the path is unbound, invalid, or points to a schema-only path.
+        Annotated types are unwrapped, so a ``binary`` attribute declared as
+        ``Base64Bytes`` reports :class:`bytes`.
 
         For "userName" on Path[User], returns str.
         For "name" on Path[User], returns Name.
         For "emails" on Path[User], returns Email.
         """
-        if self.model is None or self.field_name is None:
-            return None
-        return self.model.get_field_root_type(self.field_name)
+        resolved = self.resolve()
+        return resolved.target_type if resolved is not None else None
 
     @property
     def is_multivalued(self) -> bool | None:
         """Whether this path points to a multi-valued attribute.
 
-        Requires the Path to be bound to a model type via ``Path[Model]``.
-        Returns None if the path is unbound, invalid, or points to a schema-only path.
-
         For "emails" on Path[User], returns True.
-        For "userName" on Path[User], returns False.
+        For "emails.value" on Path[User], returns False, as the path
+        designates one value per entry.
         """
-        if self.model is None or self.field_name is None:
-            return None
-        return self.model.get_field_multiplicity(self.field_name)
+        resolved = self.resolve()
+        return resolved.target_is_multivalued if resolved is not None else None
 
     def get_annotation(self, annotation_type: type) -> Any:
         """Get annotation value for this path's field.
 
-        Requires the Path to be bound to a model type via ``Path[Model]``.
-        Returns None if the path is unbound, invalid, or points to a schema-only path.
-
         :param annotation_type: The annotation class (e.g., Required, Mutability).
-        :returns: The annotation value or None.
+        :returns: The annotation value, or None when the path designates no
+            attribute.
 
         For "userName" on Path[User] with Required, returns Required.true.
         """
-        if self.model is None or self.field_name is None:
+        resolved = self.resolve()
+        if resolved is None or resolved.target_model is None:
             return None
-        return self.model.get_field_annotation(self.field_name, annotation_type)
+        return resolved.target_model.get_field_annotation(
+            resolved.target_field_name, annotation_type
+        )
 
     @property
     def urn(self) -> str | None:
@@ -420,65 +488,6 @@ class Path(UserString, Generic[ResourceT]):
         if not self.attr:
             return schema if schema else None
         return f"{schema}:{self.attr}" if schema else self.attr
-
-    def _resolve_model(self) -> tuple[type[BaseModel], str | None] | None:
-        """Resolve the path against the bound model type."""
-        from .resources.resource import Extension
-        from .resources.resource import Resource
-
-        model = self.__scim_model__
-        if model is None:
-            return None
-
-        attr_path = self.attr
-
-        if ":" in self and isclass(model) and issubclass(model, Resource | Extension):
-            path_lower = str(self).lower()
-
-            if model.__schema__ and path_lower == model.__schema__.lower():
-                return model, None
-            elif model.__schema__ and path_lower.startswith(model.__schema__.lower()):
-                attr_path = str(self)[len(model.__schema__) :].lstrip(":")
-            elif issubclass(model, Resource):
-                for (
-                    extension_schema,
-                    extension_model,
-                ) in model.get_extension_models().items():
-                    schema_lower = extension_schema.lower()
-                    if path_lower == schema_lower:
-                        return extension_model, None
-                    elif path_lower.startswith(schema_lower):
-                        model = extension_model
-                        break
-                else:
-                    return None
-
-        if not attr_path:
-            return model, None
-
-        if "." in attr_path:
-            parts = attr_path.split(".")
-            current_model = model
-
-            for part in parts[:-1]:
-                if (field_name := _find_field_name(current_model, part)) is None:
-                    return None
-                field_type = current_model.get_field_root_type(field_name)
-                if (
-                    field_type is None
-                    or not isclass(field_type)
-                    or not issubclass(field_type, BaseModel)
-                ):
-                    return None
-                current_model = field_type
-
-            if (field_name := _find_field_name(current_model, parts[-1])) is None:
-                return None
-            return current_model, field_name
-
-        if (field_name := _find_field_name(model, attr_path)) is None:
-            return None
-        return model, field_name
 
     def _resolve_instance(
         self, resource: BaseModel, *, create: bool = False

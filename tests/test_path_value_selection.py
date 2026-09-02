@@ -1,10 +1,12 @@
 import pytest
 
 from scim2_models import BaseModel
+from scim2_models import Email
 from scim2_models import EnterpriseUser
 from scim2_models import Extension
 from scim2_models import Group
 from scim2_models import InvalidFilterException
+from scim2_models import Mutability
 from scim2_models import NoTargetException
 from scim2_models import Path
 from scim2_models import PathNotFoundException
@@ -65,12 +67,15 @@ def test_a_value_selection_is_not_part_of_the_segments():
     assert Path('emails[type eq "work"]').parts == ("emails",)
 
 
-def test_a_value_selecting_path_keeps_its_attribute_portion():
-    path = Path(
+def test_a_value_selecting_path_designates_an_attribute(user):
+    """The selection is not part of the attribute the path designates."""
+    path = Path[User](
         'urn:ietf:params:scim:schemas:core:2.0:User:emails[type eq "work"].value'
     )
     assert path.schema == "urn:ietf:params:scim:schemas:core:2.0:User"
-    assert path.attr == 'emails[type eq "work"].value'
+    assert path.attr == "emails.value"
+    assert path.parts == ("emails", "value")
+    assert path.urn == "urn:ietf:params:scim:schemas:core:2.0:User:emails.value"
 
 
 # --- Reading ---
@@ -376,3 +381,39 @@ def test_a_selection_naming_an_unknown_attribute_is_silent_when_tolerant(user):
     assert path.get(user, strict=False) is None
     assert not path.set(user, "x", strict=False)
     assert not path.delete(user, strict=False)
+
+
+@pytest.mark.parametrize(
+    ("path", "field_name"),
+    [
+        pytest.param('emails[type eq "work"].value', "value", id="value selection"),
+        pytest.param('emails.type eq "work"', "type", id="bare comparison"),
+        pytest.param("emails pr", "emails", id="bare presence"),
+    ],
+)
+def test_every_notation_resolves_against_the_model(path, field_name):
+    """The three notations designate an attribute, so they all resolve.
+
+    :attr:`~scim2_models.Path.model` and its siblings used to answer ``None``
+    for anything but a plain attribute path, since they read the rendered
+    expression instead of the attribute it designates.
+    """
+    resolved = Path[User](path)
+    assert resolved.field_name == field_name
+    assert resolved.model is not None
+    assert resolved.field_type is not None
+    assert resolved.get_annotation(Mutability) is not None
+
+
+def test_a_selection_designates_the_sub_attribute_it_targets():
+    path = Path[User]('emails[type eq "work"].value')
+    assert path.model is Email
+    assert path.field_name == "value"
+    assert path.urn == "urn:ietf:params:scim:schemas:core:2.0:User:emails.value"
+
+
+def test_a_selection_without_a_sub_attribute_designates_the_attribute_itself():
+    path = Path[User]('emails[type eq "work"]')
+    assert path.model is User
+    assert path.field_name == "emails"
+    assert path.is_multivalued is True

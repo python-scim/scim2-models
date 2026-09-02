@@ -50,6 +50,7 @@ from .path import Path
 from .reference import URI
 from .reference import External
 from .reference import Reference
+from .resolution import ResolvedAttribute
 from .resources.enterprise_user import EnterpriseUser
 from .resources.enterprise_user import Manager
 from .resources.group import Group
@@ -145,6 +146,7 @@ __all__ = [
     "ReplacementRequestContext",
     "ReplacementResponseContext",
     "Required",
+    "ResolvedAttribute",
     "Resource",
     "ResourceType",
     "ResponseParameters",

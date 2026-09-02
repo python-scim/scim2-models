@@ -91,6 +91,19 @@ class ResolvedAttribute:
         """The Python name of the attribute actually compared."""
         return self.sub_field_name or self.field_name
 
+    @property
+    def target_is_multivalued(self) -> bool | None:
+        """Whether the attribute actually compared holds several values.
+
+        This differs from :attr:`is_multivalued`, which describes the head
+        attribute: ``emails.value`` designates one value per entry, while
+        ``emails`` holds several.
+        """
+        model = self.target_model
+        if model is None:
+            return None
+        return model.get_field_multiplicity(self.target_field_name)
+
     def nested_in(self, urn: str) -> "ResolvedAttribute":
         """Return the same attribute, qualified by the URN it was resolved under.
 
