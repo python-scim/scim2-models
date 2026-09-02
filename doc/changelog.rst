@@ -66,6 +66,11 @@ Fixed
 - :meth:`~scim2_models.Resource.from_schema` no longer crashes on ``reference`` attributes missing the optional ``referenceTypes``, and reads them as :class:`~scim2_models.URI` references.
 - Looking a model up by schema no longer crashes when the model list mixes resources with messages such as :class:`~scim2_models.ListResponse`.
 - Check recursively extensions' replace constraints.
+- The ``readOnly``, ``immutable`` and ``required`` constraints of a PATCH operation are checked
+  against the attribute its path resolves to, instead of against a literal field name match.
+  They used to be skipped whenever the two differed, so ``userName`` could be removed and a
+  path spelled ``GROUPS`` could write to a ``readOnly`` attribute, :rfc:`7643` §2.1 making
+  attribute names case-insensitive.
 
 Removed
 ^^^^^^^

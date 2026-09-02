@@ -121,22 +121,22 @@ def test_validate_patchop_case_insensitivity():
         {
             "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
             "operations": [
-                {"op": "Replace", "path": "userName", "value": "Rivard"},
-                {"op": "ADD", "path": "userName", "value": "Rivard"},
-                {"op": "ReMove", "path": "userName", "value": "Rivard"},
+                {"op": "Replace", "path": "displayName", "value": "Rivard"},
+                {"op": "ADD", "path": "displayName", "value": "Rivard"},
+                {"op": "ReMove", "path": "displayName", "value": "Rivard"},
             ],
         },
     ) == PatchOp[User](
         schemas=["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
         operations=[
             PatchOperation[User](
-                op=PatchOperation.Op.replace_, path="userName", value="Rivard"
+                op=PatchOperation.Op.replace_, path="displayName", value="Rivard"
             ),
             PatchOperation[User](
-                op=PatchOperation.Op.add, path="userName", value="Rivard"
+                op=PatchOperation.Op.add, path="displayName", value="Rivard"
             ),
             PatchOperation[User](
-                op=PatchOperation.Op.remove, path="userName", value="Rivard"
+                op=PatchOperation.Op.remove, path="displayName", value="Rivard"
             ),
         ],
     )
@@ -683,3 +683,72 @@ def test_patch_op_operations_attribute_required_in_patch_context():
         context={"scim": Context.RESOURCE_PATCH_REQUEST},
     )
     assert len(patch_op.operations) == 1
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "groups",
+        "GROUPS",
+        "Groups",
+        "urn:ietf:params:scim:schemas:core:2.0:User:groups",
+    ],
+)
+def test_a_read_only_attribute_is_protected_whatever_its_spelling(path):
+    """Attribute names are case-insensitive per :rfc:`RFC7643 §2.1 <7643#section-2.1>`.
+
+    ``groups`` is readOnly, so every spelling designating it must be refused.
+    """
+    with pytest.raises(ValidationError, match="mutability"):
+        PatchOp[User](
+            operations=[
+                PatchOperation[User](
+                    op=PatchOperation.Op.replace_,
+                    path=path,
+                    value=[{"value": "group-id"}],
+                )
+            ]
+        )
+
+
+@pytest.mark.parametrize(
+    "path",
+    ["userName", "USERNAME", "urn:ietf:params:scim:schemas:core:2.0:User:userName"],
+)
+def test_a_required_attribute_cannot_be_removed_whatever_its_spelling(path):
+    """``userName`` is required, and its SCIM name differs from its field name."""
+    with pytest.raises(ValidationError, match="required attribute cannot be removed"):
+        PatchOp[User](
+            operations=[PatchOperation[User](op=PatchOperation.Op.remove, path=path)]
+        )
+
+
+def test_an_immutable_attribute_is_protected_whatever_its_spelling():
+    """The runtime check reads the current value, so it resolves the name too."""
+    resource = ImmutableFieldResource(locked="original")
+    patch = PatchOp[ImmutableFieldResource](
+        operations=[
+            PatchOperation[ImmutableFieldResource](
+                op=PatchOperation.Op.replace_, path="LOCKED", value="hijacked"
+            )
+        ]
+    )
+
+    with pytest.raises(MutabilityException):
+        patch.patch(resource)
+    assert resource.locked == "original"
+
+
+def test_an_operation_on_the_resource_root_has_no_attribute_to_check():
+    """An empty path designates the resource itself, so no constraint applies."""
+    resource = User(user_name="bjensen")
+    patch = PatchOp[User](
+        operations=[
+            PatchOperation[User](
+                op=PatchOperation.Op.add, path="", value={"displayName": "Barbara"}
+            )
+        ]
+    )
+
+    assert patch.patch(resource)
+    assert resource.display_name == "Barbara"
