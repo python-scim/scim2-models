@@ -127,23 +127,14 @@ def test_search_request_valid_urn_attributes():
 def test_search_request_invalid_attributes():
     """Test that invalid attribute paths are rejected."""
     invalid_cases = [
-        {
-            "attributes": ["123invalid"],  # Starts with digit
-            "error_match": "path.*invalid",
-        },
-        {
-            "attributes": ["valid", "invalid..path"],  # Double dots
-            "error_match": "path.*invalid",
-        },
-        {
-            "attributes": ["invalid@character"],  # Invalid character
-            "error_match": "path.*invalid",
-        },
+        (["123invalid"], "Paths cannot start with a digit"),
+        (["valid", "invalid..path"], "Paths cannot contain double dots"),
+        (["invalid@character"], "The path contains invalid characters"),
     ]
 
-    for case in invalid_cases:
-        with pytest.raises(ValidationError, match=case["error_match"]):
-            SearchRequest.model_validate(case)
+    for attributes, error_match in invalid_cases:
+        with pytest.raises(ValidationError, match=error_match):
+            SearchRequest.model_validate({"attributes": attributes})
 
 
 def test_search_request_invalid_excluded_attributes():
