@@ -5,6 +5,22 @@ import pytest
 flask = pytest.importorskip("flask")
 django = pytest.importorskip("django")
 fastapi = pytest.importorskip("fastapi")
+sqlalchemy = pytest.importorskip("sqlalchemy")
+
+from datetime import datetime  # noqa: E402
+from datetime import timezone  # noqa: E402
+
+from doc.guides._examples.sqlalchemy_example import EmailRecord  # noqa: E402
+from doc.guides._examples.sqlalchemy_example import GroupRecord  # noqa: E402
+from doc.guides._examples.sqlalchemy_example import UserRecord  # noqa: E402
+from doc.guides._examples.sqlalchemy_example import create_session_factory  # noqa: E402
+from doc.guides._examples.sqlalchemy_example import query_users  # noqa: E402
+from doc.guides._examples.sqlalchemy_example import to_scim_user  # noqa: E402
+from scim2_models import InvalidFilterException  # noqa: E402
+from scim2_models import InvalidPathException  # noqa: E402
+from scim2_models import ScimFilter  # noqa: E402
+from scim2_models import SearchRequest  # noqa: E402
+from scim2_models import User  # noqa: E402
 
 
 def create_flask_app():
@@ -31,7 +47,7 @@ def test_flask_example_smoke():
             "userName": "bjensen@example.com",
             "displayName": "Barbara Jensen",
             "active": True,
-            "emails": [{"value": "bjensen@example.com"}],
+            "emails": [{"value": "bjensen@example.com", "type": "work"}],
         },
     )
     assert create_response.status_code == 201
@@ -68,6 +84,31 @@ def test_flask_example_smoke():
     resources = list_attributes_response.get_json()["Resources"]
     assert "userName" in resources[0]
     assert "displayName" not in resources[0]
+
+    filtered_response = client.get(
+        "/scim/v2/Users",
+        query_string={"filter": 'emails[type eq "work" and value ew "@example.com"]'},
+    )
+    assert filtered_response.status_code == 200
+    assert filtered_response.get_json()["totalResults"] == 1
+
+    unmatched_response = client.get(
+        "/scim/v2/Users", query_string={"filter": 'userName eq "nobody"'}
+    )
+    assert unmatched_response.status_code == 200
+    assert unmatched_response.get_json()["totalResults"] == 0
+
+    malformed_filter_response = client.get(
+        "/scim/v2/Users", query_string={"filter": "userName eq"}
+    )
+    assert malformed_filter_response.status_code == 400
+    assert malformed_filter_response.get_json()["scimType"] == "invalidFilter"
+
+    unknown_attribute_response = client.get(
+        "/scim/v2/Users", query_string={"filter": 'unknownAttr eq "x"'}
+    )
+    assert unknown_attribute_response.status_code == 400
+    assert unknown_attribute_response.get_json()["scimType"] == "invalidFilter"
 
     duplicate_response = client.post(
         "/scim/v2/Users",
@@ -121,7 +162,7 @@ def test_django_example_smoke():
                     "userName": "bjensen@example.com",
                     "displayName": "Barbara Jensen",
                     "active": True,
-                    "emails": [{"value": "bjensen@example.com"}],
+                    "emails": [{"value": "bjensen@example.com", "type": "work"}],
                 }
             ),
             content_type="application/scim+json",
@@ -165,6 +206,35 @@ def test_django_example_smoke():
         resources = json.loads(list_attributes_response.content)["Resources"]
         assert "userName" in resources[0]
         assert "displayName" not in resources[0]
+
+        filtered_response = client.get(
+            "/scim/v2/Users",
+            {"filter": 'emails[type eq "work" and value ew "@example.com"]'},
+        )
+        assert filtered_response.status_code == 200
+        assert json.loads(filtered_response.content)["totalResults"] == 1
+
+        unmatched_response = client.get(
+            "/scim/v2/Users", {"filter": 'userName eq "nobody"'}
+        )
+        assert unmatched_response.status_code == 200
+        assert json.loads(unmatched_response.content)["totalResults"] == 0
+
+        malformed_filter_response = client.get(
+            "/scim/v2/Users", {"filter": "userName eq"}
+        )
+        assert malformed_filter_response.status_code == 400
+        assert json.loads(malformed_filter_response.content)["scimType"] == (
+            "invalidFilter"
+        )
+
+        unknown_attribute_response = client.get(
+            "/scim/v2/Users", {"filter": 'unknownAttr eq "x"'}
+        )
+        assert unknown_attribute_response.status_code == 400
+        assert json.loads(unknown_attribute_response.content)["scimType"] == (
+            "invalidFilter"
+        )
 
         duplicate_response = client.post(
             "/scim/v2/Users",
@@ -212,7 +282,7 @@ def test_fastapi_example_smoke():
             "userName": "bjensen@example.com",
             "displayName": "Barbara Jensen",
             "active": True,
-            "emails": [{"value": "bjensen@example.com"}],
+            "emails": [{"value": "bjensen@example.com", "type": "work"}],
         },
     )
     assert create_response.status_code == 201
@@ -250,6 +320,31 @@ def test_fastapi_example_smoke():
     assert "userName" in resources[0]
     assert "displayName" not in resources[0]
 
+    filtered_response = client.get(
+        "/scim/v2/Users",
+        params={"filter": 'emails[type eq "work" and value ew "@example.com"]'},
+    )
+    assert filtered_response.status_code == 200
+    assert filtered_response.json()["totalResults"] == 1
+
+    unmatched_response = client.get(
+        "/scim/v2/Users", params={"filter": 'userName eq "nobody"'}
+    )
+    assert unmatched_response.status_code == 200
+    assert unmatched_response.json()["totalResults"] == 0
+
+    malformed_filter_response = client.get(
+        "/scim/v2/Users", params={"filter": "userName eq"}
+    )
+    assert malformed_filter_response.status_code == 400
+    assert malformed_filter_response.json()["scimType"] == "invalidFilter"
+
+    unknown_attribute_response = client.get(
+        "/scim/v2/Users", params={"filter": 'unknownAttr eq "x"'}
+    )
+    assert unknown_attribute_response.status_code == 400
+    assert unknown_attribute_response.json()["scimType"] == "invalidFilter"
+
     duplicate_response = client.post(
         "/scim/v2/Users",
         json={
@@ -270,3 +365,144 @@ def test_fastapi_example_smoke():
     )
     assert put_response.status_code == 200
     assert put_response.json()["displayName"] == "Barbara J."
+
+
+def sqlalchemy_records():
+    """Build fresh rows, since an ORM object belongs to the session storing it."""
+    return [
+        UserRecord(
+            id="1",
+            user_name="bjensen",
+            title="Manager",
+            active=True,
+            last_modified=datetime(2024, 6, 1, tzinfo=timezone.utc),
+            emails=[EmailRecord(type="work", value="bjensen@example.com")],
+            groups=[GroupRecord(value="2819c223-7f76", display="Tour Guides")],
+        ),
+        UserRecord(
+            id="2",
+            user_name="RSanchez",
+            active=False,
+            last_modified=datetime(2023, 1, 15, tzinfo=timezone.utc),
+            emails=[EmailRecord(type="home", value="rick@example.org")],
+            groups=[GroupRecord(value="2819C223-7F76", display="Tour Guides")],
+        ),
+        UserRecord(
+            id="3",
+            user_name="jsmith",
+            title="Engineer",
+            active=True,
+            last_modified=datetime(2025, 3, 20, tzinfo=timezone.utc),
+            emails=[EmailRecord(type="Work", value="J.Smith@Example.com")],
+        ),
+        UserRecord(
+            id="4",
+            user_name="dpotter",
+            title="100% remote",
+            active=True,
+            last_modified=datetime(2025, 1, 1, tzinfo=timezone.utc),
+        ),
+        UserRecord(
+            id="5",
+            user_name="mgarcia",
+            title="1000 Files",
+            active=True,
+            last_modified=datetime(2025, 2, 1, tzinfo=timezone.utc),
+        ),
+    ]
+
+
+SQLALCHEMY_FILTERS = [
+    'userName eq "bjensen"',
+    'userName eq "BJENSEN"',
+    'userName sw "b" and title pr',
+    'emails[type eq "work" and value ew "@example.com"]',
+    'emails[type eq "WORK"]',
+    'emails.value co "Example"',
+    'groups co "2819c223"',
+    'groups co "2819C223"',
+    'groups.display eq "tour guides"',
+    "active eq true",
+    'meta.lastModified gt "2024-01-01T00:00:00Z"',
+    "not (title pr)",
+    "emails pr",
+    "not (emails pr)",
+    'userName eq "bjensen" or title eq "Engineer"',
+    'emails[type eq "home"] and active eq false',
+    'title co "100%"',
+    'title co "100"',
+    'title ne "Manager"',
+    'userName ne "bjensen"',
+    'emails.type ne "work"',
+    'emails[type ne "work"]',
+    'groups ne "2819c223"',
+]
+
+
+@pytest.fixture
+def sqlalchemy_session():
+    session_factory = create_session_factory()
+    with session_factory() as session:
+        session.add_all(sqlalchemy_records())
+        session.commit()
+        engine = session.get_bind()
+        yield session
+    engine.dispose()
+
+
+# -- oracle-start --
+def test_sqlalchemy_queries_select_what_the_evaluator_selects(sqlalchemy_session):
+    """The generated query and ``match`` answer the same question.
+
+    Both walk the same tree through the same resolution, so a difference is a
+    defect of the query rather than of the filter.
+    """
+    stored = sqlalchemy_session.scalars(sqlalchemy.select(UserRecord)).all()
+    scim_users = [to_scim_user(record) for record in stored]
+
+    for expression in SQLALCHEMY_FILTERS:
+        scim_filter = ScimFilter[User](expression)
+        total, page = query_users(sqlalchemy_session, SearchRequest(filter=expression))
+        evaluated = sorted(user.id for user in scim_users if scim_filter.match(user))
+        assert sorted(record.id for record in page) == evaluated, expression
+        assert total == len(evaluated), expression
+
+
+# -- oracle-end --
+
+
+def test_sqlalchemy_sorts_and_paginates_in_the_database(sqlalchemy_session):
+    """``totalResults`` counts every match, where a page holds only its slice."""
+    total, page = query_users(
+        sqlalchemy_session,
+        SearchRequest(sort_by="userName", sort_order="descending", count=2),
+    )
+    assert total == 5
+    assert [record.user_name for record in page] == ["mgarcia", "jsmith"]
+
+    total, page = query_users(
+        sqlalchemy_session,
+        SearchRequest(sort_by="userName", start_index=3, count=2),
+    )
+    assert total == 5
+    assert [record.user_name for record in page] == ["dpotter", "jsmith"]
+
+
+def test_sqlalchemy_counts_the_filtered_results_only(sqlalchemy_session):
+    total, page = query_users(
+        sqlalchemy_session, SearchRequest(filter="active eq true", count=2)
+    )
+    assert total == 4
+    assert len(page) == 2
+
+
+def test_sqlalchemy_rejects_a_filter_on_an_unknown_attribute(sqlalchemy_session):
+    with pytest.raises(InvalidFilterException) as exc_info:
+        query_users(sqlalchemy_session, SearchRequest(filter='unknownAttr eq "x"'))
+    assert exc_info.value.scim_type == "invalidFilter"
+
+
+def test_sqlalchemy_rejects_sorting_on_a_multivalued_attribute(sqlalchemy_session):
+    """An attribute spread over its own table has no single column to sort on."""
+    with pytest.raises(InvalidPathException):
+        query_users(sqlalchemy_session, SearchRequest(sort_by="emails"))

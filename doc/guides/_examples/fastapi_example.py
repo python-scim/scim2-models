@@ -24,6 +24,7 @@ from scim2_models import ResourceType
 from scim2_models import ResponseParameters
 from scim2_models import Schema
 from scim2_models import SCIMException
+from scim2_models import ScimFilter
 from scim2_models import ServiceProviderConfig
 from scim2_models import SearchRequest
 from scim2_models import User
@@ -37,6 +38,7 @@ from .integrations import get_schema
 from .integrations import get_schemas
 from .integrations import list_records
 from .integrations import make_etag
+from .integrations import paginate
 from .integrations import save_record
 from .integrations import service_provider_config
 from .integrations import to_scim_user
@@ -218,15 +220,20 @@ async def list_users(
     request: Request, req: Annotated[SearchRequest, Query()]
 ):
     """Return one page of users as a SCIM ListResponse."""
-    total, page = list_records(req.start_index_0, req.stop_index_0)
-    resources = [
-        to_scim_user(record, resource_location(request, record)) for record in page
+    users = [
+        to_scim_user(record, resource_location(request, record))
+        for record in list_records()
     ]
+    if req.filter:
+        scim_filter = ScimFilter[User](req.filter)
+        scim_filter.validate_semantics()
+        users = [user for user in users if scim_filter.match(user)]
+    total, page = paginate(users, req.start_index_0, req.stop_index_0)
     response = ListResponse[User](
         total_results=total,
         start_index=req.start_index or 1,
-        items_per_page=len(resources),
-        resources=resources,
+        items_per_page=len(page),
+        resources=page,
     )
     return SCIMResponse(
         response.model_dump(
@@ -267,7 +274,7 @@ async def create_user(
 @router.get("/Schemas")
 async def list_schemas(req: Annotated[SearchRequest, Query()]):
     """Return one page of SCIM schemas the server exposes."""
-    total, page = get_schemas(req.start_index_0, req.stop_index_0)
+    total, page = paginate(get_schemas(), req.start_index_0, req.stop_index_0)
     response = ListResponse[Schema](
         total_results=total,
         start_index=req.start_index or 1,
@@ -297,7 +304,7 @@ async def get_schema_by_id(schema_id: str):
 @router.get("/ResourceTypes")
 async def list_resource_types(req: Annotated[SearchRequest, Query()]):
     """Return one page of SCIM resource types the server exposes."""
-    total, page = get_resource_types(req.start_index_0, req.stop_index_0)
+    total, page = paginate(get_resource_types(), req.start_index_0, req.stop_index_0)
     response = ListResponse[ResourceType](
         total_results=total,
         start_index=req.start_index or 1,

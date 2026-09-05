@@ -32,6 +32,7 @@ from .exceptions import SCIMException
 from .exceptions import SensitiveException
 from .exceptions import TooManyException
 from .exceptions import UniquenessException
+from .filters import ScimFilter
 from .lookup import get_model_by_payload
 from .lookup import get_model_by_schema
 from .messages.bulk import BulkOperation
@@ -49,6 +50,7 @@ from .path import Path
 from .reference import URI
 from .reference import External
 from .reference import Reference
+from .resolution import ResolvedAttribute
 from .resources.enterprise_user import EnterpriseUser
 from .resources.enterprise_user import Manager
 from .resources.group import Group
@@ -144,6 +146,7 @@ __all__ = [
     "ReplacementRequestContext",
     "ReplacementResponseContext",
     "Required",
+    "ResolvedAttribute",
     "Resource",
     "ResourceType",
     "ResponseParameters",
@@ -152,6 +155,7 @@ __all__ = [
     "SCIMException",
     "SCIMSerializer",
     "SCIMValidator",
+    "ScimFilter",
     "Schema",
     "SchemaExtension",
     "ScimObject",

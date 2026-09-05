@@ -5,6 +5,7 @@ import pytest
 from pydantic import ValidationError
 
 from scim2_models import Group
+from scim2_models import InvalidFilterException
 from scim2_models import InvalidPathException
 from scim2_models import InvalidValueException
 from scim2_models import Mutability
@@ -752,3 +753,20 @@ def test_an_operation_on_the_resource_root_has_no_attribute_to_check():
 
     assert patch.patch(resource)
     assert resource.display_name == "Barbara"
+
+
+def test_patch_selection_naming_an_unknown_attribute_fails_the_operation():
+    """An attribute the model does not declare must not pass for a no-op success."""
+    user = User(user_name="bjensen")
+    patch = PatchOp[User](
+        operations=[
+            PatchOperation[User](
+                op=PatchOperation.Op.add,
+                path='emails[nonexistent eq "work"].value',
+                value="bjensen@example.com",
+            )
+        ]
+    )
+
+    with pytest.raises(InvalidFilterException, match="nonexistent"):
+        patch.patch(user)

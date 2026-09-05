@@ -15,6 +15,20 @@ Added
 - :meth:`~scim2_models.BaseModel.model_validate_json` takes a ``scim_ctx`` parameter, like the
   other validation and serialization methods, so JSON payloads can be validated without being
   decoded first. :issue:`150`
+- :class:`~scim2_models.ScimFilter` parses, validates and evaluates the filters of
+  :rfc:`RFC7644 §3.4.2.2 <7644#section-3.4.2.2>`. Expressions compose with the Python boolean
+  operators and render back to SCIM syntax, and
+  :class:`~scim2_models.filters.FilterVisitor` walks them, so a SQL or ORM query can be built
+  on top. See :doc:`filters`. :issue:`17`
+- :attr:`~scim2_models.PatchOperation.path` supports value selections such as
+  ``emails[type eq "work"].value``, honoured by :meth:`~scim2_models.PatchOp.patch` and by
+  :meth:`Path.get <scim2_models.Path.get>`, :meth:`~scim2_models.Path.set` and
+  :meth:`~scim2_models.Path.delete`.
+- :meth:`Path.resolve <scim2_models.Path.resolve>` binds a path to the attribute it
+  designates, and is what :attr:`Path.model <scim2_models.Path.model>` and its siblings are
+  built on. It returns a :class:`~scim2_models.ResolvedAttribute`, now exposed in the public
+  API so that downstream projects can annotate one.
+- lark is a new dependency.
 
 Changed
 ^^^^^^^
@@ -71,6 +85,17 @@ Fixed
   They used to be skipped whenever the two differed, so ``userName`` could be removed and a
   path spelled ``GROUPS`` could write to a ``readOnly`` attribute, :rfc:`7643` §2.1 making
   attribute names case-insensitive.
+- :attr:`Path.model <scim2_models.Path.model>`, :attr:`~scim2_models.Path.field_name`,
+  :attr:`~scim2_models.Path.field_type`, :attr:`~scim2_models.Path.is_multivalued`,
+  :attr:`~scim2_models.Path.urn` and :meth:`~scim2_models.Path.get_annotation` answer on every
+  path shape. They used to return :data:`None` for anything but a plain attribute path, as they
+  read the rendered expression instead of the attribute it designates. Accordingly,
+  :attr:`Path.attr <scim2_models.Path.attr>` leaves the value selection out:
+  ``emails[type eq "work"].value`` reports ``emails.value``.
+- :meth:`Path.is_prefix_of <scim2_models.Path.is_prefix_of>` and
+  :meth:`~scim2_models.Path.has_prefix` compare the attributes two paths designate rather than
+  their text, so a value selection does not hide the relation:
+  ``emails`` is a prefix of ``emails[type eq "work"].value``.
 
 Removed
 ^^^^^^^

@@ -133,9 +133,11 @@ Collection
 
 ``UsersView`` handles ``GET /Users`` and ``POST /Users``.
 For ``GET``, parse pagination and filtering parameters with
-:class:`~scim2_models.SearchRequest`, slice the store, then wrap the page in a
-:class:`~scim2_models.ListResponse` serialized with
-:attr:`~scim2_models.Context.RESOURCE_QUERY_RESPONSE`.
+:class:`~scim2_models.SearchRequest`, apply the filter to the mapped resources as described in
+:ref:`guides-filtering`, then wrap the page in a :class:`~scim2_models.ListResponse` serialized
+with :attr:`~scim2_models.Context.RESOURCE_QUERY_RESPONSE`.
+Filter errors are :class:`~scim2_models.SCIMException` instances, turned into SCIM responses by
+the same helper as the other endpoints.
 ``req.attributes`` and ``req.excluded_attributes`` are passed to
 :meth:`~scim2_models.ListResponse.model_dump` to apply the ``attributes`` and
 ``excludedAttributes`` query parameters to each embedded resource.
