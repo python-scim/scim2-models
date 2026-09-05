@@ -103,3 +103,28 @@ from scim2_models import *
 # -- Options for sphinx-issues -------------------------------------
 
 issues_github_path = "python-scim/scim2-models"
+
+
+# -- Cross-references ----------------------------------------------
+
+
+def setup(app):
+    """Let the ``type`` builtin win over the SCIM attributes of the same name.
+
+    :rfc:`RFC7643` gives most multi-valued attributes a ``type`` sub-attribute,
+    and those shadow the builtin in the lookup the annotations autodoc renders
+    go through: ``type[BaseModel]`` used to link to ``Address.type``. Reporting
+    no local match leaves the reference to intersphinx, which answers with the
+    builtin.
+    """
+    # Imported here rather than at the top of the file: pytest collects this
+    # module for its doctests, in an environment that has no Sphinx.
+    from sphinx.domains.python import PythonDomain
+
+    find_obj = PythonDomain.find_obj
+
+    def prefer_builtin(self, env, modname, classname, name, objtype, searchmode=0):
+        matches = find_obj(self, env, modname, classname, name, objtype, searchmode)
+        return [] if name == "type" and len(matches) > 1 else matches
+
+    PythonDomain.find_obj = prefer_builtin
