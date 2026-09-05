@@ -152,8 +152,8 @@ def patch_user(app_record):
     """Apply a SCIM PatchOp to an existing user."""
     req = ResponseParameters.model_validate(request.args.to_dict())
     scim_user = to_scim_user(app_record, resource_location(app_record))
-    patch = PatchOp[User].model_validate(
-        request.get_json(),
+    patch = PatchOp[User].model_validate_json(
+        request.data,
         scim_ctx=Context.RESOURCE_PATCH_REQUEST,
     )
     patch.patch(scim_user)
@@ -175,8 +175,8 @@ def replace_user(app_record):
     """Replace an existing user with a full SCIM resource."""
     req = ResponseParameters.model_validate(request.args.to_dict())
     existing_user = to_scim_user(app_record, resource_location(app_record))
-    replacement = User.model_validate(
-        request.get_json(),
+    replacement = User.model_validate_json(
+        request.data,
         scim_ctx=Context.RESOURCE_REPLACEMENT_REQUEST,
     )
     replacement.replace(existing_user)
@@ -238,8 +238,8 @@ def list_users():
 @bp.post("/Users/.search")
 def search_users():
     """Answer the same query as GET /Users, with the parameters in the body."""
-    req = SearchRequest.model_validate(
-        request.get_json(), scim_ctx=Context.SEARCH_REQUEST
+    req = SearchRequest.model_validate_json(
+        request.data, scim_ctx=Context.SEARCH_REQUEST
     )
     return users_page(req, Context.SEARCH_RESPONSE)
 # -- search-users-end --
@@ -254,8 +254,8 @@ def search_root():
     with a ``ListResponse[Union[User, Group]]``. This one only serves users, so
     it answers the same page as ``/Users/.search``.
     """
-    req = SearchRequest.model_validate(
-        request.get_json(), scim_ctx=Context.SEARCH_REQUEST
+    req = SearchRequest.model_validate_json(
+        request.data, scim_ctx=Context.SEARCH_REQUEST
     )
     return users_page(req, Context.SEARCH_RESPONSE)
 # -- search-root-end --
@@ -266,8 +266,8 @@ def search_root():
 def create_user():
     """Validate a SCIM creation payload and store the new user."""
     req = ResponseParameters.model_validate(request.args.to_dict())
-    request_user = User.model_validate(
-        request.get_json(),
+    request_user = User.model_validate_json(
+        request.data,
         scim_ctx=Context.RESOURCE_CREATION_REQUEST,
     )
     app_record = from_scim_user(request_user)

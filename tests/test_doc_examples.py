@@ -78,6 +78,14 @@ def test_flask_example_smoke():
     assert root_response.status_code == 200
     assert root_response.get_json()["totalResults"] == 1
 
+    malformed_response = client.post(
+        "/scim/v2/Users/.search",
+        data="{not json",
+        content_type="application/scim+json",
+    )
+    assert malformed_response.status_code == 400
+    assert malformed_response.get_json()["scimType"] == "invalidSyntax"
+
     get_attributes_response = client.get(
         f"/scim/v2/Users/{user_id}?attributes=userName"
     )
@@ -202,6 +210,14 @@ def test_django_example_smoke():
         )
         assert root_response.status_code == 200
         assert json.loads(root_response.content)["totalResults"] == 1
+
+        malformed_response = client.post(
+            "/scim/v2/Users/.search",
+            "{not json",
+            content_type="application/scim+json",
+        )
+        assert malformed_response.status_code == 400
+        assert json.loads(malformed_response.content)["scimType"] == "invalidSyntax"
 
         get_attributes_response = client.get(
             f"/scim/v2/Users/{user_id}?attributes=userName"

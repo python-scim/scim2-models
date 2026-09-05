@@ -1,4 +1,3 @@
-import json
 from http import HTTPStatus
 
 from django.http import HttpResponse
@@ -177,8 +176,8 @@ class UserView(SCIMView):
         req = ResponseParameters.model_validate(request.GET.dict())
         existing_user = to_scim_user(app_record, resource_location(request, app_record))
         try:
-            replacement = User.model_validate(
-                json.loads(request.body),
+            replacement = User.model_validate_json(
+                request.body,
                 scim_ctx=Context.RESOURCE_REPLACEMENT_REQUEST,
             )
             replacement.replace(existing_user)
@@ -207,8 +206,8 @@ class UserView(SCIMView):
     def patch(self, request, app_record):
         req = ResponseParameters.model_validate(request.GET.dict())
         try:
-            patch = PatchOp[User].model_validate(
-                json.loads(request.body),
+            patch = PatchOp[User].model_validate_json(
+                request.body,
                 scim_ctx=Context.RESOURCE_PATCH_REQUEST,
             )
         except ValidationError as error:
@@ -274,8 +273,8 @@ class UsersView(SCIMView):
     def post(self, request):
         req = ResponseParameters.model_validate(request.GET.dict())
         try:
-            request_user = User.model_validate(
-                json.loads(request.body),
+            request_user = User.model_validate_json(
+                request.body,
                 scim_ctx=Context.RESOURCE_CREATION_REQUEST,
             )
         except ValidationError as error:
@@ -307,8 +306,8 @@ class UsersSearchView(SCIMView):
 
     def post(self, request):
         try:
-            req = SearchRequest.model_validate(
-                json.loads(request.body), scim_ctx=Context.SEARCH_REQUEST
+            req = SearchRequest.model_validate_json(
+                request.body, scim_ctx=Context.SEARCH_REQUEST
             )
         except ValidationError as error:
             return scim_validation_error(error)
@@ -328,8 +327,8 @@ class RootSearchView(SCIMView):
 
     def post(self, request):
         try:
-            req = SearchRequest.model_validate(
-                json.loads(request.body), scim_ctx=Context.SEARCH_REQUEST
+            req = SearchRequest.model_validate_json(
+                request.body, scim_ctx=Context.SEARCH_REQUEST
             )
         except ValidationError as error:
             return scim_validation_error(error)

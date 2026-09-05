@@ -66,10 +66,11 @@ The validation helper keeps Pydantic validation errors aligned with SCIM respons
    :start-after: # -- validation-helper-start --
    :end-before: # -- validation-helper-end --
 
-If :meth:`~scim2_models.Resource.model_validate` or
-:meth:`~scim2_models.PatchOp.model_validate` fails, the views below catch the
-:class:`~pydantic.ValidationError` and return a SCIM :class:`~scim2_models.Error`
-response.
+The views below hand ``request.body`` straight to
+:meth:`~scim2_models.BaseModel.model_validate_json`, which takes a ``scim_ctx`` like the other
+validation methods, so the payload never has to be decoded first. A malformed JSON body raises
+a :class:`~pydantic.ValidationError` like any other validation failure, so this single handler
+turns it into a SCIM :class:`~scim2_models.Error` response.
 
 SCIM exception helper
 ^^^^^^^^^^^^^^^^^^^^^

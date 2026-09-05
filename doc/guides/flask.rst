@@ -62,9 +62,13 @@ responses.
    :start-after: # -- error-handlers-start --
    :end-before: # -- error-handlers-end --
 
-If :meth:`~scim2_models.Resource.model_validate` fails, Flask routes the
-:class:`~pydantic.ValidationError` to ``handle_validation_error`` and the client receives a
-SCIM :class:`~scim2_models.Error` response.
+The views hand ``request.data`` straight to
+:meth:`~scim2_models.BaseModel.model_validate_json`, which takes a ``scim_ctx`` like the other
+validation methods, so the payload never has to be decoded first. When it fails, Flask routes
+the :class:`~pydantic.ValidationError` to ``handle_validation_error`` and the client receives a
+SCIM :class:`~scim2_models.Error` response. A malformed JSON body goes the same way, and thus
+carries an ``invalidSyntax`` ``scimType``, where decoding it first would have raised a bare
+:class:`~werkzeug.exceptions.BadRequest`.
 ``handle_scim_error`` catches any :class:`~scim2_models.SCIMException` (uniqueness, mutability, …)
 and returns the appropriate SCIM :class:`~scim2_models.Error` response.
 ``handle_http_error`` catches any :class:`~werkzeug.exceptions.HTTPException`
