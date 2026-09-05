@@ -709,7 +709,7 @@ class BaseModel(PydanticBaseModel):
             An exception is raised if values are different.
 
             .. deprecated:: 0.6.7
-                Use :meth:`replace` on the validated instance instead.
+                Use :meth:`~scim2_models.Resource.replace` on the validated instance instead.
                 Will be removed in 0.8.0.
         """
         if original is not None:
@@ -733,7 +733,7 @@ class BaseModel(PydanticBaseModel):
     ) -> Self:
         """Validate SCIM JSON payloads and generate model representation by using Pydantic :meth:`~pydantic.BaseModel.model_validate_json`.
 
-        Malformed JSON payloads raise a :class:`~pydantic.ValidationError`, like
+        Malformed JSON payloads raise a :class:`~pydantic_core.ValidationError`, like
         any other SCIM validation failure.
 
         :param scim_ctx: The SCIM :class:`~scim2_models.Context` in which the validation happens.

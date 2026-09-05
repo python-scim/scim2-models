@@ -26,7 +26,7 @@ class Context(Enum):
     and servers validating resource creation request payloads.
 
     - When used for serialization, it will not dump attributes annotated with :attr:`~scim2_models.Mutability.read_only`.
-    - When used for validation, it will raise a :class:`~pydantic.ValidationError`:
+    - When used for validation, it will raise a :class:`~pydantic_core.ValidationError`:
         - when finding attributes annotated with :attr:`~scim2_models.Mutability.read_only`,
         - when attributes annotated with :attr:`Required.true <scim2_models.Required.true>` are missing on null.
     """
@@ -38,7 +38,7 @@ class Context(Enum):
     creation response, and clients validating resource creation response
     payloads.
 
-    - When used for validation, it will raise a :class:`~pydantic.ValidationError` when finding attributes annotated with :attr:`~scim2_models.Returned.never` or when attributes annotated with :attr:`~scim2_models.Returned.always` are missing or :data:`None`;
+    - When used for validation, it will raise a :class:`~pydantic_core.ValidationError` when finding attributes annotated with :attr:`~scim2_models.Returned.never` or when attributes annotated with :attr:`~scim2_models.Returned.always` are missing or :data:`None`;
     - When used for serialization, it will:
         - always dump attributes annotated with :attr:`~scim2_models.Returned.always`;
         - never dump attributes annotated with :attr:`~scim2_models.Returned.never`;
@@ -53,7 +53,7 @@ class Context(Enum):
     and servers validating resource query request payloads.
 
     - When used for serialization, it will not dump attributes annotated with :attr:`~scim2_models.Mutability.write_only`.
-    - When used for validation, it will raise a :class:`~pydantic.ValidationError` when finding attributes annotated with :attr:`~scim2_models.Mutability.write_only`.
+    - When used for validation, it will raise a :class:`~pydantic_core.ValidationError` when finding attributes annotated with :attr:`~scim2_models.Mutability.write_only`.
     """
 
     RESOURCE_QUERY_RESPONSE = auto()
@@ -62,7 +62,7 @@ class Context(Enum):
     Should be used for servers building a payload for a resource query
     response, and clients validating resource query response payloads.
 
-    - When used for validation, it will raise a :class:`~pydantic.ValidationError` when finding attributes annotated with :attr:`~scim2_models.Returned.never` or when attributes annotated with :attr:`~scim2_models.Returned.always` are missing or :data:`None`;
+    - When used for validation, it will raise a :class:`~pydantic_core.ValidationError` when finding attributes annotated with :attr:`~scim2_models.Returned.never` or when attributes annotated with :attr:`~scim2_models.Returned.always` are missing or :data:`None`;
     - When used for serialization, it will:
         - always dump attributes annotated with :attr:`~scim2_models.Returned.always`;
         - never dump attributes annotated with :attr:`~scim2_models.Returned.never`;
@@ -77,7 +77,7 @@ class Context(Enum):
     and servers validating resource replacement request payloads.
 
     - When used for serialization, it will not dump attributes annotated with :attr:`~scim2_models.Mutability.read_only`.
-    - When used for validation, it will ignore attributes annotated with :attr:`scim2_models.Mutability.read_only` and raise a :class:`~pydantic.ValidationError`:
+    - When used for validation, it will ignore attributes annotated with :attr:`scim2_models.Mutability.read_only` and raise a :class:`~pydantic_core.ValidationError`:
         - when finding attributes annotated with :attr:`~scim2_models.Mutability.immutable` different than the ``original`` parameter passed to :meth:`~scim2_models.BaseModel.model_validate`;
         - when attributes annotated with :attr:`Required.true <scim2_models.Required.true>` are missing on null.
     """
@@ -89,7 +89,7 @@ class Context(Enum):
     replacement response, and clients validating resource query
     replacement payloads.
 
-    - When used for validation, it will raise a :class:`~pydantic.ValidationError` when finding attributes annotated with :attr:`~scim2_models.Returned.never` or when attributes annotated with :attr:`~scim2_models.Returned.always` are missing or :data:`None`;
+    - When used for validation, it will raise a :class:`~pydantic_core.ValidationError` when finding attributes annotated with :attr:`~scim2_models.Returned.never` or when attributes annotated with :attr:`~scim2_models.Returned.always` are missing or :data:`None`;
     - When used for serialization, it will:
         - always dump attributes annotated with :attr:`~scim2_models.Returned.always`;
         - never dump attributes annotated with :attr:`~scim2_models.Returned.never`;
@@ -104,7 +104,7 @@ class Context(Enum):
     and servers validating search request payloads.
 
     - When used for serialization, it will not dump attributes annotated with :attr:`~scim2_models.Mutability.write_only`.
-    - When used for validation, it will raise a :class:`~pydantic.ValidationError` when finding attributes annotated with :attr:`~scim2_models.Mutability.write_only`.
+    - When used for validation, it will raise a :class:`~pydantic_core.ValidationError` when finding attributes annotated with :attr:`~scim2_models.Mutability.write_only`.
     """
 
     SEARCH_RESPONSE = auto()
@@ -113,7 +113,7 @@ class Context(Enum):
     Should be used for servers building a payload for a search response,
     and clients validating resource search payloads.
 
-    - When used for validation, it will raise a :class:`~pydantic.ValidationError` when finding attributes annotated with :attr:`~scim2_models.Returned.never` or when attributes annotated with :attr:`~scim2_models.Returned.always` are missing or :data:`None`;
+    - When used for validation, it will raise a :class:`~pydantic_core.ValidationError` when finding attributes annotated with :attr:`~scim2_models.Returned.never` or when attributes annotated with :attr:`~scim2_models.Returned.always` are missing or :data:`None`;
     - When used for serialization, it will:
         - always dump attributes annotated with :attr:`~scim2_models.Returned.always`;
         - never dump attributes annotated with :attr:`~scim2_models.Returned.never`;
@@ -131,7 +131,7 @@ class Context(Enum):
       :attr:`~scim2_models.Mutability.read_only`, which a PATCH operation
       cannot target anyway.
     - When used for validation, a :class:`~scim2_models.PatchOp` will raise a
-      :class:`~pydantic.ValidationError`:
+      :class:`~pydantic_core.ValidationError`:
 
     - when an operation targets an attribute annotated with
       :attr:`~scim2_models.Mutability.read_only`,
@@ -153,7 +153,7 @@ class Context(Enum):
     Should be used for servers building a payload for a PATCH response,
     and clients validating patch response payloads.
 
-    - When used for validation, it will raise a :class:`~pydantic.ValidationError` when finding attributes annotated with :attr:`~scim2_models.Returned.never` or when attributes annotated with :attr:`~scim2_models.Returned.always` are missing or :data:`None`;
+    - When used for validation, it will raise a :class:`~pydantic_core.ValidationError` when finding attributes annotated with :attr:`~scim2_models.Returned.never` or when attributes annotated with :attr:`~scim2_models.Returned.always` are missing or :data:`None`;
     - When used for serialization, it will:
         - always dump attributes annotated with :attr:`~scim2_models.Returned.always`;
         - never dump attributes annotated with :attr:`~scim2_models.Returned.never`;

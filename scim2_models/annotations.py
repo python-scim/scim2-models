@@ -131,7 +131,7 @@ class Uniqueness(str, Enum):
 class Required(Enum):
     """A Boolean value that specifies whether the attribute is required or not.
 
-    Missing required attributes raise a :class:`~pydantic.ValidationError` on :attr:`~scim2_models.Context.RESOURCE_CREATION_REQUEST` and :attr:`~scim2_models.Context.RESOURCE_REPLACEMENT_REQUEST` validations.
+    Missing required attributes raise a :class:`~pydantic_core.ValidationError` on :attr:`~scim2_models.Context.RESOURCE_CREATION_REQUEST` and :attr:`~scim2_models.Context.RESOURCE_REPLACEMENT_REQUEST` validations.
     """
 
     true = True

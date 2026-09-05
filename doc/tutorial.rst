@@ -57,7 +57,7 @@ Use Pydantic's :func:`~scim2_models.BaseModel.model_validate` method to parse an
 
 Payloads that have not been decoded yet can be handled by
 :func:`~scim2_models.BaseModel.model_validate_json`.
-Malformed JSON raises a :class:`~pydantic.ValidationError`, like any other invalid payload.
+Malformed JSON raises a :class:`~pydantic_core.ValidationError`, like any other invalid payload.
 
 .. code-block:: python
 
@@ -124,7 +124,7 @@ By passing the right :class:`~scim2_models.Context` to the :meth:`~scim2_models.
     >>> payload = user.model_dump(scim_ctx=Context.RESOURCE_CREATION_REQUEST)
 
 In the same fashion, by passing the right :class:`~scim2_models.Context` to the :meth:`~scim2_models.BaseModel.model_validate` method,
-fields with unexpected values will raise :class:`~pydantic.ValidationError`:
+fields with unexpected values will raise :class:`~pydantic_core.ValidationError`:
 
 .. code-block:: python
     :caption: Server validating a resource creation request payload
@@ -244,7 +244,7 @@ like :code:`urn:ietf:params:scim:schemas:core:2.0:User:userName`, or :code:`user
     ...     "userName": "bjensen@example.com",
     ... }
 
-Values read from :attr:`~scim2_models.SearchRequest.attributes` and :attr:`~scim2_models.SearchRequest.excluded_attributes` in :class:`~scim2_models.SearchRequest` objects can directly be used in :meth:`~scim2_models.BaseModel.model_dump`.
+Values read from :attr:`~scim2_models.ResponseParameters.attributes` and :attr:`~scim2_models.ResponseParameters.excluded_attributes` in :class:`~scim2_models.SearchRequest` objects can directly be used in :meth:`~scim2_models.BaseModel.model_dump`.
 
 Attributes inclusions and exclusions interact with attributes :class:`~scim2_models.Returned`, in the server response :class:`Contexts <scim2_models.Context>`:
 
@@ -256,8 +256,10 @@ Attributes inclusions and exclusions interact with attributes :class:`~scim2_mod
 Typed ListResponse
 ==================
 
-:class:`~scim2_models.ListResponse` models take a type or a :data:`~typing.Union` of types.
-You must pass the type you expect in the response, e.g. :class:`~scim2_models.ListResponse[User]` or :class:`~scim2_models.ListResponse[Union[User, Group]]`.
+:class:`~scim2_models.ListResponse` models take a type, or a union of types.
+You must pass the type you expect in the response, e.g.
+:class:`~scim2_models.ListResponse`\ [:class:`~scim2_models.User`] or
+:class:`~scim2_models.ListResponse`\ [:class:`~scim2_models.User` | :class:`~scim2_models.Group`].
 If a response resource type cannot be found, a ``pydantic.ValidationError`` will be raised.
 
 .. code-block:: python

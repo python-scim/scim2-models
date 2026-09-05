@@ -174,7 +174,7 @@ Added
 
 Deprecated
 ^^^^^^^^^^
-- The ``original`` parameter of :meth:`~scim2_models.base.BaseModel.model_validate` is deprecated. Use :meth:`~scim2_models.Resource.replace` on the validated instance instead. Will be removed in 0.8.0.
+- The ``original`` parameter of :meth:`~scim2_models.BaseModel.model_validate` is deprecated. Use :meth:`~scim2_models.Resource.replace` on the validated instance instead. Will be removed in 0.8.0.
 
 Fixed
 ^^^^^
@@ -271,7 +271,7 @@ Deprecated
 - Validation that the base schema is present in ``schemas`` during SCIM context validation.
 - Validation that extension schemas are known during SCIM context validation.
 - Introduce SCIM exceptions hierarchy (:class:`~scim2_models.SCIMException` and subclasses) corresponding to RFC 7644 error types. :issue:`103`
-- :meth:`Error.from_validation_error <scim2_models.Error.from_validation_error>` to convert Pydantic :class:`~pydantic.ValidationError` to SCIM :class:`~scim2_models.Error`.
+- :meth:`Error.from_validation_error <scim2_models.Error.from_validation_error>` to convert Pydantic :class:`~pydantic_core.ValidationError` to SCIM :class:`~scim2_models.Error`.
 - :meth:`PatchOp.patch <scim2_models.PatchOp.patch>` auto-excludes other ``primary`` values when setting one to ``True``. :issue:`116`
 
 [0.5.2] - 2026-01-22
@@ -324,14 +324,14 @@ Fixed
 
 Added
 ^^^^^
-- Proper path validation for :attr:`~scim2_models.SearchRequest.attributes`, :attr:`~scim2_models.SearchRequest.excluded_attributes` and :attr:`~scim2_models.SearchRequest.sort_by`.
+- Proper path validation for :attr:`~scim2_models.ResponseParameters.attributes`, :attr:`~scim2_models.ResponseParameters.excluded_attributes` and :attr:`~scim2_models.SearchRequest.sort_by`.
 - Implement :meth:`~scim2_models.PatchOp.patch`
 
 Fixed
 ^^^^^
 - When using ``model_dump``, ignore invalid ``attributes`` and ``excluded_attributes``
   as suggested by RFC7644.
-- Don't normalize attributes typed with :data:`Any`. :issue:`20`
+- Don't normalize attributes typed with :data:`~typing.Any`. :issue:`20`
 
 [0.3.7] - 2025-07-17
 --------------------
@@ -382,7 +382,7 @@ Fixed
 Fixed
 ^^^^^
 - Fix :attr:`~scim2_models.SearchRequest.start_index` and :attr:`~scim2_models.SearchRequest.count` limits. :issue:`84`
-- :attr:`~scim2_models.ListResponse.total_resuls` is required. :issue:`88`
+- :attr:`~scim2_models.ListResponse.total_results` is required. :issue:`88`
 
 [0.3.0] - 2024-12-11
 --------------------
@@ -414,7 +414,7 @@ Added
 ^^^^^
 - Implement :meth:`Schema.get_attribute <scim2_models.Schema.get_attribute>`.
 - Implement :meth:`SearchRequest.start_index_0 <scim2_models.SearchRequest.start_index_0>`
-  and :meth:`SearchRequest.start_index_1 <scim2_models.SearchRequest.start_index_1>`.
+  and ``SearchRequest.start_index_1``.
 
 [0.2.10] - 2024-12-02
 ---------------------
@@ -477,11 +477,11 @@ Added
 ^^^^^
 - Python 3.13 support.
 - Proper Base64 serialization. :issue:`31`
-- :meth:`~BaseModel.get_field_root_type` supports :data:`~typing.UnionType`.
+- :meth:`~scim2_models.BaseModel.get_field_root_type` supports :class:`~types.UnionType`.
 
 Changed
 ^^^^^^^
-- :attr:`SearchRequest.attributes <scim2_models.SearchRequest.attributes>` and :attr:`SearchRequest.attributes <scim2_models.SearchRequest.excluded_attributes>` are mutually exclusive. :issue:`19`
+- :attr:`SearchRequest.attributes <scim2_models.ResponseParameters.attributes>` and :attr:`SearchRequest.attributes <scim2_models.ResponseParameters.excluded_attributes>` are mutually exclusive. :issue:`19`
 - :class:`~scim2_models.Schema` ids must be valid URIs. :issue:`26`
 
 [0.2.2] - 2024-09-20
@@ -545,7 +545,7 @@ Changed
 Fixed
 ^^^^^
 - `get_by_payload` return :data:`None` on invalid payloads
-- instance :meth:`~scim2_models.Resource.model_dump` with multiple extensions :issue:`57`
+- instance :meth:`~scim2_models.BaseModel.model_dump` with multiple extensions :issue:`57`
 
 [0.1.13] - 2024-07-15
 ---------------------
@@ -614,7 +614,7 @@ Added
 ^^^^^
 - :attr:`~scim2_models.SearchRequest.count` value is floored to 1
 - :attr:`~scim2_models.SearchRequest.start_index` value is floored to 0
-- :attr:`~scim2_models.ListResponse.resources` must be set when :attr:`~scim2_models.ListResponse.totalResults` is non-null.
+- :attr:`~scim2_models.ListResponse.resources` must be set when :attr:`~scim2_models.ListResponse.total_results` is non-null.
 
 Fix
 ^^^
@@ -658,7 +658,7 @@ Changed
 
 Added
 ^^^^^
-- Implement :meth:`~scim2_models.Resource.guess_by_payload`
+- Implement ``Resource.guess_by_payload``
 
 [0.1.1] - 2024-06-01
 --------------------

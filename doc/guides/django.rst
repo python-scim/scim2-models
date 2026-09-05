@@ -25,7 +25,7 @@ Application setup
 =================
 
 Start with a ``SCIMView`` base class that all SCIM views inherit from.
-It overrides :meth:`~django.views.View.dispatch` to centralise
+It overrides the ``dispatch`` of :class:`~django.views.generic.base.View` to centralise
 cross-cutting concerns: the ``application/scim+json`` content type,
 ``ETag`` extraction from ``meta.version``, ``If-None-Match`` (304) on reads,
 and ``If-Match`` (412) on writes.
@@ -69,7 +69,7 @@ The validation helper keeps Pydantic validation errors aligned with SCIM respons
 The views below hand ``request.body`` straight to
 :meth:`~scim2_models.BaseModel.model_validate_json`, which takes a ``scim_ctx`` like the other
 validation methods, so the payload never has to be decoded first. A malformed JSON body raises
-a :class:`~pydantic.ValidationError` like any other validation failure, so this single handler
+a :class:`~pydantic_core.ValidationError` like any other validation failure, so this single handler
 turns it into a SCIM :class:`~scim2_models.Error` response.
 
 SCIM exception helper
@@ -139,7 +139,7 @@ resources as described in :ref:`guides-sorting`, then wrap the page in a
 :class:`~scim2_models.ListResponse` serialized with
 :attr:`~scim2_models.Context.RESOURCE_QUERY_RESPONSE`.
 ``req.attributes`` and ``req.excluded_attributes`` are passed to
-:meth:`~scim2_models.ListResponse.model_dump` to apply the ``attributes`` and
+:meth:`~scim2_models.BaseModel.model_dump` to apply the ``attributes`` and
 ``excludedAttributes`` query parameters to each embedded resource.
 For ``POST``, validate the creation payload with
 :attr:`~scim2_models.Context.RESOURCE_CREATION_REQUEST`, persist the record, then serialize
@@ -218,7 +218,7 @@ All ETag handling is centralised in ``SCIMView.dispatch()``:
 
 .. tip::
 
-   With Django ORM, a :class:`~uuid.UUIDField` regenerated on every
+   With Django ORM, a :class:`~django.db.models.UUIDField` regenerated on every
    :meth:`~django.db.models.Model.save` provides a collision-free ETag value
    without relying on clock precision::
 

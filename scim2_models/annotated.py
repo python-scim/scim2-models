@@ -39,7 +39,7 @@ class SCIMValidator:
     """Annotated marker that injects a SCIM context during Pydantic validation.
 
     When used in a :data:`typing.Annotated` type hint, the incoming data is
-    validated through :meth:`~scim2_models.base.BaseModel.model_validate` with
+    validated through :meth:`~scim2_models.BaseModel.model_validate` with
     the given *ctx*, activating all SCIM-specific validators (mutability,
     required fields, etc.).
 
@@ -70,7 +70,7 @@ class SCIMSerializer:
 
     When used in a :data:`typing.Annotated` type hint on a return type, the
     response object is serialized through
-    :meth:`~scim2_models.scim_object.SCIMObject.model_dump_json` with the
+    :meth:`~scim2_models.BaseModel.model_dump_json` with the
     given *ctx*, applying returnability and mutability rules.
 
     :param ctx: The SCIM context to use during serialization.

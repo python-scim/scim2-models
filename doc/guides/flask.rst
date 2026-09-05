@@ -65,7 +65,7 @@ responses.
 The views hand ``request.data`` straight to
 :meth:`~scim2_models.BaseModel.model_validate_json`, which takes a ``scim_ctx`` like the other
 validation methods, so the payload never has to be decoded first. When it fails, Flask routes
-the :class:`~pydantic.ValidationError` to ``handle_validation_error`` and the client receives a
+the :class:`~pydantic_core.ValidationError` to ``handle_validation_error`` and the client receives a
 SCIM :class:`~scim2_models.Error` response. A malformed JSON body goes the same way, and thus
 carries an ``invalidSyntax`` ``scimType``, where decoding it first would have raised a bare
 :class:`~werkzeug.exceptions.BadRequest`.
@@ -143,7 +143,7 @@ resources as described in :ref:`guides-sorting`, then wrap the page in a
 :class:`~scim2_models.ListResponse` serialized with
 :attr:`~scim2_models.Context.RESOURCE_QUERY_RESPONSE`.
 Pass ``req.attributes`` and ``req.excluded_attributes`` to
-:meth:`~scim2_models.ListResponse.model_dump_json` so that the ``attributes`` and
+:meth:`~scim2_models.BaseModel.model_dump_json` so that the ``attributes`` and
 ``excludedAttributes`` query parameters are applied to each embedded resource.
 
 .. literalinclude:: _examples/flask_example.py

@@ -67,8 +67,8 @@ validation errors, HTTP exceptions, and application errors aligned with SCIM res
    :start-after: # -- error-handlers-start --
    :end-before: # -- error-handlers-end --
 
-``handle_validation_error`` catches the :class:`~pydantic.ValidationError` raised by
-:meth:`~scim2_models.Resource.model_validate` and returns a SCIM :class:`~scim2_models.Error`
+``handle_validation_error`` catches the :class:`~pydantic_core.ValidationError` raised by
+:meth:`~scim2_models.BaseModel.model_validate` and returns a SCIM :class:`~scim2_models.Error`
 response.
 ``handle_http_exception`` catches HTTP errors such as the 404 raised by the dependency and wraps
 them in a SCIM :class:`~scim2_models.Error`.
@@ -151,7 +151,7 @@ resources as described in :ref:`guides-sorting`, then wrap the page in a
 :class:`~scim2_models.ListResponse` serialized with
 :attr:`~scim2_models.Context.RESOURCE_QUERY_RESPONSE`.
 Pass ``req.attributes`` and ``req.excluded_attributes`` to
-:meth:`~scim2_models.ListResponse.model_dump_json` so that the ``attributes`` and
+:meth:`~scim2_models.BaseModel.model_dump_json` so that the ``attributes`` and
 ``excludedAttributes`` query parameters are applied to each embedded resource.
 
 .. literalinclude:: _examples/fastapi_example.py
