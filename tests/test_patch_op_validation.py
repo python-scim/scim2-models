@@ -752,3 +752,47 @@ def test_an_operation_on_the_resource_root_has_no_attribute_to_check():
 
     assert patch.patch(resource)
     assert resource.display_name == "Barbara"
+
+
+def test_a_replace_cannot_unassign_a_required_attribute():
+    """:rfc:`RFC7643` §2.5 makes a null value equivalent to an unassigned attribute, which §3.5.2.2 of :rfc:`RFC7644` refuses on a required one."""
+    for value in (None, []):
+        with pytest.raises(
+            ValidationError, match="required attribute cannot be unassigned"
+        ):
+            PatchOp[User].model_validate(
+                {
+                    "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+                    "Operations": [
+                        {"op": "replace", "path": "userName", "value": value}
+                    ],
+                },
+                scim_ctx=Context.RESOURCE_PATCH_REQUEST,
+            )
+
+
+def test_a_replace_may_empty_a_required_string():
+    """An empty string is a value, where :rfc:`RFC7643` §2.5 only equates null and the empty array to an unassigned attribute."""
+    patch = PatchOp[User].model_validate(
+        {
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+            "Operations": [{"op": "replace", "path": "userName", "value": ""}],
+        },
+        scim_ctx=Context.RESOURCE_PATCH_REQUEST,
+    )
+    user = User(id="1", user_name="bjensen")
+    patch.patch(user)
+    assert user.user_name == ""
+
+
+def test_a_replace_may_unassign_an_optional_attribute():
+    patch = PatchOp[User].model_validate(
+        {
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+            "Operations": [{"op": "replace", "path": "displayName", "value": None}],
+        },
+        scim_ctx=Context.RESOURCE_PATCH_REQUEST,
+    )
+    user = User(id="1", user_name="bjensen", display_name="Babs")
+    patch.patch(user)
+    assert user.display_name is None

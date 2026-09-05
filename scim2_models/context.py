@@ -127,10 +127,21 @@ class Context(Enum):
     Should be used for clients building a payload for a PATCH request,
     and servers validating PATCH request payloads.
 
-    - When used for serialization, it will not dump attributes annotated with :attr:`~scim2_models.Mutability.read_only`.
-    - When used for validation, it will raise a :class:`~pydantic.ValidationError`:
-        - when finding attributes annotated with :attr:`~scim2_models.Mutability.read_only`,
-        - when attributes annotated with :attr:`Required.true <scim2_models.Required.true>` are missing or null.
+    This is the context a :class:`~scim2_models.PatchOp` is validated in, where
+    it will raise a :class:`~pydantic.ValidationError`:
+
+    - when an operation targets an attribute annotated with
+      :attr:`~scim2_models.Mutability.read_only`,
+    - when an operation would leave an attribute annotated with
+      :attr:`Required.true <scim2_models.Required.true>` unassigned, which a
+      ``remove`` does, and so does a ``replace`` carrying a null value or an
+      empty array, per :rfc:`RFC7643 §2.5 <7643#section-2.5>`,
+    - when a ``remove`` carries no ``path``, or an ``add`` no ``value``.
+
+    Attributes annotated with :attr:`~scim2_models.Mutability.immutable` are
+    checked by :meth:`~scim2_models.PatchOp.patch` instead, as it takes the
+    value the resource currently holds. A PATCH being partial, nothing here
+    requires a payload to carry every required attribute.
     """
 
     RESOURCE_PATCH_RESPONSE = auto()

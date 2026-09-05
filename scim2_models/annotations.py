@@ -89,24 +89,40 @@ class Returned(str, Enum):
 
 
 class Uniqueness(str, Enum):
-    """A single keyword value that specifies how the service provider enforces uniqueness of attribute values."""
+    """A single keyword value that specifies how the service provider enforces uniqueness of attribute values.
+
+    Unlike the other attribute characteristics, this one carries no validation:
+    checking it takes the values a store already holds, which a model cannot
+    know. It is a declaration, published by
+    :meth:`~scim2_models.Resource.to_schema` and read back by
+    :meth:`~scim2_models.Resource.from_schema`, that a service provider
+    honours and whose violation it reports with
+    :class:`~scim2_models.UniquenessException`.
+    """
 
     none = "none"
-    """The values are not intended to be unique in any way."""
+    """The values are not intended to be unique in any way.
+
+    This is the implicit value of any attribute, per
+    :rfc:`RFC7643 §2.2 <7643#section-2.2>`.
+    """
 
     server = "server"
     """The value SHOULD be unique within the context of the current SCIM
     endpoint (or tenancy) and MAY be globally unique (e.g., a "username", email
     address, or other server-generated key or counter).
 
-    No two resources on the same server SHOULD possess the same value.
+    No two resources on the same server SHOULD possess the same value. This is
+    what :attr:`User.user_name <scim2_models.User.user_name>` carries.
     """
 
     global_ = "global"
     """The value SHOULD be globally unique (e.g., an email address, a GUID, or
     other value).
 
-    No two resources on any server SHOULD possess the same value.
+    No two resources on any server SHOULD possess the same value. This is what
+    :attr:`Resource.id <scim2_models.Resource.id>` carries, an identifier a
+    client may store alongside resources coming from several servers.
     """
 
     _default = none

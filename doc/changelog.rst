@@ -1,6 +1,17 @@
 Changelog
 =========
 
+[Unreleased]
+------------
+
+Fixed
+^^^^^
+- A PATCH ``replace`` carrying a null value or an empty array on an attribute
+  annotated with :attr:`Required.true <scim2_models.Required.true>` is rejected,
+  as :rfc:`RFC7643 §2.5 <7643#section-2.5>` makes those equivalent to an
+  unassigned attribute, which :rfc:`RFC7644 §3.5.2.2 <7644#section-3.5.2.2>`
+  refuses on a required one.
+
 [0.7.0] - 2026-09-05
 --------------------
 

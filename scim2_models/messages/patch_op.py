@@ -87,9 +87,16 @@ class PatchOperation(ComplexAttribute, Generic[ResourceT]):
     def _validate_required_attribute(
         self, resource_class: type[Resource[Any]], field_name: str | None
     ) -> None:
-        """Validate required attribute constraints for remove operations."""
-        # RFC 7644 Section 3.5.2.3: Only validate for remove operations
-        if self.op != PatchOperation.Op.remove:
+        """Refuse an operation that would leave a required attribute unassigned."""
+        # RFC7643 §2.5 makes a null value, an empty array and an unassigned
+        # attribute equivalent in state, so a replace carrying one of those
+        # unassigns the attribute as surely as a remove does. An add cannot:
+        # it is already refused without a value.
+        if self.op == PatchOperation.Op.remove:
+            detail = "required attribute cannot be removed"
+        elif self.op == PatchOperation.Op.replace_ and self.value in (None, []):
+            detail = "required attribute cannot be unassigned"
+        else:
             return
 
         # RFC 7644 Section 3.5.2: "Servers should be tolerant of schema extensions"
@@ -98,10 +105,11 @@ class PatchOperation(ComplexAttribute, Generic[ResourceT]):
 
         required = resource_class.get_field_annotation(field, Required)
 
-        # RFC 7643 Section 7: "Required attributes SHALL NOT be removed"
+        # RFC7644 §3.5.2.2 has a server answer "mutability" when a required
+        # attribute is removed or becomes unassigned.
         if required == Required.true:
             raise InvalidValueException(
-                detail="required attribute cannot be removed", attribute=field_name
+                detail=detail, attribute=field_name
             ).as_pydantic_error()
 
     @model_validator(mode="after")
