@@ -975,10 +975,20 @@ def test_parts_empty_path():
     assert path.parts == ()
 
 
-def test_parts_deeply_nested():
-    """Deeply nested path splits all parts."""
-    path = Path("a.b.c.d")
-    assert path.parts == ("a", "b", "c", "d")
+def test_parts_rejects_more_than_one_sub_attribute():
+    """A path cannot nest beyond a single sub-attribute.
+
+    The ``attrPath`` ABNF rule reads ``*1subAttr``, and SCIM defines no nested
+    complex attributes.
+    """
+    with pytest.raises(ValueError):
+        Path("a.b.c.d")
+
+
+def test_parts_value_filter_is_not_a_segment():
+    """A value selection does not appear in the path segments."""
+    path = Path('emails[type eq "work"].value')
+    assert path.parts == ("emails", "value")
 
 
 # --- Path prefix methods (is_prefix_of, has_prefix) tests ---

@@ -1,4 +1,3 @@
-import re
 from collections import UserString
 from collections.abc import Iterator
 from inspect import isclass
@@ -8,6 +7,8 @@ from typing import Generic
 from typing import NamedTuple
 from typing import TypeVar
 from typing import cast
+from typing import get_args
+from typing import get_origin
 
 from pydantic import GetCoreSchemaHandler
 from pydantic import GetJsonSchemaHandler
@@ -15,6 +16,7 @@ from pydantic.json_schema import JsonSchemaValue
 from pydantic_core import core_schema
 
 from .base import BaseModel
+from .utils import UNION_TYPES
 from .utils import _find_field_name
 from .utils import _to_camel
 
@@ -26,13 +28,39 @@ if TYPE_CHECKING:
     from .annotations import Uniqueness
     from .resources.resource import Resource
 
+from .exceptions import InvalidFilterException
 from .exceptions import InvalidPathException
+from .exceptions import NoTargetException
 from .exceptions import PathNotFoundException
+from .expressions import AttrPath
+from .expressions import Comparison
+from .expressions import FilterNode
+from .expressions import PathNode
+from .expressions import Present
+from .expressions import ValuePath
+from .filters.filter import validate_value_filter
+from .filters.visitor import Evaluator
+from .grammar import parse_path
+from .resolution import attribute_host
+from .resolution import resolve_attr_path
+from .resolution import validate_value_selection
 
 ResourceT = TypeVar("ResourceT", bound="Resource[Any]")
 
-_VALID_PATH_PATTERN = re.compile(r'^[a-zA-Z][a-zA-Z0-9._:\-\[\]"=\s]*$')
 _PATH_CACHE: dict[tuple[type, type], type] = {}
+
+
+def _node_attr_path(node: PathNode) -> AttrPath:
+    """Return the attribute path a parsed path node applies to."""
+    if isinstance(node, AttrPath):
+        return node
+    return node.attr_path
+
+
+def _accepts_none(model: type[BaseModel], field_name: str) -> bool:
+    """Whether a field may be unset, which a required one may not."""
+    annotation = model.model_fields[field_name].annotation
+    return get_origin(annotation) in UNION_TYPES and type(None) in get_args(annotation)
 
 
 def _to_comparable(value: Any) -> Any:
@@ -160,12 +188,17 @@ class Path(UserString, Generic[ResourceT]):
             path = str(path)
         self.check_syntax(path)
         self.data = path
+        self._ast: PathNode | None = None
 
     @classmethod
     def check_syntax(cls, path: str) -> None:
-        """Check if path syntax is valid according to RFC 7644 simplified rules.
+        """Check that a path conforms to the ``PATH`` rule of :rfc:`RFC7644 §3.5.2 <7644#section-3.5.2>`.
 
-        An empty string is valid and represents the resource root.
+        The grammar is the published ABNF as corrected by
+        `errata 7122 <https://www.rfc-editor.org/errata/eid7122>`_, so a path
+        is either an attribute path, a value selection optionally followed by a
+        sub-attribute, or a bare comparison. An empty string is valid and
+        represents the resource root.
 
         :param path: The path to validate
         :raises ValueError: If the path syntax is invalid
@@ -173,24 +206,35 @@ class Path(UserString, Generic[ResourceT]):
         if not path:
             return
 
-        if path[0].isdigit():
-            raise ValueError("Paths cannot start with a digit")
+        try:
+            node = parse_path(path)
+        except InvalidPathException as exc:
+            raise ValueError(
+                f"The path is not a valid SCIM path: {exc.detail}"
+            ) from exc
 
-        if ".." in path:
-            raise ValueError("Paths cannot contain double dots")
+        uri = _node_attr_path(node).uri
+        if uri is None:
+            return
 
-        if not _VALID_PATH_PATTERN.match(path):
-            raise ValueError("The path contains invalid characters")
+        try:
+            URN(uri.lower())
+        except ValueError as exc:
+            raise ValueError(f"The path is not a valid URN: {exc}") from exc
 
-        if path.endswith(":"):
-            raise ValueError("Paths cannot end with a colon")
+    @property
+    def ast(self) -> "PathNode | None":
+        """The parsed form of the path, or :data:`None` for the resource root.
 
-        if ":" in path:
-            urn = path.rsplit(":", 1)[0]
-            try:
-                URN(urn.lower())
-            except ValueError as exc:
-                raise ValueError(f"The path is not a valid URN: {exc}") from exc
+        >>> from scim2_models import Path
+        >>> Path("name.familyName").ast
+        AttrPath(attr='name', sub_attr='familyName', uri=None)
+        """
+        if not self.data:
+            return None
+        if self._ast is None:
+            self._ast = parse_path(self.data)
+        return self._ast
 
     @property
     def schema(self) -> str | None:
@@ -199,9 +243,8 @@ class Path(UserString, Generic[ResourceT]):
         For paths like "urn:...:User:userName", returns "urn:...:User".
         For simple paths like "userName", returns None.
         """
-        if ":" not in self.data:
-            return None
-        return self.data.rsplit(":", 1)[0]
+        node = self.ast
+        return None if node is None else _node_attr_path(node).uri
 
     @property
     def attr(self) -> str:
@@ -209,24 +252,58 @@ class Path(UserString, Generic[ResourceT]):
 
         For paths like "urn:...:User:userName", returns "userName".
         For simple paths like "userName", returns "userName".
-        For schema-only paths like "urn:...:User", returns "".
+        For the empty path, which designates the resource itself, returns "".
+
+        Nothing tells a schema-only path from a qualified one, since the URN of
+        a schema is itself a colon-separated name: "urn:...:User" reads as the
+        attribute "User" of the schema "urn:...:2.0".
         """
-        if ":" not in self.data:
-            return self.data
-        return self.data.rsplit(":", 1)[1]
+        node = self.ast
+        if node is None:
+            return ""
+
+        rendered = str(node)
+        uri = _node_attr_path(node).uri
+        return rendered[len(uri) + 1 :] if uri else rendered
 
     @property
     def parts(self) -> tuple[str, ...]:
-        """The attribute path segments split by '.'.
+        """The attribute name, and the sub-attribute name when there is one.
+
+        A value selection is not part of the segments, so the first element is
+        always the attribute a PATCH operation applies to.
 
         For "name.familyName", returns ("name", "familyName").
         For "userName", returns ("userName",).
+        For 'emails[type eq "work"].value', returns ("emails", "value").
         For "", returns ().
         """
-        attr = self.attr
-        if not attr:
+        node = self.ast
+        if node is None:
             return ()
-        return tuple(attr.split("."))
+
+        attr_path = _node_attr_path(node)
+        sub_attr = node.sub_attr if isinstance(node, ValuePath) else attr_path.sub_attr
+        return (attr_path.attr, sub_attr) if sub_attr else (attr_path.attr,)
+
+    @property
+    def value_filter(self) -> "FilterNode | None":
+        """The value selection filter of the path, when it has one.
+
+        >>> from scim2_models import Path
+        >>> str(Path('emails[type eq "work"].value').value_filter)
+        'type eq "work"'
+        >>> Path("emails.value").value_filter is None
+        True
+        """
+        node = self.ast
+        if isinstance(node, ValuePath):
+            return node.val_filter
+        # Errata 7122 allows a bare comparison as a path, which selects values
+        # of a multi-valued attribute that is not complex.
+        if isinstance(node, Comparison | Present):
+            return node
+        return None
 
     def is_prefix_of(self, other: "str | Path[Any]") -> bool:
         """Check if this path is a prefix of another path.
@@ -520,8 +597,86 @@ class Path(UserString, Generic[ResourceT]):
         setattr(host, field_name, sub_obj)
         return cast(BaseModel, sub_obj)
 
+    def _as_value_path(self) -> ValuePath | None:
+        """Normalise a value-selecting path into a single representation.
+
+        :rfc:`RFC7644 §3.5.2 <7644#section-3.5.2>` as corrected by errata 7122
+        offers three ways to select values of a multi-valued attribute, which
+        all mean the same thing here::
+
+            emails[type eq "work"]   a value selection
+            emails.type eq "work"    a bare comparison
+            schemas eq "urn:…"       a bare comparison on a scalar list
+        """
+        node = self.ast
+        if isinstance(node, ValuePath):
+            return node
+
+        if not isinstance(node, Comparison | Present):
+            return None
+
+        # A sub-attribute in the comparison becomes the inner filter, so that
+        # 'emails.type eq "work"' selects like 'emails[type eq "work"]'. Without
+        # one, the values are scalars, addressed through the "value" convention.
+        inner_attr = AttrPath(attr=node.attr_path.sub_attr or "value")
+        head = AttrPath(attr=node.attr_path.attr, uri=node.attr_path.uri)
+        inner: FilterNode = (
+            Present(attr_path=inner_attr)
+            if isinstance(node, Present)
+            else Comparison(attr_path=inner_attr, op=node.op, value=node.value)
+        )
+        return ValuePath(attr_path=head, val_filter=inner)
+
+    def _select(self, resource: BaseModel) -> tuple[Any, str, list[Any]] | None:
+        """Resolve a value-selecting path against a resource.
+
+        The filter between the brackets is evaluated strictly, so an attribute
+        the model does not declare is reported rather than silently matching
+        nothing. Tolerance belongs to :meth:`get`, :meth:`set` and
+        :meth:`delete`, which swallow the failure when asked to.
+
+        :returns: The object holding the attribute, the Python field name, and
+            the matching entries, or :data:`None` if this is not a
+            value-selecting path.
+        :raises PathNotFoundException: If the selected attribute is unknown.
+        :raises InvalidFilterException: If the filter between the brackets
+            names an attribute the selected model does not declare.
+        """
+        value_path = self._as_value_path()
+        if value_path is None:
+            return None
+
+        model = type(resource)
+        resolved = resolve_attr_path(model, value_path.attr_path, strict=False)
+        if resolved is None:
+            raise PathNotFoundException(path=str(self), field=value_path.attr_path.attr)
+
+        # Checked before reading the resource, so that a selection that cannot
+        # apply is rejected whether or not the attribute happens to be set.
+        validate_value_selection(resolved)
+        validate_value_filter(resolved, value_path.val_filter)
+
+        host = attribute_host(resource, resolved)
+        if host is None:
+            return None, resolved.field_name, []
+
+        matched = Evaluator(model, resource).select(value_path)
+        return host, resolved.field_name, matched
+
     def _get(self, resource: ResourceT) -> Any:
         """Get the value at this path from a resource."""
+        if (selection := self._select(resource)) is not None:
+            _host, _field_name, matched = selection
+            sub_attr = self._sub_attr_of_selection()
+            if sub_attr is None:
+                return matched or None
+            values = [
+                getattr(item, _require_field(type(item), sub_attr), None)
+                for item in matched
+                if isinstance(item, BaseModel)
+            ]
+            return values or None
+
         if (resolution := self._resolve_instance(resource)) is None:
             return None
 
@@ -551,16 +706,122 @@ class Path(UserString, Generic[ResourceT]):
         :returns: The value at this path, or None if the value is absent.
         :raises PathNotFoundException: If strict and the path references a non-existent field.
         :raises InvalidPathException: If strict and the path references an unknown extension.
+        :raises InvalidFilterException: If strict and a value selection does not
+            apply to the attribute it selects from.
         """
         try:
             return self._get(resource)
-        except InvalidPathException:
+        except (InvalidPathException, InvalidFilterException):
             if strict:
                 raise
             return None
 
+    def _sub_attr_of_selection(self) -> str | None:
+        """Return the sub-attribute targeted past a value selection, if any."""
+        node = self.ast
+        return node.sub_attr if isinstance(node, ValuePath) else None
+
+    def _set_selected(
+        self, resource: ResourceT, value: Any, *, is_add: bool = False
+    ) -> bool:
+        """Apply a value to every entry matched by a value selection.
+
+        :raises NoTargetException: If a replacement selection matches nothing,
+            per :rfc:`RFC7644 §3.5.2.3 <7644#section-3.5.2.3>`. That failure is
+            defined for ``replace`` only: :rfc:`§3.5.2.1 <7644#section-3.5.2.1>`
+            says nothing of a selection that matches nothing for ``add``, so
+            the operation is a no-op instead. `Errata 8097
+            <https://www.rfc-editor.org/errata/eid8097>`_ asks for value
+            selections in ``add`` to be clarified at all, implementations
+            differing on whether they are allowed.
+        """
+        selection = self._select(resource)
+        assert selection is not None
+        host, field_name, matched = selection
+
+        if not matched:
+            if is_add:
+                return False
+            raise NoTargetException(
+                detail=f"no value of '{field_name}' matches the path filter"
+            )
+
+        sub_attr = self._sub_attr_of_selection()
+        if sub_attr is None:
+            # Without a sub-attribute the matched entries are replaced wholesale.
+            current = getattr(host, field_name)
+            replacement = list(current)
+            item_type = type(host).get_field_root_type(field_name)
+            new_value = (
+                item_type.model_validate(value)
+                if isinstance(value, dict)
+                and isclass(item_type)
+                and issubclass(item_type, BaseModel)
+                else value
+            )
+            modified = False
+            for index, item in enumerate(replacement):
+                if any(item is candidate for candidate in matched):
+                    if not _values_match(item, new_value):
+                        replacement[index] = new_value
+                        modified = True
+            if modified:
+                setattr(host, field_name, replacement)
+            return modified
+
+        modified = False
+        for item in matched:
+            item_field = _require_field(type(item), sub_attr)
+            if getattr(item, item_field) != value:
+                setattr(item, item_field, value)
+                modified = True
+        return modified
+
+    def _delete_selected(self, resource: ResourceT) -> bool:
+        """Remove every entry matched by a value selection.
+
+        A selection that matches nothing leaves the resource untouched and
+        succeeds: :rfc:`RFC7644 §3.5.2.2 <7644#section-3.5.2.2>` requires
+        ``noTarget`` only for a missing ``path``, and its removal example
+        states that "if the user was not a member of this group, no changes
+        should be made to the resource, and a success response should be
+        returned".
+        """
+        selection = self._select(resource)
+        assert selection is not None
+        host, field_name, matched = selection
+
+        if not matched:
+            return False
+
+        sub_attr = self._sub_attr_of_selection()
+        if sub_attr is not None:
+            modified = False
+            for item in matched:
+                item_field = _require_field(type(item), sub_attr)
+                if getattr(item, item_field) is not None:
+                    setattr(item, item_field, None)
+                    modified = True
+            return modified
+
+        remaining = [
+            item
+            for item in getattr(host, field_name)
+            if not any(item is candidate for candidate in matched)
+        ]
+        # A multi-valued attribute left without any value is unassigned, unless
+        # it is required and thus cannot be unset.
+        if not remaining and _accepts_none(type(host), field_name):
+            setattr(host, field_name, None)
+        else:
+            setattr(host, field_name, remaining)
+        return True
+
     def _set(self, resource: ResourceT, value: Any, *, is_add: bool = False) -> bool:
         """Set a value at this path on a resource."""
+        if self._as_value_path() is not None:
+            return self._set_selected(resource, value, is_add=is_add)
+
         if (resolution := self._resolve_instance(resource, create=True)) is None:
             return False
 
@@ -619,10 +880,14 @@ class Path(UserString, Generic[ResourceT]):
         :param strict: If True, raise exceptions for invalid paths.
         :returns: True if the value was set/added, False if unchanged.
         :raises InvalidPathException: If strict and the path does not exist or is invalid.
+        :raises InvalidFilterException: If strict and a value selection does not
+            apply to the attribute it selects from.
+        :raises NoTargetException: If strict, ``is_add`` is false and a value
+            selection matches nothing.
         """
         try:
             return self._set(resource, value, is_add=is_add)
-        except InvalidPathException:
+        except (InvalidPathException, InvalidFilterException, NoTargetException):
             if strict:
                 raise
             return False
@@ -660,6 +925,9 @@ class Path(UserString, Generic[ResourceT]):
 
     def _delete(self, resource: ResourceT, value: Any | None = None) -> bool:
         """Delete a value at this path from a resource."""
+        if self._as_value_path() is not None:
+            return self._delete_selected(resource)
+
         if (resolution := self._resolve_instance(resource)) is None:
             return False
 
@@ -716,10 +984,12 @@ class Path(UserString, Generic[ResourceT]):
         :param strict: If True, raise exceptions for invalid paths.
         :returns: True if a value was deleted, False if unchanged.
         :raises InvalidPathException: If strict and the path does not exist or is invalid.
+        :raises InvalidFilterException: If strict and a value selection does not
+            apply to the attribute it selects from.
         """
         try:
             return self._delete(resource, value)
-        except InvalidPathException:
+        except (InvalidPathException, InvalidFilterException):
             if strict:
                 raise
             return False

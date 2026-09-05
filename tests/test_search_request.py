@@ -127,9 +127,9 @@ def test_search_request_valid_urn_attributes():
 def test_search_request_invalid_attributes():
     """Test that invalid attribute paths are rejected."""
     invalid_cases = [
-        (["123invalid"], "Paths cannot start with a digit"),
-        (["valid", "invalid..path"], "Paths cannot contain double dots"),
-        (["invalid@character"], "The path contains invalid characters"),
+        (["123invalid"], "invalid syntax at column 1"),
+        (["valid", "invalid..path"], "invalid syntax at column 8"),
+        (["invalid@character"], "invalid syntax at column 8"),
     ]
 
     for attributes, error_match in invalid_cases:
@@ -143,7 +143,7 @@ def test_search_request_invalid_excluded_attributes():
         "excluded_attributes": ["valid", "123invalid"],  # Second one starts with digit
     }
 
-    with pytest.raises(ValidationError, match="Paths cannot start with a digit"):
+    with pytest.raises(ValidationError, match="not a valid SCIM path"):
         SearchRequest.model_validate(invalid_data)
 
 

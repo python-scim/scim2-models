@@ -8,12 +8,20 @@ Added
 ^^^^^
 - Support for the ``filter`` query parameter (:rfc:`RFC7644 §3.4.2.2 <7644#section-3.4.2.2>`)
   with :class:`~scim2_models.ScimFilter`. See :doc:`filters`. :issue:`17`
+- Support for value selections in PATCH paths, such as ``emails[type eq "work"].value``
+  (:rfc:`RFC7644 §3.5.2 <7644#section-3.5.2>`).
 - :class:`~scim2_models.SearchRequest` and :class:`~scim2_models.ResponseParameters` take the
   resource type an endpoint serves, as in ``SearchRequest[User]``, which resolves
   :attr:`~scim2_models.SearchRequest.sort_by`,
   :attr:`~scim2_models.ResponseParameters.attributes` and
   :attr:`~scim2_models.ResponseParameters.excluded_attributes` against that model.
 - lark is a new dependency.
+
+Changed
+^^^^^^^
+- Paths are parsed with the :rfc:`RFC7644 §3.5.2 <7644#section-3.5.2>` grammar instead of being
+  checked character by character, so malformed paths such as ``emails[`` or ``userName ==``,
+  which used to be accepted, are now rejected.
 
 Fixed
 ^^^^^
