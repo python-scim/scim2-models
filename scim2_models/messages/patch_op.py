@@ -15,6 +15,7 @@ from typing_extensions import Self
 from ..annotations import Mutability
 from ..annotations import Required
 from ..attributes import ComplexAttribute
+from ..base import BaseModel
 from ..context import Context
 from ..exceptions import InvalidValueException
 from ..exceptions import MutabilityException
@@ -27,6 +28,22 @@ from .message import Message
 from .message import _get_resource_class
 
 ResourceT = TypeVar("ResourceT", bound=Resource[Any])
+
+
+def _targeted_attributes(value: Any) -> dict[str, Any]:
+    """Return the attributes an operation without a path writes.
+
+    :rfc:`RFC7644 §3.5.2.3 <7644#section-3.5.2.3>` has the ``value`` name them
+    when the path is omitted. A client building its payload in Python passes a
+    resource, where a server parses a mapping, and both name the same
+    attributes. Anything else names none.
+    """
+    if isinstance(value, BaseModel):
+        # Dumped out of context on purpose: a payload dumped in the PATCH
+        # context already leaves read-only attributes out, and an operation
+        # naming one is to be refused rather than quietly trimmed.
+        return value.model_dump(exclude_unset=True)
+    return value if isinstance(value, dict) else {}
 
 
 def _resolved_field(
@@ -272,8 +289,7 @@ class PatchOp(Message, Generic[ResourceT]):
                 # the attributes to write. Each of them is a target of its own,
                 # and one the model does not declare is left alone, as §3.5.2
                 # asks servers to be tolerant of schema extensions.
-                targeted = operation.value if isinstance(operation.value, dict) else {}
-                for attr_name, written in targeted.items():
+                for attr_name, written in _targeted_attributes(operation.value).items():
                     operation._validate_mutability(resource_class, attr_name)
                     operation._validate_required_attribute(
                         resource_class, attr_name, written
@@ -389,10 +405,17 @@ class PatchOp(Message, Generic[ResourceT]):
         """Apply an add or replace operation."""
         before_state = self._capture_primary_state(resource)
 
+        value = operation.value
+        if operation.path is None and isinstance(value, BaseModel):
+            # Path("").set writes the attributes a mapping names, so a resource
+            # given as a value is dumped to the payload it stands for, and to
+            # the very attributes the operation was checked against.
+            value = _targeted_attributes(value)
+
         path = operation.path if operation.path is not None else Path("")
         modified = path.set(
             resource,  # type: ignore[arg-type]
-            operation.value,
+            value,
             is_add=operation.op == PatchOperation.Op.add,
         )
 

@@ -786,6 +786,7 @@ def test_a_replace_may_empty_a_required_string():
 
 
 def test_a_replace_may_unassign_an_optional_attribute():
+    """Only a required attribute is protected from becoming unassigned."""
     patch = PatchOp[User].model_validate(
         {
             "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
@@ -813,6 +814,7 @@ def test_an_operation_without_path_cannot_write_a_read_only_attribute():
 
 
 def test_an_operation_without_path_cannot_write_a_read_only_complex_attribute():
+    """Naming a complex attribute is enough to refuse it, without descending into its sub-attributes."""
     with pytest.raises(ValidationError, match="mutability"):
         PatchOp[User].model_validate(
             {
@@ -826,6 +828,7 @@ def test_an_operation_without_path_cannot_write_a_read_only_complex_attribute():
 
 
 def test_an_operation_without_path_cannot_unassign_a_required_attribute():
+    """A null value in the ``value`` unassigns its attribute as surely as a remove does."""
     with pytest.raises(
         ValidationError, match="required attribute cannot be unassigned"
     ):
@@ -839,6 +842,7 @@ def test_an_operation_without_path_cannot_unassign_a_required_attribute():
 
 
 def test_an_add_without_path_cannot_write_a_read_only_attribute():
+    """:rfc:`RFC7644 §3.5.2.1 <7644#section-3.5.2.1>` gives ``add`` the same omitted path as ``replace``."""
     with pytest.raises(ValidationError, match="mutability"):
         PatchOp[User].model_validate(
             {
@@ -898,3 +902,52 @@ def test_unassigning_a_required_attribute_answers_mutability():
                 scim_ctx=Context.RESOURCE_PATCH_REQUEST,
             )
         assert exc_info.value.errors()[0]["type"] == "scim_mutability"
+
+
+def test_an_operation_without_path_takes_a_model_as_value():
+    """A client building its payload in Python passes a resource, where a server parses a dict."""
+    patch = PatchOp[User](
+        operations=[
+            PatchOperation[User](
+                op=PatchOperation.Op.replace_, value=User(display_name="Babs")
+            )
+        ]
+    )
+    user = User(id="srv-1", user_name="bjensen")
+    assert patch.patch(user)
+    assert user.display_name == "Babs"
+    assert user.user_name == "bjensen"
+
+
+def test_a_model_value_answers_to_the_same_constraints_as_a_dict_one():
+    """The form the value takes says nothing about what the operation may write."""
+    with pytest.raises(ValidationError, match="mutability"):
+        PatchOp[User](
+            operations=[
+                PatchOperation[User](
+                    op=PatchOperation.Op.replace_,
+                    value=User(id="chosen-by-the-client"),
+                )
+            ]
+        )
+
+
+def test_a_model_value_carries_the_attributes_its_payload_would():
+    """A null attribute is not serialized, so it is neither written nor refused.
+
+    Unassigning through an operation without a path takes the payload form,
+    ``{"userName": null}``, which :rfc:`RFC7643 §2.5 <7643#section-2.5>` makes
+    equivalent to an unassigned attribute.
+    """
+    patch = PatchOp[User](
+        operations=[
+            PatchOperation[User](
+                op=PatchOperation.Op.replace_,
+                value=User(user_name=None, display_name="Babs"),
+            )
+        ]
+    )
+    user = User(id="srv-1", user_name="bjensen")
+    patch.patch(user)
+    assert user.user_name == "bjensen"
+    assert user.display_name == "Babs"

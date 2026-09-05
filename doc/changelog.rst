@@ -18,6 +18,9 @@ Fixed
   :attr:`Required.true <scim2_models.Required.true>` unassigned answers ``mutability`` instead
   of ``invalidValue``, which is the ``scimType``
   :rfc:`RFC7644 §3.5.2.2 <7644#section-3.5.2.2>` names for it.
+- A PATCH operation carrying no ``path`` accepts a resource as its ``value``, and not only a
+  mapping. Such a resource used to be ignored without a word: neither checked against the
+  model, nor written to the patched resource.
 - A PATCH operation carrying no ``path`` has the attributes of its ``value`` checked, where
   they used to go through unexamined. :rfc:`RFC7644 §3.5.2.3 <7644#section-3.5.2.3>` makes
   them the targets of the operation, so each one answers to §3.5.2 as a named path does: a
