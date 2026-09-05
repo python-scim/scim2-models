@@ -117,8 +117,8 @@ class PatchOperation(ComplexAttribute, Generic[ResourceT]):
         # RFC7644 §3.5.2.2 has a server answer "mutability" when a required
         # attribute is removed or becomes unassigned.
         if required == Required.true:
-            raise InvalidValueException(
-                detail=detail, attribute=field_name
+            raise MutabilityException(
+                detail=detail, attribute=field_name, operation=self.op.value
             ).as_pydantic_error()
 
     @model_validator(mode="after")

@@ -14,6 +14,10 @@ Added
 
 Fixed
 ^^^^^
+- A PATCH operation that would leave an attribute annotated
+  :attr:`Required.true <scim2_models.Required.true>` unassigned answers ``mutability`` instead
+  of ``invalidValue``, which is the ``scimType``
+  :rfc:`RFC7644 §3.5.2.2 <7644#section-3.5.2.2>` names for it.
 - A PATCH operation carrying no ``path`` has the attributes of its ``value`` checked, where
   they used to go through unexamined. :rfc:`RFC7644 §3.5.2.3 <7644#section-3.5.2.3>` makes
   them the targets of the operation, so each one answers to §3.5.2 as a named path does: a

@@ -879,3 +879,22 @@ def test_an_operation_without_path_writes_the_attributes_it_may():
     assert user.display_name == "Babs"
     assert user.id == "srv-1"
     assert user.user_name == "bjensen"
+
+
+def test_unassigning_a_required_attribute_answers_mutability():
+    """:rfc:`RFC7644 §3.5.2.2 <7644#section-3.5.2.2>`: "If an attribute is removed or becomes unassigned and is defined as a required attribute [...] the server SHALL return [...] a "scimType" error code of "mutability"."."""
+    payloads = [
+        [{"op": "remove", "path": "userName"}],
+        [{"op": "replace", "path": "userName", "value": None}],
+        [{"op": "replace", "value": {"userName": None}}],
+    ]
+    for operations in payloads:
+        with pytest.raises(ValidationError) as exc_info:
+            PatchOp[User].model_validate(
+                {
+                    "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+                    "Operations": operations,
+                },
+                scim_ctx=Context.RESOURCE_PATCH_REQUEST,
+            )
+        assert exc_info.value.errors()[0]["type"] == "scim_mutability"
