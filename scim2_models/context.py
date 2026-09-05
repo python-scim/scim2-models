@@ -127,8 +127,11 @@ class Context(Enum):
     Should be used for clients building a payload for a PATCH request,
     and servers validating PATCH request payloads.
 
-    This is the context a :class:`~scim2_models.PatchOp` is validated in, where
-    it will raise a :class:`~pydantic.ValidationError`:
+    - When used for serialization, it will not dump attributes annotated with
+      :attr:`~scim2_models.Mutability.read_only`, which a PATCH operation
+      cannot target anyway.
+    - When used for validation, a :class:`~scim2_models.PatchOp` will raise a
+      :class:`~pydantic.ValidationError`:
 
     - when an operation targets an attribute annotated with
       :attr:`~scim2_models.Mutability.read_only`,

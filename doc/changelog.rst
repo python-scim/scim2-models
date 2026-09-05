@@ -14,6 +14,10 @@ Added
 
 Fixed
 ^^^^^
+- Attributes annotated with :attr:`~scim2_models.Mutability.read_only` are left out of a
+  payload dumped in the :attr:`~scim2_models.Context.RESOURCE_PATCH_REQUEST` context, as they
+  already are in a creation or a replacement request. A PATCH operation cannot target them,
+  per :rfc:`RFC7644 §3.5.2 <7644#section-3.5.2>`.
 - A PATCH ``replace`` carrying a null value or an empty array on an attribute
   annotated with :attr:`Required.true <scim2_models.Required.true>` is rejected,
   as :rfc:`RFC7643 §2.5 <7643#section-2.5>` makes those equivalent to an

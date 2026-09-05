@@ -325,6 +325,21 @@ def test_dump_creation_request(mut_resource):
     }
 
 
+def test_dump_patch_request(mut_resource):
+    """A PATCH payload leaves out what the server would refuse to write.
+
+    :rfc:`RFC7644 §3.5.2 <7644#section-3.5.2>` rejects an operation targeting a
+    :attr:`~scim2_models.Mutability.read_only` attribute, so a client has no
+    reason to send one, exactly as in a creation or a replacement.
+    """
+    assert mut_resource.model_dump(scim_ctx=Context.RESOURCE_PATCH_REQUEST) == {
+        "schemas": ["urn:org:example:MutResource"],
+        "readWrite": "x",
+        "immutable": "x",
+        "writeOnly": "x",
+    }
+
+
 def test_dump_query_request(mut_resource):
     """Test query building for resource query request.
 

@@ -634,6 +634,7 @@ class BaseModel(PydanticBaseModel):
                 in (
                     Context.RESOURCE_CREATION_REQUEST,
                     Context.RESOURCE_REPLACEMENT_REQUEST,
+                    Context.RESOURCE_PATCH_REQUEST,
                 )
                 and mutability == Mutability.read_only
             ):
