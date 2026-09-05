@@ -796,3 +796,86 @@ def test_a_replace_may_unassign_an_optional_attribute():
     user = User(id="1", user_name="bjensen", display_name="Babs")
     patch.patch(user)
     assert user.display_name is None
+
+
+def test_an_operation_without_path_cannot_write_a_read_only_attribute():
+    """:rfc:`RFC7644 §3.5.2.3 <7644#section-3.5.2.3>` has the value name the attributes to write when the path is omitted, so each of them answers to §3.5.2 like a named path."""
+    with pytest.raises(ValidationError, match="mutability"):
+        PatchOp[User].model_validate(
+            {
+                "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+                "Operations": [
+                    {"op": "replace", "value": {"id": "chosen-by-the-client"}}
+                ],
+            },
+            scim_ctx=Context.RESOURCE_PATCH_REQUEST,
+        )
+
+
+def test_an_operation_without_path_cannot_write_a_read_only_complex_attribute():
+    with pytest.raises(ValidationError, match="mutability"):
+        PatchOp[User].model_validate(
+            {
+                "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+                "Operations": [
+                    {"op": "replace", "value": {"meta": {"resourceType": "Group"}}}
+                ],
+            },
+            scim_ctx=Context.RESOURCE_PATCH_REQUEST,
+        )
+
+
+def test_an_operation_without_path_cannot_unassign_a_required_attribute():
+    with pytest.raises(
+        ValidationError, match="required attribute cannot be unassigned"
+    ):
+        PatchOp[User].model_validate(
+            {
+                "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+                "Operations": [{"op": "replace", "value": {"userName": None}}],
+            },
+            scim_ctx=Context.RESOURCE_PATCH_REQUEST,
+        )
+
+
+def test_an_add_without_path_cannot_write_a_read_only_attribute():
+    with pytest.raises(ValidationError, match="mutability"):
+        PatchOp[User].model_validate(
+            {
+                "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+                "Operations": [{"op": "add", "value": {"id": "chosen-by-the-client"}}],
+            },
+            scim_ctx=Context.RESOURCE_PATCH_REQUEST,
+        )
+
+
+def test_an_operation_without_path_leaves_an_undeclared_attribute_alone():
+    """§3.5.2 asks servers to be tolerant of schema extensions, so an unknown attribute is no reason to refuse the operation."""
+    patch = PatchOp[User].model_validate(
+        {
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+            "Operations": [
+                {"op": "replace", "value": {"whatever": "x", "displayName": "Babs"}}
+            ],
+        },
+        scim_ctx=Context.RESOURCE_PATCH_REQUEST,
+    )
+    user = User(id="srv-1", user_name="bjensen")
+    patch.patch(user)
+    assert user.display_name == "Babs"
+
+
+def test_an_operation_without_path_writes_the_attributes_it_may():
+    """A writable attribute goes through, and the rest of the resource is left alone."""
+    patch = PatchOp[User].model_validate(
+        {
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+            "Operations": [{"op": "replace", "value": {"displayName": "Babs"}}],
+        },
+        scim_ctx=Context.RESOURCE_PATCH_REQUEST,
+    )
+    user = User(id="srv-1", user_name="bjensen")
+    patch.patch(user)
+    assert user.display_name == "Babs"
+    assert user.id == "srv-1"
+    assert user.user_name == "bjensen"

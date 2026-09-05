@@ -85,16 +85,25 @@ class PatchOperation(ComplexAttribute, Generic[ResourceT]):
             ).as_pydantic_error()
 
     def _validate_required_attribute(
-        self, resource_class: type[Resource[Any]], field_name: str | None
+        self,
+        resource_class: type[Resource[Any]],
+        field_name: str | None,
+        written: Any = None,
     ) -> None:
-        """Refuse an operation that would leave a required attribute unassigned."""
+        """Refuse an operation that would leave a required attribute unassigned.
+
+        :param written: The value the operation writes to that attribute, which
+            an operation without a path takes from its ``value``.
+        """
         # RFC7643 §2.5 makes a null value, an empty array and an unassigned
-        # attribute equivalent in state, so a replace carrying one of those
-        # unassigns the attribute as surely as a remove does. An add cannot:
-        # it is already refused without a value.
+        # attribute equivalent in state, so writing one of those unassigns the
+        # attribute as surely as a remove does.
         if self.op == PatchOperation.Op.remove:
             detail = "required attribute cannot be removed"
-        elif self.op == PatchOperation.Op.replace_ and self.value in (None, []):
+        elif self.op in (
+            PatchOperation.Op.replace_,
+            PatchOperation.Op.add,
+        ) and written in (None, []):
             detail = "required attribute cannot be unassigned"
         else:
             return
@@ -258,11 +267,24 @@ class PatchOp(Message, Generic[ResourceT]):
         # RFC 7644 Section 3.5.2: "Validate each operation against schema constraints"
         for operation in self.operations:
             if operation.path is None:
+                # §3.5.2.1 and §3.5.2.3: "If the path parameter is omitted, the
+                # target is assumed to be the resource itself", the value naming
+                # the attributes to write. Each of them is a target of its own,
+                # and one the model does not declare is left alone, as §3.5.2
+                # asks servers to be tolerant of schema extensions.
+                targeted = operation.value if isinstance(operation.value, dict) else {}
+                for attr_name, written in targeted.items():
+                    operation._validate_mutability(resource_class, attr_name)
+                    operation._validate_required_attribute(
+                        resource_class, attr_name, written
+                    )
                 continue
 
             field_name = operation.path.parts[0] if operation.path.parts else None
             operation._validate_mutability(resource_class, field_name)
-            operation._validate_required_attribute(resource_class, field_name)
+            operation._validate_required_attribute(
+                resource_class, field_name, operation.value
+            )
 
         return self
 
