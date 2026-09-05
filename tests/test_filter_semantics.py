@@ -19,6 +19,7 @@ from scim2_models import Required
 from scim2_models import ResolvedAttribute
 from scim2_models import Schema
 from scim2_models import ScimFilter
+from scim2_models import SearchRequest
 from scim2_models import User
 from scim2_models.filters import AttrPath
 from scim2_models.filters import CompareOperator
@@ -863,6 +864,26 @@ def test_a_visitor_can_transpile_a_filter():
 # --- Remaining corners ---
 
 
+def test_a_filter_field_rejects_a_value_that_is_neither_string_nor_filter():
+
+    with pytest.raises(Exception, match="Expected str or ScimFilter"):
+        SearchRequest.model_validate({"filter": 42})
+
+
+def test_a_filter_field_accepts_a_string_and_a_filter():
+
+    assert SearchRequest(filter='userName eq "x"').filter == 'userName eq "x"'
+    assert (
+        SearchRequest(filter=ScimFilter('userName eq "x"')).filter == 'userName eq "x"'
+    )
+
+
+def test_a_filter_field_rejects_a_malformed_filter():
+
+    with pytest.raises(InvalidFilterException):
+        SearchRequest.model_validate({"filter": "nonsense @"})
+
+
 def test_validating_a_negation_tolerantly_walks_its_operand():
     ScimFilter[User]('not (nonexistent eq "x")')._validate_semantics(strict=False)
 
@@ -1034,6 +1055,7 @@ def test_a_bound_filter_accepts_an_attribute_the_model_does_not_declare():
 def test_an_unbound_filter_is_only_checked_for_syntax():
     """Nothing resolves attribute names until a filter is bound to a model."""
     assert ScimFilter("active gt true") == "active gt true"
+    assert SearchRequest(filter="active gt true").filter == "active gt true"
 
 
 def test_a_filter_binds_to_a_union_of_resource_types():
