@@ -1,23 +1,29 @@
 from enum import Enum
-from typing import Any
+from typing import Generic
 
 from pydantic import field_validator
 
 from ..path import URN
 from ..path import Path
+from ..path import ResourceT
 from .message import Message
 from .response_parameters import ResponseParameters
 
 
-class SearchRequest(Message, ResponseParameters):
-    """SearchRequest object defined at :rfc:`RFC7644 §3.4.3 <7644#section-3.4.3>`."""
+class SearchRequest(Message, ResponseParameters[ResourceT], Generic[ResourceT]):
+    """SearchRequest object defined at :rfc:`RFC7644 §3.4.3 <7644#section-3.4.3>`.
+
+    Parameterising the request with the resource type an endpoint serves, as in
+    ``SearchRequest[User]``, resolves :attr:`sort_by` and the attributes of
+    :class:`~scim2_models.ResponseParameters` against that model.
+    """
 
     __schema__ = URN("urn:ietf:params:scim:api:messages:2.0:SearchRequest")
 
     filter: str | None = None
     """The filter string used to request a subset of resources."""
 
-    sort_by: Path[Any] | None = None
+    sort_by: Path[ResourceT] | None = None
     """A string indicating the attribute whose value SHALL be used to order the
     returned responses."""
 

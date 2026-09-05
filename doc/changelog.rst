@@ -4,6 +4,14 @@ Changelog
 [Unreleased]
 ------------
 
+Added
+^^^^^
+- :class:`~scim2_models.SearchRequest` and :class:`~scim2_models.ResponseParameters` take the
+  resource type an endpoint serves, as in ``SearchRequest[User]``, which resolves
+  :attr:`~scim2_models.SearchRequest.sort_by`,
+  :attr:`~scim2_models.ResponseParameters.attributes` and
+  :attr:`~scim2_models.ResponseParameters.excluded_attributes` against that model.
+
 Fixed
 ^^^^^
 - A PATCH ``replace`` carrying a null value or an empty array on an attribute
