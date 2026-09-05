@@ -26,6 +26,7 @@ from scim2_models import Schema
 from scim2_models import SCIMException
 from scim2_models import ServiceProviderConfig
 from scim2_models import SearchRequest
+from scim2_models import SearchRequestContext
 from scim2_models import User
 
 from .integrations import delete_record
@@ -213,11 +214,13 @@ async def delete_user(request: Request, app_record: dict = Depends(resolve_user)
 
 # -- collection-start --
 # -- list-users-start --
-@router.get("/Users")
-async def list_users(
-    request: Request, req: Annotated[SearchRequest, Query()]
-):
-    """Return one page of users as a SCIM ListResponse."""
+def users_page(request, req, scim_ctx):
+    """Return one page of users as a serialized SCIM ListResponse.
+
+    :param request: The incoming request, used to build resource locations.
+    :param req: The parsed query, whichever verb carried it.
+    :param scim_ctx: The context to serialize the response in.
+    """
     total, page = list_records(req.start_index_0, req.stop_index_0)
     resources = [
         to_scim_user(record, resource_location(request, record)) for record in page
@@ -230,12 +233,45 @@ async def list_users(
     )
     return SCIMResponse(
         response.model_dump(
-            scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
+            scim_ctx=scim_ctx,
             attributes=req.attributes,
             excluded_attributes=req.excluded_attributes,
         ),
     )
+
+
+@router.get("/Users")
+async def list_users(
+    request: Request, req: Annotated[SearchRequest, Query()]
+):
+    """Return one page of users as a SCIM ListResponse."""
+    return users_page(request, req, Context.RESOURCE_QUERY_RESPONSE)
 # -- list-users-end --
+
+
+# -- search-users-start --
+@router.post("/Users/.search")
+async def search_users(
+    request: Request, req: SearchRequestContext[SearchRequest]
+):
+    """Answer the same query as GET /Users, with the parameters in the body."""
+    return users_page(request, req, Context.SEARCH_RESPONSE)
+# -- search-users-end --
+
+
+# -- search-root-start --
+@router.post("/.search")
+async def search_root(
+    request: Request, req: SearchRequestContext[SearchRequest]
+):
+    """Query every resource type the server serves.
+
+    A server serving several of them would gather each type here, and answer
+    with a ``ListResponse[Union[User, Group]]``. This one only serves users, so
+    it answers the same page as ``/Users/.search``.
+    """
+    return users_page(request, req, Context.SEARCH_RESPONSE)
+# -- search-root-end --
 
 
 # -- create-user-start --

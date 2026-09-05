@@ -142,12 +142,54 @@ For ``GET``, parse pagination and filtering parameters with
 For ``POST``, validate the creation payload with
 :attr:`~scim2_models.Context.RESOURCE_CREATION_REQUEST`, persist the record, then serialize
 with :attr:`~scim2_models.Context.RESOURCE_CREATION_RESPONSE`.
-The ``urlpatterns`` list wires both views to their routes.
 
 .. literalinclude:: _examples/django_example.py
    :language: python
    :start-after: # -- collection-start --
    :end-before: # -- collection-end --
+
+POST /Users/.search
+^^^^^^^^^^^^^^^^^^^
+
+:rfc:`RFC7644 §3.4.3 <7644#section-3.4.3>` lets a client send the same query in a body rather
+than on the URL, by appending ``/.search`` to any endpoint. The parameters are the ones of
+``GET /Users``, so the two verbs differ only in the parsing: validate the body with
+:attr:`~scim2_models.Context.SEARCH_REQUEST` and serialize the response with
+:attr:`~scim2_models.Context.SEARCH_RESPONSE`.
+
+.. literalinclude:: _examples/django_example.py
+   :language: python
+   :start-after: # -- search-users-start --
+   :end-before: # -- search-users-end --
+
+POST /.search
+^^^^^^^^^^^^^
+
+The same extension on the server root queries every resource type the server serves, as
+:rfc:`RFC7644 §3.4.2.1 <7644#section-3.4.2.1>` describes: "a query against a server root
+indicates that all resources within the server SHALL be included, subject to filtering". A
+server serving several types would gather each of them here, and answer with a
+``ListResponse[Union[User, Group]]``. This example only serves users, so it answers the same
+page as ``/Users/.search``.
+
+Note that a root query is also where :rfc:`RFC7644 §3.4.2.1 <7644#section-3.4.2.1>` allows a
+server to refuse a request whose result set would be too large, with a ``tooMany`` error.
+
+.. literalinclude:: _examples/django_example.py
+   :language: python
+   :start-after: # -- search-root-start --
+   :end-before: # -- search-root-end --
+
+Routes
+^^^^^^
+
+The ``urlpatterns`` list wires every view to its route, ``/Users/.search`` before
+``/Users/<id>`` so that the resource converter does not read ``.search`` as an identifier.
+
+.. literalinclude:: _examples/django_example.py
+   :language: python
+   :start-after: # -- urls-start --
+   :end-before: # -- urls-end --
 
 Resource versioning (ETags)
 ===========================

@@ -234,6 +234,32 @@ class UserView(SCIMView):
 
 
 # -- collection-start --
+def users_page(request, req, scim_ctx):
+    """Return one page of users as a serialized SCIM ListResponse.
+
+    :param request: The incoming request, used to build resource locations.
+    :param req: The parsed query, whichever verb carried it.
+    :param scim_ctx: The context to serialize the response in.
+    """
+    total, page = list_records(req.start_index_0, req.stop_index_0)
+    resources = [
+        to_scim_user(record, resource_location(request, record)) for record in page
+    ]
+    response = ListResponse[User](
+        total_results=total,
+        start_index=req.start_index or 1,
+        items_per_page=len(resources),
+        resources=resources,
+    )
+    return SCIMJsonResponse(
+        response.model_dump(
+            scim_ctx=scim_ctx,
+            attributes=req.attributes,
+            excluded_attributes=req.excluded_attributes,
+        )
+    )
+
+
 class UsersView(SCIMView):
     """Handle GET and POST on the SCIM users collection."""
 
@@ -243,23 +269,7 @@ class UsersView(SCIMView):
         except ValidationError as error:
             return scim_validation_error(error)
 
-        total, page = list_records(req.start_index_0, req.stop_index_0)
-        resources = [
-            to_scim_user(record, resource_location(request, record)) for record in page
-        ]
-        response = ListResponse[User](
-            total_results=total,
-            start_index=req.start_index or 1,
-            items_per_page=len(resources),
-            resources=resources,
-        )
-        return SCIMJsonResponse(
-            response.model_dump(
-                scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
-                attributes=req.attributes,
-                excluded_attributes=req.excluded_attributes,
-            )
-        )
+        return users_page(request, req, Context.RESOURCE_QUERY_RESPONSE)
 
     def post(self, request):
         req = ResponseParameters.model_validate(request.GET.dict())
@@ -288,11 +298,56 @@ class UsersView(SCIMView):
         )
 
 
+# -- collection-end --
+
+
+# -- search-users-start --
+class UsersSearchView(SCIMView):
+    """Answer the same query as GET /Users, with the parameters in the body."""
+
+    def post(self, request):
+        try:
+            req = SearchRequest.model_validate(
+                json.loads(request.body), scim_ctx=Context.SEARCH_REQUEST
+            )
+        except ValidationError as error:
+            return scim_validation_error(error)
+
+        return users_page(request, req, Context.SEARCH_RESPONSE)
+# -- search-users-end --
+
+
+# -- search-root-start --
+class RootSearchView(SCIMView):
+    """Query every resource type the server serves.
+
+    A server serving several of them would gather each type here, and answer
+    with a ``ListResponse[Union[User, Group]]``. This one only serves users, so
+    it answers the same page as ``/Users/.search``.
+    """
+
+    def post(self, request):
+        try:
+            req = SearchRequest.model_validate(
+                json.loads(request.body), scim_ctx=Context.SEARCH_REQUEST
+            )
+        except ValidationError as error:
+            return scim_validation_error(error)
+
+        return users_page(request, req, Context.SEARCH_RESPONSE)
+# -- search-root-end --
+
+
+# -- urls-start --
+# ``/Users/.search`` comes first: the ``user`` converter would otherwise read
+# ``.search`` as a resource id.
 urlpatterns = [
     path("scim/v2/Users", UsersView.as_view(), name="scim_users"),
+    path("scim/v2/Users/.search", UsersSearchView.as_view(), name="scim_users_search"),
+    path("scim/v2/.search", RootSearchView.as_view(), name="scim_root_search"),
     path("scim/v2/Users/<user:app_record>", UserView.as_view(), name="scim_user"),
 ]
-# -- collection-end --
+# -- urls-end --
 
 
 # -- discovery-start --

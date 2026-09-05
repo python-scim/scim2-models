@@ -56,6 +56,28 @@ def test_flask_example_smoke():
     assert list_response.status_code == 200
     assert list_response.get_json()["totalResults"] == 1
 
+    search_response = client.post(
+        "/scim/v2/Users/.search",
+        json={
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:SearchRequest"],
+            "startIndex": 1,
+            "count": 1,
+            "attributes": ["userName"],
+        },
+    )
+    assert search_response.status_code == 200
+    searched = search_response.get_json()
+    assert searched["totalResults"] == 1
+    assert searched["Resources"][0]["userName"] == "bjensen@example.com"
+    assert "displayName" not in searched["Resources"][0]
+
+    root_response = client.post(
+        "/scim/v2/.search",
+        json={"schemas": ["urn:ietf:params:scim:api:messages:2.0:SearchRequest"]},
+    )
+    assert root_response.status_code == 200
+    assert root_response.get_json()["totalResults"] == 1
+
     get_attributes_response = client.get(
         f"/scim/v2/Users/{user_id}?attributes=userName"
     )
@@ -153,6 +175,34 @@ def test_django_example_smoke():
         assert list_response.status_code == 200
         assert json.loads(list_response.content)["totalResults"] == 1
 
+        search_response = client.post(
+            "/scim/v2/Users/.search",
+            json.dumps(
+                {
+                    "schemas": ["urn:ietf:params:scim:api:messages:2.0:SearchRequest"],
+                    "startIndex": 1,
+                    "count": 1,
+                    "attributes": ["userName"],
+                }
+            ),
+            content_type="application/scim+json",
+        )
+        assert search_response.status_code == 200
+        searched = json.loads(search_response.content)
+        assert searched["totalResults"] == 1
+        assert searched["Resources"][0]["userName"] == "bjensen@example.com"
+        assert "displayName" not in searched["Resources"][0]
+
+        root_response = client.post(
+            "/scim/v2/.search",
+            json.dumps(
+                {"schemas": ["urn:ietf:params:scim:api:messages:2.0:SearchRequest"]}
+            ),
+            content_type="application/scim+json",
+        )
+        assert root_response.status_code == 200
+        assert json.loads(root_response.content)["totalResults"] == 1
+
         get_attributes_response = client.get(
             f"/scim/v2/Users/{user_id}?attributes=userName"
         )
@@ -236,6 +286,28 @@ def test_fastapi_example_smoke():
     list_response = client.get("/scim/v2/Users?startIndex=1&count=1")
     assert list_response.status_code == 200
     assert list_response.json()["totalResults"] == 1
+
+    search_response = client.post(
+        "/scim/v2/Users/.search",
+        json={
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:SearchRequest"],
+            "startIndex": 1,
+            "count": 1,
+            "attributes": ["userName"],
+        },
+    )
+    assert search_response.status_code == 200
+    searched = search_response.json()
+    assert searched["totalResults"] == 1
+    assert searched["Resources"][0]["userName"] == "bjensen@example.com"
+    assert "displayName" not in searched["Resources"][0]
+
+    root_response = client.post(
+        "/scim/v2/.search",
+        json={"schemas": ["urn:ietf:params:scim:api:messages:2.0:SearchRequest"]},
+    )
+    assert root_response.status_code == 200
+    assert root_response.json()["totalResults"] == 1
 
     get_attributes_response = client.get(
         f"/scim/v2/Users/{user_id}?attributes=userName"

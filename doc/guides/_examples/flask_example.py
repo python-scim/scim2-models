@@ -205,10 +205,12 @@ def delete_user(app_record):
 
 # -- collection-start --
 # -- list-users-start --
-@bp.get("/Users")
-def list_users():
-    """Return one page of users as a SCIM ListResponse."""
-    req = SearchRequest.model_validate(request.args.to_dict())
+def users_page(req, scim_ctx):
+    """Return one page of users as a serialized SCIM ListResponse.
+
+    :param req: The parsed query, whichever verb carried it.
+    :param scim_ctx: The context to serialize the response in.
+    """
     total, page = list_records(req.start_index_0, req.stop_index_0)
     resources = [to_scim_user(record, resource_location(record)) for record in page]
     response = ListResponse[User](
@@ -218,11 +220,45 @@ def list_users():
         resources=resources,
     )
     return response.model_dump(
-        scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
+        scim_ctx=scim_ctx,
         attributes=req.attributes,
         excluded_attributes=req.excluded_attributes,
     )
+
+
+@bp.get("/Users")
+def list_users():
+    """Return one page of users as a SCIM ListResponse."""
+    req = SearchRequest.model_validate(request.args.to_dict())
+    return users_page(req, Context.RESOURCE_QUERY_RESPONSE)
 # -- list-users-end --
+
+
+# -- search-users-start --
+@bp.post("/Users/.search")
+def search_users():
+    """Answer the same query as GET /Users, with the parameters in the body."""
+    req = SearchRequest.model_validate(
+        request.get_json(), scim_ctx=Context.SEARCH_REQUEST
+    )
+    return users_page(req, Context.SEARCH_RESPONSE)
+# -- search-users-end --
+
+
+# -- search-root-start --
+@bp.post("/.search")
+def search_root():
+    """Query every resource type the server serves.
+
+    A server serving several of them would gather each type here, and answer
+    with a ``ListResponse[Union[User, Group]]``. This one only serves users, so
+    it answers the same page as ``/Users/.search``.
+    """
+    req = SearchRequest.model_validate(
+        request.get_json(), scim_ctx=Context.SEARCH_REQUEST
+    )
+    return users_page(req, Context.SEARCH_RESPONSE)
+# -- search-root-end --
 
 
 # -- create-user-start --
