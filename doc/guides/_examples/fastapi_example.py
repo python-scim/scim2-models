@@ -37,6 +37,7 @@ from .integrations import get_resource_types
 from .integrations import get_schema
 from .integrations import get_schemas
 from .integrations import list_records
+from .integrations import page_of
 from .integrations import make_etag
 from .integrations import save_record
 from .integrations import service_provider_config
@@ -214,22 +215,26 @@ async def delete_user(request: Request, app_record: dict = Depends(resolve_user)
 
 # -- collection-start --
 # -- list-users-start --
-def users_page(request, req, scim_ctx):
+def users_response(request, req, scim_ctx):
     """Return one page of users as a serialized SCIM ListResponse.
+
+    A query applies to the SCIM representation rather than to the stored
+    records, so the store is mapped before it is ordered and paginated.
 
     :param request: The incoming request, used to build resource locations.
     :param req: The parsed query, whichever verb carried it.
     :param scim_ctx: The context to serialize the response in.
     """
-    total, page = list_records(req.start_index_0, req.stop_index_0)
-    resources = [
-        to_scim_user(record, resource_location(request, record)) for record in page
+    users = [
+        to_scim_user(record, resource_location(request, record))
+        for record in list_records()
     ]
+    total, page = page_of(users, req)
     response = ListResponse[User](
         total_results=total,
         start_index=req.start_index or 1,
-        items_per_page=len(resources),
-        resources=resources,
+        items_per_page=len(page),
+        resources=page,
     )
     return SCIMResponse(
         response.model_dump(
@@ -242,27 +247,27 @@ def users_page(request, req, scim_ctx):
 
 @router.get("/Users")
 async def list_users(
-    request: Request, req: Annotated[SearchRequest, Query()]
+    request: Request, req: Annotated[SearchRequest[User], Query()]
 ):
     """Return one page of users as a SCIM ListResponse."""
-    return users_page(request, req, Context.RESOURCE_QUERY_RESPONSE)
+    return users_response(request, req, Context.RESOURCE_QUERY_RESPONSE)
 # -- list-users-end --
 
 
 # -- search-users-start --
 @router.post("/Users/.search")
 async def search_users(
-    request: Request, req: SearchRequestContext[SearchRequest]
+    request: Request, req: SearchRequestContext[SearchRequest[User]]
 ):
     """Answer the same query as GET /Users, with the parameters in the body."""
-    return users_page(request, req, Context.SEARCH_RESPONSE)
+    return users_response(request, req, Context.SEARCH_RESPONSE)
 # -- search-users-end --
 
 
 # -- search-root-start --
 @router.post("/.search")
 async def search_root(
-    request: Request, req: SearchRequestContext[SearchRequest]
+    request: Request, req: SearchRequestContext[SearchRequest[User]]
 ):
     """Query every resource type the server serves.
 
@@ -270,7 +275,7 @@ async def search_root(
     with a ``ListResponse[Union[User, Group]]``. This one only serves users, so
     it answers the same page as ``/Users/.search``.
     """
-    return users_page(request, req, Context.SEARCH_RESPONSE)
+    return users_response(request, req, Context.SEARCH_RESPONSE)
 # -- search-root-end --
 
 
@@ -301,9 +306,9 @@ async def create_user(
 # -- discovery-start --
 # -- schemas-start --
 @router.get("/Schemas")
-async def list_schemas(req: Annotated[SearchRequest, Query()]):
+async def list_schemas(req: Annotated[SearchRequest[Schema], Query()]):
     """Return one page of SCIM schemas the server exposes."""
-    total, page = get_schemas(req.start_index_0, req.stop_index_0)
+    total, page = page_of(get_schemas(), req)
     response = ListResponse[Schema](
         total_results=total,
         start_index=req.start_index or 1,
@@ -331,9 +336,9 @@ async def get_schema_by_id(schema_id: str):
 
 # -- resource-types-start --
 @router.get("/ResourceTypes")
-async def list_resource_types(req: Annotated[SearchRequest, Query()]):
+async def list_resource_types(req: Annotated[SearchRequest[ResourceType], Query()]):
     """Return one page of SCIM resource types the server exposes."""
-    total, page = get_resource_types(req.start_index_0, req.stop_index_0)
+    total, page = page_of(get_resource_types(), req)
     response = ListResponse[ResourceType](
         total_results=total,
         start_index=req.start_index or 1,

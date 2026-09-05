@@ -30,6 +30,7 @@ from .integrations import get_resource_types
 from .integrations import get_schema
 from .integrations import get_schemas
 from .integrations import list_records
+from .integrations import page_of
 from .integrations import make_etag
 from .integrations import save_record
 from .integrations import service_provider_config
@@ -233,22 +234,26 @@ class UserView(SCIMView):
 
 
 # -- collection-start --
-def users_page(request, req, scim_ctx):
+def users_response(request, req, scim_ctx):
     """Return one page of users as a serialized SCIM ListResponse.
+
+    A query applies to the SCIM representation rather than to the stored
+    records, so the store is mapped before it is ordered and paginated.
 
     :param request: The incoming request, used to build resource locations.
     :param req: The parsed query, whichever verb carried it.
     :param scim_ctx: The context to serialize the response in.
     """
-    total, page = list_records(req.start_index_0, req.stop_index_0)
-    resources = [
-        to_scim_user(record, resource_location(request, record)) for record in page
+    users = [
+        to_scim_user(record, resource_location(request, record))
+        for record in list_records()
     ]
+    total, page = page_of(users, req)
     response = ListResponse[User](
         total_results=total,
         start_index=req.start_index or 1,
-        items_per_page=len(resources),
-        resources=resources,
+        items_per_page=len(page),
+        resources=page,
     )
     return SCIMJsonResponse(
         response.model_dump(
@@ -264,11 +269,11 @@ class UsersView(SCIMView):
 
     def get(self, request):
         try:
-            req = SearchRequest.model_validate(request.GET.dict())
+            req = SearchRequest[User].model_validate(request.GET.dict())
         except ValidationError as error:
             return scim_validation_error(error)
 
-        return users_page(request, req, Context.RESOURCE_QUERY_RESPONSE)
+        return users_response(request, req, Context.RESOURCE_QUERY_RESPONSE)
 
     def post(self, request):
         req = ResponseParameters.model_validate(request.GET.dict())
@@ -306,13 +311,13 @@ class UsersSearchView(SCIMView):
 
     def post(self, request):
         try:
-            req = SearchRequest.model_validate_json(
+            req = SearchRequest[User].model_validate_json(
                 request.body, scim_ctx=Context.SEARCH_REQUEST
             )
         except ValidationError as error:
             return scim_validation_error(error)
 
-        return users_page(request, req, Context.SEARCH_RESPONSE)
+        return users_response(request, req, Context.SEARCH_RESPONSE)
 # -- search-users-end --
 
 
@@ -327,13 +332,13 @@ class RootSearchView(SCIMView):
 
     def post(self, request):
         try:
-            req = SearchRequest.model_validate_json(
+            req = SearchRequest[User].model_validate_json(
                 request.body, scim_ctx=Context.SEARCH_REQUEST
             )
         except ValidationError as error:
             return scim_validation_error(error)
 
-        return users_page(request, req, Context.SEARCH_RESPONSE)
+        return users_response(request, req, Context.SEARCH_RESPONSE)
 # -- search-root-end --
 
 
@@ -356,11 +361,11 @@ class SchemasView(SCIMView):
 
     def get(self, request):
         try:
-            req = SearchRequest.model_validate(request.GET.dict())
+            req = SearchRequest[Schema].model_validate(request.GET.dict())
         except ValidationError as error:
             return scim_validation_error(error)
 
-        total, page = get_schemas(req.start_index_0, req.stop_index_0)
+        total, page = page_of(get_schemas(), req)
         response = ListResponse[Schema](
             total_results=total,
             start_index=req.start_index or 1,
@@ -395,11 +400,11 @@ class ResourceTypesView(SCIMView):
 
     def get(self, request):
         try:
-            req = SearchRequest.model_validate(request.GET.dict())
+            req = SearchRequest[ResourceType].model_validate(request.GET.dict())
         except ValidationError as error:
             return scim_validation_error(error)
 
-        total, page = get_resource_types(req.start_index_0, req.stop_index_0)
+        total, page = page_of(get_resource_types(), req)
         response = ListResponse[ResourceType](
             total_results=total,
             start_index=req.start_index or 1,

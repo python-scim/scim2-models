@@ -120,6 +120,43 @@ def test_flask_example_smoke():
     assert put_response.status_code == 200
     assert put_response.get_json()["displayName"] == "Barbara J."
 
+    for extra in ("aturner@example.com", "Zoe@example.com"):
+        client.post(
+            "/scim/v2/Users",
+            json={
+                "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+                "userName": extra,
+            },
+        )
+
+    def sorted_names(query):
+        response = client.get(f"/scim/v2/Users?{query}")
+        assert response.status_code == 200
+        return [user["userName"] for user in response.get_json()["Resources"]]
+
+    # §3.4.2.3 sorts case-insensitively unless the attribute is case-exact
+    assert sorted_names("sortBy=userName") == [
+        "aturner@example.com",
+        "bjensen@example.com",
+        "Zoe@example.com",
+    ]
+    assert sorted_names("sortBy=userName&sortOrder=descending") == [
+        "Zoe@example.com",
+        "bjensen@example.com",
+        "aturner@example.com",
+    ]
+
+    # "if there is no data for the specified sortBy value, they are ordered
+    # last if ascending and first if descending"
+    assert sorted_names("sortBy=displayName")[-2:] == [
+        "aturner@example.com",
+        "Zoe@example.com",
+    ]
+    assert sorted_names("sortBy=displayName&sortOrder=descending")[:2] == [
+        "aturner@example.com",
+        "Zoe@example.com",
+    ]
+
 
 def test_django_example_smoke():
     from django.conf import settings

@@ -8,18 +8,24 @@ from uuid import uuid4
 from scim2_models import AuthenticationScheme
 from scim2_models import Bulk
 from scim2_models import ChangePassword
+from scim2_models import CaseExact
 from scim2_models import ETag
 from scim2_models import Filter
+from scim2_models import InvalidPathException
 from scim2_models import Meta
+from scim2_models import Path
 from scim2_models import Patch
 from scim2_models import ResourceType
 from scim2_models import ServiceProviderConfig
+from scim2_models import SearchRequest
 from scim2_models import Sort
 from scim2_models import UniquenessException
 from scim2_models import User
 
 # -- storage-start --
 records = {}
+
+MAX_RESULTS = 50
 
 
 def get_record(record_id):
@@ -29,15 +35,67 @@ def get_record(record_id):
     return records[record_id]
 
 
-def list_records(start=None, stop=None):
-    """Return a page of stored records and the total count.
+def list_records():
+    """Return every stored record."""
+    return list(records.values())
 
-    :param start: 0-based start index.
-    :param stop: 0-based stop index (exclusive).
+
+def page_of(resources, req):
+    """Return the total count and the page a query asks for.
+
+    Sorting comes before paging, so a page holds the same resources whatever
+    the order asked for. A page never exceeds ``MAX_RESULTS`` entries, which is
+    the bound the :class:`~scim2_models.ServiceProviderConfig` advertises.
+
+    :param resources: The SCIM resources to answer from.
+    :param req: The parsed query.
     :return: A ``(total, page)`` tuple.
     """
-    all_records = list(records.values())
-    return len(all_records), all_records[start:stop]
+    if req.sort_by:
+        resources = sort_resources(resources, req.sort_by, req.sort_order)
+
+    start = req.start_index_0 or 0
+    limit = start + MAX_RESULTS
+    stop = req.stop_index_0
+    stop = limit if stop is None else min(stop, limit)
+    return len(resources), resources[start:stop]
+
+
+def sort_resources(resources, sort_by, sort_order=None):
+    """Order resources by an attribute, per :rfc:`RFC7644 §3.4.2.3 <7644#section-3.4.2.3>`.
+
+    :param resources: The SCIM resources to order.
+    :param sort_by: The ``sortBy`` query parameter, resolved by the request it
+        came from, which names the resource type the endpoint serves.
+    :param sort_order: The ``sortOrder`` query parameter, ascending by default.
+    :raises InvalidPathException: If the attribute is unknown.
+    """
+    if sort_by.field_name is None:
+        raise InvalidPathException(
+            path=str(sort_by), detail=f"Cannot sort on {sort_by!r}"
+        )
+
+    # "String type attributes are case insensitive by default, unless the
+    # attribute type is defined as a case-exact string."
+    case_exact = sort_by.model.get_field_annotation(sort_by.field_name, CaseExact)
+    descending = sort_order == SearchRequest.SortOrder.descending
+
+    def key(resource):
+        value = sort_by.get(resource, strict=False)
+        if isinstance(value, list):
+            # "resources are sorted by the value of the primary attribute, if
+            # any, or else the first value in the list, if any."
+            primary = next((each for each in value if each.primary), None)
+            entry = primary or (value[0] if value else None)
+            value = entry.value if entry else None
+        if isinstance(value, str) and not case_exact:
+            value = value.casefold()
+        # "if there is no data for the specified sortBy value, they are sorted
+        # via the sortOrder parameter, i.e., they are ordered last if ascending
+        # and first if descending", which reversing the whole key achieves.
+        return (value is None, value if value is not None else "")
+
+    return sorted(resources, key=key, reverse=descending)
 
 
 def save_record(record):
@@ -109,15 +167,9 @@ def make_etag(record):
 RESOURCE_MODELS = [User]
 
 
-def get_schemas(start=None, stop=None):
-    """Return a page of :class:`~scim2_models.Schema` and the total count.
-
-    :param start: 0-based start index.
-    :param stop: 0-based stop index (exclusive).
-    :return: A ``(total, page)`` tuple.
-    """
-    all_schemas = [model.to_schema() for model in RESOURCE_MODELS]
-    return len(all_schemas), all_schemas[start:stop]
+def get_schemas():
+    """Return every :class:`~scim2_models.Schema` the server exposes."""
+    return [model.to_schema() for model in RESOURCE_MODELS]
 
 
 def get_schema(schema_id):
@@ -129,17 +181,9 @@ def get_schema(schema_id):
     raise KeyError(schema_id)
 
 
-def get_resource_types(start=None, stop=None):
-    """Return a page of :class:`~scim2_models.ResourceType` and the total count.
-
-    :param start: 0-based start index.
-    :param stop: 0-based stop index (exclusive).
-    :return: A ``(total, page)`` tuple.
-    """
-    all_resource_types = [
-        ResourceType.from_resource(model) for model in RESOURCE_MODELS
-    ]
-    return len(all_resource_types), all_resource_types[start:stop]
+def get_resource_types():
+    """Return every :class:`~scim2_models.ResourceType` the server exposes."""
+    return [ResourceType.from_resource(model) for model in RESOURCE_MODELS]
 
 
 def get_resource_type(resource_type_id):
@@ -156,7 +200,7 @@ service_provider_config = ServiceProviderConfig(
     bulk=Bulk(supported=False, max_operations=0, max_payload_size=0),
     filter=Filter(supported=False, max_results=0),
     change_password=ChangePassword(supported=False),
-    sort=Sort(supported=False),
+    sort=Sort(supported=True),
     etag=ETag(supported=True),
     authentication_schemes=[
         AuthenticationScheme(

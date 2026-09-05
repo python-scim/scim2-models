@@ -28,6 +28,7 @@ from .integrations import get_resource_types
 from .integrations import get_schema
 from .integrations import get_schemas
 from .integrations import list_records
+from .integrations import page_of
 from .integrations import make_etag
 from .integrations import save_record
 from .integrations import service_provider_config
@@ -205,19 +206,24 @@ def delete_user(app_record):
 
 # -- collection-start --
 # -- list-users-start --
-def users_page(req, scim_ctx):
+def users_response(req, scim_ctx):
     """Return one page of users as a serialized SCIM ListResponse.
+
+    A query applies to the SCIM representation rather than to the stored
+    records, so the store is mapped before it is ordered and paginated.
 
     :param req: The parsed query, whichever verb carried it.
     :param scim_ctx: The context to serialize the response in.
     """
-    total, page = list_records(req.start_index_0, req.stop_index_0)
-    resources = [to_scim_user(record, resource_location(record)) for record in page]
+    users = [
+        to_scim_user(record, resource_location(record)) for record in list_records()
+    ]
+    total, page = page_of(users, req)
     response = ListResponse[User](
         total_results=total,
         start_index=req.start_index or 1,
-        items_per_page=len(resources),
-        resources=resources,
+        items_per_page=len(page),
+        resources=page,
     )
     return response.model_dump(
         scim_ctx=scim_ctx,
@@ -229,8 +235,8 @@ def users_page(req, scim_ctx):
 @bp.get("/Users")
 def list_users():
     """Return one page of users as a SCIM ListResponse."""
-    req = SearchRequest.model_validate(request.args.to_dict())
-    return users_page(req, Context.RESOURCE_QUERY_RESPONSE)
+    req = SearchRequest[User].model_validate(request.args.to_dict())
+    return users_response(req, Context.RESOURCE_QUERY_RESPONSE)
 # -- list-users-end --
 
 
@@ -238,10 +244,10 @@ def list_users():
 @bp.post("/Users/.search")
 def search_users():
     """Answer the same query as GET /Users, with the parameters in the body."""
-    req = SearchRequest.model_validate_json(
+    req = SearchRequest[User].model_validate_json(
         request.data, scim_ctx=Context.SEARCH_REQUEST
     )
-    return users_page(req, Context.SEARCH_RESPONSE)
+    return users_response(req, Context.SEARCH_RESPONSE)
 # -- search-users-end --
 
 
@@ -254,10 +260,10 @@ def search_root():
     with a ``ListResponse[Union[User, Group]]``. This one only serves users, so
     it answers the same page as ``/Users/.search``.
     """
-    req = SearchRequest.model_validate_json(
+    req = SearchRequest[User].model_validate_json(
         request.data, scim_ctx=Context.SEARCH_REQUEST
     )
-    return users_page(req, Context.SEARCH_RESPONSE)
+    return users_response(req, Context.SEARCH_RESPONSE)
 # -- search-root-end --
 
 
@@ -291,8 +297,8 @@ def create_user():
 @bp.get("/Schemas")
 def list_schemas():
     """Return one page of SCIM schemas the server exposes."""
-    req = SearchRequest.model_validate(request.args.to_dict())
-    total, page = get_schemas(req.start_index_0, req.stop_index_0)
+    req = SearchRequest[Schema].model_validate(request.args.to_dict())
+    total, page = page_of(get_schemas(), req)
     response = ListResponse[Schema](
         total_results=total,
         start_index=req.start_index or 1,
@@ -318,8 +324,8 @@ def get_schema_by_id(schema_id):
 @bp.get("/ResourceTypes")
 def list_resource_types():
     """Return one page of SCIM resource types the server exposes."""
-    req = SearchRequest.model_validate(request.args.to_dict())
-    total, page = get_resource_types(req.start_index_0, req.stop_index_0)
+    req = SearchRequest[ResourceType].model_validate(request.args.to_dict())
+    total, page = page_of(get_resource_types(), req)
     response = ListResponse[ResourceType](
         total_results=total,
         start_index=req.start_index or 1,
