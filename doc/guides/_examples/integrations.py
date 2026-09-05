@@ -40,6 +40,7 @@ def list_records():
     return list(records.values())
 
 
+# -- sorting-start --
 def page_of(resources, req):
     """Return the total count and the page a query asks for.
 
@@ -96,6 +97,7 @@ def sort_resources(resources, sort_by, sort_order=None):
         return (value is None, value if value is not None else "")
 
     return sorted(resources, key=key, reverse=descending)
+# -- sorting-end --
 
 
 def save_record(record):

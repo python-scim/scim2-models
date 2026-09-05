@@ -133,8 +133,9 @@ Collection
 ^^^^^^^^^^
 
 ``UsersView`` handles ``GET /Users`` and ``POST /Users``.
-For ``GET``, parse pagination and filtering parameters with
-:class:`~scim2_models.SearchRequest`, slice the store, then wrap the page in a
+For ``GET``, parse the query parameters with
+:class:`~scim2_models.SearchRequest`\ [:class:`~scim2_models.User`], order and page the mapped
+resources as described in :ref:`guides-sorting`, then wrap the page in a
 :class:`~scim2_models.ListResponse` serialized with
 :attr:`~scim2_models.Context.RESOURCE_QUERY_RESPONSE`.
 ``req.attributes`` and ``req.excluded_attributes`` are passed to

@@ -36,6 +36,35 @@ This separation keeps the HTTP layer simple.
 The views work with SCIM resources, while the rest of the application can keep its own
 representation.
 
+.. _guides-sorting:
+
+Ordering and paging collections
+-------------------------------
+
+A collection endpoint answers the ``sortBy``, ``sortOrder``, ``startIndex`` and ``count``
+parameters of :rfc:`RFC7644 §3.4.2 <7644#section-3.4.2>`. Naming the resource type the endpoint
+serves, with :class:`~scim2_models.SearchRequest`\ [:class:`~scim2_models.User`], resolves
+:attr:`~scim2_models.SearchRequest.sort_by` against that model, so the helper below reads
+:attr:`Path.field_name <scim2_models.Path.field_name>` instead of the attribute name a client
+spelled.
+
+:rfc:`RFC7644 §3.4.2.3 <7644#section-3.4.2.3>` decides the order in three ways the helper
+follows: a string attribute is compared without its case unless it is annotated
+:attr:`CaseExact.true <scim2_models.CaseExact.true>`; a multi-valued attribute is compared on
+the value of its ``primary`` entry, or the first one; and a resource with no value for the
+attribute comes last when ascending, first when descending.
+
+.. literalinclude:: _examples/integrations.py
+   :language: python
+   :caption: Ordering a collection
+   :start-after: # -- sorting-start --
+   :end-before: # -- sorting-end --
+
+Sorting comes before paging, so a page holds the same resources whatever the order asked for,
+and a page never exceeds the ``maxResults`` the
+:class:`~scim2_models.ServiceProviderConfig` advertises. Both are what ``page_of`` applies,
+and every collection endpoint of the guides goes through it.
+
 .. _discovery-helpers:
 
 Server discovery

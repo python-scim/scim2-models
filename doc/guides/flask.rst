@@ -137,9 +137,11 @@ have not been modified.
 GET /Users
 ^^^^^^^^^^
 
-Parse pagination and filtering parameters with :class:`~scim2_models.SearchRequest`, slice
-the store accordingly, then wrap the page in a :class:`~scim2_models.ListResponse` serialized
-with :attr:`~scim2_models.Context.RESOURCE_QUERY_RESPONSE`.
+Parse the query parameters with
+:class:`~scim2_models.SearchRequest`\ [:class:`~scim2_models.User`], order and page the mapped
+resources as described in :ref:`guides-sorting`, then wrap the page in a
+:class:`~scim2_models.ListResponse` serialized with
+:attr:`~scim2_models.Context.RESOURCE_QUERY_RESPONSE`.
 Pass ``req.attributes`` and ``req.excluded_attributes`` to
 :meth:`~scim2_models.ListResponse.model_dump_json` so that the ``attributes`` and
 ``excludedAttributes`` query parameters are applied to each embedded resource.
