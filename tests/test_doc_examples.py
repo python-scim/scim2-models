@@ -87,17 +87,30 @@ def test_flask_example_smoke():
     assert searched["Resources"][0]["userName"] == "bjensen@example.com"
     assert "displayName" not in searched["Resources"][0]
 
-    root_response = client.post(
-        "/scim/v2/.search",
-        json={"schemas": ["urn:ietf:params:scim:api:messages:2.0:SearchRequest"]},
-    )
-    assert root_response.status_code == 200
-    gathered = root_response.get_json()
+    def root_search(scim_filter=None):
+        body = {"schemas": ["urn:ietf:params:scim:api:messages:2.0:SearchRequest"]}
+        if scim_filter:
+            body["filter"] = scim_filter
+        response = client.post("/scim/v2/.search", json=body)
+        assert response.status_code == 200
+        return response.get_json()
+
+    # the root query gathers both resource types
+    gathered = root_search()
     assert gathered["totalResults"] == 3
     assert {resource["meta"]["resourceType"] for resource in gathered["Resources"]} == {
         "User",
         "Group",
     }
+
+    # an attribute only one type declares evaluates to false on the other
+    users_only = root_search("userName pr")
+    assert users_only["totalResults"] == 1
+    assert users_only["Resources"][0]["userName"] == "bjensen@example.com"
+
+    groups_only = root_search('displayName eq "Administrators"')
+    assert groups_only["totalResults"] == 1
+    assert groups_only["Resources"][0]["meta"]["resourceType"] == "Group"
 
     malformed_response = client.post(
         "/scim/v2/Users/.search",
@@ -284,19 +297,33 @@ def test_django_example_smoke():
         assert searched["Resources"][0]["userName"] == "bjensen@example.com"
         assert "displayName" not in searched["Resources"][0]
 
-        root_response = client.post(
-            "/scim/v2/.search",
-            json.dumps(
-                {"schemas": ["urn:ietf:params:scim:api:messages:2.0:SearchRequest"]}
-            ),
-            content_type="application/scim+json",
-        )
-        assert root_response.status_code == 200
-        gathered = json.loads(root_response.content)
+        def root_search(scim_filter=None):
+            body = {"schemas": ["urn:ietf:params:scim:api:messages:2.0:SearchRequest"]}
+            if scim_filter:
+                body["filter"] = scim_filter
+            response = client.post(
+                "/scim/v2/.search",
+                json.dumps(body),
+                content_type="application/scim+json",
+            )
+            assert response.status_code == 200
+            return json.loads(response.content)
+
+        # the root query gathers both resource types
+        gathered = root_search()
         assert gathered["totalResults"] == 3
         assert {
             resource["meta"]["resourceType"] for resource in gathered["Resources"]
         } == {"User", "Group"}
+
+        # an attribute only one type declares evaluates to false on the other
+        users_only = root_search("userName pr")
+        assert users_only["totalResults"] == 1
+        assert users_only["Resources"][0]["userName"] == "bjensen@example.com"
+
+        groups_only = root_search('displayName eq "Administrators"')
+        assert groups_only["totalResults"] == 1
+        assert groups_only["Resources"][0]["meta"]["resourceType"] == "Group"
 
         malformed_response = client.post(
             "/scim/v2/Users/.search",
@@ -434,17 +461,30 @@ def test_fastapi_example_smoke():
     assert searched["Resources"][0]["userName"] == "bjensen@example.com"
     assert "displayName" not in searched["Resources"][0]
 
-    root_response = client.post(
-        "/scim/v2/.search",
-        json={"schemas": ["urn:ietf:params:scim:api:messages:2.0:SearchRequest"]},
-    )
-    assert root_response.status_code == 200
-    gathered = root_response.json()
+    def root_search(scim_filter=None):
+        body = {"schemas": ["urn:ietf:params:scim:api:messages:2.0:SearchRequest"]}
+        if scim_filter:
+            body["filter"] = scim_filter
+        response = client.post("/scim/v2/.search", json=body)
+        assert response.status_code == 200
+        return response.json()
+
+    # the root query gathers both resource types
+    gathered = root_search()
     assert gathered["totalResults"] == 3
     assert {resource["meta"]["resourceType"] for resource in gathered["Resources"]} == {
         "User",
         "Group",
     }
+
+    # an attribute only one type declares evaluates to false on the other
+    users_only = root_search("userName pr")
+    assert users_only["totalResults"] == 1
+    assert users_only["Resources"][0]["userName"] == "bjensen@example.com"
+
+    groups_only = root_search('displayName eq "Administrators"')
+    assert groups_only["totalResults"] == 1
+    assert groups_only["Resources"][0]["meta"]["resourceType"] == "Group"
 
     get_attributes_response = client.get(
         f"/scim/v2/Users/{user_id}?attributes=userName"

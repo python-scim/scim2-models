@@ -173,6 +173,12 @@ indicates that all resources within the server SHALL be included, subject to fil
 endpoint gathers each type it serves and answers with a
 :class:`~scim2_models.ListResponse`\ [:class:`~scim2_models.User` | :class:`~scim2_models.Group`].
 
+Binding the request to that same union is what checks the filter against both models. An
+attribute only one of them declares is then valid, and evaluates to false on the other, which
+is what §3.4.2.1 requires: "for filtered attributes that are not part of a particular resource
+type, the service provider SHALL treat the attribute as if there is no attribute value". So
+``userName pr`` keeps the users, and an attribute neither model declares is refused outright.
+
 These guides expose no ``/Groups`` endpoints; the groups the root query gathers are read-only
 fixtures, enough to show a heterogeneous collection.
 
