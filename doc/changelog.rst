@@ -15,10 +15,11 @@ Added
 Fixed
 ^^^^^
 - A path crossing a multi-valued attribute, such as ``emails.value``, reads, writes and
-  removes the sub-attribute of every entry, where it used to raise an :exc:`AttributeError`
-  on a read or a removal and do nothing at all on a write. It designates the same values as
-  the ``emails[value pr].value`` selection :rfc:`RFC7644 §3.5.2 <7644#section-3.5.2>`
-  illustrates, and now behaves the same way.
+  removes the sub-attribute of each of its entries, where it used to raise an
+  :exc:`AttributeError` on a read or a removal and do nothing at all on a write.
+  :rfc:`RFC7644 §3.5.2 <7644#section-3.5.2>` reaches every entry of a path carrying no filter,
+  so a read answers with one item per entry, :data:`None` included for an entry carrying none,
+  which is what a write through the same path reaches.
 - A PATCH operation that would leave an attribute annotated
   :attr:`Required.true <scim2_models.Required.true>` unassigned answers ``mutability`` instead
   of ``invalidValue``, which is the ``scimType``
