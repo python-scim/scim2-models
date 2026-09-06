@@ -254,3 +254,29 @@ def test_defensive_path_check_in_remove():
 
     with pytest.raises(NoTargetException, match="Remove operation requires a path"):
         patch.patch(user)
+
+
+def test_remove_a_subattribute_of_every_entry():
+    """An unfiltered path designates the sub-attribute of each entry.
+
+    :rfc:`RFC7644 §3.5.2.2 <7644#section-3.5.2.2>` has an operation carrying no
+    filter reach every value of a multi-valued attribute.
+    """
+    user = User(
+        user_name="bjensen",
+        emails=[
+            User.Emails(value="bjensen@example.com", type="work"),
+            User.Emails(value="babs@example.org", type="home"),
+        ],
+    )
+    patch = PatchOp[User](
+        operations=[
+            PatchOperation[User](op=PatchOperation.Op.remove, path="emails.type")
+        ]
+    )
+    assert patch.patch(user) is True
+    assert [email.type for email in user.emails] == [None, None]
+    assert [email.value for email in user.emails] == [
+        "bjensen@example.com",
+        "babs@example.org",
+    ]

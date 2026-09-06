@@ -366,3 +366,32 @@ def test_primary_auto_exclusion_rejects_preexisting_multiple_primaries():
 
     with pytest.raises(Exception, match="Multiple primary values already exist"):
         patch.patch(user)
+
+
+def test_replace_a_subattribute_of_every_entry():
+    """An unfiltered path designates the sub-attribute of each entry.
+
+    :rfc:`RFC7644 §3.5.2.3 <7644#section-3.5.2.3>` replaces every value a
+    selection matches, which without a selection is all of them.
+    """
+    user = User(
+        user_name="bjensen",
+        emails=[
+            User.Emails(value="bjensen@example.com", type="work"),
+            User.Emails(value="babs@example.org", type="home"),
+        ],
+    )
+    patch = PatchOp[User](
+        operations=[
+            PatchOperation[User](
+                op=PatchOperation.Op.replace_,
+                path="emails.value",
+                value="new@example.com",
+            )
+        ]
+    )
+    assert patch.patch(user) is True
+    assert [email.value for email in user.emails] == [
+        "new@example.com",
+        "new@example.com",
+    ]

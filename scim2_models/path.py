@@ -7,6 +7,7 @@ from typing import Any
 from typing import Generic
 from typing import NamedTuple
 from typing import TypeVar
+from typing import cast
 
 from pydantic import GetCoreSchemaHandler
 from pydantic import GetJsonSchemaHandler
@@ -62,6 +63,18 @@ class _Resolution(NamedTuple):
     target: "BaseModel"
     path_str: str
     is_explicit_schema_path: bool = False
+
+
+class _Target(NamedTuple):
+    """The objects a path lands on, and the field it designates on each.
+
+    A path crossing a multi-valued attribute designates one field per entry, so
+    ``emails.value`` lands on every email rather than on a single object.
+    """
+
+    hosts: list["BaseModel"]
+    field_name: str
+    multivalued: bool
 
 
 class URN(str):
@@ -451,24 +464,61 @@ class Path(UserString, Generic[ResourceT]):
         return None
 
     def _walk_to_target(
-        self, obj: BaseModel, path_str: str
-    ) -> tuple[BaseModel, str] | None:
-        """Navigate to the target object and field.
+        self, obj: BaseModel, path_str: str, *, create: bool = False
+    ) -> "_Target | None":
+        """Navigate to the objects holding the field this path designates.
 
-        :returns: (target_obj, field_name) or None if an intermediate is None.
+        A multi-valued attribute crossed on the way fans the walk out over its
+        entries, as :rfc:`RFC7644 §3.5.2 <7644#section-3.5.2>` has an unfiltered
+        path designate every one of them.
+
+        :param obj: The object to walk from.
+        :param path_str: The dotted path to walk.
+        :param create: Whether an unassigned complex attribute is instantiated
+            rather than ending the walk.
+        :returns: The target, or None when nothing is left to walk to.
+        :raises PathNotFoundException: If a segment names an unknown field.
         """
-        if "." not in path_str:
-            return obj, _require_field(type(obj), path_str)
-
         parts = path_str.split(".")
-        current_obj = obj
+        hosts = [obj]
+        multivalued = False
 
         for part in parts[:-1]:
-            field_name = _require_field(type(current_obj), part)
-            if (current_obj := getattr(current_obj, field_name)) is None:
+            field_name = _require_field(type(hosts[0]), part)
+            entered: list[BaseModel] = []
+            for host in hosts:
+                value = getattr(host, field_name)
+                if value is None and create:
+                    value = self._create_intermediate(host, field_name)
+                if isinstance(value, list):
+                    multivalued = True
+                    entered.extend(
+                        item for item in value if isinstance(item, BaseModel)
+                    )
+                elif value is not None:
+                    entered.append(value)
+            if not entered:
                 return None
+            hosts = entered
 
-        return current_obj, _require_field(type(current_obj), parts[-1])
+        return _Target(hosts, _require_field(type(hosts[0]), parts[-1]), multivalued)
+
+    @staticmethod
+    def _create_intermediate(host: BaseModel, field_name: str) -> BaseModel | None:
+        """Instantiate an unassigned complex attribute so a value can be set under it.
+
+        A multi-valued attribute is left alone: entries that do not exist have
+        no field to write to, and inventing one would guess what the caller
+        meant to address.
+        """
+        if type(host).get_field_multiplicity(field_name):
+            return None
+        field_type = type(host).get_field_root_type(field_name)
+        if field_type is None or field_type is Any or not isclass(field_type):
+            return None
+        sub_obj = field_type()
+        setattr(host, field_name, sub_obj)
+        return cast(BaseModel, sub_obj)
 
     def _get(self, resource: ResourceT) -> Any:
         """Get the value at this path from a resource."""
@@ -479,15 +529,22 @@ class Path(UserString, Generic[ResourceT]):
             return resolution.target
 
         if (
-            result := self._walk_to_target(resolution.target, resolution.path_str)
+            target := self._walk_to_target(resolution.target, resolution.path_str)
         ) is None:
             return None
 
-        obj, field_name = result
-        return getattr(obj, field_name)
+        values = [getattr(host, target.field_name) for host in target.hosts]
+        return values if target.multivalued else values[0]
 
     def get(self, resource: ResourceT, *, strict: bool = True) -> Any:
         """Get the value at this path from a resource.
+
+        A path crossing a multi-valued attribute designates the sub-attribute of
+        each of its entries, so ``emails.value`` answers with one item per email,
+        in their order, :data:`None` included for an email carrying no value.
+        Writing through such a path reaches those same entries, which is what
+        makes the answer their mirror. An attribute holding no entry at all
+        answers :data:`None`, as any unassigned attribute does.
 
         :param resource: The resource to get the value from.
         :param strict: If True, raise exceptions for invalid paths.
@@ -531,27 +588,14 @@ class Path(UserString, Generic[ResourceT]):
             obj.__dict__.update(updated_obj.__dict__)
             return True
 
-        if "." not in path_str:
-            field_name = _require_field(type(obj), path_str)
-            return self._set_field_value(obj, field_name, value, is_add)
+        if (target := self._walk_to_target(obj, path_str, create=True)) is None:
+            return False
 
-        parts = path_str.split(".")
-        current_obj = obj
-
-        for part in parts[:-1]:
-            field_name = _require_field(type(current_obj), part)
-            if (sub_obj := getattr(current_obj, field_name)) is None:
-                field_type = type(current_obj).get_field_root_type(field_name)
-                if field_type is None or field_type is Any or not isclass(field_type):
-                    return False
-                sub_obj = field_type()
-                setattr(current_obj, field_name, sub_obj)
-            elif isinstance(sub_obj, list):
-                return False
-            current_obj = sub_obj
-
-        field_name = _require_field(type(current_obj), parts[-1])
-        return self._set_field_value(current_obj, field_name, value, is_add)
+        changed = [
+            self._set_field_value(host, target.field_name, value, is_add)
+            for host in target.hosts
+        ]
+        return any(changed)
 
     def set(
         self,
@@ -562,6 +606,11 @@ class Path(UserString, Generic[ResourceT]):
         strict: bool = True,
     ) -> bool:
         """Set a value at this path on a resource.
+
+        A path crossing a multi-valued attribute writes the sub-attribute of each
+        of its entries, so ``emails.value`` gives every email the same value. An
+        unassigned multi-valued attribute has no entry to write to, and is left
+        alone.
 
         :param resource: The resource to set the value on.
         :param value: The value to set.
@@ -618,26 +667,36 @@ class Path(UserString, Generic[ResourceT]):
             raise InvalidPathException(path=str(self))
 
         if (
-            result := self._walk_to_target(resolution.target, resolution.path_str)
+            target := self._walk_to_target(resolution.target, resolution.path_str)
         ) is None:
             return False
 
-        obj, field_name = result
+        changed = [
+            self._delete_field_value(host, target.field_name, value)
+            for host in target.hosts
+        ]
+        return any(changed)
+
+    @staticmethod
+    def _delete_field_value(
+        obj: BaseModel, field_name: str, value: Any | None = None
+    ) -> bool:
+        """Unassign a field, or remove the matching entries of a multi-valued one."""
         if (current_value := getattr(obj, field_name)) is None:
             return False
 
-        if value is not None:
-            if not isinstance(current_value, list):
-                return False
-            new_list = [
-                item for item in current_value if not _values_match(item, value)
-            ]
-            if len(new_list) == len(current_value):
-                return False
-            setattr(obj, field_name, new_list if new_list else None)
+        if value is None:
+            setattr(obj, field_name, None)
             return True
 
-        setattr(obj, field_name, None)
+        if not isinstance(current_value, list):
+            return False
+
+        new_list = [item for item in current_value if not _values_match(item, value)]
+        if len(new_list) == len(current_value):
+            return False
+
+        setattr(obj, field_name, new_list or None)
         return True
 
     def delete(
@@ -648,6 +707,9 @@ class Path(UserString, Generic[ResourceT]):
         If value is None, the entire attribute is set to None.
         If value is provided and the attribute is multi-valued,
         only matching values are removed from the list.
+        A path crossing a multi-valued attribute removes the sub-attribute from
+        each of its entries, so ``emails.type`` leaves the emails in place and
+        untypes them.
 
         :param resource: The resource to delete the value from.
         :param value: Optional specific value to remove from a list.

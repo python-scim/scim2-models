@@ -473,12 +473,138 @@ def test_set_schema_only_path_merges_dict():
     assert user.display_name == "Test"
 
 
-def test_set_cannot_navigate_into_list():
-    """Set returns False when trying to navigate into a multi-valued attribute."""
+def test_set_writes_a_subattribute_of_every_entry():
+    """An unfiltered path designates the sub-attribute of each entry."""
+    user = User(
+        user_name="john",
+        emails=[
+            Email(value="john@example.com", type="work"),
+            Email(value="j@example.org", type="home"),
+        ],
+    )
+    assert Path("emails.value").set(user, "new@example.com") is True
+    assert [email.value for email in user.emails] == [
+        "new@example.com",
+        "new@example.com",
+    ]
+    assert [email.type for email in user.emails] == ["work", "home"]
+
+
+def test_set_leaves_an_unassigned_multivalued_attribute_alone():
+    """Entries that do not exist have no sub-attribute to write to."""
+    user = User(user_name="john")
+    assert Path("emails.value").set(user, "john@example.com") is False
+    assert user.emails is None
+
+
+def test_set_reports_no_change_when_every_entry_already_holds_the_value():
+    """Writing what the entries already carry changes nothing to report."""
+    user = User(
+        user_name="john",
+        emails=[Email(value="john@example.com"), Email(value="john@example.com")],
+    )
+    assert Path("emails.value").set(user, "john@example.com") is False
+
+
+def test_get_reads_a_subattribute_of_every_entry():
+    """The sub-attributes come back in the order of the entries holding them."""
+    user = User(
+        user_name="john",
+        emails=[
+            Email(value="john@example.com", type="work"),
+            Email(value="j@example.org"),
+        ],
+    )
+    assert Path("emails.value").get(user) == ["john@example.com", "j@example.org"]
+    assert Path("emails.type").get(user) == ["work", None]
+
+
+def test_get_a_subattribute_no_entry_carries():
+    """An entry carrying nothing still answers for itself, as a write would reach it."""
+    user = User(
+        user_name="john",
+        emails=[Email(value="john@example.com"), Email(value="j@example.org")],
+    )
+    assert Path("emails.type").get(user) == [None, None]
+
+
+def test_get_reads_a_single_entry_as_a_list():
+    """Crossing a multi-valued attribute answers with a list however many entries it holds."""
     user = User(user_name="john", emails=[Email(value="john@example.com")])
-    path = Path("emails.value")
-    result = path.set(user, "new@example.com")
-    assert result is False
+    assert Path("emails.value").get(user) == ["john@example.com"]
+
+
+def test_get_an_unassigned_multivalued_attribute():
+    """An attribute holding no entry holds no sub-attribute either."""
+    user = User(user_name="john")
+    assert Path("emails.value").get(user) is None
+
+
+def test_get_an_empty_multivalued_attribute():
+    """An empty array is the unassigned state, per :rfc:`RFC7643 §2.5 <7643#section-2.5>`."""
+    user = User(user_name="john", emails=[])
+    assert Path("emails.value").get(user) is None
+
+
+def test_get_a_subattribute_of_a_scalar_list():
+    """A list of scalars holds no sub-attribute to read."""
+    user = User(user_name="john")
+    assert Path("schemas.value").get(user) is None
+
+
+def test_get_an_unknown_subattribute_of_a_multivalued_attribute():
+    """A name the entries do not declare is refused, entries or not."""
+    user = User(user_name="john", emails=[Email(value="john@example.com")])
+    with pytest.raises(PathNotFoundException):
+        Path("emails.unknownAttr").get(user)
+
+
+def test_delete_removes_a_subattribute_from_every_entry():
+    """The entries stay in place, stripped of the sub-attribute the path names."""
+    user = User(
+        user_name="john",
+        emails=[
+            Email(value="john@example.com", type="work"),
+            Email(value="j@example.org", type="home"),
+        ],
+    )
+    assert Path("emails.type").delete(user) is True
+    assert [email.type for email in user.emails] == [None, None]
+    assert [email.value for email in user.emails] == [
+        "john@example.com",
+        "j@example.org",
+    ]
+
+
+def test_delete_reports_no_change_when_no_entry_holds_the_subattribute():
+    """Removing what no entry carries leaves the resource untouched."""
+    user = User(
+        user_name="john",
+        emails=[Email(value="john@example.com"), Email(value="j@example.org")],
+    )
+    assert Path("emails.type").delete(user) is False
+
+
+def test_delete_an_unassigned_multivalued_attribute():
+    """An attribute holding no entry has nothing to remove."""
+    user = User(user_name="john")
+    assert Path("emails.value").delete(user) is False
+
+
+def test_delete_a_value_of_a_singular_attribute():
+    """Removing one value of a list makes no sense on an attribute holding one value."""
+    user = User(user_name="john", display_name="John")
+    assert Path("displayName").delete(user, "John") is False
+    assert user.display_name == "John"
+
+
+def test_getitem_reads_a_subattribute_of_every_entry():
+    """Subscripting a resource resolves the path the same way :meth:`Path.get` does."""
+    user = User(
+        user_name="john",
+        emails=[Email(value="john@example.com"), Email(value="j@example.org")],
+    )
+    assert user["emails.value"] == ["john@example.com", "j@example.org"]
 
 
 def test_set_invalid_last_part_in_complex_path():

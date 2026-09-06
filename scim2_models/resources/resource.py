@@ -247,6 +247,7 @@ class Resource(ScimObject, Generic[AnyExtension]):
             user[EnterpriseUser]  # Get extension
             user["userName"]  # Get attribute
             user["name.familyName"]  # Get nested attribute
+            user["emails.value"]  # Get the value of each email
         """
         if isinstance(item, type) and issubclass(item, Extension):
             item = item.__schema__

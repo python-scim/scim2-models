@@ -284,3 +284,23 @@ def test_add_operation_with_non_dict_value_no_path():
     )
     result = patch.patch(user)
     assert result is False
+
+
+def test_add_a_subattribute_to_every_entry():
+    """An unfiltered path designates the sub-attribute of each entry."""
+    user = User(
+        user_name="bjensen",
+        emails=[
+            User.Emails(value="bjensen@example.com"),
+            User.Emails(value="babs@example.org"),
+        ],
+    )
+    patch = PatchOp[User](
+        operations=[
+            PatchOperation[User](
+                op=PatchOperation.Op.add, path="emails.display", value="Barbara"
+            )
+        ]
+    )
+    assert patch.patch(user) is True
+    assert [email.display for email in user.emails] == ["Barbara", "Barbara"]
