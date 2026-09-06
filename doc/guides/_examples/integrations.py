@@ -8,7 +8,7 @@ from uuid import uuid4
 from scim2_models import AuthenticationScheme
 from scim2_models import Bulk
 from scim2_models import ChangePassword
-from scim2_models import CaseExact
+from scim2_models import ComplexAttribute
 from scim2_models import ETag
 from scim2_models import Filter
 from scim2_models import InvalidPathException
@@ -22,6 +22,7 @@ from scim2_models import SearchRequest
 from scim2_models import Sort
 from scim2_models import UniquenessException
 from scim2_models import User
+from scim2_models.filters import attribute_host
 
 # -- storage-start --
 records = {}
@@ -72,25 +73,19 @@ def sort_resources(resources, sort_by, sort_order=None):
     :param sort_order: The ``sortOrder`` query parameter, ascending by default.
     :raises InvalidPathException: If the attribute is unknown.
     """
-    if sort_by.field_name is None:
+    resolved = sort_by.resolve()
+    if resolved is None:
         raise InvalidPathException(
             path=str(sort_by), detail=f"Cannot sort on {sort_by!r}"
         )
 
-    # "String type attributes are case insensitive by default, unless the
-    # attribute type is defined as a case-exact string."
-    case_exact = sort_by.model.get_field_annotation(sort_by.field_name, CaseExact)
     descending = sort_order == SearchRequest.SortOrder.descending
 
     def key(resource):
-        value = sort_by.get(resource, strict=False)
-        if isinstance(value, list):
-            # "resources are sorted by the value of the primary attribute, if
-            # any, or else the first value in the list, if any."
-            primary = next((each for each in value if each.primary), None)
-            entry = primary or (value[0] if value else None)
-            value = entry.value if entry else None
-        if isinstance(value, str) and not case_exact:
+        value = sort_value(resource, resolved)
+        # "String type attributes are case insensitive by default, unless the
+        # attribute type is defined as a case-exact string."
+        if isinstance(value, str) and not resolved.case_exact:
             value = value.casefold()
         # "if there is no data for the specified sortBy value, they are sorted
         # via the sortOrder parameter, i.e., they are ordered last if ascending
@@ -98,6 +93,38 @@ def sort_resources(resources, sort_by, sort_order=None):
         return (value is None, value if value is not None else "")
 
     return sorted(resources, key=key, reverse=descending)
+
+
+def sort_value(resource, resolved):
+    """Return the single value a resource is ordered by.
+
+    A path crossing a multi-valued attribute designates the sub-attribute of
+    every entry, where an order needs one value per resource, so the entry is
+    picked first and the sub-attribute read from it.
+
+    :param resource: The resource to read.
+    :param resolved: The attribute the ``sortBy`` designates.
+    """
+    host = attribute_host(resource, resolved)
+    value = None if host is None else getattr(host, resolved.field_name, None)
+    sub_field_name = resolved.sub_field_name
+
+    if resolved.is_multivalued:
+        entries = value or []
+        # "resources are sorted by the value of the primary attribute, if any,
+        # or else the first value in the list, if any."
+        primary = next(
+            (entry for entry in entries if getattr(entry, "primary", None)), None
+        )
+        value = primary if primary is not None else (entries[0] if entries else None)
+        if sub_field_name is None and isinstance(value, ComplexAttribute):
+            # RFC7643 §2.4 holds the significant value of a complex entry in a
+            # ``value`` sub-attribute, where a scalar entry is the value itself.
+            sub_field_name = "value"
+
+    if value is None or sub_field_name is None:
+        return value
+    return getattr(value, sub_field_name, None)
 # -- sorting-end --
 
 

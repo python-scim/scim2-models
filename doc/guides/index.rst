@@ -75,8 +75,8 @@ Ordering and paging collections
 A collection endpoint answers the ``sortBy``, ``sortOrder``, ``startIndex`` and ``count``
 parameters of :rfc:`RFC7644 §3.4.2 <7644#section-3.4.2>`. Naming the resource type the endpoint
 serves, with :class:`~scim2_models.SearchRequest`\ [:class:`~scim2_models.User`], resolves
-:attr:`~scim2_models.SearchRequest.sort_by` against that model, so the helper below reads
-:attr:`Path.field_name <scim2_models.Path.field_name>` instead of the attribute name a client
+:attr:`~scim2_models.SearchRequest.sort_by` against that model, so the helper below works from
+the :class:`~scim2_models.ResolvedAttribute` it designates instead of from the name a client
 spelled.
 
 :rfc:`RFC7644 §3.4.2.3 <7644#section-3.4.2.3>` decides the order in three ways the helper
@@ -84,6 +84,12 @@ follows: a string attribute is compared without its case unless it is annotated
 :attr:`CaseExact.true <scim2_models.CaseExact.true>`; a multi-valued attribute is compared on
 the value of its ``primary`` entry, or the first one; and a resource with no value for the
 attribute comes last when ascending, first when descending.
+
+The second is why the value is not read straight off the path. ``emails.value`` designates the
+value of *every* entry, where an order wants one value per resource, so ``sort_value`` picks
+the entry before reading the sub-attribute from it. That makes ``sortBy=emails`` the same query
+as ``sortBy=emails.value``, :rfc:`RFC7643 §2.4 <7643#section-2.4>` holding the significant value
+of a complex entry in its ``value`` sub-attribute, where a scalar entry is that value itself.
 
 .. literalinclude:: _examples/integrations.py
    :language: python
