@@ -24,6 +24,7 @@ repos:
         exclude: ^(tests/|conftest\.py|doc/)
         additional_dependencies:
           - pydantic[email]>=2.7.0
+          - lark>=1.3
   - repo: https://github.com/codespell-project/codespell
     rev: v2.4.3
     hooks:

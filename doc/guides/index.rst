@@ -36,6 +36,37 @@ This separation keeps the HTTP layer simple.
 The views work with SCIM resources, while the rest of the application can keep its own
 representation.
 
+.. _guides-filtering:
+
+Filtering
+---------
+
+Clients narrow a collection with the ``filter`` query parameter
+(:rfc:`RFC7644 §3.4.2.2 <7644#section-3.4.2.2>`), which
+:attr:`SearchRequest.filter <scim2_models.SearchRequest.filter>` parses. Naming the resource
+type the endpoint serves, with
+:class:`~scim2_models.SearchRequest`\ [:class:`~scim2_models.User`], checks the filter against
+that model as well: an unknown attribute, or a comparison an attribute does not accept, is
+refused as the query parameters are validated. That is what turns a malformed filter into a
+``400`` rather than into an empty page, and it leaves a filter ready to be matched.
+
+:rfc:`RFC7644 §3.4.2.1 <7644#section-3.4.2.1>` asks something else of an endpoint covering
+several resource types, such as the server root: there, "a presence or equality filter for an
+undefined attribute evaluates to false". Name them all, with
+:class:`~scim2_models.SearchRequest`\ [:class:`~scim2_models.User` | :class:`~scim2_models.Group`],
+and an attribute only some of them declare stays valid and evaluates to false on the resources
+of the others, while an attribute none of them declares is still refused.
+
+A filter applies to the SCIM representation rather than to the stored records, so the endpoints
+map the store first, keep the resources :meth:`ScimFilter.match <scim2_models.ScimFilter.match>` accepts, and
+paginate last. ``totalResults`` therefore counts what the filter kept, as
+:rfc:`RFC7644 §3.4.2 <7644#section-3.4.2>` requires, and a page never exceeds the bound
+:attr:`Filter.max_results <scim2_models.Filter.max_results>` advertises.
+
+That order reads the whole store on every request, which an in-memory example can afford and a
+database cannot. A server backed by one translates the filter into a query instead, and lets the
+database do the filtering and the pagination; see :ref:`filter-transpiling`.
+
 .. _guides-sorting:
 
 Ordering and paging collections
@@ -44,8 +75,8 @@ Ordering and paging collections
 A collection endpoint answers the ``sortBy``, ``sortOrder``, ``startIndex`` and ``count``
 parameters of :rfc:`RFC7644 §3.4.2 <7644#section-3.4.2>`. Naming the resource type the endpoint
 serves, with :class:`~scim2_models.SearchRequest`\ [:class:`~scim2_models.User`], resolves
-:attr:`~scim2_models.SearchRequest.sort_by` against that model, so the helper below reads
-:attr:`Path.field_name <scim2_models.Path.field_name>` instead of the attribute name a client
+:attr:`~scim2_models.SearchRequest.sort_by` against that model, so the helper below works from
+the :class:`~scim2_models.ResolvedAttribute` it designates instead of from the name a client
 spelled.
 
 :rfc:`RFC7644 §3.4.2.3 <7644#section-3.4.2.3>` decides the order in three ways the helper
@@ -53,6 +84,12 @@ follows: a string attribute is compared without its case unless it is annotated
 :attr:`CaseExact.true <scim2_models.CaseExact.true>`; a multi-valued attribute is compared on
 the value of its ``primary`` entry, or the first one; and a resource with no value for the
 attribute comes last when ascending, first when descending.
+
+The second is why the value is not read straight off the path. ``emails.value`` designates the
+value of *every* entry, where an order wants one value per resource, so ``sort_value`` picks
+the entry before reading the sub-attribute from it. That makes ``sortBy=emails`` the same query
+as ``sortBy=emails.value``, :rfc:`RFC7643 §2.4 <7643#section-2.4>` holding the significant value
+of a complex entry in its ``value`` sub-attribute, where a scalar entry is that value itself.
 
 .. literalinclude:: _examples/integrations.py
    :language: python
@@ -83,6 +120,19 @@ capabilities.
    :caption: Server discovery helpers
    :start-after: # -- discovery-start --
    :end-before: # -- discovery-end --
+
+Storing resources in a database
+-------------------------------
+
+The storage layer above keeps everything in a dictionary, which is what lets the examples stay
+short. :doc:`sqlalchemy` replaces it with a database, where the filter becomes a ``WHERE``
+clause instead of a predicate applied to every mapped resource, and where sorting and
+pagination happen next to it.
+
+.. toctree::
+   :maxdepth: 1
+
+   sqlalchemy
 
 Web frameworks
 --------------

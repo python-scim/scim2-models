@@ -1,7 +1,12 @@
 import re
 from functools import lru_cache
+from inspect import isclass
 from typing import TYPE_CHECKING
+from typing import Any
 from typing import Union
+from typing import cast
+from typing import get_args
+from typing import get_origin
 
 from pydantic.alias_generators import to_snake
 
@@ -15,6 +20,26 @@ try:
 except ImportError:
     # Python 3.9 has no UnionType
     UNION_TYPES = [Union]
+
+
+def _model_union(annotation: Any) -> "tuple[type[BaseModel], ...] | None":
+    """Return the models an annotation designates, or :data:`None` for anything else.
+
+    A single model, a ``Union[User, Group]`` and a ``User | Group`` all name
+    resource types to resolve against, which is what an endpoint covering
+    several of them binds. A type variable or a plain type names none.
+    """
+    if isclass(annotation) and hasattr(annotation, "model_fields"):
+        return (cast("type[BaseModel]", annotation),)
+
+    if get_origin(annotation) in UNION_TYPES:
+        members = get_args(annotation)
+        if members and all(
+            isclass(each) and hasattr(each, "model_fields") for each in members
+        ):
+            return cast("tuple[type[BaseModel], ...]", members)
+    return None
+
 
 _UNDERSCORE_ALPHANUMERIC = re.compile(r"_+([0-9A-Za-z]+)")
 _NON_WORD_UNDERSCORE = re.compile(r"[\W_]+")

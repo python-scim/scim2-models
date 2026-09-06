@@ -14,7 +14,8 @@ class ResponseParameters(BaseModel, Generic[ResourceT]):
 
     Parameterising them with the resource type an endpoint serves, as in
     ``ResponseParameters[User]``, resolves each path against that model, so a
-    server can tell which attribute a client asked for.
+    server can tell which attribute a client asked for. An endpoint covering
+    several types takes a union of them.
     """
 
     attributes: list[Path[ResourceT]] | None = None

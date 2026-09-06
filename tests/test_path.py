@@ -15,6 +15,7 @@ from scim2_models import Mutability
 from scim2_models import Name
 from scim2_models import PathNotFoundException
 from scim2_models import Required
+from scim2_models import ResolvedAttribute
 from scim2_models import Returned
 from scim2_models import Uniqueness
 from scim2_models import User
@@ -975,10 +976,20 @@ def test_parts_empty_path():
     assert path.parts == ()
 
 
-def test_parts_deeply_nested():
-    """Deeply nested path splits all parts."""
-    path = Path("a.b.c.d")
-    assert path.parts == ("a", "b", "c", "d")
+def test_parts_rejects_more_than_one_sub_attribute():
+    """A path cannot nest beyond a single sub-attribute.
+
+    The ``attrPath`` ABNF rule reads ``*1subAttr``, and SCIM defines no nested
+    complex attributes.
+    """
+    with pytest.raises(ValueError):
+        Path("a.b.c.d")
+
+
+def test_parts_value_filter_is_not_a_segment():
+    """A value selection does not appear in the path segments."""
+    path = Path('emails[type eq "work"].value')
+    assert path.parts == ("emails", "value")
 
 
 # --- Path prefix methods (is_prefix_of, has_prefix) tests ---
@@ -1603,3 +1614,145 @@ def test_path_json_schema_generation():
     schema = ModelWithPath.model_json_schema()
     assert schema["type"] == "object"
     assert "path" in schema["properties"]
+
+
+def test_resolving_a_path_binds_it_to_the_attribute_it_designates():
+    resolved = Path[User]("name.familyName").resolve()
+    assert isinstance(resolved, ResolvedAttribute)
+    assert resolved.model is User
+    assert resolved.field_name == "name"
+    assert resolved.sub_field_name == "family_name"
+    assert resolved.target_model is Name
+    assert resolved.target_field_name == "family_name"
+
+
+def test_a_path_designating_a_model_rather_than_an_attribute_resolves_to_nothing():
+    """The resource root and a bare schema URN both name a model."""
+    assert Path[User]("").resolve() is None
+    assert Path[User]("").model is User
+    assert Path[User]("").field_name is None
+
+    extension_urn = "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"
+    schema_only = Path[User[EnterpriseUser]](extension_urn)
+    assert schema_only.resolve() is None
+    assert schema_only.model is EnterpriseUser
+    assert schema_only.field_name is None
+
+
+def test_an_unbound_or_unknown_path_resolves_to_nothing():
+    assert Path("userName").resolve() is None
+    assert Path[User]("nonexistent").resolve() is None
+    assert Path[User]("nonexistent").model is None
+
+
+def test_a_path_bound_to_a_complex_attribute_resolves_its_sub_attributes():
+    """A complex attribute is a model too, though it carries no schema."""
+    path = Path[Name]("familyName")
+    assert path.model is Name
+    assert path.field_name == "family_name"
+    assert path.field_type is str
+    assert path.get_annotation(Mutability) == Mutability.read_write
+
+
+def test_the_type_of_an_annotated_attribute_is_unwrapped():
+    """A ``binary`` attribute declared as Base64Bytes reports bytes."""
+    assert Path[User]("x509Certificates.value").field_type is bytes
+
+
+def test_a_sub_attribute_of_a_multivalued_attribute_is_not_multivalued():
+    """``emails`` holds several values, ``emails.value`` designates one per entry."""
+    assert Path[User]("emails").is_multivalued is True
+    assert Path[User]("emails.value").is_multivalued is False
+
+
+@pytest.mark.parametrize(
+    "model",
+    [
+        pytest.param(User, id="User"),
+        pytest.param(User[EnterpriseUser], id="User with an extension"),
+        pytest.param(Group, id="Group"),
+    ],
+)
+def test_every_enumerated_path_agrees_with_its_resolution(model):
+    """The model-aware properties agree with ``resolve`` over a whole model.
+
+    They all read that single resolution, so this covers the full attribute
+    surface of a resource and its extensions at once, and breaks if a second
+    mechanism or a diverging convention creeps back in.
+    """
+    paths = list(Path[model].iter_paths())
+    assert paths
+
+    for path in paths:
+        if path.resolve() is None:
+            # A bare schema URN names a model rather than one of its attributes.
+            assert path.model is not None
+            assert path.field_name is None
+            continue
+
+        assert path.field_name in path.model.model_fields
+        assert path.field_type is not None
+        assert path.is_multivalued is not None
+        assert path.urn.endswith(path.attr)
+
+
+def test_a_value_selection_does_not_hide_the_prefix_relation():
+    """The selection narrows the attribute, it is not part of its name."""
+    assert Path("emails").is_prefix_of('emails[type eq "work"].value')
+    assert Path('emails[type eq "work"].value').has_prefix("emails")
+
+
+def test_a_narrowed_attribute_is_not_a_descendant_of_itself():
+    """``emails[type eq "work"]`` designates a subset of ``emails``, not a child."""
+    assert Path("emails").is_prefix_of('emails[type eq "work"]') is False
+
+
+def test_the_resource_root_is_a_prefix_of_nothing():
+    """The empty path has no segment to compare."""
+    assert Path("").is_prefix_of("emails") is False
+    assert Path("emails").has_prefix("") is False
+
+
+def test_a_path_binds_to_a_union_of_resource_types():
+    """A root query carries a ``sortBy`` that no single resource type resolves."""
+    path = Path[User | Group]("userName")
+    assert path.models == (User, Group)
+
+
+def test_a_union_path_resolves_against_the_type_declaring_the_attribute():
+    assert Path[User | Group]("userName").model is User
+    assert Path[User | Group]("members").model is Group
+    assert Path[User | Group]("members").field_name == "members"
+    assert (
+        Path[User | Group]("userName").urn
+        == "urn:ietf:params:scim:schemas:core:2.0:User:userName"
+    )
+
+
+def test_a_union_path_answers_none_for_an_attribute_no_type_declares():
+    path = Path[User | Group]("nonexistent")
+    assert path.model is None
+    assert path.field_name is None
+    assert path.urn is None
+
+
+def test_a_union_path_reads_an_attribute_the_resource_declares():
+    path = Path[User | Group]("displayName")
+    assert path.get(User(user_name="bjensen", display_name="Babs")) == "Babs"
+    assert path.get(Group(display_name="admins")) == "admins"
+
+
+def test_a_union_path_reading_an_attribute_the_resource_lacks():
+    """Reading is explicit, where a filter would evaluate the attribute to false."""
+    path = Path[User | Group]("userName")
+    group = Group(display_name="admins")
+
+    with pytest.raises(PathNotFoundException, match="userName"):
+        path.get(group)
+
+    assert path.get(group, strict=False) is None
+
+
+def test_iterating_the_paths_of_a_union_takes_one_resource_type_at_a_time():
+    with pytest.raises(TypeError, match="requires a bound Path type"):
+        list(Path[User | Group].iter_paths())
