@@ -134,10 +134,10 @@ Collection
 
 ``UsersView`` handles ``GET /Users`` and ``POST /Users``.
 For ``GET``, parse the query parameters with
-:class:`~scim2_models.SearchRequest`\ [:class:`~scim2_models.User`], order and page the mapped
-resources as described in :ref:`guides-sorting`, then wrap the page in a
-:class:`~scim2_models.ListResponse` serialized with
-:attr:`~scim2_models.Context.RESOURCE_QUERY_RESPONSE`.
+:class:`~scim2_models.SearchRequest`\ [:class:`~scim2_models.User`], keep the resources the
+filter accepts as described in :ref:`guides-filtering`, order and page them as described in
+:ref:`guides-sorting`, then wrap the page in a :class:`~scim2_models.ListResponse` serialized
+with :attr:`~scim2_models.Context.RESOURCE_QUERY_RESPONSE`.
 ``req.attributes`` and ``req.excluded_attributes`` are passed to
 :meth:`~scim2_models.BaseModel.model_dump` to apply the ``attributes`` and
 ``excludedAttributes`` query parameters to each embedded resource.

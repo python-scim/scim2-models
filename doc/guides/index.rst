@@ -36,6 +36,37 @@ This separation keeps the HTTP layer simple.
 The views work with SCIM resources, while the rest of the application can keep its own
 representation.
 
+.. _guides-filtering:
+
+Filtering
+---------
+
+Clients narrow a collection with the ``filter`` query parameter
+(:rfc:`RFC7644 §3.4.2.2 <7644#section-3.4.2.2>`), which
+:attr:`SearchRequest.filter <scim2_models.SearchRequest.filter>` parses. Naming the resource
+type the endpoint serves, with
+:class:`~scim2_models.SearchRequest`\ [:class:`~scim2_models.User`], checks the filter against
+that model as well: an unknown attribute, or a comparison an attribute does not accept, is
+refused as the query parameters are validated. That is what turns a malformed filter into a
+``400`` rather than into an empty page, and it leaves a filter ready to be matched.
+
+:rfc:`RFC7644 §3.4.2.1 <7644#section-3.4.2.1>` asks something else of an endpoint covering
+several resource types, such as the server root: there, "a presence or equality filter for an
+undefined attribute evaluates to false". Name them all, with
+:class:`~scim2_models.SearchRequest`\ [:class:`~scim2_models.User` | :class:`~scim2_models.Group`],
+and an attribute only some of them declare stays valid and evaluates to false on the resources
+of the others, while an attribute none of them declares is still refused.
+
+A filter applies to the SCIM representation rather than to the stored records, so the endpoints
+map the store first, keep the resources :meth:`ScimFilter.match <scim2_models.ScimFilter.match>` accepts, and
+paginate last. ``totalResults`` therefore counts what the filter kept, as
+:rfc:`RFC7644 §3.4.2 <7644#section-3.4.2>` requires, and a page never exceeds the bound
+:attr:`Filter.max_results <scim2_models.Filter.max_results>` advertises.
+
+That order reads the whole store on every request, which an in-memory example can afford and a
+database cannot. A server backed by one translates the filter into a query instead, and lets the
+database do the filtering and the pagination; see :ref:`filter-transpiling`.
+
 .. _guides-sorting:
 
 Ordering and paging collections

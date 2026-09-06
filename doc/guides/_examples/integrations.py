@@ -150,7 +150,11 @@ def to_scim_user(record, location=None):
         user_name=record["user_name"],
         display_name=record.get("display_name"),
         active=record.get("active", True),
-        emails=[User.Emails(value=record["email"])] if record.get("email") else None,
+        emails=(
+            [User.Emails(value=record["email"], type=record.get("email_type"))]
+            if record.get("email")
+            else None
+        ),
         meta=Meta(
             resource_type="User",
             version=make_etag(record),
@@ -163,12 +167,14 @@ def to_scim_user(record, location=None):
 
 def from_scim_user(scim_user):
     """Convert a validated SCIM payload into the application shape."""
+    email = scim_user.emails[0] if scim_user.emails else None
     return {
         "id": scim_user.id,
         "user_name": scim_user.user_name,
         "display_name": scim_user.display_name,
         "active": True if scim_user.active is None else scim_user.active,
-        "email": scim_user.emails[0].value if scim_user.emails else None,
+        "email": email.value if email else None,
+        "email_type": str(email.type) if email and email.type else None,
     }
 
 
@@ -229,7 +235,7 @@ def get_resource_type(resource_type_id):
 service_provider_config = ServiceProviderConfig(
     patch=Patch(supported=True),
     bulk=Bulk(supported=False, max_operations=0, max_payload_size=0),
-    filter=Filter(supported=False, max_results=0),
+    filter=Filter(supported=True, max_results=MAX_RESULTS),
     change_password=ChangePassword(supported=False),
     sort=Sort(supported=True),
     etag=ETag(supported=True),

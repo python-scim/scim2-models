@@ -222,7 +222,8 @@ def users_response(request, req, scim_ctx):
     """Return one page of users as a serialized SCIM ListResponse.
 
     A query applies to the SCIM representation rather than to the stored
-    records, so the store is mapped before it is ordered and paginated.
+    records, so the store is mapped before it is filtered, ordered and
+    paginated.
 
     :param request: The incoming request, used to build resource locations.
     :param req: The parsed query, whichever verb carried it.
@@ -232,6 +233,8 @@ def users_response(request, req, scim_ctx):
         to_scim_user(record, resource_location(request, record))
         for record in list_records()
     ]
+    if req.filter:
+        users = [user for user in users if req.filter.match(user)]
     total, page = page_of(users, req)
     response = ListResponse[User](
         total_results=total,
