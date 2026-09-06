@@ -263,9 +263,8 @@ You must pass the type you expect in the response, e.g.
 If a response resource type cannot be found, a ``pydantic.ValidationError`` will be raised.
 
 .. code-block:: python
-    :emphasize-lines: 49
+    :emphasize-lines: 48
 
-    >>> from typing import Union
     >>> from scim2_models import User, Group, ListResponse
 
     >>> payload = {
@@ -313,7 +312,7 @@ If a response resource type cannot be found, a ``pydantic.ValidationError`` will
     ...     ],
     ... }
 
-    >>> response = ListResponse[Union[User, Group]].model_validate(payload)
+    >>> response = ListResponse[User | Group].model_validate(payload)
     >>> user, group = response.resources
     >>> type(user)
     <class 'scim2_models.resources.user.User'>
@@ -325,7 +324,7 @@ Schema extensions
 =================
 
 :rfc:`RFC7643 §3.3 <7643#section-3.3>` extensions are supported.
-Any class inheriting from :class:`~scim2_models.Extension` can be passed as a :class:`~scim2_models.Resource` type parameter, e.g. ``user = User[EnterpriseUser]`` or ``user = User[Union[EnterpriseUser, SuperHero]]``.
+Any class inheriting from :class:`~scim2_models.Extension` can be passed as a :class:`~scim2_models.Resource` type parameter, e.g. ``user = User[EnterpriseUser]`` or ``user = User[EnterpriseUser | SuperHero]``.
 Extensions attributes are accessed with brackets, e.g. ``user[EnterpriseUser].employee_number``, where ``user[EnterpriseUser]`` is a shortcut for ``user["urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"]``.
 
 .. code-block:: python
