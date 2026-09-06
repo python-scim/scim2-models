@@ -4,6 +4,7 @@ from pydantic import ValidationError
 from scim2_models import EnterpriseUser
 from scim2_models import Group
 from scim2_models import InvalidFilterException
+from scim2_models import InvalidPathException
 from scim2_models import User
 from scim2_models.messages.search_request import SearchRequest
 
@@ -288,6 +289,32 @@ def test_a_parameterised_request_declares_the_extensions_it_serves():
 def test_a_parameterised_request_resolves_its_sort_by():
     request = SearchRequest[User].model_validate({"sortBy": "userName"})
     assert request.sort_by.field_name == "user_name"
+
+    assert SearchRequest[User].model_validate({"sortBy": "meta.lastModified"}).sort_by
+    assert SearchRequest[User].model_validate({"sortBy": "emails.value"}).sort_by
+
+
+def test_a_parameterised_request_rejects_a_sort_by_the_model_does_not_declare():
+    """An order cannot be quietly dropped the way an unknown attributes entry is."""
+    with pytest.raises(InvalidPathException, match="Cannot sort on 'nonexistent'"):
+        SearchRequest[User].model_validate({"sortBy": "nonexistent"})
+
+
+def test_a_parameterised_request_rejects_a_sort_by_designating_a_resource():
+    """A schema URN names a resource type, which holds no value to order by."""
+    with pytest.raises(InvalidPathException):
+        SearchRequest[User].model_validate(
+            {"sortBy": "urn:ietf:params:scim:schemas:core:2.0:User"}
+        )
+
+
+def test_a_sort_by_on_a_union_answers_to_the_type_declaring_it():
+    """§3.4.2.1 has a root query cover types that do not share every attribute."""
+    request = SearchRequest[User | Group].model_validate({"sortBy": "userName"})
+    assert request.sort_by.field_name == "user_name"
+
+    with pytest.raises(InvalidPathException):
+        SearchRequest[User | Group].model_validate({"sortBy": "nonexistent"})
 
 
 def test_an_unparameterised_request_only_checks_the_filter_syntax():

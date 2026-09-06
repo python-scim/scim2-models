@@ -26,6 +26,12 @@ Added
 
 Changed
 ^^^^^^^
+- :attr:`SearchRequest.sort_by <scim2_models.SearchRequest.sort_by>` is resolved against the
+  model a parameterised request names, and an attribute none of its resource types declares
+  answers ``invalidPath`` at validation time instead of being carried to the endpoint. Where an
+  unknown entry of :attr:`~scim2_models.ResponseParameters.attributes` is ignored, an order
+  cannot be: a ``sortBy`` left out answers an arbitrary order the client cannot tell from the
+  one it asked for.
 - :attr:`SearchRequest.filter <scim2_models.SearchRequest.filter>` is a :class:`~scim2_models.ScimFilter` instead of a
   :class:`str`, so a malformed filter is rejected at validation time.
 - Paths are parsed with the :rfc:`RFC7644 §3.5.2 <7644#section-3.5.2>` grammar instead of being

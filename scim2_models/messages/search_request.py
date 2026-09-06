@@ -4,6 +4,7 @@ from typing import Generic
 
 from pydantic import field_validator
 
+from ..exceptions import InvalidPathException
 from ..filters import ScimFilter
 from ..path import URN
 from ..path import Path
@@ -56,7 +57,27 @@ class SearchRequest(Message, ResponseParameters[ResourceT], Generic[ResourceT]):
 
     sort_by: Path[ResourceT] | None = None
     """A string indicating the attribute whose value SHALL be used to order the
-    returned responses."""
+    returned responses.
+
+    On a parameterised request the attribute is resolved against the model, and
+    one none of the resource types declares is refused. Where an unknown entry
+    of :attr:`~scim2_models.ResponseParameters.attributes` is ignored, an order
+    cannot be: a ``sortBy`` left out answers an arbitrary order the client has
+    no way of telling from the one it asked for.
+    """
+
+    @field_validator("sort_by")
+    @classmethod
+    def _resolvable_sort_by(cls, value: "Path[Any] | None") -> "Path[Any] | None":
+        """Reject an attribute the bound model does not declare."""
+        # Parameterising the request names the resource types the endpoint
+        # serves, which is what makes an attribute none of them declares a
+        # client error rather than something to resolve later.
+        if value is not None and value.models and value.resolve() is None:
+            raise InvalidPathException(
+                path=str(value), detail=f"Cannot sort on {str(value)!r}"
+            )
+        return value
 
     class SortOrder(str, Enum):
         ascending = "ascending"
