@@ -15,6 +15,8 @@ Added
   :attr:`~scim2_models.SearchRequest.sort_by`,
   :attr:`~scim2_models.ResponseParameters.attributes` and
   :attr:`~scim2_models.ResponseParameters.excluded_attributes` against that model.
+- :meth:`Path.resolve <scim2_models.Path.resolve>` resolves a path to the
+  :class:`~scim2_models.ResolvedAttribute` it designates.
 - lark is a new dependency.
 
 Changed
