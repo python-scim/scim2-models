@@ -163,9 +163,8 @@ class CaseExact(Enum):
 
     ``binary`` and ``reference`` attributes are case-exact whatever their schema
     says, per :rfc:`RFC7643 §2.3.6 <7643#section-2.3.6>` and
-    :rfc:`§2.3.7 <7643#section-2.3.7>`. Comparing is up to the service provider;
-    what this library does with the annotation is publish it in
-    :meth:`~scim2_models.Resource.to_schema`.
+    :rfc:`§2.3.7 <7643#section-2.3.7>`. Filter comparisons honour it, and
+    :meth:`~scim2_models.Resource.to_schema` publishes it.
     """
 
     false = False

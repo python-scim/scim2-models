@@ -6,11 +6,14 @@ Changelog
 
 Added
 ^^^^^
+- Support for the ``filter`` query parameter (:rfc:`RFC7644 §3.4.2.2 <7644#section-3.4.2.2>`)
+  with :class:`~scim2_models.ScimFilter`. See :doc:`filters`. :issue:`17`
 - :class:`~scim2_models.SearchRequest` and :class:`~scim2_models.ResponseParameters` take the
   resource type an endpoint serves, as in ``SearchRequest[User]``, which resolves
   :attr:`~scim2_models.SearchRequest.sort_by`,
   :attr:`~scim2_models.ResponseParameters.attributes` and
   :attr:`~scim2_models.ResponseParameters.excluded_attributes` against that model.
+- lark is a new dependency.
 
 Fixed
 ^^^^^
