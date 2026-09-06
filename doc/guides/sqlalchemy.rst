@@ -99,15 +99,55 @@ Two decisions remain, and neither is automated:
 - **the three-valued logic of SQL**, where ``NULL <> 'Manager'`` is ``NULL`` and not true. A
   missing attribute is not equal to anything, so ``ne`` needs its ``IS NULL`` guard.
 
+Sorting
+=======
+
+:attr:`~scim2_models.SearchRequest.sort_by` is a :class:`~scim2_models.Path`, already resolved
+against the model on a parameterised request, a union resolving it against the first resource
+type declaring the attribute. It is looked up in the same table of columns as a filter, under
+the attribute holding it rather than under its own name, since ``meta.lastModified`` is stored
+in ``("meta", "last_modified")``. What is left is turning it into an ``ORDER BY`` term, and
+:rfc:`RFC7644 §3.4.2.3 <7644#section-3.4.2.3>` decides the order in three ways a bare
+``ORDER BY column`` follows none of.
+
+.. literalinclude:: _examples/sqlalchemy_example.py
+   :language: python
+   :caption: From a ``sortBy`` to an ``ORDER BY`` term
+   :start-after: # -- sort-start --
+   :end-before: # -- sort-end --
+
+- **the case**, which is the decision the ``WHERE`` clause already makes, from the same
+  annotation. SQLite orders with the ``BINARY`` collation, where every uppercase letter
+  precedes every lowercase one, so ``RSanchez`` sorts ahead of ``bjensen`` instead of behind
+  ``mgarcia``. ``lower()`` settles it, at the price of a plain index on the column, which a
+  functional index on ``lower(column)`` gives back. Its folding is not the Unicode one the RFC
+  asks for: the ``lower()`` of SQLite only folds ASCII, where :meth:`str.casefold` folds
+  everything, so the two part ways on ``ÉLOÏSE``. PostgreSQL folds by the collation of the
+  column rather than by no locale in particular, and a case-insensitive ICU collation is the
+  closest it comes to the rule;
+- **the missing values**, ordered "last if ascending and first if descending". PostgreSQL
+  defaults to exactly that, ``NULLS LAST`` ascending and ``NULLS FIRST`` descending; SQLite and
+  MySQL take ``NULL`` for the smallest value instead, which is right descending and wrong
+  ascending. Naming the placement makes the query say what it means rather than what its engine
+  happens to do — bar MySQL and MariaDB, which have no ``NULLS`` clause and spell it
+  ``ORDER BY column IS NULL, column``;
+- **the multi-valued attributes**, sorted "by the value of the primary attribute, if any, or
+  else the first value in the list". That key lives in another table, so it takes a correlated
+  scalar subquery ordered on ``primary``, and "the first value in the list" means nothing for
+  rows a relationship gives no order to, short of storing that order in a column of its own.
+  The example refuses instead, as it refuses a filter on an attribute it does not map.
+
+A fourth rule belongs to pagination rather than to §3.4.2.3, and costs as little. A page is a
+slice of an ordered result, so ``LIMIT`` and ``OFFSET`` need a total order to slice twice the
+same way. Rows sharing a sort key, and a query carrying no ``sortBy`` at all, leave the engine
+free to return one row on two pages and another on none. Closing the clause with the primary
+key is what makes a page reproducible.
+
 Querying
 ========
 
 ``totalResults`` counts what the filter kept, per :rfc:`RFC7644 §3.4.2 <7644#section-3.4.2>`,
 so the count runs on the filtered statement before it is paginated.
-:attr:`~scim2_models.SearchRequest.sort_by` is a :class:`~scim2_models.Path`, already resolved
-against the model on a parameterised request, and looked up in the same table of columns, which
-is also what rejects sorting on an attribute stored in another table. A request parameterised
-with a union resolves it too, against the first resource type declaring the attribute.
 
 .. literalinclude:: _examples/sqlalchemy_example.py
    :language: python
@@ -133,3 +173,16 @@ on :class:`str` that silently skipped ``emails.value``.
    :caption: Comparing the query to the evaluator
    :start-after: # -- oracle-start --
    :end-before: # -- oracle-end --
+
+The order answers to the same treatment. ``sort_resources``, the helper of the :doc:`index`
+section, applies the rules of §3.4.2.3 to Python values, and comparing the two over six
+attributes in both orders is what says an ``ORDER BY`` implements them. It caught two defects
+of its own: a ``sortBy`` naming a sub-attribute was refused although its column is mapped, and
+the suite asserted the ``BINARY`` order of SQLite for ``sortBy=userName`` as though it were the
+one :rfc:`7644` asks for.
+
+.. literalinclude:: ../../tests/test_doc_examples.py
+   :language: python
+   :caption: Comparing the order to the helper
+   :start-after: # -- sort-oracle-start --
+   :end-before: # -- sort-oracle-end --

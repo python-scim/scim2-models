@@ -10,6 +10,8 @@ from sqlalchemy import create_engine
 from sqlalchemy import event
 from sqlalchemy import func
 from sqlalchemy import not_
+from sqlalchemy import nullsfirst
+from sqlalchemy import nullslast
 from sqlalchemy import or_
 from sqlalchemy import select
 from sqlalchemy.orm import DeclarativeBase
@@ -194,6 +196,12 @@ STRING_METHODS = {
 }
 
 
+def casefolded(resolved):
+    """Only a string has a case, and only some strings ignore it."""
+    scim_type = Attribute.Type.from_python(resolved.target_type)
+    return scim_type == Attribute.Type.string and not resolved.case_exact
+
+
 class SqlAlchemyVisitor(FilterVisitor):
     """Turn a parsed filter into a SQLAlchemy expression.
 
@@ -218,11 +226,6 @@ class SqlAlchemyVisitor(FilterVisitor):
             raise InvalidPathException(path=str(resolved.urn))
         return COLUMNS[key]
 
-    def casefolded(self, resolved):
-        """Only a string has a case, and only some strings ignore it."""
-        scim_type = Attribute.Type.from_python(resolved.target_type)
-        return scim_type == Attribute.Type.string and not resolved.case_exact
-
     def bind(self, resolved, node):
         """Return the comparison value in the type the column holds."""
         value = coerce_value(resolved, node.value, node.op)
@@ -232,7 +235,7 @@ class SqlAlchemyVisitor(FilterVisitor):
 
     def condition(self, resolved, column, op, value):
         """Compare a column, following the case sensitivity of the attribute."""
-        folded = self.casefolded(resolved)
+        folded = casefolded(resolved)
         if op in STRING_OPERATORS:
             method = STRING_METHODS[op][folded]
             return getattr(column, method)(value, autoescape=True)
@@ -296,22 +299,45 @@ class SqlAlchemyVisitor(FilterVisitor):
 # -- visitor-end --
 
 
-# -- query-start --
-def sort_column(sort_by):
-    """Return the column a ``sortBy`` parameter names.
+# -- sort-start --
+def sort_expression(sort_by, sort_order=None):
+    """Return the ``ORDER BY`` term a ``sortBy`` parameter names.
+
+    A sub-attribute is looked up under the attribute holding it, the way the
+    filter does: ``meta.lastModified`` is stored in ``("meta", "last_modified")``.
 
     :param sort_by: The ``sortBy`` query parameter.
-    :raises InvalidPathException: If the attribute is unknown or not sortable.
+    :param sort_order: The ``sortOrder`` query parameter, ascending by default.
+    :raises InvalidPathException: If the attribute is unknown, or is stored in
+        a table an ``ORDER BY`` over users cannot reach.
     """
-    field_name = sort_by.field_name
-    relationship_, column = COLUMNS.get((field_name, None), (None, None))
+    resolved = sort_by.resolve()
+    relationship_, column = None, None
+    if resolved is not None:
+        relationship_, column = COLUMNS.get(
+            (resolved.field_name, resolved.sub_field_name), (None, None)
+        )
     if column is None or relationship_ is not None:
         raise InvalidPathException(
             path=str(sort_by), detail=f"Cannot sort on {sort_by!r}"
         )
-    return column
+
+    if casefolded(resolved):
+        column = func.lower(column)
+
+    # "if there is no data for the specified sortBy value, they are sorted via
+    # the sortOrder parameter, i.e., they are ordered last if ascending and
+    # first if descending", which is the default of PostgreSQL and not of the
+    # engines taking NULL for the smallest value.
+    if sort_order == SearchRequest.SortOrder.descending:
+        return nullsfirst(column.desc())
+    return nullslast(column.asc())
 
 
+# -- sort-end --
+
+
+# -- query-start --
 def query_users(session, search_request):
     """Return the total number of matching users, and the requested page.
 
@@ -321,6 +347,7 @@ def query_users(session, search_request):
     :param session: The SQLAlchemy session to query.
     :param search_request: The parsed query parameters.
     :raises InvalidFilterException: If the filter does not apply to the model.
+    :raises InvalidPathException: If the sort attribute cannot be sorted on.
     """
     statement = select(UserRecord)
 
@@ -332,10 +359,15 @@ def query_users(session, search_request):
         select(func.count()).select_from(statement.subquery())
     )
 
+    order_by = []
     if search_request.sort_by:
-        column = sort_column(search_request.sort_by)
-        descending = search_request.sort_order == SearchRequest.SortOrder.descending
-        statement = statement.order_by(column.desc() if descending else column)
+        order_by.append(
+            sort_expression(search_request.sort_by, search_request.sort_order)
+        )
+    # A page is a slice of an ordered result. Rows sharing a sort key, or a
+    # query with no sortBy at all, leave OFFSET free to return one row twice
+    # and another never, so the primary key always closes the order.
+    statement = statement.order_by(*order_by, UserRecord.id)
 
     start = search_request.start_index_0 or 0
     count = search_request.count or MAX_RESULTS

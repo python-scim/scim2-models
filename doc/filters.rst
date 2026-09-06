@@ -377,8 +377,11 @@ correct SQL, and both answer a different question than the filter asked.
 
 The example stops at the ``WHERE`` clause. Sorting is the other half of a query, and
 :attr:`SearchRequest.sort_by <scim2_models.SearchRequest.sort_by>` needs the same resolution:
-it is a :class:`~scim2_models.Path`, whose :attr:`~scim2_models.Path.field_name` names the
-column an ``ORDER BY`` sorts on.
+it is a :class:`~scim2_models.Path`, and the attribute it resolves to names the column an
+``ORDER BY`` sorts on. Naming that column is not the whole of it, since the case, the missing
+values and the multi-valued attributes each have a rule of their own in
+:rfc:`RFC7644 §3.4.2.3 <7644#section-3.4.2.3>`, which the :doc:`guides/sqlalchemy` guide takes
+from there.
 
 .. _filter-deviations:
 

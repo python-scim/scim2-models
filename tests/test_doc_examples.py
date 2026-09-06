@@ -10,6 +10,7 @@ sqlalchemy = pytest.importorskip("sqlalchemy")
 from datetime import datetime  # noqa: E402
 from datetime import timezone  # noqa: E402
 
+from doc.guides._examples.integrations import sort_resources  # noqa: E402
 from doc.guides._examples.sqlalchemy_example import EmailRecord  # noqa: E402
 from doc.guides._examples.sqlalchemy_example import GroupRecord  # noqa: E402
 from doc.guides._examples.sqlalchemy_example import UserRecord  # noqa: E402
@@ -659,14 +660,79 @@ def test_sqlalchemy_sorts_and_paginates_in_the_database(sqlalchemy_session):
         SearchRequest[User](sort_by="userName", sort_order="descending", count=2),
     )
     assert total == 5
-    assert [record.user_name for record in page] == ["mgarcia", "jsmith"]
+    assert [record.user_name for record in page] == ["RSanchez", "mgarcia"]
 
     total, page = query_users(
         sqlalchemy_session,
         SearchRequest[User](sort_by="userName", start_index=3, count=2),
     )
     assert total == 5
-    assert [record.user_name for record in page] == ["dpotter", "jsmith"]
+    assert [record.user_name for record in page] == ["jsmith", "mgarcia"]
+
+
+SQLALCHEMY_SORTS = [
+    "id",
+    "userName",
+    "displayName",
+    "title",
+    "active",
+    "meta.lastModified",
+]
+
+
+# -- sort-oracle-start --
+def test_sqlalchemy_orders_rows_the_way_the_helper_orders_resources(sqlalchemy_session):
+    """The ``ORDER BY`` and ``sort_resources`` answer a ``sortBy`` the same way.
+
+    Feeding the helper resources already in primary key order gives its stable
+    sort the tie-break the query closes its own order with.
+    """
+    stored = sqlalchemy_session.scalars(sqlalchemy.select(UserRecord)).all()
+    scim_users = sorted((to_scim_user(record) for record in stored), key=lambda u: u.id)
+
+    for attribute in SQLALCHEMY_SORTS:
+        for order in SearchRequest.SortOrder:
+            request = SearchRequest[User](sort_by=attribute, sort_order=order)
+            _total, page = query_users(sqlalchemy_session, request)
+            ordered = sort_resources(scim_users, request.sort_by, order)
+            assert [record.id for record in page] == [user.id for user in ordered], (
+                attribute,
+                order,
+            )
+
+
+# -- sort-oracle-end --
+
+
+def test_sqlalchemy_sorts_on_a_sub_attribute(sqlalchemy_session):
+    """A sub-attribute is stored under the attribute holding it, not under its own name."""
+    _total, page = query_users(
+        sqlalchemy_session, SearchRequest[User](sort_by="meta.lastModified")
+    )
+    assert [record.id for record in page] == ["2", "1", "4", "5", "3"]
+
+
+def test_sqlalchemy_orders_an_unsorted_query_too():
+    """Paging a query with no ``sortBy`` returns each resource exactly once.
+
+    The rows are stored in an order of their own, which is the one an engine
+    left without an ``ORDER BY`` is free to return them in.
+    """
+    session_factory = create_session_factory()
+    with session_factory() as session:
+        session.add_all(reversed(sqlalchemy_records()))
+        session.commit()
+        engine = session.get_bind()
+
+        seen = []
+        for start_index in (1, 3, 5):
+            _total, page = query_users(
+                session, SearchRequest[User](start_index=start_index, count=2)
+            )
+            seen.extend(record.id for record in page)
+
+    engine.dispose()
+    assert seen == ["1", "2", "3", "4", "5"]
 
 
 def test_sqlalchemy_counts_the_filtered_results_only(sqlalchemy_session):
@@ -684,7 +750,16 @@ def test_sqlalchemy_rejects_a_filter_on_an_unknown_attribute():
     assert exc_info.value.scim_type == "invalidFilter"
 
 
-def test_sqlalchemy_rejects_sorting_on_a_multivalued_attribute(sqlalchemy_session):
-    """An attribute spread over its own table has no single column to sort on."""
+@pytest.mark.parametrize("attribute", ["emails", "emails.value", "name"])
+def test_sqlalchemy_rejects_sorting_on_an_unreachable_attribute(
+    sqlalchemy_session, attribute
+):
+    """An attribute spread over its own table, or holding none, has no column to sort on."""
     with pytest.raises(InvalidPathException):
-        query_users(sqlalchemy_session, SearchRequest(sort_by="emails"))
+        query_users(sqlalchemy_session, SearchRequest[User](sort_by=attribute))
+
+
+def test_sqlalchemy_rejects_a_request_that_named_no_resource_type(sqlalchemy_session):
+    """The query orders by a resolved attribute, which an unparameterised request has none of."""
+    with pytest.raises(InvalidPathException):
+        query_users(sqlalchemy_session, SearchRequest(sort_by="userName"))
