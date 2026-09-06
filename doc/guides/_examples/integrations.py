@@ -12,6 +12,7 @@ from scim2_models import CaseExact
 from scim2_models import ETag
 from scim2_models import Filter
 from scim2_models import InvalidPathException
+from scim2_models import Group
 from scim2_models import Meta
 from scim2_models import Path
 from scim2_models import Patch
@@ -121,6 +122,19 @@ def save_record(record):
 def delete_record(record_id):
     """Remove the record identified by *record_id*."""
     del records[record_id]
+
+
+# The root query needs a second resource type to gather. These guides do not
+# implement the ``/Groups`` endpoints, so groups are read-only fixtures.
+group_records = {
+    "6c8a2e1f": {"id": "6c8a2e1f", "display_name": "Administrators"},
+    "b3f1d049": {"id": "b3f1d049", "display_name": "Auditors"},
+}
+
+
+def list_group_records():
+    """Return every stored group record."""
+    return list(group_records.values())
 # -- storage-end --
 
 
@@ -162,6 +176,21 @@ def make_etag(record):
     """Compute a weak ETag from a record's content."""
     digest = hashlib.sha256(str(sorted(record.items())).encode()).hexdigest()[:16]
     return f'W/"{digest}"'
+
+
+def to_scim_group(record):
+    """Convert an application group record into a SCIM Group resource.
+
+    ``meta.location`` is left out, as these guides expose no ``/Groups``
+    endpoint to point it at.
+
+    :param record: The application group record.
+    """
+    return Group(
+        id=record["id"],
+        display_name=record["display_name"],
+        meta=Meta(resource_type="Group"),
+    )
 # -- mapping-end --
 
 

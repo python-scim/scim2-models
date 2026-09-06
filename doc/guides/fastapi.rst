@@ -178,10 +178,12 @@ POST /.search
 
 The same extension on the server root queries every resource type the server serves, as
 :rfc:`RFC7644 §3.4.2.1 <7644#section-3.4.2.1>` describes: "a query against a server root
-indicates that all resources within the server SHALL be included, subject to filtering". A
-server serving several types would gather each of them here, and answer with a
-``ListResponse[Union[User, Group]]``. This example only serves users, so it answers the same
-page as ``/Users/.search``.
+indicates that all resources within the server SHALL be included, subject to filtering". The
+endpoint gathers each type it serves and answers with a
+:class:`~scim2_models.ListResponse`\ [:class:`~scim2_models.User` | :class:`~scim2_models.Group`].
+
+These guides expose no ``/Groups`` endpoints; the groups the root query gathers are read-only
+fixtures, enough to show a heterogeneous collection.
 
 Note that a root query is also where :rfc:`RFC7644 §3.4.2.1 <7644#section-3.4.2.1>` allows a
 server to refuse a request whose result set would be too large, with a ``tooMany`` error.

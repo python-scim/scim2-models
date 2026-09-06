@@ -76,7 +76,12 @@ def test_flask_example_smoke():
         json={"schemas": ["urn:ietf:params:scim:api:messages:2.0:SearchRequest"]},
     )
     assert root_response.status_code == 200
-    assert root_response.get_json()["totalResults"] == 1
+    gathered = root_response.get_json()
+    assert gathered["totalResults"] == 3
+    assert {resource["meta"]["resourceType"] for resource in gathered["Resources"]} == {
+        "User",
+        "Group",
+    }
 
     malformed_response = client.post(
         "/scim/v2/Users/.search",
@@ -246,7 +251,11 @@ def test_django_example_smoke():
             content_type="application/scim+json",
         )
         assert root_response.status_code == 200
-        assert json.loads(root_response.content)["totalResults"] == 1
+        gathered = json.loads(root_response.content)
+        assert gathered["totalResults"] == 3
+        assert {
+            resource["meta"]["resourceType"] for resource in gathered["Resources"]
+        } == {"User", "Group"}
 
         malformed_response = client.post(
             "/scim/v2/Users/.search",
@@ -360,7 +369,12 @@ def test_fastapi_example_smoke():
         json={"schemas": ["urn:ietf:params:scim:api:messages:2.0:SearchRequest"]},
     )
     assert root_response.status_code == 200
-    assert root_response.json()["totalResults"] == 1
+    gathered = root_response.json()
+    assert gathered["totalResults"] == 3
+    assert {resource["meta"]["resourceType"] for resource in gathered["Resources"]} == {
+        "User",
+        "Group",
+    }
 
     get_attributes_response = client.get(
         f"/scim/v2/Users/{user_id}?attributes=userName"

@@ -14,6 +14,7 @@ from pydantic import ValidationError
 from scim2_models import Context
 from scim2_models import Error
 from scim2_models import ListResponse
+from scim2_models import Group
 from scim2_models import PatchOp
 from scim2_models import ResourceType
 from scim2_models import ResponseParameters
@@ -30,11 +31,13 @@ from .integrations import get_resource_types
 from .integrations import get_schema
 from .integrations import get_schemas
 from .integrations import list_records
+from .integrations import list_group_records
 from .integrations import page_of
 from .integrations import make_etag
 from .integrations import save_record
 from .integrations import service_provider_config
 from .integrations import to_scim_user
+from .integrations import to_scim_group
 
 
 # -- setup-start --
@@ -325,20 +328,39 @@ class UsersSearchView(SCIMView):
 class RootSearchView(SCIMView):
     """Query every resource type the server serves.
 
-    A server serving several of them would gather each type here, and answer
-    with a ``ListResponse[Union[User, Group]]``. This one only serves users, so
-    it answers the same page as ``/Users/.search``.
+    :rfc:`RFC7644 §3.4.2.1 <7644#section-3.4.2.1>` has a root query cover them
+    all, so the request is parameterised with a union and the response gathers
+    groups alongside users. These guides expose no ``/Groups`` endpoint; the
+    groups they gather are read-only fixtures.
     """
 
     def post(self, request):
         try:
-            req = SearchRequest[User].model_validate_json(
+            req = SearchRequest[User | Group].model_validate_json(
                 request.body, scim_ctx=Context.SEARCH_REQUEST
             )
         except ValidationError as error:
             return scim_validation_error(error)
 
-        return users_response(request, req, Context.SEARCH_RESPONSE)
+        resources = [
+            to_scim_user(record, resource_location(request, record))
+            for record in list_records()
+        ]
+        resources += [to_scim_group(record) for record in list_group_records()]
+        total, page = page_of(resources, req)
+        response = ListResponse[User | Group](
+            total_results=total,
+            start_index=req.start_index or 1,
+            items_per_page=len(page),
+            resources=page,
+        )
+        return SCIMJsonResponse(
+            response.model_dump(
+                scim_ctx=Context.SEARCH_RESPONSE,
+                attributes=req.attributes,
+                excluded_attributes=req.excluded_attributes,
+            )
+        )
 # -- search-root-end --
 
 
