@@ -328,3 +328,24 @@ def test_a_rejected_addition_leaves_the_attribute_untouched():
 
     assert user.emails == [User.Emails(value="bjensen@example.com")]
     assert user.model_dump()["emails"] == [{"value": "bjensen@example.com"}]
+
+
+def test_an_operation_without_a_path_marks_the_attributes_it_wrote():
+    """Assigning the attributes of a resource keeps pydantic's field tracking in step.
+
+    A caller dumping the patched resource with ``exclude_unset`` would otherwise
+    not see what the operation assigned.
+    """
+    user = User(user_name="bjensen")
+    patch = PatchOp[User](
+        operations=[
+            PatchOperation[User](
+                op=PatchOperation.Op.add, value={"displayName": "Barbara"}
+            )
+        ]
+    )
+    assert patch.patch(user) is True
+
+    assert user.display_name == "Barbara"
+    assert "display_name" in user.model_fields_set
+    assert user.model_dump(exclude_unset=True)["displayName"] == "Barbara"

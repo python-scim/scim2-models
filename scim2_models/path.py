@@ -586,6 +586,7 @@ class Path(UserString, Generic[ResourceT]):
                 return False
             updated_obj = type(obj).model_validate(updated_data)
             obj.__dict__.update(updated_obj.__dict__)
+            obj.__pydantic_fields_set__.update(updated_obj.__pydantic_fields_set__)
             return True
 
         if (target := self._walk_to_target(obj, path_str, create=True)) is None:

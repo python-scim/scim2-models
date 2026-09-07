@@ -46,6 +46,9 @@ Fixed
 - A PATCH ``add`` on a multi-valued attribute that is refused leaves the attribute as it was.
   The value used to be appended to the very list the resource holds before being validated, so
   a rejected entry outlived the failure and left a resource that could no longer be serialized.
+- A PATCH operation carrying no ``path`` marks the attributes it assigns as set. It wrote them
+  around pydantic, which tracks assigned fields apart from their values, so the patched
+  resource dumped with ``exclude_unset`` came back without them.
 
 [0.7.0] - 2026-09-05
 --------------------
