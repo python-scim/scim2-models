@@ -1603,3 +1603,27 @@ def test_path_json_schema_generation():
     schema = ModelWithPath.model_json_schema()
     assert schema["type"] == "object"
     assert "path" in schema["properties"]
+
+
+def test_a_schema_urn_carries_an_attribute_behind_a_colon():
+    """``…:2.0:UserId`` is not the ``Id`` attribute of ``…:2.0:User``.
+
+    Recognised on its prefix alone, a schema would lend its attributes to every
+    URN that merely starts like it.
+    """
+    assert (
+        Path[User]("urn:ietf:params:scim:schemas:core:2.0:User:id").field_name == "id"
+    )
+    assert Path[User]("urn:ietf:params:scim:schemas:core:2.0:UserId").field_name is None
+
+
+def test_an_extension_urn_carries_an_attribute_behind_a_colon():
+    """The URN of a declared extension answers to the same rule."""
+    enterprise = "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"
+    user = User[EnterpriseUser](user_name="bjensen")
+    user[EnterpriseUser] = EnterpriseUser(employee_number="701984")
+    bound = Path[User[EnterpriseUser]]
+
+    assert bound(f"{enterprise}:employeeNumber").get(user) == "701984"
+    with pytest.raises(InvalidPathException):
+        bound(f"{enterprise}EmployeeNumber").get(user)

@@ -49,6 +49,12 @@ Fixed
 - A PATCH operation carrying no ``path`` marks the attributes it assigns as set. It wrote them
   around pydantic, which tracks assigned fields apart from their values, so the patched
   resource dumped with ``exclude_unset`` came back without them.
+- A schema URN carries an attribute behind a colon, where a bare prefix used to be enough.
+  ``urn:ietf:params:scim:schemas:core:2.0:UserId`` read as the ``Id`` attribute of
+  ``urn:ietf:params:scim:schemas:core:2.0:User``, so a PATCH operation reached a
+  :attr:`Mutability.read_only <scim2_models.Mutability.read_only>` attribute that every other
+  spelling of it was refused. Extension URNs, and models declaring no schema at all, went the
+  same way.
 
 [0.7.0] - 2026-09-05
 --------------------

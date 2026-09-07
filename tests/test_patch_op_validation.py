@@ -951,3 +951,26 @@ def test_a_model_value_carries_the_attributes_its_payload_would():
     patch.patch(user)
     assert user.user_name == "bjensen"
     assert user.display_name == "Babs"
+
+
+def test_a_urn_that_merely_starts_like_a_schema_reaches_no_attribute():
+    """A schema URN carries an attribute behind a colon, not behind a prefix.
+
+    Read as a prefix, ``…:2.0:UserId`` designates the ``Id`` attribute of
+    ``…:2.0:User`` and writes a :attr:`~scim2_models.Mutability.read_only`
+    attribute that every other spelling of it is refused.
+    """
+    user = User(user_name="bjensen", id="2819c223")
+    patch_op = PatchOp[User](
+        operations=[
+            PatchOperation[User](
+                op=PatchOperation.Op.replace_,
+                path="urn:ietf:params:scim:schemas:core:2.0:UserId",
+                value="forged",
+            )
+        ]
+    )
+
+    with pytest.raises(InvalidPathException):
+        patch_op.patch(user)
+    assert user.id == "2819c223"

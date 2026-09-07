@@ -35,6 +35,11 @@ _VALID_PATH_PATTERN = re.compile(r'^[a-zA-Z][a-zA-Z0-9._:\-\[\]"=\s]*$')
 _PATH_CACHE: dict[tuple[type, type], type] = {}
 
 
+def _is_in_schema(path_lower: str, schema: str) -> bool:
+    schema_lower = schema.lower()
+    return path_lower == schema_lower or path_lower.startswith(f"{schema_lower}:")
+
+
 def _to_comparable(value: Any) -> Any:
     """Convert a value to a comparable form (dict for BaseModel)."""
     return value.model_dump() if isinstance(value, BaseModel) else value
@@ -373,7 +378,7 @@ class Path(UserString, Generic[ResourceT]):
 
             if model.__schema__ and path_lower == model.__schema__.lower():
                 return model, None
-            elif model.__schema__ and path_lower.startswith(model.__schema__.lower()):
+            elif model.__schema__ and _is_in_schema(path_lower, model.__schema__):
                 attr_path = str(self)[len(model.__schema__) :].lstrip(":")
             elif issubclass(model, Resource):
                 for (
@@ -383,7 +388,7 @@ class Path(UserString, Generic[ResourceT]):
                     schema_lower = extension_schema.lower()
                     if path_lower == schema_lower:
                         return extension_model, None
-                    elif path_lower.startswith(schema_lower):
+                    elif _is_in_schema(path_lower, schema_lower):
                         model = extension_model
                         break
                 else:
@@ -437,8 +442,8 @@ class Path(UserString, Generic[ResourceT]):
         model_schema = getattr(type(resource), "__schema__", "") or ""
         path_lower = path_str.lower()
 
-        if isinstance(resource, Resource | Extension) and path_lower.startswith(
-            model_schema.lower()
+        if isinstance(resource, Resource | Extension) and _is_in_schema(
+            path_lower, model_schema
         ):
             is_explicit = path_lower == model_schema.lower()
             normalized = path_str[len(model_schema) :].lstrip(":")
@@ -449,7 +454,7 @@ class Path(UserString, Generic[ResourceT]):
                 ext_schema_lower = ext_schema.lower()
                 if path_lower == ext_schema_lower:
                     return _Resolution(resource, ext_model.__name__)
-                if path_lower.startswith(ext_schema_lower):
+                if _is_in_schema(path_lower, ext_schema_lower):
                     sub_path = path_str[len(ext_schema) :].lstrip(":")
                     ext_obj = getattr(resource, ext_model.__name__)
                     if create and ext_obj is None:
