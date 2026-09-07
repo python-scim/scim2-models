@@ -43,6 +43,9 @@ Fixed
   as :rfc:`RFC7643 §2.5 <7643#section-2.5>` makes those equivalent to an
   unassigned attribute, which :rfc:`RFC7644 §3.5.2.2 <7644#section-3.5.2.2>`
   refuses on a required one.
+- A PATCH ``add`` on a multi-valued attribute that is refused leaves the attribute as it was.
+  The value used to be appended to the very list the resource holds before being validated, so
+  a rejected entry outlived the failure and left a resource that could no longer be serialized.
 
 [0.7.0] - 2026-09-05
 --------------------

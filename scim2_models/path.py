@@ -644,8 +644,7 @@ class Path(UserString, Generic[ResourceT]):
             else:
                 if _value_in_list(current_list, value):
                     return False
-                current_list.append(value)
-                setattr(obj, field_name, current_list)
+                setattr(obj, field_name, [*current_list, value])
             return True
 
         if is_multivalued and not isinstance(value, list) and value is not None:

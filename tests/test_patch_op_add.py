@@ -1,3 +1,6 @@
+import pytest
+from pydantic import ValidationError
+
 from scim2_models import Group
 from scim2_models import GroupMember
 from scim2_models import PatchOp
@@ -304,3 +307,24 @@ def test_add_a_subattribute_to_every_entry():
     )
     assert patch.patch(user) is True
     assert [email.display for email in user.emails] == ["Barbara", "Barbara"]
+
+
+def test_a_rejected_addition_leaves_the_attribute_untouched():
+    """The added value is validated before it reaches the list the resource holds.
+
+    An entry appended in place outlives the failed assignment, and leaves behind
+    a resource that cannot be serialized.
+    """
+    user = User(user_name="bjensen", emails=[User.Emails(value="bjensen@example.com")])
+    patch = PatchOp[User](
+        operations=[
+            PatchOperation[User](
+                op=PatchOperation.Op.add, path="emails", value="not-an-email"
+            )
+        ]
+    )
+    with pytest.raises(ValidationError):
+        patch.patch(user)
+
+    assert user.emails == [User.Emails(value="bjensen@example.com")]
+    assert user.model_dump()["emails"] == [{"value": "bjensen@example.com"}]
