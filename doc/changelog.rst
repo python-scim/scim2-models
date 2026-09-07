@@ -12,6 +12,14 @@ Added
   :attr:`~scim2_models.ResponseParameters.attributes` and
   :attr:`~scim2_models.ResponseParameters.excluded_attributes` against that model.
 
+Removed
+^^^^^^^
+- ``Path.is_prefix_of`` and ``Path.has_prefix``. They compared the text of two paths, which
+  anything between brackets defeated, and answered differently from the comparison
+  :attr:`~scim2_models.ResponseParameters.attributes` and
+  :attr:`~scim2_models.ResponseParameters.excluded_attributes` are matched with. Neither was
+  documented.
+
 Fixed
 ^^^^^
 - A path crossing a multi-valued attribute, such as ``emails.value``, reads, writes and

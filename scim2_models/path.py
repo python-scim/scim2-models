@@ -233,40 +233,6 @@ class Path(UserString, Generic[ResourceT]):
             return ()
         return tuple(attr.split("."))
 
-    def is_prefix_of(self, other: "str | Path[Any]") -> bool:
-        """Check if this path is a prefix of another path.
-
-        A path is a prefix if the other path starts with this path
-        followed by a separator ("." or ":").
-
-        Examples::
-
-            Path("emails").is_prefix_of("emails.value")  # True
-            Path("emails").is_prefix_of("emails")  # False (equal, not prefix)
-            Path("urn:...:User").is_prefix_of("urn:...:User:name")  # True
-        """
-        other_str = str(other).lower()
-        self_str = self.data.lower()
-
-        if self_str == other_str:
-            return False
-
-        return other_str.startswith(f"{self_str}.") or other_str.startswith(
-            f"{self_str}:"
-        )
-
-    def has_prefix(self, prefix: "str | Path[Any]") -> bool:
-        """Check if this path has the given prefix.
-
-        Examples::
-
-            Path("emails.value").has_prefix("emails")  # True
-            Path("emails").has_prefix("emails")  # False (equal, not prefix)
-            Path("urn:...:User:name").has_prefix("urn:...:User")  # True
-        """
-        prefix_path = prefix if isinstance(prefix, Path) else Path(str(prefix))
-        return prefix_path.is_prefix_of(self)
-
     @property
     def model(self) -> type[BaseModel] | None:
         """The target model type for this path.
