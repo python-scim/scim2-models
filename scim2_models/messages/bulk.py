@@ -35,10 +35,10 @@ class BulkOperation(ComplexAttribute):
     version: str | None = None
     """The current resource version."""
 
-    path: Annotated[str | None, Returned.never] = None
+    path: Annotated[str | None, Returned.request] = None
     """The resource's relative path to the SCIM service provider's root."""
 
-    data: Annotated[Any | None, Returned.never] = None
+    data: Annotated[Any | None, Returned.request] = None
     """The resource data as it would appear for a single SCIM POST, PUT, or
     PATCH operation."""
 
@@ -55,24 +55,24 @@ class BulkOperation(ComplexAttribute):
     def validate_operation_requirements(self, info: ValidationInfo) -> Self:
         """Validate operation requirements according to RFC 7644."""
         scim_ctx = info.context.get("scim") if info.context else None
-        if scim_ctx and Context.is_request(scim_ctx) or scim_ctx == Context.DEFAULT:
+
+        if not scim_ctx or scim_ctx == Context.DEFAULT:
+            return self
+
+        if Context.is_request(scim_ctx):
             # RFC 7644 Section 3.7: "path [...] REQUIRED in a request."
             if self.path is None:
                 raise InvalidValueException(
                     detail="path is required for request operations"
                 ).as_pydantic_error()
-            if self.method in (
-                BulkOperation.Method.post,
-                BulkOperation.Method.put,
-                BulkOperation.Method.patch,
-            ):
-                # RFC 7644 Section 3.7: "data  The resource data as it would appear for a single SCIM POST,
-                # PUT, or PATCH operation.  REQUIRED in a request when "method" is "POST", "PUT", or "PATCH"."
-                if self.data is None:
-                    raise InvalidValueException(
-                        detail="data is required for POST, PUT, or PATCH request operations"
-                    ).as_pydantic_error()
-        elif scim_ctx and Context.is_response(scim_ctx):  # pragma: no branch
+
+            # RFC 7644 Section 3.7: "data  The resource data as it would appear for a single SCIM POST,
+            # PUT, or PATCH operation.  REQUIRED in a request when "method" is "POST", "PUT", or "PATCH"."
+            if self.data is None:
+                raise InvalidValueException(
+                    detail="data is required for POST, PUT, or PATCH request operations"
+                ).as_pydantic_error()
+        else:
             # RFC 7644 Section 3.7: "location  The resource endpoint URL.  REQUIRED in a response,
             # except in the event of a POST failure."
             if self.location is None and not (
@@ -90,7 +90,7 @@ class BulkOperation(ComplexAttribute):
             # the detail error response
             if (
                 self.status is not None
-                and self.status >= 400
+                and not 200 <= self.status < 300
                 and not (self.response and self.response.get("detail"))
             ):
                 raise InvalidValueException(
