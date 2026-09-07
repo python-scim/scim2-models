@@ -125,7 +125,7 @@ class PatchOperation(ComplexAttribute, Generic[ResourceT]):
         else:
             return
 
-        # RFC 7644 Section 3.5.2: "Servers should be tolerant of schema extensions"
+        # An attribute the model does not declare carries no annotation to check.
         if (field := _resolved_field(resource_class, field_name)) is None:
             return
 
@@ -281,14 +281,12 @@ class PatchOp(Message, Generic[ResourceT]):
         if resource_class is None or not self.operations:
             return self
 
-        # RFC 7644 Section 3.5.2: "Validate each operation against schema constraints"
         for operation in self.operations:
             if operation.path is None:
                 # §3.5.2.1 and §3.5.2.3: "If the path parameter is omitted, the
                 # target is assumed to be the resource itself", the value naming
                 # the attributes to write. Each of them is a target of its own,
-                # and one the model does not declare is left alone, as §3.5.2
-                # asks servers to be tolerant of schema extensions.
+                # and one the model does not declare is left alone.
                 for attr_name, written in _targeted_attributes(operation.value).items():
                     operation._validate_mutability(resource_class, attr_name)
                     operation._validate_required_attribute(

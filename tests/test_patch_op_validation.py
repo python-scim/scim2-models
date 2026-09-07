@@ -854,7 +854,7 @@ def test_an_add_without_path_cannot_write_a_read_only_attribute():
 
 
 def test_an_operation_without_path_leaves_an_undeclared_attribute_alone():
-    """§3.5.2 asks servers to be tolerant of schema extensions, so an unknown attribute is no reason to refuse the operation."""
+    """An attribute the model does not declare is no reason to refuse the operation."""
     patch = PatchOp[User].model_validate(
         {
             "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],

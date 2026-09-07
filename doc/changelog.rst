@@ -40,8 +40,7 @@ Fixed
   them the targets of the operation, so each one answers to §3.5.2 as a named path does: a
   :attr:`~scim2_models.Mutability.read_only` attribute is refused, and so is one annotated
   :attr:`Required.true <scim2_models.Required.true>` carrying a null value. An attribute the
-  model does not declare is left alone, as §3.5.2 asks servers to be tolerant of schema
-  extensions.
+  model does not declare is left alone.
 - Attributes annotated with :attr:`~scim2_models.Mutability.read_only` are left out of a
   payload dumped in the :attr:`~scim2_models.Context.RESOURCE_PATCH_REQUEST` context, as they
   already are in a creation or a replacement request. A PATCH operation cannot target them,
