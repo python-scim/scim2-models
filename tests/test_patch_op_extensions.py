@@ -9,6 +9,7 @@ from scim2_models import GroupMember
 from scim2_models import InvalidPathException
 from scim2_models import PatchOp
 from scim2_models import PatchOperation
+from scim2_models import PathNotFoundException
 from scim2_models import User
 from scim2_models.resources.enterprise_user import EnterpriseUser
 from scim2_models.resources.resource import Resource
@@ -257,8 +258,8 @@ def test_generic_patchop_with_single_type():
     assert patch.operations[0].value == "test.user"
 
 
-def test_create_parent_object_return_none():
-    """Test _create_parent_object returns None when field type is not a class."""
+def test_patch_a_subattribute_of_an_unresolved_generic_attribute():
+    """An attribute declared as a type variable holds no sub-attribute."""
     T = TypeVar("T")
 
     class TestResourceTypeVar(Resource):
@@ -275,10 +276,8 @@ def test_create_parent_object_return_none():
         ]
     )
 
-    # This should fail gracefully - _create_parent_object returns None,
-    # so the operation should return False
-    result = patch.patch(user)
-    assert result is False
+    with pytest.raises(PathNotFoundException):
+        patch.patch(user)
 
 
 def test_complex_object_creation_and_basemodel_matching():

@@ -56,11 +56,38 @@ def _value_in_list(current_list: list[Any], new_value: Any) -> bool:
     return any(_values_match(item, new_value) for item in current_list)
 
 
-def _require_field(model: type[BaseModel], name: str) -> str:
-    """Find field name or raise PathNotFoundException."""
+def _require_field(model: type[BaseModel], name: str, path: str) -> str:
+    """Return the field a path segment names, or report it as missing."""
     if (field_name := _find_field_name(model, name)) is None:
-        raise PathNotFoundException(path=name, field=name)
+        raise PathNotFoundException(path=path, field=name)
     return field_name
+
+
+def _resolve_field_names(
+    model: type[BaseModel], parts: list[str], path: str
+) -> list[str]:
+    """Resolve each segment of a dotted path to the field name it designates.
+
+    The segments are resolved against the declared types rather than against
+    the values a resource happens to carry, so a path naming an attribute the
+    model does not declare is reported the same way whether or not the
+    attributes leading to it are assigned.
+
+    :raises PathNotFoundException: If a segment names an unknown field, or if a
+        segment other than the last one names an attribute with no
+        sub-attributes to descend into.
+    """
+    field_names: list[str] = []
+    for part, next_part in zip(parts, parts[1:], strict=False):
+        field_name = _require_field(model, part, path)
+        field_type = model.get_field_root_type(field_name)
+        if not (isclass(field_type) and issubclass(field_type, BaseModel)):
+            raise PathNotFoundException(path=path, field=next_part)
+        field_names.append(field_name)
+        model = field_type
+
+    field_names.append(_require_field(model, parts[-1], path))
+    return field_names
 
 
 class _Resolution(NamedTuple):
@@ -413,14 +440,14 @@ class Path(UserString, Generic[ResourceT]):
         :param create: Whether an unassigned complex attribute is instantiated
             rather than ending the walk.
         :returns: The target, or None when nothing is left to walk to.
-        :raises PathNotFoundException: If a segment names an unknown field.
+        :raises PathNotFoundException: If a segment names an attribute the model
+            does not declare, or one with no sub-attributes to descend into.
         """
-        parts = path_str.split(".")
+        field_names = _resolve_field_names(type(obj), path_str.split("."), str(self))
         hosts = [obj]
         multivalued = False
 
-        for part in parts[:-1]:
-            field_name = _require_field(type(hosts[0]), part)
+        for field_name in field_names[:-1]:
             entered: list[BaseModel] = []
             for host in hosts:
                 value = getattr(host, field_name)
@@ -428,33 +455,30 @@ class Path(UserString, Generic[ResourceT]):
                     value = self._create_intermediate(host, field_name)
                 if isinstance(value, list):
                     multivalued = True
-                    entered.extend(
-                        item for item in value if isinstance(item, BaseModel)
-                    )
+                    entered.extend(value)
                 elif value is not None:
                     entered.append(value)
             if not entered:
                 return None
             hosts = entered
 
-        return _Target(hosts, _require_field(type(hosts[0]), parts[-1]), multivalued)
+        return _Target(hosts, field_names[-1], multivalued)
 
     @staticmethod
     def _create_intermediate(host: BaseModel, field_name: str) -> BaseModel | None:
         """Instantiate an unassigned complex attribute so a value can be set under it.
 
-        A multi-valued attribute is left alone: entries that do not exist have
-        no field to write to, and inventing one would guess what the caller
-        meant to address.
+        The walk has already established that the attribute is complex, so only
+        a multi-valued one is left alone: entries that do not exist have no
+        field to write to, and inventing one would guess what the caller meant
+        to address.
         """
         if type(host).get_field_multiplicity(field_name):
             return None
-        field_type = type(host).get_field_root_type(field_name)
-        if field_type is None or field_type is Any or not isclass(field_type):
-            return None
+        field_type = cast("type[BaseModel]", type(host).get_field_root_type(field_name))
         sub_obj = field_type()
         setattr(host, field_name, sub_obj)
-        return cast(BaseModel, sub_obj)
+        return sub_obj
 
     def _get(self, resource: ResourceT) -> Any:
         """Get the value at this path from a resource."""

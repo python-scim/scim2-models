@@ -549,7 +549,46 @@ def test_get_an_empty_multivalued_attribute():
 def test_get_a_subattribute_of_a_scalar_list():
     """A list of scalars holds no sub-attribute to read."""
     user = User(user_name="john")
-    assert Path("schemas.value").get(user) is None
+    with pytest.raises(PathNotFoundException):
+        Path("schemas.value").get(user)
+
+
+def test_a_scalar_attribute_holds_no_subattribute():
+    """A path may only descend into a complex attribute."""
+    user = User(user_name="john", active=True)
+    for expression in ("userName.foo", "active.foo"):
+        with pytest.raises(PathNotFoundException):
+            Path(expression).get(user)
+        with pytest.raises(PathNotFoundException):
+            Path(expression).set(user, "value")
+        with pytest.raises(PathNotFoundException):
+            Path(expression).delete(user)
+
+
+def test_a_subattribute_of_a_scalar_attribute_is_tolerated_when_asked():
+    """The refusal is swallowed like any other, so that a reader may stay lax."""
+    user = User(user_name="john")
+    assert Path("userName.foo").get(user, strict=False) is None
+
+
+def test_an_unknown_subattribute_is_refused_however_the_resource_is_filled():
+    """The segments are resolved against the model, not against the values.
+
+    An attribute the model does not declare is named wrongly whatever the
+    resource carries, so the answer may not depend on what it carries.
+    """
+    for user in (
+        User(user_name="john", name=Name(family_name="Doe")),
+        User(user_name="john"),
+    ):
+        with pytest.raises(PathNotFoundException):
+            Path("name.nonexistent").get(user)
+
+
+def test_a_qualified_path_reaches_nothing_on_a_sub_object():
+    """A schema URN designates a resource or one of its extensions, nothing else."""
+    path = Path("urn:ietf:params:scim:schemas:core:2.0:User:familyName")
+    assert path.get(Name(family_name="Doe")) is None
 
 
 def test_get_an_unknown_subattribute_of_a_multivalued_attribute():
@@ -1177,16 +1216,15 @@ def test_set_empty_path_non_dict_value():
     assert result is False
 
 
-def test_set_dotted_path_intermediate_type_none():
-    """Set returns False when intermediate field has no determinable type."""
+def test_set_a_subattribute_of_an_untyped_attribute():
+    """An attribute declared without a type holds no sub-attribute to write to."""
 
     class TestResource(User):
         untyped: Any = None
 
     resource = TestResource(user_name="john")
-    path = Path("untyped.sub")
-    result = path.set(resource, "value")
-    assert result is False
+    with pytest.raises(PathNotFoundException):
+        Path("untyped.sub").set(resource, "value")
 
 
 def test_delete_on_extension_with_mismatched_urn():

@@ -974,3 +974,24 @@ def test_a_urn_that_merely_starts_like_a_schema_reaches_no_attribute():
     with pytest.raises(InvalidPathException):
         patch_op.patch(user)
     assert user.id == "2819c223"
+
+
+def test_a_patch_path_naming_a_subattribute_of_a_scalar_answers_invalid_path():
+    """A path no model can carry is answered, not crashed on.
+
+    :rfc:`RFC7644 §3.12 <7644#section-3.12>` gives ``invalidPath`` for a path
+    that is unknown, which a client may write without meaning to.
+    """
+    user = User(user_name="bjensen")
+    patch_op = PatchOp[User](
+        operations=[
+            PatchOperation[User](
+                op=PatchOperation.Op.replace_, path="userName.foo", value="forged"
+            )
+        ]
+    )
+
+    with pytest.raises(InvalidPathException) as raised:
+        patch_op.patch(user)
+    assert raised.value.to_error().scim_type == "invalidPath"
+    assert user.user_name == "bjensen"

@@ -62,6 +62,10 @@ Fixed
   :attr:`Mutability.read_only <scim2_models.Mutability.read_only>` attribute that every other
   spelling of it was refused. Extension URNs, and models declaring no schema at all, went the
   same way.
+- A path naming a sub-attribute of an attribute that has none, such as ``userName.foo``,
+  answers ``invalidPath`` instead of raising an :exc:`AttributeError`.
+- A path is resolved against the attributes the model declares, not against the values the
+  resource carries: ``name.unknown`` used to be refused only on a resource carrying a ``name``.
 
 [0.7.0] - 2026-09-05
 --------------------
