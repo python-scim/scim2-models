@@ -147,11 +147,12 @@ class Path(UserString, Generic[ResourceT]):
         _handler: GetCoreSchemaHandler,
     ) -> core_schema.CoreSchema:
         def validate_path(value: Any) -> "Path[Any]":
-            if isinstance(value, Path):
+            if not isinstance(value, Path | str):
+                raise ValueError(f"Expected str or Path, got {type(value).__name__}")
+            try:
                 return cls(str(value))
-            if isinstance(value, str):
-                return cls(value)
-            raise ValueError(f"Expected str or Path, got {type(value).__name__}")
+            except InvalidPathException as exc:
+                raise exc.as_pydantic_error() from exc
 
         return core_schema.no_info_plain_validator_function(
             validate_path,
@@ -179,29 +180,39 @@ class Path(UserString, Generic[ResourceT]):
         An empty string is valid and represents the resource root.
 
         :param path: The path to validate
-        :raises ValueError: If the path syntax is invalid
+        :raises InvalidPathException: If the path syntax is invalid
         """
         if not path:
             return
 
         if path[0].isdigit():
-            raise ValueError("Paths cannot start with a digit")
+            raise InvalidPathException(
+                path=path, detail="Paths cannot start with a digit"
+            )
 
         if ".." in path:
-            raise ValueError("Paths cannot contain double dots")
+            raise InvalidPathException(
+                path=path, detail="Paths cannot contain double dots"
+            )
 
         if not _VALID_PATH_PATTERN.match(path):
-            raise ValueError("The path contains invalid characters")
+            raise InvalidPathException(
+                path=path, detail="The path contains invalid characters"
+            )
 
         if path.endswith(":"):
-            raise ValueError("Paths cannot end with a colon")
+            raise InvalidPathException(
+                path=path, detail="Paths cannot end with a colon"
+            )
 
         if ":" in path:
             urn = path.rsplit(":", 1)[0]
             try:
                 URN(urn.lower())
             except ValueError as exc:
-                raise ValueError(f"The path is not a valid URN: {exc}") from exc
+                raise InvalidPathException(
+                    path=path, detail=f"The path is not a valid URN: {exc}"
+                ) from exc
 
     @property
     def schema(self) -> str | None:

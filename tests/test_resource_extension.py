@@ -7,6 +7,7 @@ from scim2_models import URN
 from scim2_models import Context
 from scim2_models import EnterpriseUser
 from scim2_models import Extension
+from scim2_models import InvalidPathException
 from scim2_models import Manager
 from scim2_models import Meta
 from scim2_models import User
@@ -186,7 +187,7 @@ def test_invalid_getitem():
     with pytest.raises(KeyError):
         user["invalid"]
 
-    with pytest.raises(ValueError):
+    with pytest.raises(InvalidPathException):
         user[object]
 
 
@@ -196,7 +197,7 @@ def test_invalid_setitem():
     with pytest.raises(KeyError):
         user["invalid"] = "foobar"
 
-    with pytest.raises(ValueError):
+    with pytest.raises(InvalidPathException):
         user[object] = "foobar"
 
 

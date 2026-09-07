@@ -88,6 +88,11 @@ Added
 
 Changed
 ^^^^^^^
+- A malformed :class:`~scim2_models.Path` answers ``invalidPath`` instead of ``invalidSyntax``,
+  which :rfc:`RFC7644 §3.12 <7644#section-3.12>` reserves for a path that is "invalid or
+  malformed". Building one directly raises :exc:`~scim2_models.InvalidPathException` where it
+  used to raise a plain :exc:`ValueError`; a model holding one still raises a
+  :exc:`~pydantic.ValidationError`, now naming the field and carrying the ``scimType``.
 - ``model_dump`` and ``model_dump_json`` are defined on :class:`~scim2_models.BaseModel` instead of
   :class:`~scim2_models.ScimObject`, so every model is dumped in a SCIM context by default.
   Complex attributes dumped on their own use their SCIM attribute names:

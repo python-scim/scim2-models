@@ -9,12 +9,14 @@ from scim2_models import URN
 from scim2_models import CaseExact
 from scim2_models import Email
 from scim2_models import EnterpriseUser
+from scim2_models import Error
 from scim2_models import Extension
 from scim2_models import Group
 from scim2_models import InvalidPathException
 from scim2_models import Manager
 from scim2_models import Mutability
 from scim2_models import Name
+from scim2_models import PatchOp
 from scim2_models import PathNotFoundException
 from scim2_models import Required
 from scim2_models import Resource
@@ -60,8 +62,28 @@ def test_validate_scim_path_syntax_invalid_paths():
     ]
 
     for path in invalid_paths:
-        with pytest.raises(ValueError):
+        with pytest.raises(InvalidPathException) as raised:
             Path(path)
+        assert raised.value.scim_type == "invalidPath"
+
+
+def test_a_malformed_path_in_a_message_answers_invalid_path():
+    """§3.12 names ``invalidPath`` for a path that is "invalid or malformed".
+
+    The exception is carried through the pydantic error, so the field it was
+    read from is still named, and a message holding a malformed path answers
+    the same ``scimType`` as one holding an unknown attribute.
+    """
+    with pytest.raises(pydantic.ValidationError) as raised:
+        PatchOp[User].model_validate(
+            {"Operations": [{"op": "replace", "path": "a..b", "value": "x"}]}
+        )
+
+    reported = raised.value.errors()[0]
+    assert reported["loc"] == ("operations", 0, "path")
+    error = Error.from_validation_error(reported)
+    assert error.status == 400
+    assert error.scim_type == "invalidPath"
 
 
 def test_empty_path_is_valid():
