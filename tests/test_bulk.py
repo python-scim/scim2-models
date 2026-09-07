@@ -12,6 +12,15 @@ from scim2_models.resources.group import GroupMember
 from scim2_models.resources.user import User
 
 
+def test_bulk_operation_delete():
+    BulkOperation.model_validate(
+        {
+            "method": BulkOperation.Method.delete,
+            "path": "/Users/2819c223-7f76-453a-919d-413861904646",
+        }
+    )
+
+
 def test_operations_required_for_bulk_request():
     with pytest.raises(ValidationError):
         BulkRequest.model_validate(
@@ -34,7 +43,7 @@ def test_bulkId_required_for_post_bulk_operations():
     BulkOperation.model_validate(
         {
             "method": BulkOperation.Method.post,
-            "bulk_id": "qwerty",
+            "bulkId": "qwerty",
             "path": "/Users",
             "data": {"displayName": "John Doe"},
         },
@@ -44,7 +53,7 @@ def test_bulkId_required_for_post_bulk_operations():
         BulkOperation.model_validate(
             {
                 "method": BulkOperation.Method.post,
-                "bulk_id": None,
+                "bulkId": None,
                 "path": "/Users",
                 "data": {"displayName": "John Doe"},
             },
@@ -60,7 +69,7 @@ def test_path_required_for_request_bulk_operations():
     BulkOperation.model_validate(
         {
             "method": BulkOperation.Method.post,
-            "bulk_id": "qwerty",
+            "bulkId": "qwerty",
             "path": "/Users",
             "data": {"displayName": "John Doe"},
         },
@@ -70,7 +79,7 @@ def test_path_required_for_request_bulk_operations():
         BulkOperation.model_validate(
             {
                 "method": BulkOperation.Method.post,
-                "bulk_id": "qwerty",
+                "bulkId": "qwerty",
                 "path": None,
                 "data": {"displayName": "John Doe"},
             },
@@ -79,7 +88,7 @@ def test_path_required_for_request_bulk_operations():
     BulkOperation.model_validate(
         {
             "method": BulkOperation.Method.post,
-            "bulk_id": "qwerty",
+            "bulkId": "qwerty",
             "path": None,
             "location": "https://example.com/users/2819c223-7f76-453a-919d-413861904646",
             "status": 201,
@@ -97,7 +106,7 @@ def test_data_required_for_post_put_patch_request_bulk_operations():
     BulkOperation.model_validate(
         {
             "method": BulkOperation.Method.post,
-            "bulk_id": "qwerty",
+            "bulkId": "qwerty",
             "path": "/Users",
             "data": {"displayName": "John Doe"},
         },
@@ -106,7 +115,7 @@ def test_data_required_for_post_put_patch_request_bulk_operations():
     BulkOperation.model_validate(
         {
             "method": BulkOperation.Method.patch,
-            "bulk_id": "qwerty",
+            "bulkId": "qwerty",
             "path": "/Users/2819c223-7f76-453a-919d-413861904646",
             "data": {"displayName": "John Doe"},
         },
@@ -115,24 +124,17 @@ def test_data_required_for_post_put_patch_request_bulk_operations():
     BulkOperation.model_validate(
         {
             "method": BulkOperation.Method.put,
-            "bulk_id": "qwerty",
+            "bulkId": "qwerty",
             "path": "/Users/2819c223-7f76-453a-919d-413861904646",
             "data": {"displayName": "John Doe"},
         },
         context={"scim": Context.RESOURCE_REPLACEMENT_REQUEST},
     )
-    BulkOperation.model_validate(
-        {
-            "method": BulkOperation.Method.delete,
-            "path": "/Users/2819c223-7f76-453a-919d-413861904646",
-        },
-        context={"scim": Context.DEFAULT},
-    )
     with pytest.raises(ValidationError):
         BulkOperation.model_validate(
             {
                 "method": BulkOperation.Method.post,
-                "bulk_id": "qwerty",
+                "bulkId": "qwerty",
                 "path": "/Users",
                 "data": None,
             },
@@ -142,7 +144,7 @@ def test_data_required_for_post_put_patch_request_bulk_operations():
         BulkOperation.model_validate(
             {
                 "method": BulkOperation.Method.patch,
-                "bulk_id": "qwerty",
+                "bulkId": "qwerty",
                 "path": "/Users/2819c223-7f76-453a-919d-413861904646",
                 "data": None,
             },
@@ -152,7 +154,7 @@ def test_data_required_for_post_put_patch_request_bulk_operations():
         BulkOperation.model_validate(
             {
                 "method": BulkOperation.Method.put,
-                "bulk_id": "qwerty",
+                "bulkId": "qwerty",
                 "path": "/Users/2819c223-7f76-453a-919d-413861904646",
                 "data": None,
             },
@@ -169,7 +171,7 @@ def test_location_required_for_response_bulk_operations_except_post_errors():
     BulkOperation.model_validate(
         {
             "method": BulkOperation.Method.post,
-            "bulk_id": "qwerty",
+            "bulkId": "qwerty",
             "location": "https://example.com/users/2819c223-7f76-453a-919d-413861904646",
             "status": 201,
         },
@@ -178,7 +180,7 @@ def test_location_required_for_response_bulk_operations_except_post_errors():
     BulkOperation.model_validate(
         {
             "method": BulkOperation.Method.post,
-            "bulk_id": "qwerty",
+            "bulkId": "qwerty",
             "location": None,
             "status": 400,
             "response": {
@@ -193,7 +195,7 @@ def test_location_required_for_response_bulk_operations_except_post_errors():
         BulkOperation.model_validate(
             {
                 "method": BulkOperation.Method.post,
-                "bulk_id": "qwerty",
+                "bulkId": "qwerty",
                 "location": None,
                 "status": 201,
             },
@@ -203,7 +205,7 @@ def test_location_required_for_response_bulk_operations_except_post_errors():
         BulkOperation.model_validate(
             {
                 "method": BulkOperation.Method.patch,
-                "bulk_id": "qwerty",
+                "bulkId": "qwerty",
                 "location": None,
                 "status": 400,
             },
@@ -216,7 +218,7 @@ def test_method_required_for_bulk_operations():
     with pytest.raises(ValidationError):
         BulkOperation.model_validate(
             {
-                "bulk_id": "qwerty",
+                "bulkId": "qwerty",
                 "path": "/Users",
                 "data": {"displayName": "John Doe"},
             },
@@ -228,7 +230,7 @@ def test_error_detail_required_in_response():
     BulkOperation.model_validate(
         {
             "method": BulkOperation.Method.post,
-            "bulk_id": "qwerty",
+            "bulkId": "qwerty",
             "status": 400,
             "response": {
                 "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
@@ -242,7 +244,7 @@ def test_error_detail_required_in_response():
         BulkOperation.model_validate(
             {
                 "method": BulkOperation.Method.post,
-                "bulk_id": "qwerty",
+                "bulkId": "qwerty",
                 "status": 400,
             },
             context={"scim": Context.RESOURCE_CREATION_RESPONSE},
@@ -251,7 +253,7 @@ def test_error_detail_required_in_response():
         BulkOperation.model_validate(
             {
                 "method": BulkOperation.Method.post,
-                "bulk_id": "qwerty",
+                "bulkId": "qwerty",
                 "status": 400,
                 "response": {
                     "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
@@ -270,7 +272,7 @@ def test_bulk_operation_with_group():
     BulkOperation.model_validate(
         {
             "method": BulkOperation.Method.post,
-            "bulk_id": "qwerty",
+            "bulkId": "qwerty",
             "path": "/Groups",
             "data": group,
         },
@@ -289,7 +291,7 @@ def test_bulk_operation_with_patch_operation():
     BulkOperation.model_validate(
         {
             "method": BulkOperation.Method.patch,
-            "bulk_id": "qwerty",
+            "bulkId": "qwerty",
             "path": "/Users",
             "data": patch,
         },
