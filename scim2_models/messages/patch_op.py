@@ -20,9 +20,9 @@ from ..context import Context
 from ..exceptions import InvalidValueException
 from ..exceptions import MutabilityException
 from ..exceptions import NoTargetException
-from ..path import URN
 from ..path import Path
 from ..resources.resource import Resource
+from ..urn import URN
 from ..utils import _find_field_name
 from .message import Message
 from .message import _get_resource_class

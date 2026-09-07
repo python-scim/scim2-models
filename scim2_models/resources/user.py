@@ -13,9 +13,9 @@ from ..annotations import Returned
 from ..annotations import Uniqueness
 from ..attributes import ComplexAttribute
 from ..attributes import ExtensibleStringEnum
-from ..path import URN
 from ..reference import External
 from ..reference import Reference
+from ..urn import URN
 from .resource import AnyExtension
 from .resource import Resource
 

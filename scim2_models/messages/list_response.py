@@ -9,8 +9,8 @@ from pydantic_core import PydanticCustomError
 from typing_extensions import Self
 
 from ..context import Context
-from ..path import URN
 from ..resources.resource import AnyResource
+from ..urn import URN
 from .message import Message
 from .message import _GenericMessageMetaclass
 

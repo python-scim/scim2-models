@@ -3,9 +3,9 @@ from typing import Generic
 
 from pydantic import field_validator
 
-from ..path import URN
 from ..path import Path
 from ..path import ResourceT
+from ..urn import URN
 from .message import Message
 from .response_parameters import ResponseParameters
 

@@ -10,9 +10,9 @@ from ..annotations import Required
 from ..annotations import Returned
 from ..annotations import Uniqueness
 from ..attributes import ComplexAttribute
-from ..path import URN
 from ..reference import URI
 from ..reference import Reference
+from ..urn import URN
 from .resource import Resource
 
 

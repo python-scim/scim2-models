@@ -44,7 +44,6 @@ from .messages.patch_op import PatchOp
 from .messages.patch_op import PatchOperation
 from .messages.response_parameters import ResponseParameters
 from .messages.search_request import SearchRequest
-from .path import URN
 from .path import Path
 from .reference import URI
 from .reference import External
@@ -83,6 +82,7 @@ from .resources.user import User
 from .resources.user import X509Certificate
 from .scim_object import AnyScimObject
 from .scim_object import ScimObject
+from .urn import URN
 
 __all__ = [
     "Address",

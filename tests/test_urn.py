@@ -1,7 +1,7 @@
 import pytest
 
 from scim2_models.base import BaseModel
-from scim2_models.path import URN
+from scim2_models.urn import URN
 
 
 def test_urn_syntax_valid_urns():

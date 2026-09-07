@@ -7,8 +7,8 @@ from ..annotations import CaseExact
 from ..annotations import Mutability
 from ..annotations import Required
 from ..attributes import ComplexAttribute
-from ..path import URN
 from ..reference import Reference
+from ..urn import URN
 from .resource import Extension
 
 if TYPE_CHECKING:

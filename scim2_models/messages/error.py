@@ -6,7 +6,7 @@ from typing import Any
 from pydantic import PlainSerializer
 from pydantic import ValidationError
 
-from ..path import URN
+from ..urn import URN
 from ..utils import _int_to_str
 from .message import Message
 

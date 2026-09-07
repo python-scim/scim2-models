@@ -9,7 +9,7 @@ from scim2_models import URI
 from scim2_models import External
 from scim2_models import Reference
 from scim2_models.base import BaseModel
-from scim2_models.path import URN
+from scim2_models.urn import URN
 
 
 class User:

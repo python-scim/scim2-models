@@ -9,7 +9,7 @@ from scim2_models import Resource
 from scim2_models import ResourceType
 from scim2_models import ServiceProviderConfig
 from scim2_models import User
-from scim2_models.path import URN
+from scim2_models.urn import URN
 
 
 def test_user(load_sample):

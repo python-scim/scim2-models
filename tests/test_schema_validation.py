@@ -5,11 +5,11 @@ from pydantic import ValidationError
 
 from scim2_models.base import BaseModel
 from scim2_models.context import Context
-from scim2_models.path import URN
 from scim2_models.resources.enterprise_user import EnterpriseUser
 from scim2_models.resources.resource import Extension
 from scim2_models.resources.resource import Resource
 from scim2_models.resources.user import User
+from scim2_models.urn import URN
 
 
 def test_validation_missing_base_schema():

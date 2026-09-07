@@ -6,7 +6,7 @@ from pydantic import Field
 from pydantic import PlainSerializer
 
 from ..attributes import ComplexAttribute
-from ..path import URN
+from ..urn import URN
 from ..utils import _int_to_str
 from .message import Message
 

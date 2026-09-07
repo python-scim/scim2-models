@@ -16,7 +16,7 @@ from typing_extensions import Self
 from .annotations import Required
 from .base import BaseModel
 from .context import Context
-from .path import URN
+from .urn import URN
 
 
 class ScimObject(BaseModel):

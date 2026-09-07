@@ -26,10 +26,10 @@ from ..attributes import ComplexAttribute
 from ..attributes import is_complex_attribute
 from ..base import BaseModel
 from ..constants import RESERVED_WORDS
-from ..path import URN
 from ..reference import URI
 from ..reference import External
 from ..reference import Reference
+from ..urn import URN
 from ..utils import _normalize_attribute_name
 from .resource import Resource
 
