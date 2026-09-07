@@ -697,34 +697,20 @@ class Path(UserString, Generic[ResourceT]):
         if model is None:
             raise TypeError("iter_paths requires a bound Path type: Path[Model]")
 
+        selected = (
+            (required, Required),
+            (mutability, Mutability),
+            (uniqueness, Uniqueness),
+            (returned, Returned),
+            (case_exact, CaseExact),
+        )
+
         def matches_filters(target_model: type[BaseModel], field_name: str) -> bool:
-            if required is not None:
-                field_required = target_model.get_field_annotation(field_name, Required)
-                if field_required not in required:
-                    return False
-            if mutability is not None:
-                field_mutability = target_model.get_field_annotation(
-                    field_name, Mutability
-                )
-                if field_mutability not in mutability:
-                    return False
-            if uniqueness is not None:
-                field_uniqueness = target_model.get_field_annotation(
-                    field_name, Uniqueness
-                )
-                if field_uniqueness not in uniqueness:
-                    return False
-            if returned is not None:
-                field_returned = target_model.get_field_annotation(field_name, Returned)
-                if field_returned not in returned:
-                    return False
-            if case_exact is not None:
-                field_case_exact = target_model.get_field_annotation(
-                    field_name, CaseExact
-                )
-                if field_case_exact not in case_exact:
-                    return False
-            return True
+            return all(
+                target_model.get_field_annotation(field_name, annotation) in values
+                for values, annotation in selected
+                if values is not None
+            )
 
         def iter_model_paths(
             target_model: type[Resource[Any] | Extension],
