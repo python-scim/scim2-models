@@ -5,9 +5,11 @@ from typing import Any
 import pydantic
 import pytest
 
+from scim2_models import URN
 from scim2_models import CaseExact
 from scim2_models import Email
 from scim2_models import EnterpriseUser
+from scim2_models import Extension
 from scim2_models import Group
 from scim2_models import InvalidPathException
 from scim2_models import Manager
@@ -15,6 +17,7 @@ from scim2_models import Mutability
 from scim2_models import Name
 from scim2_models import PathNotFoundException
 from scim2_models import Required
+from scim2_models import Resource
 from scim2_models import Returned
 from scim2_models import Uniqueness
 from scim2_models import User
@@ -345,6 +348,43 @@ def test_get_extension_attribute_uppercase_urn():
         "URN:IETF:PARAMS:SCIM:SCHEMAS:EXTENSION:ENTERPRISE:2.0:USER:employeeNumber"
     )
     assert path.get(user) == "12345"
+
+
+def test_a_foreign_schema_urn_designates_nothing():
+    """A qualified path is expressed in the schema of the model it applies to."""
+    path = Path[EnterpriseUser]("urn:totally:unrelated:employeeNumber")
+    assert path.model is None
+    assert path.field_name is None
+    assert path.urn is None
+
+
+def test_an_extension_urn_may_extend_the_urn_of_the_resource_it_extends():
+    """The longest matching schema designates the model, not the first one.
+
+    Nothing keeps an extension from naming itself under the namespace of the
+    resource it extends, and both URNs then prefix the path.
+    """
+
+    class Ext(Extension):
+        __schema__ = URN("urn:example:2.0:Thing:Ext")
+
+        label: str | None = None
+
+    class Thing(Resource):
+        __schema__ = URN("urn:example:2.0:Thing")
+
+        title: str | None = None
+
+    thing = Thing[Ext](title="thing")
+    thing[Ext] = Ext(label="labelled")
+
+    path = Path[Thing[Ext]]("urn:example:2.0:Thing:Ext:label")
+    assert path.model is Ext
+    assert path.field_name == "label"
+    assert path.urn == "urn:example:2.0:Thing:Ext:label"
+    assert path.get(thing) == "labelled"
+    assert path.set(thing, "renamed") is True
+    assert thing[Ext].label == "renamed"
 
 
 # --- Path.set() tests ---

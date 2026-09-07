@@ -1,5 +1,6 @@
 import re
 from collections import UserString
+from collections.abc import Iterable
 from collections.abc import Iterator
 from inspect import isclass
 from typing import TYPE_CHECKING
@@ -39,6 +40,19 @@ _PATH_CACHE: dict[tuple[type, type], type] = {}
 def _is_in_schema(path_lower: str, schema: str) -> bool:
     schema_lower = schema.lower()
     return path_lower == schema_lower or path_lower.startswith(f"{schema_lower}:")
+
+
+def _designating_schema(path_lower: str, schemas: Iterable[str]) -> str | None:
+    """Return the schema a qualified path is expressed in, if any.
+
+    The longest match wins: the URN of an extension may extend the URN of the
+    resource it extends, and then both match while only the longer one
+    designates the model the attribute lives on.
+    """
+    matching = [
+        schema for schema in schemas if schema and _is_in_schema(path_lower, schema)
+    ]
+    return max(matching, key=len) if matching else None
 
 
 def _to_comparable(value: Any) -> Any:
@@ -334,23 +348,20 @@ class Path(UserString, Generic[ResourceT]):
         if ":" in self and isclass(model) and issubclass(model, Resource | Extension):
             path_lower = str(self).lower()
 
-            if model.__schema__ and path_lower == model.__schema__.lower():
+            extension_models = (
+                model.get_extension_models() if issubclass(model, Resource) else {}
+            )
+            schema = _designating_schema(
+                path_lower, [model.__schema__ or "", *extension_models]
+            )
+
+            if schema is None:
+                return None
+
+            model = extension_models.get(schema, model)
+            if path_lower == schema.lower():
                 return model, None
-            elif model.__schema__ and _is_in_schema(path_lower, model.__schema__):
-                attr_path = str(self)[len(model.__schema__) :].lstrip(":")
-            elif issubclass(model, Resource):
-                for (
-                    extension_schema,
-                    extension_model,
-                ) in model.get_extension_models().items():
-                    schema_lower = extension_schema.lower()
-                    if path_lower == schema_lower:
-                        return extension_model, None
-                    elif _is_in_schema(path_lower, schema_lower):
-                        model = extension_model
-                        break
-                else:
-                    return None
+            attr_path = str(self)[len(schema) :].lstrip(":")
 
         if not attr_path:
             return model, None
@@ -397,34 +408,36 @@ class Path(UserString, Generic[ResourceT]):
         if ":" not in path_str:
             return _Resolution(resource, path_str)
 
-        model_schema = getattr(type(resource), "__schema__", "") or ""
         path_lower = path_str.lower()
+        model_schema = ""
+        if isinstance(resource, Resource | Extension):
+            model_schema = getattr(type(resource), "__schema__", "") or ""
+        extension_models = (
+            resource.get_extension_models() if isinstance(resource, Resource) else {}
+        )
 
-        if isinstance(resource, Resource | Extension) and _is_in_schema(
-            path_lower, model_schema
-        ):
-            is_explicit = path_lower == model_schema.lower()
-            normalized = path_str[len(model_schema) :].lstrip(":")
-            return _Resolution(resource, normalized, is_explicit)
+        schema = _designating_schema(path_lower, [model_schema, *extension_models])
+        if schema is None:
+            if isinstance(resource, Resource):
+                raise InvalidPathException(path=path_str)
+            return None
 
-        if isinstance(resource, Resource):
-            for ext_schema, ext_model in resource.get_extension_models().items():
-                ext_schema_lower = ext_schema.lower()
-                if path_lower == ext_schema_lower:
-                    return _Resolution(resource, ext_model.__name__)
-                if _is_in_schema(path_lower, ext_schema_lower):
-                    sub_path = path_str[len(ext_schema) :].lstrip(":")
-                    ext_obj = getattr(resource, ext_model.__name__)
-                    if create and ext_obj is None:
-                        ext_obj = ext_model()
-                        setattr(resource, ext_model.__name__, ext_obj)
-                    if ext_obj is None:
-                        return None
-                    return _Resolution(ext_obj, sub_path)
+        sub_path = path_str[len(schema) :].lstrip(":")
+        ext_model = extension_models.get(schema)
 
-            raise InvalidPathException(path=str(self))
+        if ext_model is None:
+            return _Resolution(resource, sub_path, path_lower == schema.lower())
 
-        return None
+        if path_lower == schema.lower():
+            return _Resolution(resource, ext_model.__name__)
+
+        ext_obj = getattr(resource, ext_model.__name__)
+        if create and ext_obj is None:
+            ext_obj = ext_model()
+            setattr(resource, ext_model.__name__, ext_obj)
+        if ext_obj is None:
+            return None
+        return _Resolution(ext_obj, sub_path)
 
     def _walk_to_target(
         self, obj: BaseModel, path_str: str, *, create: bool = False

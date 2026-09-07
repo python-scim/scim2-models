@@ -66,6 +66,10 @@ Fixed
   answers ``invalidPath`` instead of raising an :exc:`AttributeError`.
 - A path is resolved against the attributes the model declares, not against the values the
   resource carries: ``name.unknown`` used to be refused only on a resource carrying a ``name``.
+- An extension may name itself under the URN of the resource it extends. Both URNs then prefix
+  a path expressed in it, and the longest match designates the model.
+- A path qualified by a URN that is neither the schema of the model nor that of one of its
+  extensions designates nothing. It used to resolve as though the URN were the right one.
 
 [0.7.0] - 2026-09-05
 --------------------
