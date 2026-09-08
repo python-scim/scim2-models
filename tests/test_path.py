@@ -1,6 +1,7 @@
 """Tests for SCIM path validation utilities."""
 
 from typing import Any
+from typing import Union
 
 import pydantic
 import pytest
@@ -862,7 +863,7 @@ def test_iter_paths_without_extensions():
 
 def test_iter_paths_requires_bound_path():
     """Iterate raises TypeError if Path is not bound to a model."""
-    with pytest.raises(TypeError, match="iter_paths requires a bound Path type"):
+    with pytest.raises(TypeError, match="requires a Path bound to one model"):
         list(Path.iter_paths())
 
 
@@ -879,6 +880,66 @@ def test_iter_paths_spells_a_reference_sub_attribute_as_ref():
         "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:manager.$ref"
         in user_paths
     )
+
+
+def test_a_path_binds_to_a_union_of_resource_types():
+    """A root query carries a ``sortBy`` that no single resource type resolves."""
+    assert Path[User | Group]("userName").models == (User, Group)
+    assert Path[User]("userName").models == (User,)
+    assert Path("userName").models == ()
+
+    assert Path[User | Group] is Path[User | Group]
+    assert Path[Union[User, Group]] is Path[User | Group]  # noqa: UP007
+    assert Path[User | Group].__name__ == "Path[User, Group]"
+
+
+def test_a_union_path_resolves_against_the_first_type_declaring_it():
+    assert Path[User | Group]("userName").model is User
+    assert Path[User | Group]("userName").field_name == "user_name"
+    assert Path[User | Group]("members").model is Group
+    assert Path[User | Group]("members").field_name == "members"
+
+    assert (
+        Path[User | Group]("displayName").urn
+        == "urn:ietf:params:scim:schemas:core:2.0:User:displayName"
+    )
+    assert (
+        Path[User | Group]("members.$ref").urn
+        == "urn:ietf:params:scim:schemas:core:2.0:Group:members.$ref"
+    )
+
+    schema_only = Path[User | Group]("urn:ietf:params:scim:schemas:core:2.0:Group")
+    assert schema_only.model is Group
+    assert schema_only.field_name is None
+
+
+def test_a_union_path_answers_none_for_an_attribute_no_type_declares():
+    path = Path[User | Group]("nonexistent")
+    assert path.model is None
+    assert path.field_name is None
+    assert path.urn is None
+
+
+def test_a_union_path_reads_an_attribute_the_resource_declares():
+    path = Path[User | Group]("displayName")
+    assert path.get(User(user_name="bjensen", display_name="Babs")) == "Babs"
+    assert path.get(Group(display_name="admins")) == "admins"
+
+
+def test_a_union_path_reading_an_attribute_the_resource_lacks():
+    """Reading is explicit, where a query would leave the resource out."""
+    path = Path[User | Group]("userName")
+    group = Group(display_name="admins")
+
+    with pytest.raises(PathNotFoundException, match="userName"):
+        path.get(group)
+
+    assert path.get(group, strict=False) is None
+
+
+def test_iterating_the_paths_of_a_union_takes_one_resource_type_at_a_time():
+    with pytest.raises(TypeError, match="requires a Path bound to one model"):
+        list(Path[User | Group].iter_paths())
 
 
 # --- Path.set() with is_add=True tests ---

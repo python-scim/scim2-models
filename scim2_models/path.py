@@ -19,6 +19,7 @@ from pydantic_core import core_schema
 from .base import BaseModel
 from .urn import URN
 from .utils import _find_field_name
+from .utils import _model_union
 from .utils import _to_camel
 
 if TYPE_CHECKING:
@@ -36,7 +37,9 @@ ResourceT = TypeVar("ResourceT", bound="Resource[Any]")
 
 _VALID_PATH_PATTERN = re.compile(r'^[a-zA-Z][a-zA-Z0-9._:\-\[\]"=\s$]*$')
 _ATTRIBUTE_NOTATION_PATTERN = re.compile(r"^[a-zA-Z][a-zA-Z0-9._:\-$]*$")
-_PATH_CACHE: "MutableMapping[tuple[type, type], type]" = WeakValueDictionary()
+_PATH_CACHE: "MutableMapping[tuple[type, tuple[type, ...]], type]" = (
+    WeakValueDictionary()
+)
 """The classes subscription has already built, so that two subscriptions of the
 same resource type answer the same class.
 
@@ -138,18 +141,26 @@ class _Target(NamedTuple):
 
 
 class Path(str, Generic[ResourceT]):
-    __scim_model__: type[BaseModel] | None = None
+    __scim_models__: tuple[type[BaseModel], ...] = ()
 
-    def __class_getitem__(cls, model: type[ResourceT]) -> type["Path[ResourceT]"]:
-        """Create a Path class bound to a specific model type."""
-        if not isclass(model) or not hasattr(model, "model_fields"):
+    def __class_getitem__(cls, model: Any) -> type["Path[Any]"]:
+        """Create a Path class bound to a resource type, or to a union of them.
+
+        A union is what an endpoint covering several resource types binds, such
+        as the server root of :rfc:`RFC7644 §3.4.2.1 <7644#section-3.4.2.1>`.
+        Anything that is not a resource type, a type variable in particular, is
+        left to the generic machinery.
+        """
+        models = _model_union(model)
+        if models is None:
             return super().__class_getitem__(model)  # type: ignore[misc,no-any-return]
 
-        cache_key = (cls, model)
+        cache_key = (cls, models)
         if cache_key in _PATH_CACHE:
             return _PATH_CACHE[cache_key]
 
-        new_class = type(f"Path[{model.__name__}]", (cls,), {"__scim_model__": model})
+        names = ", ".join(each.__name__ for each in models)
+        new_class = type(f"Path[{names}]", (cls,), {"__scim_models__": models})
         _PATH_CACHE[cache_key] = new_class
         return new_class
 
@@ -283,6 +294,16 @@ class Path(str, Generic[ResourceT]):
         return tuple(attr.split("."))
 
     @property
+    def models(self) -> tuple[type[BaseModel], ...]:
+        """The resource types the path is bound to, none for an unbound path.
+
+        ``Path[User]`` binds one, ``Path[User | Group]`` binds two, as an
+        endpoint covering several resource types does. A path is resolved
+        against the first of them declaring the attribute it names.
+        """
+        return self.__scim_models__
+
+    @property
     def model(self) -> type[BaseModel] | None:
         """The target model type for this path.
 
@@ -294,7 +315,7 @@ class Path(str, Generic[ResourceT]):
         """
         if (result := self._resolve_model()) is None:
             return None
-        return result[0]
+        return result[1]
 
     @property
     def field_name(self) -> str | None:
@@ -308,7 +329,7 @@ class Path(str, Generic[ResourceT]):
         """
         if (result := self._resolve_model()) is None:
             return None
-        return result[1]
+        return result[2]
 
     @property
     def field_type(self) -> type | None:
@@ -366,18 +387,21 @@ class Path(str, Generic[ResourceT]):
         """
         from .resources.resource import Resource
 
-        if self.__scim_model__ is None or self.model is None:
+        if (result := self._resolve_model()) is None:
             return None
 
+        bound = result[0]
         schema = self.schema
-        if not schema and issubclass(self.__scim_model__, Resource):
-            schema = self.__scim_model__.__schema__
+        if not schema and issubclass(bound, Resource):
+            schema = bound.__schema__
 
         if not self.attr:
             return schema if schema else None
         return f"{schema}:{self.attr}" if schema else self.attr
 
-    def _designated_model(self) -> "tuple[type[BaseModel], str] | None":
+    def _designated_model(
+        self, model: type[BaseModel]
+    ) -> "tuple[type[BaseModel], str] | None":
         """Resolve the model a URN designates, and the path expressed in it.
 
         A qualified path is expressed either in the schema of the bound model or
@@ -386,10 +410,6 @@ class Path(str, Generic[ResourceT]):
         """
         from .resources.resource import Extension
         from .resources.resource import Resource
-
-        model = self.__scim_model__
-        if model is None:
-            return None
 
         attr_path = self.attr
 
@@ -421,7 +441,16 @@ class Path(str, Generic[ResourceT]):
         rather than the sub-attribute it targets: ``meta`` is read-only where the
         ``meta.version`` it holds is not.
         """
-        if (designated := self._designated_model()) is None:
+        for model in self.__scim_models__:
+            if (head := self._resolve_head_against(model)) is not None:
+                return head
+        return None
+
+    def _resolve_head_against(
+        self, model: type[BaseModel]
+    ) -> "tuple[type[BaseModel], str] | None":
+        """Resolve the attribute the path applies to, against one bound model."""
+        if (designated := self._designated_model(model)) is None:
             return None
 
         model, attr_path = designated
@@ -433,9 +462,24 @@ class Path(str, Generic[ResourceT]):
             return None
         return model, field_name
 
-    def _resolve_model(self) -> tuple[type[BaseModel], str | None] | None:
-        """Resolve the path against the bound model type."""
-        if (designated := self._designated_model()) is None:
+    def _resolve_model(
+        self,
+    ) -> tuple[type[BaseModel], type[BaseModel], str | None] | None:
+        """Resolve the path against the bound models, the first declaring it winning.
+
+        Answers the bound model the path resolves against, the model holding the
+        attribute and the name of its field, which a schema-only path has none of.
+        """
+        for model in self.__scim_models__:
+            if (result := self._resolve_model_against(model)) is not None:
+                return (model, *result)
+        return None
+
+    def _resolve_model_against(
+        self, model: type[BaseModel]
+    ) -> tuple[type[BaseModel], str | None] | None:
+        """Resolve the path against one bound model."""
+        if (designated := self._designated_model(model)) is None:
             return None
 
         model, attr_path = designated
@@ -810,9 +854,11 @@ class Path(str, Generic[ResourceT]):
         from .resources.resource import Extension
         from .resources.resource import Resource
 
-        model = cls.__scim_model__
-        if model is None:
-            raise TypeError("iter_paths requires a bound Path type: Path[Model]")
+        if len(cls.__scim_models__) != 1:
+            raise TypeError(
+                "iter_paths requires a Path bound to one model: Path[Model]"
+            )
+        model = cls.__scim_models__[0]
 
         selected = (
             (required, Required),

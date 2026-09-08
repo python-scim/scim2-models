@@ -1,6 +1,8 @@
 import pytest
 from pydantic import ValidationError
 
+from scim2_models import Group
+from scim2_models import User
 from scim2_models.messages.search_request import SearchRequest
 
 
@@ -293,3 +295,13 @@ def test_a_parameter_asking_for_an_attribute_accepts_a_reference():
     )
     assert request.attributes == ["members.$ref"]
     assert request.sort_by == "members.$ref"
+
+
+def test_a_request_covering_several_resource_types_takes_a_union():
+    """§3.4.2.1 has the server root cover every type it serves."""
+    request = SearchRequest[User | Group].model_validate(
+        {"sortBy": "userName", "attributes": "members"}
+    )
+    assert request.sort_by.models == (User, Group)
+    assert request.sort_by.field_name == "user_name"
+    assert request.attributes[0].model is Group

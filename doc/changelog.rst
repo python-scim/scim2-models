@@ -10,7 +10,10 @@ Added
   resource type an endpoint serves, as in ``SearchRequest[User]``, which resolves
   :attr:`~scim2_models.SearchRequest.sort_by`,
   :attr:`~scim2_models.ResponseParameters.attributes` and
-  :attr:`~scim2_models.ResponseParameters.excluded_attributes` against that model.
+  :attr:`~scim2_models.ResponseParameters.excluded_attributes` against that model. An endpoint
+  covering several of them takes a union, as in ``SearchRequest[User | Group]``, and so does
+  :class:`~scim2_models.Path`; a path resolves against the first type declaring it, so
+  ``sortBy`` answers on a root query too.
 
 Removed
 ^^^^^^^

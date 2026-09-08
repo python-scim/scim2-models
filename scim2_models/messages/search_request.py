@@ -17,7 +17,9 @@ class SearchRequest(Message, ResponseParameters[ResourceT], Generic[ResourceT]):
 
     Parameterising the request with the resource type an endpoint serves, as in
     ``SearchRequest[User]``, resolves :attr:`sort_by` and the attributes of
-    :class:`~scim2_models.ResponseParameters` against that model.
+    :class:`~scim2_models.ResponseParameters` against that model. An endpoint
+    covering several types, such as the server root, takes a union of them, as
+    in ``SearchRequest[User | Group]``.
     """
 
     __schema__ = URN("urn:ietf:params:scim:api:messages:2.0:SearchRequest")

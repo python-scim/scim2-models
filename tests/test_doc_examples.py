@@ -83,6 +83,20 @@ def test_flask_example_smoke():
         "Group",
     }
 
+    # Binding the root query to a union is what resolves a sortBy both types declare.
+    sorted_root_response = client.post(
+        "/scim/v2/.search",
+        json={
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:SearchRequest"],
+            "sortBy": "displayName",
+        },
+    )
+    assert sorted_root_response.status_code == 200
+    assert [
+        resource["displayName"]
+        for resource in sorted_root_response.get_json()["Resources"]
+    ] == ["Administrators", "Auditors", "Babs"]
+
     malformed_response = client.post(
         "/scim/v2/Users/.search",
         data="{not json",
