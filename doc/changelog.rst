@@ -88,6 +88,12 @@ Added
 
 Changed
 ^^^^^^^
+- :attr:`SearchRequest.sort_by <scim2_models.SearchRequest.sort_by>`,
+  :attr:`~scim2_models.ResponseParameters.attributes` and
+  :attr:`~scim2_models.ResponseParameters.excluded_attributes` refuse a path selecting values,
+  such as ``emails[type eq "work"]``. :rfc:`RFC7644 §3.4.2.3 <7644#section-3.4.2.3>` and
+  :rfc:`§3.9 <7644#section-3.9>` require them in the attribute notation of §3.10, which names an
+  attribute rather than the values it holds.
 - A malformed :class:`~scim2_models.Path` answers ``invalidPath`` instead of ``invalidSyntax``,
   which :rfc:`RFC7644 §3.12 <7644#section-3.12>` reserves for a path that is "invalid or
   malformed". Building one directly raises :exc:`~scim2_models.InvalidPathException` where it

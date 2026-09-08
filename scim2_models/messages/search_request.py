@@ -1,8 +1,10 @@
 from enum import Enum
+from typing import Any
 from typing import Generic
 
 from pydantic import field_validator
 
+from ..exceptions import InvalidPathException
 from ..path import Path
 from ..path import ResourceT
 from ..urn import URN
@@ -26,6 +28,21 @@ class SearchRequest(Message, ResponseParameters[ResourceT], Generic[ResourceT]):
     sort_by: Path[ResourceT] | None = None
     """A string indicating the attribute whose value SHALL be used to order the
     returned responses."""
+
+    @field_validator("sort_by")
+    @classmethod
+    def _sort_by_names_an_attribute(cls, value: Any) -> Any:
+        """Refuse an order over the values an attribute holds.
+
+        :rfc:`RFC7644 §3.4.2.3 <7644#section-3.4.2.3>` requires ``sortBy`` in
+        the attribute notation of §3.10.
+        """
+        if value is not None:
+            try:
+                value.check_attribute_notation()
+            except InvalidPathException as exc:
+                raise exc.as_pydantic_error() from exc
+        return value
 
     class SortOrder(str, Enum):
         ascending = "ascending"

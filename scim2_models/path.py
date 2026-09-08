@@ -34,6 +34,7 @@ from .exceptions import PathNotFoundException
 ResourceT = TypeVar("ResourceT", bound="Resource[Any]")
 
 _VALID_PATH_PATTERN = re.compile(r'^[a-zA-Z][a-zA-Z0-9._:\-\[\]"=\s]*$')
+_ATTRIBUTE_NOTATION_PATTERN = re.compile(r"^[a-zA-Z][a-zA-Z0-9._:\-]*$")
 _PATH_CACHE: dict[tuple[type, type], type] = {}
 
 
@@ -213,6 +214,23 @@ class Path(UserString, Generic[ResourceT]):
                 raise InvalidPathException(
                     path=path, detail=f"The path is not a valid URN: {exc}"
                 ) from exc
+
+    def check_attribute_notation(self) -> None:
+        """Check that the path names an attribute instead of selecting values.
+
+        The attribute notation of :rfc:`RFC7644 §3.10 <7644#section-3.10>` is a
+        schema URN, an attribute and at most one of its sub-attributes. A value
+        selection or a comparison designates the values an attribute holds
+        rather than the attribute itself, so it has no place where a single
+        attribute is asked for.
+
+        :raises InvalidPathException: If the path is not in attribute notation.
+        """
+        if not _ATTRIBUTE_NOTATION_PATTERN.match(self.data):
+            raise InvalidPathException(
+                path=self.data,
+                detail=f"{self.data!r} is not in attribute notation",
+            )
 
     @property
     def schema(self) -> str | None:

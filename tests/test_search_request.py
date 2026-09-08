@@ -161,19 +161,50 @@ def test_search_request_invalid_sort_by():
             SearchRequest.model_validate(case)
 
 
-def test_search_request_complex_paths_allowed():
-    """Test that complex filter paths are allowed in attributes."""
-    # Complex paths with filters should be allowed (for now)
-    valid_data = {
-        "attributes": [
-            'emails[type eq "work"].value',
-            'groups[display eq "Admin"]',
-            "name.familyName",
-        ],
-    }
+@pytest.mark.parametrize(
+    "expression",
+    [
+        'emails[type eq "work"].value',
+        'groups[display eq "Admin"]',
+        'userName eq "x"',
+    ],
+)
+@pytest.mark.parametrize("field", ["attributes", "excludedAttributes", "sortBy"])
+def test_a_parameter_asking_for_an_attribute_refuses_a_value_selection(
+    field, expression
+):
+    """§3.9 and §3.4.2.3 require the attribute notation of §3.10.
 
-    request = SearchRequest.model_validate(valid_data)
-    assert len(request.attributes) == 3
+    A value selection designates the values an attribute holds rather than the
+    attribute itself, so it answers nothing where a single attribute is asked
+    for.
+    """
+    value = expression if field == "sortBy" else [expression]
+    with pytest.raises(ValidationError) as raised:
+        SearchRequest.model_validate({field: value})
+    assert raised.value.errors()[0]["type"] == "scim_invalidPath"
+
+
+def test_an_empty_sort_by_is_refused():
+    """The empty path designates the resource, which holds no value to order by.
+
+    An empty ``attributes`` names no attribute at all, and is dropped rather
+    than refused.
+    """
+    with pytest.raises(ValidationError) as raised:
+        SearchRequest.model_validate({"sortBy": ""})
+    assert raised.value.errors()[0]["type"] == "scim_invalidPath"
+
+    assert SearchRequest.model_validate({"attributes": [""]}).attributes == []
+
+
+def test_a_parameter_asking_for_an_attribute_accepts_a_sub_attribute():
+    """§3.4.2.3 gives ``sortBy=name.givenName`` as an example."""
+    request = SearchRequest.model_validate(
+        {"attributes": ["name.familyName"], "sortBy": "name.givenName"}
+    )
+    assert request.attributes == ["name.familyName"]
+    assert request.sort_by == "name.givenName"
 
 
 def test_comma_separated_attributes():
