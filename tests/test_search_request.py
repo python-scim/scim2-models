@@ -305,3 +305,39 @@ def test_a_request_covering_several_resource_types_takes_a_union():
     assert request.sort_by.models == (User, Group)
     assert request.sort_by.field_name == "user_name"
     assert request.attributes[0].model is Group
+
+
+def test_a_parameterised_request_rejects_a_sort_by_the_model_does_not_declare():
+    """An order cannot be quietly dropped the way an unknown attributes entry is."""
+    with pytest.raises(ValidationError, match="Cannot sort on 'nonexistent'") as raised:
+        SearchRequest[User].model_validate({"sortBy": "nonexistent"})
+    assert raised.value.errors()[0]["type"] == "scim_invalidPath"
+
+    assert SearchRequest[User].model_validate({"sortBy": "meta.lastModified"}).sort_by
+    assert SearchRequest[User].model_validate({"sortBy": "emails.value"}).sort_by
+    assert SearchRequest.model_validate({"sortBy": "nonexistent"}).sort_by
+
+
+def test_a_parameterised_request_rejects_a_sort_by_designating_a_resource():
+    """A schema URN names a resource type, which holds no value to order by."""
+    with pytest.raises(ValidationError) as raised:
+        SearchRequest[User].model_validate(
+            {"sortBy": "urn:ietf:params:scim:schemas:core:2.0:User"}
+        )
+    assert raised.value.errors()[0]["type"] == "scim_invalidPath"
+
+
+def test_a_sort_by_on_a_union_answers_to_the_type_declaring_it():
+    """§3.4.2.1 has a root query cover types that do not share every attribute."""
+    request = SearchRequest[User | Group].model_validate({"sortBy": "members"})
+    assert request.sort_by.model is Group
+
+    with pytest.raises(ValidationError) as raised:
+        SearchRequest[User | Group].model_validate({"sortBy": "nonexistent"})
+    assert raised.value.errors()[0]["type"] == "scim_invalidPath"
+
+
+def test_a_parameterised_request_reports_a_sort_by_selecting_values_as_such():
+    """A selection is refused for what it is, before its attribute is looked up."""
+    with pytest.raises(ValidationError, match="not in attribute notation"):
+        SearchRequest[User].model_validate({"sortBy": 'emails[type eq "work"]'})

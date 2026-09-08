@@ -29,7 +29,14 @@ class SearchRequest(Message, ResponseParameters[ResourceT], Generic[ResourceT]):
 
     sort_by: Path[ResourceT] | None = None
     """A string indicating the attribute whose value SHALL be used to order the
-    returned responses."""
+    returned responses.
+
+    On a parameterised request the attribute is resolved against the model, and
+    one none of the resource types declares is refused. Where an unknown entry
+    of :attr:`~scim2_models.ResponseParameters.attributes` is ignored, an order
+    cannot be: a ``sortBy`` left out answers an arbitrary order the client has
+    no way of telling from the one it asked for.
+    """
 
     @field_validator("sort_by")
     @classmethod
@@ -44,6 +51,19 @@ class SearchRequest(Message, ResponseParameters[ResourceT], Generic[ResourceT]):
                 value.check_attribute_notation()
             except InvalidPathException as exc:
                 raise exc.as_pydantic_error() from exc
+        return value
+
+    @field_validator("sort_by")
+    @classmethod
+    def _resolvable_sort_by(cls, value: Any) -> Any:
+        """Reject an attribute the bound resource types do not declare."""
+        # Parameterising the request names the resource types the endpoint
+        # serves, which is what makes an attribute none of them declares a
+        # client error rather than something to resolve later.
+        if value is not None and value.models and value.field_name is None:
+            raise InvalidPathException(
+                path=str(value), detail=f"Cannot sort on {str(value)!r}"
+            ).as_pydantic_error()
         return value
 
     class SortOrder(str, Enum):

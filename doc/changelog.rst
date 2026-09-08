@@ -15,6 +15,15 @@ Added
   :class:`~scim2_models.Path`; a path resolves against the first type declaring it, so
   ``sortBy`` answers on a root query too.
 
+Changed
+^^^^^^^
+- :attr:`SearchRequest.sort_by <scim2_models.SearchRequest.sort_by>` is resolved against the
+  model a parameterised request names, and an attribute none of its resource types declares
+  answers ``invalidPath`` at validation time instead of being carried to the endpoint. Where an
+  unknown entry of :attr:`~scim2_models.ResponseParameters.attributes` is ignored, an order
+  cannot be: a ``sortBy`` left out answers an arbitrary order the client cannot tell from the
+  one it asked for.
+
 Removed
 ^^^^^^^
 - ``Path.is_prefix_of`` and ``Path.has_prefix``. They compared the text of two paths, which

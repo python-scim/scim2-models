@@ -216,6 +216,12 @@ def test_django_example_smoke():
         assert create_response.headers["Content-Type"] == "application/scim+json"
         user_id = json.loads(create_response.content)["id"]
 
+        # The request names the resource type it serves, so an attribute the
+        # type does not declare is refused before the view has to sort on it.
+        refused_sort_response = client.get("/scim/v2/Users?sortBy=nonexistent")
+        assert refused_sort_response.status_code == 400
+        assert json.loads(refused_sort_response.content)["scimType"] == "invalidPath"
+
         get_response = client.get(f"/scim/v2/Users/{user_id}")
         assert get_response.status_code == 200
         assert json.loads(get_response.content)["userName"] == "bjensen@example.com"
