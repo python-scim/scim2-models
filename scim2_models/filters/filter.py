@@ -109,13 +109,26 @@ class _Validator(FilterVisitor[None]):
             return
 
         validate_value_selection(resolved)
+        validate_value_filter(resolved, node.val_filter, strict=self.strict)
 
-        # A list of scalars has no model to resolve the inner filter against.
-        item_model = resolved.field_type
-        if isclass(item_model) and issubclass(item_model, BaseModel):
-            _Validator(item_model, strict=self.strict, urn_prefix=resolved.urn).visit(
-                node.val_filter
-            )
+
+def validate_value_filter(
+    resolved: ResolvedAttribute, val_filter: FilterNode, *, strict: bool = True
+) -> None:
+    """Check the filter of a value selection against the attribute it selects from.
+
+    A list of scalars has no model to resolve the inner filter against, so it
+    is left alone.
+
+    :raises InvalidFilterException: If the filter names an attribute the
+        selected model does not declare, or compares one in a way it does not
+        accept.
+    """
+    item_model = resolved.field_type
+    if not isclass(item_model) or not issubclass(item_model, BaseModel):
+        return
+
+    _Validator(item_model, strict=strict, urn_prefix=resolved.urn).visit(val_filter)
 
 
 class ScimFilter(_Expression, Generic[ResourceT]):
@@ -150,9 +163,9 @@ class ScimFilter(_Expression, Generic[ResourceT]):
     :attr:`CaseExact.true <scim2_models.CaseExact.true>`.
 
     On Python 3.14, a filter can be written as a t-string. Each interpolated
-    value is quoted, so it stays a value whatever it contains. Another filter
-    is inserted as it stands, since its syntax was checked when it was
-    created::
+    value is quoted, so it stays a value whatever it contains. A
+    :class:`~scim2_models.Path` or another filter is inserted as it stands,
+    since its syntax was checked when it was created::
 
         ScimFilter[User](t"userName eq {name}")
 

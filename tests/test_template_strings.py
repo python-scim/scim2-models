@@ -5,7 +5,10 @@ from datetime import datetime
 
 import pytest
 
+from scim2_models import Group
 from scim2_models import InvalidFilterException
+from scim2_models import InvalidPathException
+from scim2_models import Path
 from scim2_models import ScimFilter
 from scim2_models import User
 from scim2_models.filters import Comparison
@@ -63,3 +66,31 @@ def test_an_interpolated_filter_is_inserted_as_syntax():
 def test_a_converted_filter_is_a_value_again():
     inner = ScimFilter('userName eq "bjensen"')
     assert ScimFilter(t"title eq {inner!s}") == r'title eq "userName eq \"bjensen\""'
+
+
+def test_a_path_quotes_its_interpolations_as_a_filter_does():
+    member_id = '2819c223" or value pr'
+    path = Path[Group](t"members[value eq {member_id}]")
+    assert path == r'members[value eq "2819c223\" or value pr"]'
+    assert str(path.value_filter) == r'value eq "2819c223\" or value pr"'
+
+
+def test_reading_through_a_path_written_as_a_template():
+    user = User(
+        user_name="bjensen", emails=[{"type": "work", "value": "b@example.com"}]
+    )
+    kind = "work"
+    assert Path[User](t"emails[type eq {kind}].value").get(user) == ["b@example.com"]
+
+
+def test_a_path_template_is_checked_like_the_string_it_renders():
+    with pytest.raises(InvalidPathException):
+        Path(t"emails[type eq {1}")
+
+
+def test_an_interpolated_path_is_inserted_as_syntax():
+    attribute, name = Path[User]("userName"), "bjensen"
+    assert ScimFilter[User](t"{attribute} eq {name}") == 'userName eq "bjensen"'
+    assert (
+        Path[User](t"{Path('emails')}[type eq {name}]") == 'emails[type eq "bjensen"]'
+    )
