@@ -6,6 +6,12 @@ Changelog
 
 Added
 ^^^^^
+- Support for the ``filter`` query parameter (:rfc:`RFC7644 §3.4.2.2 <7644#section-3.4.2.2>`)
+  with :class:`~scim2_models.ScimFilter`. See :doc:`filters`. :issue:`17`
+- :meth:`ScimFilter.quote <scim2_models.ScimFilter.quote>` renders a value as a literal a filter
+  can carry, and on Python 3.14 :class:`~scim2_models.ScimFilter` takes a t-string: an
+  interpolated value is quoted so that it cannot be read as syntax, and an interpolated filter
+  is inserted as it stands.
 - :class:`~scim2_models.SearchRequest` and :class:`~scim2_models.ResponseParameters` take the
   resource type an endpoint serves, as in ``SearchRequest[User]``, which resolves
   :attr:`~scim2_models.SearchRequest.sort_by`,
@@ -14,6 +20,7 @@ Added
   covering several of them takes a union, as in ``SearchRequest[User | Group]``, and so does
   :class:`~scim2_models.Path`; a path resolves against the first type declaring it, so
   ``sortBy`` answers on a root query too.
+- lark is a new dependency.
 
 Changed
 ^^^^^^^

@@ -12,6 +12,7 @@ from scim2_models.annotations import Returned
 from scim2_models.annotations import Uniqueness
 from scim2_models.attributes import ComplexAttribute
 from scim2_models.context import Context
+from scim2_models.filters import ScimFilter
 from scim2_models.path import Path
 from scim2_models.reference import URI
 from scim2_models.reference import External
@@ -2885,10 +2886,12 @@ def test_a_model_built_at_runtime_is_collected_once_it_is_dropped():
     )
     reference = weakref.ref(Model)
 
-    # The assertion is made on a value that does not name the model, since
+    # The assertions are made on values that do not name the model, since
     # pytest keeps the operands of an assertion for as long as the test runs.
     bound = Path[Model]("label").field_name == "label"
+    matched = ScimFilter[Model]('label eq "x"').match(Model(label="x"))
     assert bound
+    assert matched
 
     del Model
 

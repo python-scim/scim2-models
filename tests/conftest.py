@@ -1,6 +1,9 @@
 import json
+import sys
 
 import pytest
+
+collect_ignore = [] if sys.version_info >= (3, 14) else ["test_template_strings.py"]
 
 
 @pytest.fixture
