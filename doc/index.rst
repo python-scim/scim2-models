@@ -8,6 +8,8 @@ Table of contents
     :maxdepth: 2
 
     tutorial
+    filters
+    patch
     guides/index
     reference
     contributing

@@ -38,7 +38,7 @@ def test_flask_example_smoke():
             "userName": "bjensen@example.com",
             "displayName": "Barbara Jensen",
             "active": True,
-            "emails": [{"value": "bjensen@example.com"}],
+            "emails": [{"value": "bjensen@example.com", "type": "work"}],
         },
     )
     assert create_response.status_code == 201
@@ -78,12 +78,16 @@ def test_flask_example_smoke():
     assert searched["Resources"][0]["userName"] == "bjensen@example.com"
     assert "displayName" not in searched["Resources"][0]
 
-    root_response = client.post(
-        "/scim/v2/.search",
-        json={"schemas": ["urn:ietf:params:scim:api:messages:2.0:SearchRequest"]},
-    )
-    assert root_response.status_code == 200
-    gathered = root_response.get_json()
+    def root_search(scim_filter=None):
+        body = {"schemas": ["urn:ietf:params:scim:api:messages:2.0:SearchRequest"]}
+        if scim_filter:
+            body["filter"] = scim_filter
+        response = client.post("/scim/v2/.search", json=body)
+        assert response.status_code == 200
+        return response.get_json()
+
+    # the root query gathers both resource types
+    gathered = root_search()
     assert gathered["totalResults"] == 3
     assert {resource["meta"]["resourceType"] for resource in gathered["Resources"]} == {
         "User",
@@ -103,6 +107,15 @@ def test_flask_example_smoke():
         resource["displayName"]
         for resource in sorted_root_response.get_json()["Resources"]
     ] == ["Administrators", "Auditors", "Babs"]
+
+    # an attribute only one type declares evaluates to false on the other
+    users_only = root_search("userName pr")
+    assert users_only["totalResults"] == 1
+    assert users_only["Resources"][0]["userName"] == "bjensen@example.com"
+
+    groups_only = root_search('displayName eq "Administrators"')
+    assert groups_only["totalResults"] == 1
+    assert groups_only["Resources"][0]["meta"]["resourceType"] == "Group"
 
     malformed_response = client.post(
         "/scim/v2/Users/.search",
@@ -124,6 +137,31 @@ def test_flask_example_smoke():
     resources = list_attributes_response.get_json()["Resources"]
     assert "userName" in resources[0]
     assert "displayName" not in resources[0]
+
+    filtered_response = client.get(
+        "/scim/v2/Users",
+        query_string={"filter": 'emails[type eq "work" and value ew "@example.com"]'},
+    )
+    assert filtered_response.status_code == 200
+    assert filtered_response.get_json()["totalResults"] == 1
+
+    unmatched_response = client.get(
+        "/scim/v2/Users", query_string={"filter": 'userName eq "nobody"'}
+    )
+    assert unmatched_response.status_code == 200
+    assert unmatched_response.get_json()["totalResults"] == 0
+
+    malformed_filter_response = client.get(
+        "/scim/v2/Users", query_string={"filter": "userName eq"}
+    )
+    assert malformed_filter_response.status_code == 400
+    assert malformed_filter_response.get_json()["scimType"] == "invalidFilter"
+
+    unknown_attribute_response = client.get(
+        "/scim/v2/Users", query_string={"filter": 'unknownAttr eq "x"'}
+    )
+    assert unknown_attribute_response.status_code == 400
+    assert unknown_attribute_response.get_json()["scimType"] == "invalidFilter"
 
     duplicate_response = client.post(
         "/scim/v2/Users",
@@ -328,7 +366,7 @@ def test_django_example_smoke():
                     "userName": "bjensen@example.com",
                     "displayName": "Barbara Jensen",
                     "active": True,
-                    "emails": [{"value": "bjensen@example.com"}],
+                    "emails": [{"value": "bjensen@example.com", "type": "work"}],
                 }
             ),
             content_type="application/scim+json",
@@ -384,19 +422,33 @@ def test_django_example_smoke():
         assert searched["Resources"][0]["userName"] == "bjensen@example.com"
         assert "displayName" not in searched["Resources"][0]
 
-        root_response = client.post(
-            "/scim/v2/.search",
-            json.dumps(
-                {"schemas": ["urn:ietf:params:scim:api:messages:2.0:SearchRequest"]}
-            ),
-            content_type="application/scim+json",
-        )
-        assert root_response.status_code == 200
-        gathered = json.loads(root_response.content)
+        def root_search(scim_filter=None):
+            body = {"schemas": ["urn:ietf:params:scim:api:messages:2.0:SearchRequest"]}
+            if scim_filter:
+                body["filter"] = scim_filter
+            response = client.post(
+                "/scim/v2/.search",
+                json.dumps(body),
+                content_type="application/scim+json",
+            )
+            assert response.status_code == 200
+            return json.loads(response.content)
+
+        # the root query gathers both resource types
+        gathered = root_search()
         assert gathered["totalResults"] == 3
         assert {
             resource["meta"]["resourceType"] for resource in gathered["Resources"]
         } == {"User", "Group"}
+
+        # an attribute only one type declares evaluates to false on the other
+        users_only = root_search("userName pr")
+        assert users_only["totalResults"] == 1
+        assert users_only["Resources"][0]["userName"] == "bjensen@example.com"
+
+        groups_only = root_search('displayName eq "Administrators"')
+        assert groups_only["totalResults"] == 1
+        assert groups_only["Resources"][0]["meta"]["resourceType"] == "Group"
 
         malformed_response = client.post(
             "/scim/v2/Users/.search",
@@ -418,6 +470,35 @@ def test_django_example_smoke():
         resources = json.loads(list_attributes_response.content)["Resources"]
         assert "userName" in resources[0]
         assert "displayName" not in resources[0]
+
+        filtered_response = client.get(
+            "/scim/v2/Users",
+            {"filter": 'emails[type eq "work" and value ew "@example.com"]'},
+        )
+        assert filtered_response.status_code == 200
+        assert json.loads(filtered_response.content)["totalResults"] == 1
+
+        unmatched_response = client.get(
+            "/scim/v2/Users", {"filter": 'userName eq "nobody"'}
+        )
+        assert unmatched_response.status_code == 200
+        assert json.loads(unmatched_response.content)["totalResults"] == 0
+
+        malformed_filter_response = client.get(
+            "/scim/v2/Users", {"filter": "userName eq"}
+        )
+        assert malformed_filter_response.status_code == 400
+        assert json.loads(malformed_filter_response.content)["scimType"] == (
+            "invalidFilter"
+        )
+
+        unknown_attribute_response = client.get(
+            "/scim/v2/Users", {"filter": 'unknownAttr eq "x"'}
+        )
+        assert unknown_attribute_response.status_code == 400
+        assert json.loads(unknown_attribute_response.content)["scimType"] == (
+            "invalidFilter"
+        )
 
         duplicate_response = client.post(
             "/scim/v2/Users",
@@ -465,7 +546,7 @@ def test_fastapi_example_smoke():
             "userName": "bjensen@example.com",
             "displayName": "Barbara Jensen",
             "active": True,
-            "emails": [{"value": "bjensen@example.com"}],
+            "emails": [{"value": "bjensen@example.com", "type": "work"}],
         },
     )
     assert create_response.status_code == 201
@@ -505,17 +586,30 @@ def test_fastapi_example_smoke():
     assert searched["Resources"][0]["userName"] == "bjensen@example.com"
     assert "displayName" not in searched["Resources"][0]
 
-    root_response = client.post(
-        "/scim/v2/.search",
-        json={"schemas": ["urn:ietf:params:scim:api:messages:2.0:SearchRequest"]},
-    )
-    assert root_response.status_code == 200
-    gathered = root_response.json()
+    def root_search(scim_filter=None):
+        body = {"schemas": ["urn:ietf:params:scim:api:messages:2.0:SearchRequest"]}
+        if scim_filter:
+            body["filter"] = scim_filter
+        response = client.post("/scim/v2/.search", json=body)
+        assert response.status_code == 200
+        return response.json()
+
+    # the root query gathers both resource types
+    gathered = root_search()
     assert gathered["totalResults"] == 3
     assert {resource["meta"]["resourceType"] for resource in gathered["Resources"]} == {
         "User",
         "Group",
     }
+
+    # an attribute only one type declares evaluates to false on the other
+    users_only = root_search("userName pr")
+    assert users_only["totalResults"] == 1
+    assert users_only["Resources"][0]["userName"] == "bjensen@example.com"
+
+    groups_only = root_search('displayName eq "Administrators"')
+    assert groups_only["totalResults"] == 1
+    assert groups_only["Resources"][0]["meta"]["resourceType"] == "Group"
 
     get_attributes_response = client.get(
         f"/scim/v2/Users/{user_id}?attributes=userName"
@@ -529,6 +623,31 @@ def test_fastapi_example_smoke():
     resources = list_attributes_response.json()["Resources"]
     assert "userName" in resources[0]
     assert "displayName" not in resources[0]
+
+    filtered_response = client.get(
+        "/scim/v2/Users",
+        params={"filter": 'emails[type eq "work" and value ew "@example.com"]'},
+    )
+    assert filtered_response.status_code == 200
+    assert filtered_response.json()["totalResults"] == 1
+
+    unmatched_response = client.get(
+        "/scim/v2/Users", params={"filter": 'userName eq "nobody"'}
+    )
+    assert unmatched_response.status_code == 200
+    assert unmatched_response.json()["totalResults"] == 0
+
+    malformed_filter_response = client.get(
+        "/scim/v2/Users", params={"filter": "userName eq"}
+    )
+    assert malformed_filter_response.status_code == 400
+    assert malformed_filter_response.json()["scimType"] == "invalidFilter"
+
+    unknown_attribute_response = client.get(
+        "/scim/v2/Users", params={"filter": 'unknownAttr eq "x"'}
+    )
+    assert unknown_attribute_response.status_code == 400
+    assert unknown_attribute_response.json()["scimType"] == "invalidFilter"
 
     duplicate_response = client.post(
         "/scim/v2/Users",
@@ -557,6 +676,8 @@ def test_fastapi_example_smoke():
     [
         ({"count": "abc"}, "invalidSyntax"),
         ({"attributes": 'emails[type eq "work"]'}, "invalidPath"),
+        ({"filter": "nonsense @"}, "invalidFilter"),
+        ({"sortBy": "nonexistent"}, "invalidPath"),
     ],
 )
 def test_fastapi_example_answers_a_scim_error_to_a_refused_query_parameter(

@@ -364,6 +364,92 @@ Extensions attributes are accessed with brackets, e.g. ``user[EnterpriseUser].em
     ... }
 
 
+.. _tutorial-filters:
+
+Filters
+=======
+
+:class:`~scim2_models.ScimFilter` parses the filters defined at :rfc:`RFC7644 §3.4.2.2 <7644#section-3.4.2.2>`,
+the ones a client sends in a ``filter`` query parameter or in
+:attr:`SearchRequest.filter <scim2_models.SearchRequest.filter>`.
+A filter behaves as the string it was built from, and the constructor checks its syntax as
+soon as it is created:
+
+.. doctest::
+
+    >>> from scim2_models import ScimFilter, User
+
+    >>> ScimFilter('userName eq "bjensen"') == 'userName eq "bjensen"'
+    True
+
+    >>> ScimFilter('userName eq')
+    Traceback (most recent call last):
+        ...
+    scim2_models.exceptions.InvalidFilterException: invalid syntax at column 10
+
+Binding it to a model with :class:`~scim2_models.ScimFilter`\ [:class:`~scim2_models.User`]
+checks it against that model too, and refuses an operator or a value the attribute cannot take
+the same way:
+
+.. doctest::
+
+    >>> ScimFilter[User]("active gt true")
+    Traceback (most recent call last):
+        ...
+    scim2_models.exceptions.InvalidFilterException: operator 'gt' cannot be applied to the boolean attribute 'urn:ietf:params:scim:schemas:core:2.0:User:active'
+
+Matching resources
+^^^^^^^^^^^^^^^^^^
+
+Binding a filter to a model with :class:`~scim2_models.ScimFilter`\ [:class:`~scim2_models.User`]
+resolves attribute names against that model, and lets you check whether a resource satisfies it:
+
+.. doctest::
+
+    >>> user = User(
+    ...     user_name="bjensen",
+    ...     emails=[{"type": "work", "value": "bjensen@example.com"}],
+    ... )
+
+    >>> ScimFilter[User]('emails[type eq "work"]').match(user)
+    True
+    >>> ScimFilter[User]('userName sw "bj" and title pr').match(user)
+    False
+
+An endpoint covering several resource types binds them all at once, and the filter matches
+each resource against its own type. A server needs this to answer a query against its root, as
+:doc:`guides/index` shows:
+
+.. doctest::
+
+    >>> from scim2_models import Group
+
+    >>> scim_filter = ScimFilter[User | Group]("userName pr")
+    >>> scim_filter.match(user)
+    True
+    >>> scim_filter.match(Group(display_name="admins"))
+    False
+
+Comparing a multi-valued complex attribute without naming a sub-attribute compares the ``value``
+of its entries, which is how :rfc:`RFC7644 §3.4.2.2 <7644#section-3.4.2.2>` uses the two forms
+side by side. Presence keeps its own meaning, since ``pr`` matches a non-empty *node*:
+
+.. doctest::
+
+    >>> ScimFilter[User]('emails co "example.com"').match(user)
+    True
+    >>> ScimFilter[User]('emails.value co "example.com"').match(user)
+    True
+
+    >>> without_value = User(user_name="bjensen", emails=[{"type": "work"}])
+    >>> ScimFilter[User]("emails pr").match(without_value)
+    True
+    >>> ScimFilter[User]("emails.value pr").match(without_value)
+    False
+
+:doc:`filters` continues from here: how to build a filter from values you do not trust, how to
+turn one into a database query, and where the grammar departs from the published RFC.
+
 Errors and Exceptions
 =====================
 
@@ -596,6 +682,8 @@ modified.
 If an immutable attribute differs, a :class:`~scim2_models.MutabilityException`
 is raised.
 
+.. _tutorial-patch:
+
 Patch operations
 ================
 
@@ -635,6 +723,9 @@ The :meth:`~scim2_models.PatchOp.patch` method applies operations in sequence an
    Patch operations are validated in the :attr:`~scim2_models.Context.RESOURCE_PATCH_REQUEST`
    context. Make sure to validate patch operations with the correct context to
    ensure proper validation of mutability and required constraints.
+
+A path can select which entries of a multi-valued attribute an operation applies to. See
+:doc:`patch`.
 
 Bulk operations
 ===============
