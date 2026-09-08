@@ -51,6 +51,7 @@ dev = [
     "pytest-cov>=6.0.0",
     "prek>=0.1.0",
     "starlette>=1.2.0",
+    "sqlalchemy>=2.0",
     "tox-uv>=1.16.0",
 ]
 doc = [
@@ -116,6 +117,10 @@ docstring-code-format = true
 [tool.pytest.ini_options]
 addopts = "--doctest-modules --doctest-glob='*.rst'"
 doctest_optionflags= "ALLOW_UNICODE ELLIPSIS"
+
+[tool.codespell]
+# ``selectin`` is the SQLAlchemy relationship loading strategy.
+ignore-words-list = "selectin"
 
 [tool.mypy]
 plugins = [

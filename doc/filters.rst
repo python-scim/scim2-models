@@ -289,12 +289,16 @@ in-memory SQLite table:
     >>> evaluate(scim_filter)
     ['1']
 
+The :doc:`guides/sqlalchemy` guide handles each of these cases on SQLAlchemy expressions, and
+runs every filter of its test list through both.
+
 A search request also carries a ``sortBy`` parameter.
 :attr:`SearchRequest.sort_by <scim2_models.SearchRequest.sort_by>` is a
 :class:`~scim2_models.Path`, and it resolves the same way. The attribute it resolves to names
 the column an ``ORDER BY`` sorts on. The column alone does not settle the order: the case, the
 missing values and the multi-valued attributes each have a rule of their own in
-:rfc:`RFC7644 §3.4.2.3 <7644#section-3.4.2.3>`.
+:rfc:`RFC7644 §3.4.2.3 <7644#section-3.4.2.3>`. The :doc:`guides/sqlalchemy` guide implements
+them.
 
 .. _filter-deviations:
 
@@ -413,6 +417,7 @@ Comparing values of different types
     A naive :class:`~datetime.datetime`, read from a store that drops offsets, is incomparable
     with the aware one a filter carries in the same way: an ordering filter on it quietly
     matches nothing. Make attributes typed ``dateTime`` timezone-aware before filtering them.
+    The :doc:`guides/sqlalchemy` guide shows where.
 
 Case-insensitive comparison
     §3.4.2.2 defers to ``caseExact`` without saying how case is folded.

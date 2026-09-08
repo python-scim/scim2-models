@@ -124,6 +124,18 @@ capabilities.
    :start-after: # -- discovery-start --
    :end-before: # -- discovery-end --
 
+Storing resources in a database
+-------------------------------
+
+The storage layer above keeps everything in a dictionary, which keeps the examples short. :doc:`sqlalchemy` replaces it with a database, where the filter becomes a ``WHERE``
+clause instead of a predicate applied to every mapped resource, and where sorting and
+pagination happen next to it.
+
+.. toctree::
+   :maxdepth: 1
+
+   sqlalchemy
+
 Web frameworks
 --------------
 
