@@ -34,8 +34,8 @@ from .exceptions import PathNotFoundException
 
 ResourceT = TypeVar("ResourceT", bound="Resource[Any]")
 
-_VALID_PATH_PATTERN = re.compile(r'^[a-zA-Z][a-zA-Z0-9._:\-\[\]"=\s]*$')
-_ATTRIBUTE_NOTATION_PATTERN = re.compile(r"^[a-zA-Z][a-zA-Z0-9._:\-]*$")
+_VALID_PATH_PATTERN = re.compile(r'^[a-zA-Z][a-zA-Z0-9._:\-\[\]"=\s$]*$')
+_ATTRIBUTE_NOTATION_PATTERN = re.compile(r"^[a-zA-Z][a-zA-Z0-9._:\-$]*$")
 _PATH_CACHE: "MutableMapping[tuple[type, type], type]" = WeakValueDictionary()
 """The classes subscription has already built, so that two subscriptions of the
 same resource type answer the same class.

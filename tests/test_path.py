@@ -67,6 +67,27 @@ def test_validate_scim_path_syntax_invalid_paths():
         assert raised.value.scim_type == "invalidPath"
 
 
+def test_a_reference_sub_attribute_is_a_valid_path():
+    """RFC 7643 spells the reference of a complex attribute ``$ref``."""
+    path = Path[Group]("members.$ref")
+    path.check_attribute_notation()
+    assert path.field_name == "ref"
+    assert path.attr == "members.$ref"
+
+    qualified = Path[User[EnterpriseUser]](
+        "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:manager.$ref"
+    )
+    assert qualified.field_name == "ref"
+
+    group = Group(
+        display_name="admins",
+        members=[{"value": "1", "$ref": "https://example.com/Users/1"}],
+    )
+    assert Path("members.$ref").get(group) == ["https://example.com/Users/1"]
+    assert Path("members.$ref").set(group, "https://example.com/Users/2")
+    assert group.members[0].ref == "https://example.com/Users/2"
+
+
 def test_a_malformed_path_in_a_message_answers_invalid_path():
     """§3.12 names ``invalidPath`` for a path that is "invalid or malformed".
 

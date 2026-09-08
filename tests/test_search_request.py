@@ -284,3 +284,12 @@ def test_search_request_integration_with_existing_validation():
 
     with pytest.raises(ValidationError, match="path|Path"):
         SearchRequest.model_validate(invalid_data)
+
+
+def test_a_parameter_asking_for_an_attribute_accepts_a_reference():
+    """``$ref`` is the name RFC 7643 gives the reference of a complex attribute."""
+    request = SearchRequest.model_validate(
+        {"attributes": "members.$ref", "sortBy": "members.$ref"}
+    )
+    assert request.attributes == ["members.$ref"]
+    assert request.sort_by == "members.$ref"
