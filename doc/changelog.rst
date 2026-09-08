@@ -22,6 +22,8 @@ Added
   covering several of them takes a union, as in ``SearchRequest[User | Group]``, and so does
   :class:`~scim2_models.Path`; a path resolves against the first type declaring it, so
   ``sortBy`` answers on a root query too.
+- :meth:`Path.resolve <scim2_models.Path.resolve>` resolves a path to the
+  :class:`~scim2_models.ResolvedAttribute` it designates.
 - lark is a new dependency.
 
 Changed
