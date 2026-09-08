@@ -261,7 +261,7 @@ def sorting_order(resources, attribute, sort_order=None):
 def sorting_key(resource, attribute):
     """Return the single value a ``sortBy`` orders a resource by."""
     request = SearchRequest[User[EnterpriseUser]](sort_by=attribute)
-    return sort_value(resource, request.sort_by)
+    return sort_value(resource, request.sort_by.resolve())
 
 
 @pytest.mark.parametrize("attribute", ["emails", "emails.value"])

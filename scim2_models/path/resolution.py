@@ -108,6 +108,22 @@ class AttributeBinding:
             return None
         return model.get_field_multiplicity(self.target_field_name)
 
+    def get_annotation(self, annotation_type: type) -> Any:
+        """Return an annotation of the attribute the path designates.
+
+        The sub-attribute answers when the path names one, the head attribute
+        otherwise, so ``emails.value`` reports the annotations of ``value``.
+
+        :param annotation_type: The annotation class, such as ``Mutability``.
+        :returns: The annotation value, or :data:`None` when the attribute
+            carries none, or when the head attribute holds no sub-attribute to
+            answer for.
+        """
+        model = self.target_model
+        if model is None:
+            return None
+        return model.get_field_annotation(self.target_field_name, annotation_type)
+
     def nested_in(self, urn: str) -> "AttributeBinding":
         """Return the same attribute, qualified by the URN it was resolved under.
 

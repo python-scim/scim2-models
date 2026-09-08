@@ -92,7 +92,7 @@ class SearchRequest(Message, ResponseParameters[ResourceT], Generic[ResourceT]):
         # Parameterising the request names the resource types the endpoint
         # serves, which is what makes an attribute none of them declares a
         # client error rather than something to resolve later.
-        if value is not None and value.models and value.field_name is None:
+        if value is not None and value.models and value.resolve() is None:
             raise InvalidPathException(
                 path=str(value), detail=f"Cannot sort on {str(value)!r}"
             ).as_pydantic_error()

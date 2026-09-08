@@ -30,6 +30,11 @@ Added
 
 Changed
 ^^^^^^^
+- :attr:`Path.model <scim2_models.Path.model>` answers the model a path designates when it names
+  no attribute: the bound model for the resource root, the resource or the extension for a bare
+  schema URN, and :data:`None` for a path naming an attribute. It used to answer the type holding
+  the attribute, which :meth:`Path.resolve <scim2_models.Path.resolve>` now does through
+  :class:`~scim2_models.AttributeBinding`.
 - :attr:`SearchRequest.sort_by <scim2_models.SearchRequest.sort_by>` is resolved against the
   model a parameterised request names, and an attribute none of its resource types declares
   answers ``invalidPath`` at validation time instead of being carried to the endpoint. Where an
@@ -44,6 +49,12 @@ Changed
 
 Removed
 ^^^^^^^
+- ``Path.field_name``, ``Path.field_type``, ``Path.is_multivalued``, ``Path.get_annotation`` and
+  ``Path.urn``. They read the attribute a path designates with the words of
+  :class:`~scim2_models.AttributeBinding` turned around, ``field_name`` naming the sub-attribute
+  where the binding names the head. :meth:`Path.resolve <scim2_models.Path.resolve>` answers the
+  binding, which carries them as ``target_field_name``, ``target_type``,
+  ``target_is_multivalued``, :meth:`~scim2_models.AttributeBinding.get_annotation` and ``urn``.
 - ``Path.is_prefix_of`` and ``Path.has_prefix``. They compared the text of two paths, which
   anything between brackets defeated, and answered differently from the comparison
   :attr:`~scim2_models.ResponseParameters.attributes` and

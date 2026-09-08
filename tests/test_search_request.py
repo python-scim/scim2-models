@@ -348,7 +348,7 @@ def test_a_parameterised_request_declares_the_extensions_it_serves():
 
 def test_a_parameterised_request_resolves_its_sort_by():
     request = SearchRequest[User].model_validate({"sortBy": "userName"})
-    assert request.sort_by.field_name == "user_name"
+    assert request.sort_by.resolve().target_field_name == "user_name"
 
 
 def test_an_unparameterised_request_only_checks_the_filter_syntax():
@@ -357,7 +357,7 @@ def test_an_unparameterised_request_only_checks_the_filter_syntax():
     assert request.filter == 'nonexistent eq "x"'
     assert request.filter.model is None
     assert (
-        SearchRequest.model_validate({"sortBy": "userName"}).sort_by.field_name is None
+        SearchRequest.model_validate({"sortBy": "userName"}).sort_by.resolve() is None
     )
 
 
@@ -374,8 +374,8 @@ def test_a_request_covering_several_resource_types_takes_a_union():
     assert request.filter.match(User(user_name="bjensen"))
     assert request.filter.match(Group(display_name="admins", members=[{"value": "u1"}]))
     assert request.sort_by.models == (User, Group)
-    assert request.sort_by.field_name == "user_name"
-    assert request.attributes[0].model is Group
+    assert request.sort_by.resolve().target_field_name == "user_name"
+    assert request.attributes[0].resolve().target_model is Group
 
 
 def test_a_parameterised_request_rejects_a_sort_by_the_model_does_not_declare():
@@ -401,7 +401,7 @@ def test_a_parameterised_request_rejects_a_sort_by_designating_a_resource():
 def test_a_sort_by_on_a_union_answers_to_the_type_declaring_it():
     """§3.4.2.1 has a root query cover types that do not share every attribute."""
     request = SearchRequest[User | Group].model_validate({"sortBy": "members"})
-    assert request.sort_by.model is Group
+    assert request.sort_by.resolve().target_model is Group
 
     with pytest.raises(ValidationError) as raised:
         SearchRequest[User | Group].model_validate({"sortBy": "nonexistent"})
@@ -423,8 +423,8 @@ def test_a_union_request_rejects_an_attribute_no_resource_type_declares():
 def test_a_union_request_resolves_its_sort_by():
     """A root query sorts on an attribute only some of the types it serves declare."""
     request = SearchRequest[User | Group].model_validate({"sortBy": "userName"})
-    assert request.sort_by.field_name == "user_name"
-    assert request.sort_by.model is User
+    assert request.sort_by.resolve().target_field_name == "user_name"
+    assert request.sort_by.resolve().target_model is User
 
 
 def test_a_parameterised_request_resolves_its_attributes():
@@ -432,19 +432,25 @@ def test_a_parameterised_request_resolves_its_attributes():
     request = SearchRequest[User].model_validate(
         {"attributes": ["userName", "emails.value"]}
     )
-    assert [path.field_name for path in request.attributes] == ["user_name", "value"]
-    assert [path.model.__name__ for path in request.attributes] == ["User", "Email"]
+    assert [path.resolve().target_field_name for path in request.attributes] == [
+        "user_name",
+        "value",
+    ]
+    assert [path.resolve().target_model.__name__ for path in request.attributes] == [
+        "User",
+        "Email",
+    ]
 
 
 def test_a_union_request_resolves_its_attributes():
     request = SearchRequest[User | Group].model_validate(
         {"attributes": ["userName", "members"]}
     )
-    assert [path.model for path in request.attributes] == [User, Group]
+    assert [path.resolve().target_model for path in request.attributes] == [User, Group]
 
 
 def test_an_unparameterised_request_leaves_its_attributes_unresolved():
     """§3.9 makes no promise about an attribute a resource type does not declare."""
     request = SearchRequest.model_validate({"attributes": "userName"})
     assert request.attributes == ["userName"]
-    assert request.attributes[0].field_name is None
+    assert request.attributes[0].resolve() is None

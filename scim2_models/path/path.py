@@ -57,6 +57,33 @@ def _scim_name(model: type[BaseModel], field_name: str) -> str:
 
 
 class Path(_BoundToModels, _Expression, Generic[ResourceT]):
+    """A SCIM attribute path, as defined at :rfc:`RFC7644 §3.5.2 <7644#section-3.5.2>`.
+
+    A path *is* the string it was built from, and designates one of three
+    things:
+
+    - a model, when the path is ``""`` (the resource root) or a bare schema
+      URN, accessible with the :attr:`model` property;
+    - an attribute, such as ``userName`` or ``name.familyName``, accessible
+      with the :meth:`resolve` method as an :class:`~scim2_models.AttributeBinding`;
+    - some values of a multi-valued attribute, when the path selects them as in
+      ``emails[type eq "work"]``: the :attr:`value_filter` property holds the
+      filter, and the :meth:`resolve` method still answers for the attribute
+      they belong to.
+
+    Syntax is checked on creation. Resolving attribute names requires a model
+    to resolve them against, bound with a parameterised type such as
+    ``Path[User]``. The :meth:`get`, :meth:`set` and :meth:`delete` methods
+    read and write a resource through the path.
+
+    On Python 3.14, a path can be written as a t-string, whose interpolated
+    values are quoted as :meth:`ScimFilter.quote <scim2_models.ScimFilter.quote>`
+    does. Another path, or a :class:`~scim2_models.ScimFilter`, is inserted
+    as it stands::
+
+        Path[Group](t"members[value eq {member_id}]")
+    """
+
     _ast: "PathNode | None" = None
     """The parsed path, kept once :attr:`ast` has computed it."""
 
@@ -234,13 +261,24 @@ class Path(_BoundToModels, _Expression, Generic[ResourceT]):
         value_path = self._as_value_path()
         return None if value_path is None else value_path.val_filter
 
-    def _designated_model(self) -> type[BaseModel] | None:
-        """Return the model this path designates when it names no attribute.
+    @property
+    def model(self) -> type[BaseModel] | None:
+        """The model this path designates, when it names no attribute.
 
-        The resource root designates the bound model, and a bare schema URN the
-        model it is the schema of, among the bound models and their extensions.
-        Neither can go through attribute resolution, since neither names an
-        attribute.
+        The resource root designates the bound model, and a bare schema URN
+        the resource or the extension it is the schema of. A path naming an
+        attribute designates a model through none of them, and answers
+        :data:`None`: :meth:`resolve` tells which attribute it is.
+
+        >>> from scim2_models import EnterpriseUser, Path, User
+        >>> Path[User]("").model is User
+        True
+        >>> Path[User[EnterpriseUser]](
+        ...     EnterpriseUser.__schema__
+        ... ).model is EnterpriseUser
+        True
+        >>> Path[User]("userName").model is None
+        True
         """
         if not self.__scim_models__:
             return None
@@ -256,18 +294,16 @@ class Path(_BoundToModels, _Expression, Generic[ResourceT]):
     def resolve(self) -> "AttributeBinding | None":
         """Bind this path to the attribute it designates on the bound model.
 
-        This is the single resolution the model-aware properties are built on.
-
         :returns: The resolved attribute, or :data:`None` when the path is
             unbound, designates a model rather than an attribute, or names an
             attribute the model does not declare.
         """
         model = self._resolving_model()
-        if model is None or self._designated_model() is not None:
+        if model is None or self.model is not None:
             return None
 
         # A path that designates no attribute has already returned above,
-        # since _designated_model answers for the resource root.
+        # since the model property answers for the resource root.
         designated = self._designated_attr_path()
         assert designated is not None
 
@@ -282,93 +318,6 @@ class Path(_BoundToModels, _Expression, Generic[ResourceT]):
         against the first of them declaring the attribute it names.
         """
         return self.__scim_models__
-
-    @property
-    def model(self) -> type[BaseModel] | None:
-        """The model holding the attribute this path designates.
-
-        Requires the Path to be bound to a model type via ``Path[Model]``.
-        Returns None if the path is unbound or invalid.
-
-        For "name.familyName" on Path[User], returns Name.
-        For "userName" on Path[User], returns User.
-        """
-        if (designated := self._designated_model()) is not None:
-            return designated
-
-        resolved = self.resolve()
-        return resolved.target_model if resolved is not None else None
-
-    @property
-    def field_name(self) -> str | None:
-        """The Python attribute name (snake_case) for this path.
-
-        Requires the Path to be bound to a model type via ``Path[Model]``.
-        Returns None if the path is unbound, invalid, or designates a model
-        rather than one of its attributes.
-
-        For "name.familyName" on Path[User], returns "family_name".
-        For "userName" on Path[User], returns "user_name".
-        """
-        resolved = self.resolve()
-        return resolved.target_field_name if resolved is not None else None
-
-    @property
-    def field_type(self) -> type | None:
-        """The Python type of the field this path points to.
-
-        Annotated types are unwrapped, so a ``binary`` attribute declared as
-        ``Base64Bytes`` reports :class:`bytes`.
-
-        For "userName" on Path[User], returns str.
-        For "name" on Path[User], returns Name.
-        For "emails" on Path[User], returns Email.
-        """
-        resolved = self.resolve()
-        return resolved.target_type if resolved is not None else None
-
-    @property
-    def is_multivalued(self) -> bool | None:
-        """Whether this path points to a multi-valued attribute.
-
-        For "emails" on Path[User], returns True.
-        For "emails.value" on Path[User], returns False, as the path
-        designates one value per entry.
-        """
-        resolved = self.resolve()
-        return resolved.target_is_multivalued if resolved is not None else None
-
-    def get_annotation(self, annotation_type: type) -> Any:
-        """Get annotation value for this path's field.
-
-        :param annotation_type: The annotation class (e.g., Required, Mutability).
-        :returns: The annotation value, or None when the path designates no
-            attribute.
-
-        For "userName" on Path[User] with Required, returns Required.true.
-        """
-        resolved = self.resolve()
-        if resolved is None or resolved.target_model is None:
-            return None
-        return resolved.target_model.get_field_annotation(
-            resolved.target_field_name, annotation_type
-        )
-
-    @property
-    def urn(self) -> str | None:
-        """The fully qualified URN for this path.
-
-        Requires the Path to be bound to a model type via ``Path[Model]``.
-        Returns None if the path is unbound or invalid.
-
-        For "userName" on Path[User], returns
-        "urn:ietf:params:scim:schemas:core:2.0:User:userName".
-        """
-        if (designated := self._designated_model()) is not None:
-            return getattr(designated, "__schema__", None) or None
-
-        resolved = self.resolve()
-        return resolved.urn if resolved is not None else None
 
     def _as_value_path(self) -> ValuePath | None:
         """Normalise a value-selecting path into a single representation.

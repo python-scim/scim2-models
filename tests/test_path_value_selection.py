@@ -83,7 +83,9 @@ def test_a_value_selecting_path_designates_an_attribute(user):
     assert path.schema == "urn:ietf:params:scim:schemas:core:2.0:User"
     assert path.attr == "emails.value"
     assert path.parts == ("emails", "value")
-    assert path.urn == "urn:ietf:params:scim:schemas:core:2.0:User:emails.value"
+    assert (
+        path.resolve().urn == "urn:ietf:params:scim:schemas:core:2.0:User:emails.value"
+    )
 
 
 # --- Reading ---
@@ -409,14 +411,13 @@ def test_a_selection_naming_an_unknown_attribute_is_silent_when_tolerant(user):
 def test_every_notation_resolves_against_the_model(path, field_name):
     """The three notations designate an attribute, so they all resolve.
 
-    :attr:`~scim2_models.Path.model` and its siblings used to answer ``None``
-    for anything but a plain attribute path, since they read the rendered
-    expression instead of the attribute it designates.
+    Reading the rendered expression instead of the attribute it designates used
+    to resolve nothing but a plain attribute path.
     """
-    resolved = Path[User](path)
-    assert resolved.field_name == field_name
-    assert resolved.model is not None
-    assert resolved.field_type is not None
+    resolved = Path[User](path).resolve()
+    assert resolved is not None
+    assert resolved.target_field_name == field_name
+    assert resolved.target_type is not None
     assert resolved.get_annotation(Mutability) is not None
 
 
@@ -433,11 +434,13 @@ def test_the_two_spellings_of_one_selection_designate_the_same_attribute(user):
     assert bare.get(user) == bracketed.get(user)
     assert bare.parts == bracketed.parts == ("emails",)
     assert bare.attr == bracketed.attr == "emails"
-    assert bare.model is bracketed.model is User
-    assert bare.field_name == bracketed.field_name == "emails"
-    assert bare.field_type is bracketed.field_type is Email
-    assert bare.is_multivalued is bracketed.is_multivalued is True
-    assert bare.urn == bracketed.urn == f"{User.__schema__}:emails"
+    resolved = bracketed.resolve()
+    assert bare.resolve() == resolved
+    assert resolved.target_model is User
+    assert resolved.target_field_name == "emails"
+    assert resolved.target_type is Email
+    assert resolved.target_is_multivalued is True
+    assert resolved.urn == f"{User.__schema__}:emails"
 
 
 def test_the_annotations_of_a_bare_comparison_come_from_the_attribute_it_selects():
@@ -449,19 +452,19 @@ def test_the_annotations_of_a_bare_comparison_come_from_the_attribute_it_selects
     bracketed = Path[Group]('members[value eq "u1"]')
     bare = Path[Group]('members.value eq "u1"')
 
-    assert bare.get_annotation(CaseExact) is bracketed.get_annotation(CaseExact)
-    assert bracketed.get_annotation(CaseExact) is CaseExact.false
+    assert bare.resolve().get_annotation(CaseExact) is CaseExact.false
+    assert bracketed.resolve().get_annotation(CaseExact) is CaseExact.false
 
 
 def test_a_selection_designates_the_sub_attribute_it_targets():
-    path = Path[User]('emails[type eq "work"].value')
-    assert path.model is Email
-    assert path.field_name == "value"
-    assert path.urn == "urn:ietf:params:scim:schemas:core:2.0:User:emails.value"
+    resolved = Path[User]('emails[type eq "work"].value').resolve()
+    assert resolved.target_model is Email
+    assert resolved.target_field_name == "value"
+    assert resolved.urn == "urn:ietf:params:scim:schemas:core:2.0:User:emails.value"
 
 
 def test_a_selection_without_a_sub_attribute_designates_the_attribute_itself():
-    path = Path[User]('emails[type eq "work"]')
-    assert path.model is User
-    assert path.field_name == "emails"
-    assert path.is_multivalued is True
+    resolved = Path[User]('emails[type eq "work"]').resolve()
+    assert resolved.target_model is User
+    assert resolved.target_field_name == "emails"
+    assert resolved.target_is_multivalued is True

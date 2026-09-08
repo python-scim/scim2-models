@@ -983,6 +983,7 @@ def test_the_model_of_a_sub_attribute_on_a_simple_attribute_is_unknown():
     )
     assert resolved.target_model is None
     assert resolved.target_is_multivalued is None
+    assert resolved.get_annotation(Required) is None
 
 
 def test_an_extension_attribute_read_from_the_extension_itself():
