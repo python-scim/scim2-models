@@ -12,8 +12,8 @@ from scim2_models.annotations import Returned
 from scim2_models.annotations import Uniqueness
 from scim2_models.attributes import ComplexAttribute
 from scim2_models.context import Context
-from scim2_models.filters import ScimFilter
 from scim2_models.path import Path
+from scim2_models.path import ScimFilter
 from scim2_models.reference import URI
 from scim2_models.reference import External
 from scim2_models.reference import Reference

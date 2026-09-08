@@ -6,25 +6,25 @@ from typing import Any
 from typing import Generic
 from typing import TypeVar
 
+from ..base import BaseModel
+from ..urn import URN
+from ..utils import _to_camel
 from .access import delete_value
 from .access import get_value
 from .access import set_value
-from .base import BaseModel
 from .binding import _BoundToModels
-from .urn import URN
-from .utils import _to_camel
 
 if TYPE_CHECKING:
-    from .annotations import CaseExact
-    from .annotations import Mutability
-    from .annotations import Required
-    from .annotations import Returned
-    from .annotations import Uniqueness
-    from .resources.resource import Resource
+    from ..annotations import CaseExact
+    from ..annotations import Mutability
+    from ..annotations import Required
+    from ..annotations import Returned
+    from ..annotations import Uniqueness
+    from ..resources.resource import Resource
 
-from .exceptions import InvalidFilterException
-from .exceptions import InvalidPathException
-from .exceptions import NoTargetException
+from ..exceptions import InvalidFilterException
+from ..exceptions import InvalidPathException
+from ..exceptions import NoTargetException
 from .expressions import AttrPath
 from .expressions import Comparison
 from .expressions import FilterNode
@@ -508,14 +508,14 @@ class Path(_BoundToModels, _Expression, Generic[ResourceT]):
         :param case_exact: Filter by CaseExact annotation values (e.g., [CaseExact.true]).
         :yields: Path instances for each attribute matching the filters.
         """
-        from .annotations import CaseExact
-        from .annotations import Mutability
-        from .annotations import Required
-        from .annotations import Returned
-        from .annotations import Uniqueness
-        from .attributes import ComplexAttribute
-        from .resources.resource import Extension
-        from .resources.resource import Resource
+        from ..annotations import CaseExact
+        from ..annotations import Mutability
+        from ..annotations import Required
+        from ..annotations import Returned
+        from ..annotations import Uniqueness
+        from ..attributes import ComplexAttribute
+        from ..resources.resource import Extension
+        from ..resources.resource import Resource
 
         if len(cls.__scim_models__) != 1:
             raise TypeError(

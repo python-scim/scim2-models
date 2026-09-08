@@ -8,15 +8,15 @@ from typing import get_args
 from pydantic import TypeAdapter
 from pydantic import ValidationError
 
-from .annotations import CaseExact
-from .base import BaseModel
-from .exceptions import InvalidFilterException
-from .exceptions import PathNotFoundException
+from ..annotations import CaseExact
+from ..base import BaseModel
+from ..exceptions import InvalidFilterException
+from ..exceptions import PathNotFoundException
+from ..utils import _find_field_name
 from .expressions import ORDERING_OPERATORS
 from .expressions import STRING_OPERATORS
 from .expressions import AttrPath
 from .expressions import CompareOperator
-from .utils import _find_field_name
 
 # Python types that RFC7644 §3.4.2.2 forbids comparing with an ordering operator.
 _UNORDERABLE_TYPES = (bool, bytes)
@@ -127,7 +127,7 @@ def attribute_host(obj: Any, resolved: ResolvedAttribute) -> Any:
     :returns: The object to read the attribute from, or :data:`None` when the
         extension holding it is not set.
     """
-    from .resources.resource import Extension
+    from ..resources.resource import Extension
 
     model = resolved.model
     if not (isclass(model) and issubclass(model, Extension)):
@@ -139,7 +139,7 @@ def attribute_host(obj: Any, resolved: ResolvedAttribute) -> Any:
 
 def _extension_models(model: type[BaseModel]) -> dict[str, type[BaseModel]]:
     """Return the extension models of a resource, keyed by schema URN."""
-    from .resources.resource import Resource
+    from ..resources.resource import Resource
 
     if not (isclass(model) and issubclass(model, Resource)):
         return {}
@@ -160,8 +160,8 @@ def designated_model(model: type[BaseModel], path: str) -> type[BaseModel] | Non
     :returns: The model the path is the schema of, or :data:`None` when it is
         not one.
     """
-    from .resources.resource import Extension
-    from .resources.resource import Resource
+    from ..resources.resource import Extension
+    from ..resources.resource import Resource
 
     if not (isclass(model) and issubclass(model, Resource | Extension)):
         return None
@@ -187,8 +187,8 @@ def _target_model(
 
     :raises PathNotFoundException: If ``strict`` and the URN designates no model.
     """
-    from .resources.resource import Extension
-    from .resources.resource import Resource
+    from ..resources.resource import Extension
+    from ..resources.resource import Resource
 
     if attr_path.uri is None:
         return model
@@ -344,7 +344,7 @@ def resolve_comparison_path(
     :raises PathNotFoundException: If ``strict`` and the attribute is unknown.
 
     >>> from scim2_models import User
-    >>> from scim2_models.filters import AttrPath, resolve_comparison_path
+    >>> from scim2_models.path import AttrPath, resolve_comparison_path
 
     >>> resolve_comparison_path(User, AttrPath("emails")).sub_field_name
     'value'

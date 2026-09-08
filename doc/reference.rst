@@ -16,17 +16,17 @@ This page presents all the models provided by scim2-models.
 .. automodule:: scim2_models
    :members:
 
-Filters
-=======
+Paths and filters
+=================
 
-The filter abstract syntax tree and the tools to walk it, used to turn a SCIM
+The path and filter abstract syntax tree and the tools to walk it, used to turn a SCIM
 filter into a backend query. See :ref:`filter-transpiling` for a worked example.
 
-.. automodule:: scim2_models.filters
+.. automodule:: scim2_models.path
    :members:
-   :exclude-members: ScimFilter
+   :exclude-members: Path, ResolvedAttribute, ScimFilter
 
-.. currentmodule:: scim2_models.filters
+.. currentmodule:: scim2_models.path
 
 .. data:: ORDERING_OPERATORS
    :type: frozenset[CompareOperator]

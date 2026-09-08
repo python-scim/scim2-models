@@ -32,7 +32,6 @@ from .exceptions import SCIMException
 from .exceptions import SensitiveException
 from .exceptions import TooManyException
 from .exceptions import UniquenessException
-from .filters import ScimFilter
 from .lookup import get_model_by_payload
 from .lookup import get_model_by_schema
 from .messages.bulk import BulkOperation
@@ -46,10 +45,11 @@ from .messages.patch_op import PatchOperation
 from .messages.response_parameters import ResponseParameters
 from .messages.search_request import SearchRequest
 from .path import Path
+from .path import ResolvedAttribute
+from .path import ScimFilter
 from .reference import URI
 from .reference import External
 from .reference import Reference
-from .resolution import ResolvedAttribute
 from .resources.enterprise_user import EnterpriseUser
 from .resources.enterprise_user import Manager
 from .resources.group import Group

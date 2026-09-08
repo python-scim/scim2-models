@@ -11,8 +11,8 @@ from lark import v_args
 from lark.exceptions import LarkError
 from lark.exceptions import VisitError
 
-from .exceptions import InvalidFilterException
-from .exceptions import InvalidPathException
+from ..exceptions import InvalidFilterException
+from ..exceptions import InvalidPathException
 from .expressions import _ATTR_NAME
 from .expressions import _URN
 from .expressions import AttrPath
@@ -143,7 +143,7 @@ def _select_attr_path(raw: str) -> AttrPath:
 
 @v_args(inline=True)
 class _AstBuilder(Transformer[Token, Any]):
-    """Turn a lark parse tree into the nodes of :mod:`scim2_models.expressions`."""
+    """Turn a lark parse tree into the nodes of :mod:`scim2_models.path.expressions`."""
 
     def or_expr(self, *terms: FilterNode) -> FilterNode:
         return LogicalExpr(op=LogicalOperator.or_, terms=terms)
@@ -221,7 +221,7 @@ def parse_filter(expression: str) -> FilterNode:
     :returns: The root node of the parsed expression.
     :raises InvalidFilterException: If the expression is syntactically invalid.
 
-    >>> from scim2_models.filters import parse_filter
+    >>> from scim2_models.path import parse_filter
     >>> parse_filter('userName eq "bjensen"')
     Comparison(attr_path=AttrPath(attr='userName', sub_attr=None, uri=None), op=<CompareOperator.eq: 'eq'>, value='bjensen')
     """
@@ -242,7 +242,7 @@ def parse_path(path: str) -> PathNode:
     :returns: The parsed path.
     :raises InvalidPathException: If the path is syntactically invalid.
 
-    >>> from scim2_models.filters import parse_path
+    >>> from scim2_models.path import parse_path
     >>> parse_path("name.familyName")
     AttrPath(attr='name', sub_attr='familyName', uri=None)
     """

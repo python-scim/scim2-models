@@ -6,19 +6,19 @@ from typing import cast
 from typing import get_args
 from typing import get_origin
 
-from .base import BaseModel
-from .exceptions import InvalidPathException
-from .exceptions import NoTargetException
-from .exceptions import PathNotFoundException
-from .filters.filter import validate_value_filter
-from .filters.visitor import Evaluator
+from ..base import BaseModel
+from ..exceptions import InvalidPathException
+from ..exceptions import NoTargetException
+from ..exceptions import PathNotFoundException
+from ..utils import UNION_TYPES
+from ..utils import _find_field_name
+from .filter import validate_value_filter
 from .resolution import _target_model
 from .resolution import attribute_host
 from .resolution import designated_model
 from .resolution import resolve_attr_path
 from .resolution import validate_value_selection
-from .utils import UNION_TYPES
-from .utils import _find_field_name
+from .visitor import Evaluator
 
 if TYPE_CHECKING:
     from .path import Path
@@ -111,7 +111,7 @@ def _walk(
     :raises PathNotFoundException: If the path names an attribute the model
         does not declare, or a sub-attribute of one that has none.
     """
-    from .resources.resource import Resource
+    from ..resources.resource import Resource
 
     if path.ast is None:
         return _Root(explicit=False)

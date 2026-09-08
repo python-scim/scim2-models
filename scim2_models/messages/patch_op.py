@@ -21,7 +21,7 @@ from ..exceptions import InvalidValueException
 from ..exceptions import MutabilityException
 from ..exceptions import NoTargetException
 from ..path import Path
-from ..resolution import attribute_host
+from ..path import attribute_host
 from ..resources.resource import Resource
 from ..urn import URN
 from ..utils import _find_field_name

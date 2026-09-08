@@ -5,24 +5,24 @@ from typing import Generic
 from typing import TypeVar
 
 from ..base import BaseModel
-from ..binding import _BoundToModels
-from ..expressions import AttrPath
-from ..expressions import Comparison
-from ..expressions import FilterNode
-from ..expressions import LogicalExpr
-from ..expressions import Not
-from ..expressions import Present
-from ..expressions import Template
-from ..expressions import ValuePath
-from ..expressions import _Expression
-from ..expressions import _quote
-from ..expressions import _text
-from ..grammar import parse_filter
-from ..resolution import ResolvedAttribute
-from ..resolution import coerce_value
-from ..resolution import resolve_filter_path
-from ..resolution import validate_operator
-from ..resolution import validate_value_selection
+from .binding import _BoundToModels
+from .expressions import AttrPath
+from .expressions import Comparison
+from .expressions import FilterNode
+from .expressions import LogicalExpr
+from .expressions import Not
+from .expressions import Present
+from .expressions import Template
+from .expressions import ValuePath
+from .expressions import _Expression
+from .expressions import _quote
+from .expressions import _text
+from .grammar import parse_filter
+from .resolution import ResolvedAttribute
+from .resolution import coerce_value
+from .resolution import resolve_filter_path
+from .resolution import validate_operator
+from .resolution import validate_value_selection
 from .visitor import Evaluator
 from .visitor import FilterVisitor
 
@@ -191,7 +191,7 @@ class ScimFilter(_BoundToModels, _Expression, Generic[ResourceT]):
         """The parsed form of the filter.
 
         This is the tree a transpiler walks with a
-        :class:`~scim2_models.filters.FilterVisitor`.
+        :class:`~scim2_models.path.FilterVisitor`.
         """
         return self._ast
 
@@ -263,7 +263,7 @@ class ScimFilter(_BoundToModels, _Expression, Generic[ResourceT]):
         :raises InvalidFilterException: If ``strict`` and the attribute is unknown.
 
         >>> from scim2_models import ScimFilter, User
-        >>> from scim2_models.filters import AttrPath
+        >>> from scim2_models.path import AttrPath
 
         >>> resolved = ScimFilter[User]('emails.type eq "work"').resolve(
         ...     AttrPath(attr="emails", sub_attr="type")
@@ -287,7 +287,7 @@ class ScimFilter(_BoundToModels, _Expression, Generic[ResourceT]):
         which the sub-attribute carries rather than the attribute holding it.
 
         :param attr_path: The attribute path to resolve, usually taken from a
-            :class:`~scim2_models.filters.Comparison` node of :attr:`ast`.
+            :class:`~scim2_models.path.Comparison` node of :attr:`ast`.
         :param strict: Whether an unknown attribute raises instead of
             returning :data:`None`.
         :returns: The resolved attribute, or :data:`None` when the filter is
@@ -295,7 +295,7 @@ class ScimFilter(_BoundToModels, _Expression, Generic[ResourceT]):
         :raises InvalidFilterException: If ``strict`` and the attribute is unknown.
 
         >>> from scim2_models import Group, ScimFilter
-        >>> from scim2_models.filters import AttrPath
+        >>> from scim2_models.path import AttrPath
 
         >>> scim_filter = ScimFilter[Group]('members co "2819c223"')
         >>> resolved = scim_filter.resolve_comparison(AttrPath(attr="members"))

@@ -7,7 +7,7 @@ from pydantic import model_validator
 from ..base import BaseModel
 from ..exceptions import InvalidPathException
 from ..path import Path
-from ..path import ResourceT
+from ..path.path import ResourceT
 
 
 class ResponseParameters(BaseModel, Generic[ResourceT]):

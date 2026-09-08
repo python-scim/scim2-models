@@ -6,18 +6,18 @@ import pytest
 from scim2_models import InvalidFilterException
 from scim2_models import InvalidPathException
 from scim2_models import ScimFilter
-from scim2_models.filters import AttrPath
-from scim2_models.filters import CompareOperator
-from scim2_models.filters import Comparison
-from scim2_models.filters import FilterNode
-from scim2_models.filters import FilterVisitor
-from scim2_models.filters import LogicalExpr
-from scim2_models.filters import LogicalOperator
-from scim2_models.filters import Not
-from scim2_models.filters import Present
-from scim2_models.filters import ValuePath
-from scim2_models.filters import parse_filter
-from scim2_models.filters import parse_path
+from scim2_models.path import AttrPath
+from scim2_models.path import CompareOperator
+from scim2_models.path import Comparison
+from scim2_models.path import FilterNode
+from scim2_models.path import FilterVisitor
+from scim2_models.path import LogicalExpr
+from scim2_models.path import LogicalOperator
+from scim2_models.path import Not
+from scim2_models.path import Present
+from scim2_models.path import ValuePath
+from scim2_models.path import parse_filter
+from scim2_models.path import parse_path
 
 
 @pytest.mark.parametrize(

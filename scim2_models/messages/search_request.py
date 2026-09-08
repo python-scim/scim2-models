@@ -6,9 +6,9 @@ from pydantic import field_validator
 
 from ..exceptions import InvalidFilterException
 from ..exceptions import InvalidPathException
-from ..filters import ScimFilter
 from ..path import Path
-from ..path import ResourceT
+from ..path import ScimFilter
+from ..path.path import ResourceT
 from ..urn import URN
 from .message import Message
 from .response_parameters import ResponseParameters

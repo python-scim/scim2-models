@@ -4,21 +4,21 @@ from typing import TypeVar
 from unicodedata import normalize
 
 from ..base import BaseModel
-from ..expressions import AttrPath
-from ..expressions import CompareOperator
-from ..expressions import Comparison
-from ..expressions import FilterNode
-from ..expressions import LogicalExpr
-from ..expressions import LogicalOperator
-from ..expressions import Not
-from ..expressions import Present
-from ..expressions import ValuePath
-from ..resolution import ResolvedAttribute
-from ..resolution import attribute_host
-from ..resolution import coerce_value
-from ..resolution import resolve_filter_path
-from ..resolution import validate_operator
-from ..resolution import validate_value_selection
+from .expressions import AttrPath
+from .expressions import CompareOperator
+from .expressions import Comparison
+from .expressions import FilterNode
+from .expressions import LogicalExpr
+from .expressions import LogicalOperator
+from .expressions import Not
+from .expressions import Present
+from .expressions import ValuePath
+from .resolution import ResolvedAttribute
+from .resolution import attribute_host
+from .resolution import coerce_value
+from .resolution import resolve_filter_path
+from .resolution import validate_operator
+from .resolution import validate_value_selection
 
 T = TypeVar("T")
 

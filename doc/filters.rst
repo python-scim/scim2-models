@@ -77,12 +77,12 @@ serves several resource types must evaluate it to false rather than fail
 
 You can also build a filter without writing any SCIM syntax. Expression nodes combine with the
 Python boolean operators and render back to valid syntax, parentheses included. A
-:class:`~scim2_models.filters.Comparison` quotes its value the same way, and an
-:class:`~scim2_models.filters.AttrPath` refuses a name the grammar would not read as one:
+:class:`~scim2_models.path.Comparison` quotes its value the same way, and an
+:class:`~scim2_models.path.AttrPath` refuses a name the grammar would not read as one:
 
 .. doctest::
 
-    >>> from scim2_models.filters import AttrPath, Comparison, CompareOperator, Present
+    >>> from scim2_models.path import AttrPath, Comparison, CompareOperator, Present
 
     >>> work = Comparison(AttrPath("userName"), CompareOperator.eq, "bjensen")
     >>> titled = Present(AttrPath("title"))
@@ -112,9 +112,9 @@ scim2-models ships no SQL, but it gives you the parts you need to write that que
 :class:`~scim2_models.ScimFilter` parses a filter when it is created, and keeps the result in
 :attr:`ScimFilter.ast <scim2_models.ScimFilter.ast>`: an abstract syntax tree, that is, a set of
 nodes referencing each other. ``userName eq "bjensen" and title pr`` is a
-:class:`~scim2_models.filters.LogicalExpr` node with two terms, a
-:class:`~scim2_models.filters.Comparison` and a :class:`~scim2_models.filters.Present`, each holding
-the :class:`~scim2_models.filters.AttrPath` it applies to:
+:class:`~scim2_models.path.LogicalExpr` node with two terms, a
+:class:`~scim2_models.path.Comparison` and a :class:`~scim2_models.path.Present`, each holding
+the :class:`~scim2_models.path.AttrPath` it applies to:
 
 .. doctest::
 
@@ -124,10 +124,10 @@ the :class:`~scim2_models.filters.AttrPath` it applies to:
                                   op=<CompareOperator.eq: 'eq'>, value='bjensen'),
                        Present(attr_path=AttrPath(attr='title', sub_attr=None, uri=None))))
 
-:class:`~scim2_models.filters.FilterVisitor` is a class that walks such a tree. You subclass it and
+:class:`~scim2_models.path.FilterVisitor` is a class that walks such a tree. You subclass it and
 write what to do for each type of node. For a ``LogicalExpr``, write ``AND`` or ``OR`` between
 its terms; for a ``Comparison``, ``column = ?``; for a ``Present``, ``column IS NOT NULL``.
-:meth:`~scim2_models.filters.FilterVisitor.visit` dispatches a node to the method of its type and
+:meth:`~scim2_models.path.FilterVisitor.visit` dispatches a node to the method of its type and
 returns what that method returns. A subclass that turns a filter into a query for another
 system is called a transpiler below.
 
@@ -144,14 +144,14 @@ stored in one column, ``meta.lastModified`` in ``meta_last_modified``. A node on
 :meth:`ScimFilter.resolve <scim2_models.ScimFilter.resolve>`. The result names the field holding
 the attribute, and says whether the comparison ignores case. The values do not go into the SQL.
 The visitor collects them in ``params``, which the database driver sends separately from the
-query. :func:`~scim2_models.filters.coerce_value` converts each one beforehand, from the JSON value
+query. :func:`~scim2_models.path.coerce_value` converts each one beforehand, from the JSON value
 the filter carries to the Python value the attribute holds. The visitor refuses whatever is
 harder in SQL than in SCIM, instead of guessing:
 
 .. doctest::
 
     >>> from scim2_models import Attribute
-    >>> from scim2_models.filters import FilterVisitor, LogicalOperator, coerce_value
+    >>> from scim2_models.path import FilterVisitor, LogicalOperator, coerce_value
 
     >>> SQL_OPERATORS = {
     ...     CompareOperator.eq: "=",
@@ -394,7 +394,7 @@ The RFC leaves seven further choices open:
 
 Substring operators
     ``co``, ``sw`` and ``ew`` match a fragment rather than a whole value, so
-    :func:`~scim2_models.filters.coerce_value` leaves their operand as it is instead of converting
+    :func:`~scim2_models.path.coerce_value` leaves their operand as it is instead of converting
     it to the type of the attribute. The bound filter accepts ``emails[value co "example"]``
     even though ``"example"`` is not a valid email address on its own.
 
@@ -426,7 +426,7 @@ Case-insensitive comparison
     emitting SQL ``LOWER()`` folds ASCII only, and departs from ``match`` on such a value.
 
 Coercion of comparison values
-    :func:`~scim2_models.filters.coerce_value` reads a comparison value as JSON, then converts it
+    :func:`~scim2_models.path.coerce_value` reads a comparison value as JSON, then converts it
     to the type of the attribute. The conversion is the tolerant one of pydantic, so it reads
     ``active eq "yes"`` and ``active eq 1`` as ``active eq true`` instead of rejecting them as
     ``invalidFilter``. This tolerance makes the ``roles[primary eq "True"]`` that Microsoft

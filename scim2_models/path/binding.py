@@ -8,11 +8,11 @@ from pydantic import GetJsonSchemaHandler
 from pydantic.json_schema import JsonSchemaValue
 from pydantic_core import core_schema
 
-from .exceptions import SCIMException
-from .utils import _model_union
+from ..exceptions import SCIMException
+from ..utils import _model_union
 
 if TYPE_CHECKING:
-    from .base import BaseModel
+    from ..base import BaseModel
 
 _BOUND_CLASSES: "MutableMapping[tuple[type, tuple[type, ...]], type]" = (
     WeakValueDictionary()

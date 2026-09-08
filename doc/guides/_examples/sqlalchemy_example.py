@@ -25,12 +25,12 @@ from scim2_models import InvalidPathException
 from scim2_models import Meta
 from scim2_models import SearchRequest
 from scim2_models import User
-from scim2_models.filters import STRING_OPERATORS
-from scim2_models.filters import AttrPath
-from scim2_models.filters import CompareOperator
-from scim2_models.filters import FilterVisitor
-from scim2_models.filters import LogicalOperator
-from scim2_models.filters import coerce_value
+from scim2_models.path import STRING_OPERATORS
+from scim2_models.path import AttrPath
+from scim2_models.path import CompareOperator
+from scim2_models.path import FilterVisitor
+from scim2_models.path import LogicalOperator
+from scim2_models.path import coerce_value
 
 from .integrations import MAX_RESULTS
 

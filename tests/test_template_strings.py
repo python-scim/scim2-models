@@ -11,8 +11,8 @@ from scim2_models import InvalidPathException
 from scim2_models import Path
 from scim2_models import ScimFilter
 from scim2_models import User
-from scim2_models.filters import Comparison
-from scim2_models.filters import LogicalExpr
+from scim2_models.path import Comparison
+from scim2_models.path import LogicalExpr
 
 
 def test_an_interpolated_string_stays_a_value_whatever_it_contains():

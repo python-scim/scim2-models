@@ -190,7 +190,7 @@ class FilterNode:
     Nodes compose with the Python boolean operators, which is how a filter is
     built without going through a string::
 
-        >>> from scim2_models.filters import AttrPath, Comparison, CompareOperator, Present
+        >>> from scim2_models.path import AttrPath, Comparison, CompareOperator, Present
 
         >>> work = Comparison(AttrPath("type"), CompareOperator.eq, "work")
         >>> primary = Present(AttrPath("primary"))
