@@ -1,3 +1,5 @@
+"""A filter expression as a string, bound to the models it is validated against."""
+
 from inspect import isclass
 from typing import TYPE_CHECKING
 from typing import Any

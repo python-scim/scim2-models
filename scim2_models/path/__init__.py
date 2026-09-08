@@ -1,3 +1,5 @@
+"""Attribute paths and filters, from their grammar to their evaluation on a resource."""
+
 from .expressions import ORDERING_OPERATORS
 from .expressions import STRING_OPERATORS
 from .expressions import AttrPath

@@ -1,3 +1,5 @@
+"""Binding a syntactic attribute path to the attribute a model declares."""
+
 from dataclasses import dataclass
 from dataclasses import replace
 from inspect import isclass

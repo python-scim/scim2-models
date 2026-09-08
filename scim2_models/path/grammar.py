@@ -1,3 +1,5 @@
+"""The RFC 7644 grammar of filters and paths, and the parsers that build the syntax tree."""
+
 import json
 from functools import lru_cache
 from math import isfinite

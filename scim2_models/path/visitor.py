@@ -1,3 +1,5 @@
+"""Walking the syntax tree: the base of transpilers, and the in-memory evaluator."""
+
 from typing import Any
 from typing import Generic
 from typing import TypeVar

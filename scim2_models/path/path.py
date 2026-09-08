@@ -1,3 +1,5 @@
+"""An attribute path as a string, bound to the models it is resolved against."""
+
 from collections.abc import Iterator
 from dataclasses import replace
 from inspect import isclass

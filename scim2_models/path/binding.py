@@ -1,3 +1,5 @@
+"""The subscription binding a string type to resource models, as in ``Path[User]``."""
+
 from collections.abc import MutableMapping
 from typing import TYPE_CHECKING
 from typing import Any

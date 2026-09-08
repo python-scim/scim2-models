@@ -1,3 +1,5 @@
+"""Reading and writing a resource through a path, plain or selecting values."""
+
 from inspect import isclass
 from typing import TYPE_CHECKING
 from typing import Any

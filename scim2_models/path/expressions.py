@@ -1,3 +1,5 @@
+"""The syntax tree that filters and paths are parsed into, and rendered back from."""
+
 import json
 import re
 import sys
