@@ -21,7 +21,7 @@ from ..exceptions import InvalidValueException
 from ..exceptions import MutabilityException
 from ..exceptions import NoTargetException
 from ..path import Path
-from ..resources.resource import Extension
+from ..resolution import attribute_host
 from ..resources.resource import Resource
 from ..urn import URN
 from ..utils import _find_field_name
@@ -63,18 +63,6 @@ def _names_a_declared_target(
     return any(
         schema.lower() == lowered for schema in resource_class.get_extension_models()
     )
-
-
-def _attribute_host(resource: Resource[Any], holder: type[BaseModel]) -> Any:
-    """Return the object an attribute lives on.
-
-    An attribute qualified by an extension URN is declared by the extension and
-    lives on the instance hanging off the resource under its class name, which
-    is unset until the extension carries a value.
-    """
-    if not (isclass(holder) and issubclass(holder, Extension)):
-        return resource
-    return getattr(resource, holder.__name__, None)
 
 
 def _resolved_field(resource_class: type[BaseModel], attr_name: str) -> str | None:
@@ -332,12 +320,16 @@ class PatchOp(Message, Generic[ResourceT]):
 
             # The attribute a qualified path applies to is declared by the
             # extension the URN designates, not by the resource, so the checks
-            # resolve the path instead of reading its first segment.
-            if (head := operation.path._resolve_head()) is None:
+            # resolve the path instead of reading its first segment. They read
+            # the attribute the path applies to rather than the sub-attribute it
+            # targets, as a constraint on a complex attribute governs everything
+            # written under it: "meta" is read-only where "meta.version" is not.
+            if (resolved := operation.path.resolve()) is None:
                 continue
-            holder, field_name = head
-            operation._validate_mutability(holder, field_name)
-            operation._validate_required_attribute(holder, field_name, operation.value)
+            operation._validate_mutability(resolved.model, resolved.field_name)
+            operation._validate_required_attribute(
+                resolved.model, resolved.field_name, operation.value
+            )
 
         return self
 
@@ -407,15 +399,15 @@ class PatchOp(Message, Generic[ResourceT]):
         field, or ``replace`` with the current value.
         """
         assert operation.path is not None
-        if (head := operation.path._resolve_head()) is None:
+        if (resolved := operation.path.resolve()) is None:
             return
-        resource_class, field_name = head
+        field_name = resolved.field_name
 
-        mutability = resource_class.get_field_annotation(field_name, Mutability)
+        mutability = resolved.model.get_field_annotation(field_name, Mutability)
         if mutability != Mutability.immutable:
             return
 
-        host = _attribute_host(resource, resource_class)
+        host = attribute_host(resource, resolved)
         current_value = getattr(host, field_name, None)
 
         if operation.op == PatchOperation.Op.add and current_value is None:

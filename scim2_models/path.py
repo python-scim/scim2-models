@@ -441,19 +441,6 @@ class Path(_BoundToModels, _Expression, Generic[ResourceT]):
         resolved = self.resolve()
         return resolved.urn if resolved is not None else None
 
-    def _resolve_head(self) -> "tuple[type[BaseModel], str] | None":
-        """Resolve the attribute the path applies to, and the model declaring it.
-
-        A constraint on a complex attribute governs everything written under it,
-        so it is the attribute a path applies to that answers for an operation
-        rather than the sub-attribute it targets: ``meta`` is read-only where the
-        ``meta.version`` it holds is not.
-        """
-        resolved = self.resolve()
-        if resolved is None:
-            return None
-        return resolved.model, resolved.field_name
-
     def _walk(
         self, resource: BaseModel, *, create: bool = False
     ) -> "_Root | _Target | None":
