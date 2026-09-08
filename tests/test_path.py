@@ -1224,6 +1224,23 @@ def test_reading_an_unset_extension_does_not_bring_it_into_being():
     assert written[EnterpriseUser].employee_number == "701984"
 
 
+@pytest.mark.parametrize("attribute", ["invalidAttribute", "manager.invalidField"])
+def test_a_refused_write_does_not_bring_an_unset_extension_into_being(attribute):
+    """A write refused for an unknown attribute leaves the extension unset.
+
+    The extension used to be instantiated before the attribute was looked up,
+    so a refused write left its schema on a resource it did not change.
+    """
+    user = User[EnterpriseUser](user_name="bjensen")
+    path = Path(
+        f"urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:{attribute}"
+    )
+
+    with pytest.raises(PathNotFoundException):
+        path.set(user, "x")
+    assert user[EnterpriseUser] is None
+
+
 def test_set_explicit_schema_path_with_non_dict_raises():
     """Set with explicit schema path and non-dict value raises InvalidPathException."""
     user = User(user_name="john")

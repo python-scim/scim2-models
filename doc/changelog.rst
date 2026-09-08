@@ -38,6 +38,10 @@ Fixed
   :attr:`Required.true <scim2_models.Required.true>` unassigned answers ``mutability`` instead
   of ``invalidValue``, which is the ``scimType``
   :rfc:`RFC7644 §3.5.2.2 <7644#section-3.5.2.2>` names for it.
+- A PATCH operation refused for naming an attribute its extension does not declare left that
+  extension instantiated on the resource, so a resource the operation did not change carried
+  a schema the client never sent. The attribute is looked up before the extension is brought
+  into being.
 - A PATCH operation carrying no ``path`` accepts a resource as its ``value``, and not only a
   mapping. Such a resource used to be ignored without a word: neither checked against the
   model, nor written to the patched resource.

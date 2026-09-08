@@ -505,6 +505,9 @@ class Path(str, Generic[ResourceT]):
 
         ext_obj = getattr(resource, ext_model.__name__)
         if create and ext_obj is None:
+            # Checked on the declared type before anything is instantiated, so
+            # that a refused write leaves no half-built extension behind.
+            _resolve_field_names(ext_model, sub_path.split("."), path_str)
             ext_obj = ext_model()
             setattr(resource, ext_model.__name__, ext_obj)
         if ext_obj is None:

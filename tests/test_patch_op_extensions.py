@@ -173,6 +173,7 @@ def test_patch_operation_extension_invalid_path_error():
     )
     with pytest.raises(InvalidPathException):
         patch1.patch(user)
+    assert user[EnterpriseUser] is None
 
     patch2 = PatchOp[User](
         operations=[
@@ -185,6 +186,7 @@ def test_patch_operation_extension_invalid_path_error():
     )
     with pytest.raises(InvalidPathException):
         patch2.patch(user)
+    assert user[EnterpriseUser] is None
 
 
 def test_urn_parsing_errors():
