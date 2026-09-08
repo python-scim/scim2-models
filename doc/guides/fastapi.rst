@@ -69,7 +69,9 @@ validation errors, HTTP exceptions, and application errors aligned with SCIM res
 
 ``handle_validation_error`` catches the :class:`~pydantic_core.ValidationError` raised by
 :meth:`~scim2_models.BaseModel.model_validate` and returns a SCIM :class:`~scim2_models.Error`
-response.
+response. It is registered for :class:`~fastapi.exceptions.RequestValidationError` as well, which
+is what FastAPI raises when it validates the query parameters itself: without it a malformed
+``count`` or ``attributes`` answers the FastAPI ``422`` body instead of a SCIM error.
 ``handle_http_exception`` catches HTTP errors such as the 404 raised by the dependency and wraps
 them in a SCIM :class:`~scim2_models.Error`.
 ``handle_scim_error`` catches any :class:`~scim2_models.SCIMException` (uniqueness, mutability, …)

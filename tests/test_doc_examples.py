@@ -409,3 +409,31 @@ def test_fastapi_example_smoke():
     )
     assert put_response.status_code == 200
     assert put_response.json()["displayName"] == "Barbara J."
+
+
+@pytest.mark.parametrize(
+    ("parameters", "scim_type"),
+    [
+        ({"count": "abc"}, "invalidSyntax"),
+        ({"attributes": 'emails[type eq "work"]'}, "invalidPath"),
+    ],
+)
+def test_fastapi_example_answers_a_scim_error_to_a_refused_query_parameter(
+    parameters, scim_type
+):
+    """FastAPI validates the query parameters itself, so a refused one never reaches the endpoint.
+
+    The failure is a RequestValidationError, which the guide handles next to
+    ValidationError: without it the framework answers its own body, and a
+    client reading the scimType of the error finds none.
+    """
+    from starlette.testclient import TestClient
+
+    from doc.guides._examples.fastapi_example import app
+
+    client = TestClient(app)
+
+    response = client.get("/scim/v2/Users", params=parameters)
+    assert response.status_code == 400
+    assert response.headers["Content-Type"] == "application/scim+json"
+    assert response.json()["scimType"] == scim_type

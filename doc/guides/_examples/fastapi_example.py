@@ -9,6 +9,7 @@ from fastapi import HTTPException
 from fastapi import Query
 from fastapi import Request
 from fastapi import Response
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError
 
@@ -104,6 +105,7 @@ def resolve_user(user_id: str):
 
 # -- error-handlers-start --
 @app.exception_handler(ValidationError)
+@app.exception_handler(RequestValidationError)
 async def handle_validation_error(request, error):
     """Turn Pydantic validation errors into SCIM error responses."""
     scim_error = Error.from_validation_error(error.errors()[0])
