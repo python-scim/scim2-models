@@ -118,13 +118,18 @@ def test_path_validation_from_path_instance():
 
 
 def test_path_validation_rejects_invalid_type():
-    """Path field rejects non-string non-Path values."""
+    """A Path field takes a string, not something that merely renders as one.
+
+    ``True`` renders as ``"True"``, which is a valid path, so a value of the
+    wrong type would otherwise be taken for the attribute it spells.
+    """
 
     class ModelWithPath(BaseModel):
         path: Path[User]
 
-    with pytest.raises(pydantic.ValidationError):
-        ModelWithPath.model_validate({"path": 123})
+    for value in (123, True):
+        with pytest.raises(pydantic.ValidationError, match="Expected str or Path"):
+            ModelWithPath.model_validate({"path": value})
 
 
 # --- Path bound to model tests ---
@@ -1589,7 +1594,23 @@ def test_path_init_with_path_object():
     original = Path("userName")
     copy = Path(original)
     assert str(copy) == "userName"
-    assert copy.data == original.data
+    assert copy == original
+
+
+def test_a_path_is_a_string():
+    """A path goes wherever a string does, and the string operators leave it.
+
+    Deriving one no longer builds a path out of the result, so an operation
+    whose outcome is no longer a valid path does not fail on the way out.
+    """
+    path = Path("urn:ietf:params:scim:schemas:core:2.0:User:userName")
+    assert isinstance(path, str)
+    assert path == "urn:ietf:params:scim:schemas:core:2.0:User:userName"
+    assert path.rsplit(":", 1) == [
+        "urn:ietf:params:scim:schemas:core:2.0:User",
+        "userName",
+    ]
+    assert type(path.lower()) is str
 
 
 def test_path_json_schema_generation():

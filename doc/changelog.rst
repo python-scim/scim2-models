@@ -88,6 +88,11 @@ Added
 
 Changed
 ^^^^^^^
+- :class:`~scim2_models.Path` subclasses :class:`str` instead of
+  :class:`~collections.UserString`, so a path passes ``isinstance(path, str)`` and goes wherever
+  a string does. The string operators answer a plain :class:`str` rather than building a path
+  out of the result, which used to validate it again and fail when the outcome was no longer
+  one: ``Path("emails.value")[6:]`` answered ``invalidPath`` where it now answers ``".value"``.
 - :attr:`SearchRequest.sort_by <scim2_models.SearchRequest.sort_by>`,
   :attr:`~scim2_models.ResponseParameters.attributes` and
   :attr:`~scim2_models.ResponseParameters.excluded_attributes` refuse a path selecting values,

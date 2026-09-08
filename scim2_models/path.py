@@ -1,5 +1,4 @@
 import re
-from collections import UserString
 from collections.abc import Iterable
 from collections.abc import Iterator
 from inspect import isclass
@@ -125,7 +124,7 @@ class _Target(NamedTuple):
     multivalued: bool
 
 
-class Path(UserString, Generic[ResourceT]):
+class Path(str, Generic[ResourceT]):
     __scim_model__: type[BaseModel] | None = None
 
     def __class_getitem__(cls, model: type[ResourceT]) -> type["Path[ResourceT]"]:
@@ -148,7 +147,7 @@ class Path(UserString, Generic[ResourceT]):
         _handler: GetCoreSchemaHandler,
     ) -> core_schema.CoreSchema:
         def validate_path(value: Any) -> "Path[Any]":
-            if not isinstance(value, Path | str):
+            if not isinstance(value, str):
                 raise ValueError(f"Expected str or Path, got {type(value).__name__}")
             try:
                 return cls(str(value))
@@ -168,11 +167,9 @@ class Path(UserString, Generic[ResourceT]):
     ) -> JsonSchemaValue:
         return {"type": "string"}
 
-    def __init__(self, path: "str | Path[Any]"):
-        if isinstance(path, Path):
-            path = str(path)
-        self.check_syntax(path)
-        self.data = path
+    def __new__(cls, path: "str | Path[Any]") -> "Path[Any]":
+        cls.check_syntax(str(path))
+        return super().__new__(cls, path)
 
     @classmethod
     def check_syntax(cls, path: str) -> None:
@@ -226,10 +223,10 @@ class Path(UserString, Generic[ResourceT]):
 
         :raises InvalidPathException: If the path is not in attribute notation.
         """
-        if not _ATTRIBUTE_NOTATION_PATTERN.match(self.data):
+        if not _ATTRIBUTE_NOTATION_PATTERN.match(self):
             raise InvalidPathException(
-                path=self.data,
-                detail=f"{self.data!r} is not in attribute notation",
+                path=str(self),
+                detail=f"{str(self)!r} is not in attribute notation",
             )
 
     @property
@@ -239,9 +236,9 @@ class Path(UserString, Generic[ResourceT]):
         For paths like "urn:...:User:userName", returns "urn:...:User".
         For simple paths like "userName", returns None.
         """
-        if ":" not in self.data:
+        if ":" not in self:
             return None
-        return self.data.rsplit(":", 1)[0]
+        return self.rsplit(":", 1)[0]
 
     @property
     def attr(self) -> str:
@@ -251,9 +248,9 @@ class Path(UserString, Generic[ResourceT]):
         For simple paths like "userName", returns "userName".
         For schema-only paths like "urn:...:User", returns "".
         """
-        if ":" not in self.data:
-            return self.data
-        return self.data.rsplit(":", 1)[1]
+        if ":" not in self:
+            return str(self)
+        return self.rsplit(":", 1)[1]
 
     @property
     def parts(self) -> tuple[str, ...]:
