@@ -22,6 +22,12 @@ Removed
 
 Fixed
 ^^^^^
+- A PATCH operation targeting an attribute of an extension answers for the constraints that
+  extension declares. The checks read the first segment of the path and looked it up on the
+  resource, which declares none of them, so a
+  :attr:`Mutability.read_only <scim2_models.Mutability.read_only>` or
+  :attr:`~scim2_models.Mutability.immutable` attribute of an extension could be written, and a
+  :attr:`Required.true <scim2_models.Required.true>` one unassigned.
 - A path crossing a multi-valued attribute, such as ``emails.value``, reads, writes and
   removes the sub-attribute of each of its entries, where it used to raise an
   :exc:`AttributeError` on a read or a removal and do nothing at all on a write.

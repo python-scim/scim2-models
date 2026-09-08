@@ -21,6 +21,7 @@ from ..exceptions import InvalidValueException
 from ..exceptions import MutabilityException
 from ..exceptions import NoTargetException
 from ..path import Path
+from ..resources.resource import Extension
 from ..resources.resource import Resource
 from ..urn import URN
 from ..utils import _find_field_name
@@ -46,17 +47,25 @@ def _targeted_attributes(value: Any) -> dict[str, Any]:
     return value if isinstance(value, dict) else {}
 
 
-def _resolved_field(
-    resource_class: type[Resource[Any]], attr_name: str | None
-) -> str | None:
+def _attribute_host(resource: Resource[Any], holder: type[BaseModel]) -> Any:
+    """Return the object an attribute lives on.
+
+    An attribute qualified by an extension URN is declared by the extension and
+    lives on the instance hanging off the resource under its class name, which
+    is unset until the extension carries a value.
+    """
+    if not (isclass(holder) and issubclass(holder, Extension)):
+        return resource
+    return getattr(resource, holder.__name__, None)
+
+
+def _resolved_field(resource_class: type[BaseModel], attr_name: str) -> str | None:
     """Return the Python field a SCIM attribute name designates.
 
     Attribute names are case-insensitive per :rfc:`RFC7643 §2.1 <7643#section-2.1>`
     and differ from the field names of the model, so the constraint checks
     resolve the name instead of matching it against ``model_fields``.
     """
-    if attr_name is None:
-        return None
     return _find_field_name(resource_class, attr_name)
 
 
@@ -82,7 +91,7 @@ class PatchOperation(ComplexAttribute, Generic[ResourceT]):
     describing the target of the operation."""
 
     def _validate_mutability(
-        self, resource_class: type[Resource[Any]], field_name: str | None
+        self, resource_class: type[BaseModel], field_name: str
     ) -> None:
         """Validate mutability constraints at parse-time.
 
@@ -103,8 +112,8 @@ class PatchOperation(ComplexAttribute, Generic[ResourceT]):
 
     def _validate_required_attribute(
         self,
-        resource_class: type[Resource[Any]],
-        field_name: str | None,
+        resource_class: type[BaseModel],
+        field_name: str,
         written: Any = None,
     ) -> None:
         """Refuse an operation that would leave a required attribute unassigned.
@@ -294,11 +303,14 @@ class PatchOp(Message, Generic[ResourceT]):
                     )
                 continue
 
-            field_name = operation.path.parts[0] if operation.path.parts else None
-            operation._validate_mutability(resource_class, field_name)
-            operation._validate_required_attribute(
-                resource_class, field_name, operation.value
-            )
+            # The attribute a qualified path applies to is declared by the
+            # extension the URN designates, not by the resource, so the checks
+            # resolve the path instead of reading its first segment.
+            if (head := operation.path._resolve_head()) is None:
+                continue
+            holder, field_name = head
+            operation._validate_mutability(holder, field_name)
+            operation._validate_required_attribute(holder, field_name, operation.value)
 
         return self
 
@@ -367,17 +379,17 @@ class PatchOp(Message, Generic[ResourceT]):
         not effectively change the resource state: ``remove`` on an unset
         field, or ``replace`` with the current value.
         """
-        resource_class = type(resource)
         assert operation.path is not None
-        field_name = operation.path.parts[0] if operation.path.parts else None
-        if (field := _resolved_field(resource_class, field_name)) is None:
+        if (head := operation.path._resolve_head()) is None:
             return
+        resource_class, field_name = head
 
-        mutability = resource_class.get_field_annotation(field, Mutability)
+        mutability = resource_class.get_field_annotation(field_name, Mutability)
         if mutability != Mutability.immutable:
             return
 
-        current_value = getattr(resource, field, None)
+        host = _attribute_host(resource, resource_class)
+        current_value = getattr(host, field_name, None)
 
         if operation.op == PatchOperation.Op.add and current_value is None:
             return

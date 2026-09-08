@@ -364,8 +364,13 @@ class Path(str, Generic[ResourceT]):
             return schema if schema else None
         return f"{schema}:{self.attr}" if schema else self.attr
 
-    def _resolve_model(self) -> tuple[type[BaseModel], str | None] | None:
-        """Resolve the path against the bound model type."""
+    def _designated_model(self) -> "tuple[type[BaseModel], str] | None":
+        """Resolve the model a URN designates, and the path expressed in it.
+
+        A qualified path is expressed either in the schema of the bound model or
+        in that of one of its extensions, and names an attribute of whichever
+        one it designates.
+        """
         from .resources.resource import Extension
         from .resources.resource import Resource
 
@@ -390,8 +395,37 @@ class Path(str, Generic[ResourceT]):
 
             model = extension_models.get(schema, model)
             if path_lower == schema.lower():
-                return model, None
+                return model, ""
             attr_path = str(self)[len(schema) :].lstrip(":")
+
+        return model, attr_path
+
+    def _resolve_head(self) -> "tuple[type[BaseModel], str] | None":
+        """Resolve the attribute the path applies to, and the model declaring it.
+
+        A constraint on a complex attribute governs everything written under it,
+        so it is the attribute a path applies to that answers for the operation
+        rather than the sub-attribute it targets: ``meta`` is read-only where the
+        ``meta.version`` it holds is not.
+        """
+        if (designated := self._designated_model()) is None:
+            return None
+
+        model, attr_path = designated
+        if not attr_path:
+            return None
+
+        head = attr_path.split(".", 1)[0]
+        if (field_name := _find_field_name(model, head)) is None:
+            return None
+        return model, field_name
+
+    def _resolve_model(self) -> tuple[type[BaseModel], str | None] | None:
+        """Resolve the path against the bound model type."""
+        if (designated := self._designated_model()) is None:
+            return None
+
+        model, attr_path = designated
 
         if not attr_path:
             return model, None

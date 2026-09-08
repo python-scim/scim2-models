@@ -4,6 +4,8 @@ from typing import TypeVar
 import pytest
 from pydantic import ValidationError
 
+from scim2_models import URN
+from scim2_models import Extension
 from scim2_models import Group
 from scim2_models import InvalidPathException
 from scim2_models import InvalidValueException
@@ -11,6 +13,7 @@ from scim2_models import Mutability
 from scim2_models import MutabilityException
 from scim2_models import PatchOp
 from scim2_models import PatchOperation
+from scim2_models import Required
 from scim2_models import User
 from scim2_models.base import Context
 from scim2_models.resources.resource import Resource
@@ -18,6 +21,15 @@ from scim2_models.resources.resource import Resource
 
 class ImmutableFieldResource(Resource):
     locked: Annotated[str | None, Mutability.immutable] = None
+
+
+class ConstrainedExtension(Extension):
+    __schema__ = URN("urn:example:2.0:Constrained")
+
+    read_only_attr: Annotated[str | None, Mutability.read_only] = None
+    immutable_attr: Annotated[str | None, Mutability.immutable] = None
+    required_attr: Annotated[str | None, Required.true] = None
+    plain_attr: str | None = None
 
 
 def test_patch_op_add_invalid_extension_path():
@@ -995,3 +1007,104 @@ def test_a_patch_path_naming_a_subattribute_of_a_scalar_answers_invalid_path():
         patch_op.patch(user)
     assert raised.value.to_error().scim_type == "invalidPath"
     assert user.user_name == "bjensen"
+
+
+def _constrained_user():
+    user = User[ConstrainedExtension](user_name="bjensen")
+    user[ConstrainedExtension] = ConstrainedExtension(
+        read_only_attr="original",
+        immutable_attr="original",
+        required_attr="original",
+    )
+    return user
+
+
+@pytest.mark.parametrize(
+    ("op", "attribute", "value"),
+    [
+        pytest.param("replace", "readOnlyAttr", "hijacked", id="read-only replaced"),
+        pytest.param("add", "readOnlyAttr", "hijacked", id="read-only added"),
+        pytest.param("replace", "immutableAttr", "hijacked", id="immutable replaced"),
+        pytest.param("remove", "immutableAttr", None, id="immutable removed"),
+        pytest.param("replace", "requiredAttr", None, id="required unassigned"),
+        pytest.param("remove", "requiredAttr", None, id="required removed"),
+    ],
+)
+def test_an_extension_attribute_answers_for_its_own_constraints(op, attribute, value):
+    """The attribute a qualified path applies to is declared by the extension.
+
+    The checks used to read the first segment of the path and look it up on the
+    resource, which declares none of the attributes an extension holds, so every
+    constraint an extension carried went unchecked.
+    """
+    user = _constrained_user()
+    operation = {"op": op, "path": f"urn:example:2.0:Constrained:{attribute}"}
+    if op != "remove":
+        operation["value"] = value
+
+    with pytest.raises((ValidationError, MutabilityException)):
+        PatchOp[User[ConstrainedExtension]].model_validate(
+            {"Operations": [operation]}
+        ).patch(user)
+
+    extension = user[ConstrainedExtension]
+    assert extension.read_only_attr == "original"
+    assert extension.immutable_attr == "original"
+    assert extension.required_attr == "original"
+
+
+def test_an_extension_attribute_without_a_constraint_is_written():
+    """Resolving the path must not refuse what the extension allows."""
+    user = _constrained_user()
+
+    assert (
+        PatchOp[User[ConstrainedExtension]]
+        .model_validate(
+            {
+                "Operations": [
+                    {
+                        "op": "replace",
+                        "path": "urn:example:2.0:Constrained:plainAttr",
+                        "value": "written",
+                    }
+                ]
+            }
+        )
+        .patch(user)
+    )
+
+    assert user[ConstrainedExtension].plain_attr == "written"
+
+
+def test_an_immutable_extension_attribute_takes_the_value_it_already_has():
+    """§3.5.2 lets a client add to an immutable attribute that has no value yet."""
+    user = User[ConstrainedExtension](user_name="bjensen")
+    user[ConstrainedExtension] = ConstrainedExtension(immutable_attr="original")
+    patch = PatchOp[User[ConstrainedExtension]].model_validate(
+        {
+            "Operations": [
+                {
+                    "op": "replace",
+                    "path": "urn:example:2.0:Constrained:immutableAttr",
+                    "value": "original",
+                }
+            ]
+        }
+    )
+
+    patch.patch(user)
+    assert user[ConstrainedExtension].immutable_attr == "original"
+
+
+def test_an_operation_without_a_path_leaves_an_undeclared_attribute_alone():
+    """The value of a pathless operation names the attributes to write.
+
+    One the model does not declare carries no constraint to check, so the
+    operation is accepted and writes nothing.
+    """
+    user = User(user_name="bjensen")
+    patch = PatchOp[User].model_validate(
+        {"Operations": [{"op": "replace", "value": {"nonexistent": None}}]}
+    )
+
+    assert not patch.patch(user)
