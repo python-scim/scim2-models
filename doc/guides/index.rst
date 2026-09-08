@@ -54,6 +54,12 @@ follows: a string attribute is compared without its case unless it is annotated
 the value of its ``primary`` entry, or the first one; and a resource with no value for the
 attribute comes last when ascending, first when descending.
 
+The second is why the value is not read straight off the path. ``emails.value`` designates the
+value of *every* entry, where an order wants one value per resource, so ``sort_value`` picks
+the entry before reading the sub-attribute from it. That makes ``sortBy=emails`` the same query
+as ``sortBy=emails.value``, :rfc:`RFC7643 §2.4 <7643#section-2.4>` holding the significant value
+of a complex entry in its ``value`` sub-attribute, where a scalar entry is that value itself.
+
 .. literalinclude:: _examples/integrations.py
    :language: python
    :caption: Ordering a collection
