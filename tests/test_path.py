@@ -866,6 +866,21 @@ def test_iter_paths_requires_bound_path():
         list(Path.iter_paths())
 
 
+def test_iter_paths_spells_a_reference_sub_attribute_as_ref():
+    """A reference is serialized under ``$ref``, the name a path has to spell."""
+    group_paths = list(Path[Group].iter_paths())
+    assert "members.$ref" in group_paths
+    assert "members.ref" not in group_paths
+    assert all(path.field_name is not None for path in group_paths)
+
+    user_paths = list(Path[User[EnterpriseUser]].iter_paths())
+    assert "groups.$ref" in user_paths
+    assert (
+        "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:manager.$ref"
+        in user_paths
+    )
+
+
 # --- Path.set() with is_add=True tests ---
 
 

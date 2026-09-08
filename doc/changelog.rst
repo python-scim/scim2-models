@@ -25,6 +25,9 @@ Fixed
 - A path naming a ``$ref`` sub-attribute, such as ``members.$ref`` or ``manager.$ref``, was
   refused as containing invalid characters, although it is the name
   :rfc:`RFC7643 §4 <7643#section-4>` gives the reference a complex attribute carries.
+- :meth:`Path.iter_paths <scim2_models.Path.iter_paths>` spelled a ``$ref`` sub-attribute
+  ``ref``, as in ``members.ref``, a name no schema declares. It now yields the name the
+  attribute is serialized under.
 - A PATCH operation targeting an attribute of an extension answers for the constraints that
   extension declares. The checks read the first segment of the path and looked it up on the
   resource, which declares none of them, so a

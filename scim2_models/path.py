@@ -85,6 +85,11 @@ def _require_field(model: type[BaseModel], name: str, path: str) -> str:
     return field_name
 
 
+def _scim_name(model: type[BaseModel], field_name: str) -> str:
+    """Return the name a field is serialized under, ``$ref`` included."""
+    return model.model_fields[field_name].serialization_alias or _to_camel(field_name)
+
+
 def _resolve_field_names(
     model: type[BaseModel], parts: list[str], path: str
 ) -> list[str]:
@@ -844,7 +849,7 @@ class Path(str, Generic[ResourceT]):
                 elif isclass(target_model) and issubclass(target_model, Extension):
                     urn = target_model().get_attribute_urn(field_name)
                 else:
-                    urn = _to_camel(field_name)
+                    urn = _scim_name(target_model, field_name)
 
                 yield cls(urn)
 
@@ -857,7 +862,7 @@ class Path(str, Generic[ResourceT]):
                     for sub_field_name in field_type.model_fields:  # type: ignore[union-attr]
                         if not matches_filters(field_type, sub_field_name):  # type: ignore[arg-type]
                             continue
-                        sub_urn = f"{urn}.{_to_camel(sub_field_name)}"
+                        sub_urn = f"{urn}.{_scim_name(field_type, sub_field_name)}"  # type: ignore[arg-type]
                         yield cls(sub_urn)
 
         yield from iter_model_paths(model)  # type: ignore[arg-type]
