@@ -327,7 +327,7 @@ def test_patch_op_preserves_case_in_value_fields():
             {
                 "op": "replace",
                 "value": {
-                    "streetAddress": "911 Universal City Plaza",
+                    "addresses": [{"streetAddress": "911 Universal City Plaza"}],
                 },
             }
         ],
@@ -337,7 +337,7 @@ def test_patch_op_preserves_case_in_value_fields():
     result = patch_op.model_dump()
 
     value = result["Operations"][0]["value"]
-    assert value["streetAddress"] == "911 Universal City Plaza"
+    assert value["addresses"][0]["streetAddress"] == "911 Universal City Plaza"
 
 
 def test_patch_op_preserves_case_in_sub_value_fields():

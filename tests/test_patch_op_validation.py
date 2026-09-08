@@ -865,18 +865,58 @@ def test_an_add_without_path_cannot_write_a_read_only_attribute():
         )
 
 
-def test_an_operation_without_path_leaves_an_undeclared_attribute_alone():
-    """An attribute the model does not declare is no reason to refuse the operation."""
-    patch = PatchOp[User].model_validate(
+def test_an_operation_without_path_refuses_an_undeclared_attribute():
+    """§3.5.2 has an operation incompatible with an attribute's schema return an error.
+
+    §3.12 names ``invalidValue`` for a value "not compatible with [...] the
+    resource schema", and there is no path here to call invalid.
+    """
+    with pytest.raises(ValidationError) as raised:
+        PatchOp[User].model_validate(
+            {
+                "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+                "Operations": [
+                    {"op": "replace", "value": {"whatever": "x", "displayName": "Babs"}}
+                ],
+            },
+            scim_ctx=Context.RESOURCE_PATCH_REQUEST,
+        )
+
+    assert raised.value.errors()[0]["type"] == "scim_invalidValue"
+
+
+def test_an_operation_without_path_may_unassign_an_extension():
+    """An extension is no attribute of the resource, so none of it is required."""
+    patch = PatchOp[User[ConstrainedExtension]].model_validate(
         {
-            "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
             "Operations": [
-                {"op": "replace", "value": {"whatever": "x", "displayName": "Babs"}}
-            ],
-        },
-        scim_ctx=Context.RESOURCE_PATCH_REQUEST,
+                {"op": "replace", "value": {"urn:example:2.0:Constrained": None}}
+            ]
+        }
     )
-    user = User(id="srv-1", user_name="bjensen")
+    user = User[ConstrainedExtension](user_name="bjensen")
+
+    patch.patch(user)
+    assert user[ConstrainedExtension] is None
+
+
+def test_an_operation_without_path_writes_an_extension_it_names():
+    """The value names an extension by its schema URN, which the model declares."""
+    patch = PatchOp[User[ConstrainedExtension]].model_validate(
+        {
+            "Operations": [
+                {
+                    "op": "replace",
+                    "value": {
+                        "displayName": "Babs",
+                        "urn:example:2.0:Constrained": {"plainAttr": "written"},
+                    },
+                }
+            ]
+        }
+    )
+    user = User[ConstrainedExtension](user_name="bjensen")
+
     patch.patch(user)
     assert user.display_name == "Babs"
 
@@ -1094,17 +1134,3 @@ def test_an_immutable_extension_attribute_takes_the_value_it_already_has():
 
     patch.patch(user)
     assert user[ConstrainedExtension].immutable_attr == "original"
-
-
-def test_an_operation_without_a_path_leaves_an_undeclared_attribute_alone():
-    """The value of a pathless operation names the attributes to write.
-
-    One the model does not declare carries no constraint to check, so the
-    operation is accepted and writes nothing.
-    """
-    user = User(user_name="bjensen")
-    patch = PatchOp[User].model_validate(
-        {"Operations": [{"op": "replace", "value": {"nonexistent": None}}]}
-    )
-
-    assert not patch.patch(user)

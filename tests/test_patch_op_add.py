@@ -262,19 +262,27 @@ def test_add_operation_no_path_same_attributes():
 
 
 def test_add_operation_no_path_with_invalid_attribute():
-    """Test add operation with no path but invalid attribute name."""
+    """An attribute the resource schema does not declare is refused.
+
+    The whole operation is refused rather than partly applied, so the ones it
+    names alongside are left as they were.
+    """
     user = User(nick_name="Test")
-    patch = PatchOp[User](
-        operations=[
-            PatchOperation[User](
-                op=PatchOperation.Op.add,
-                value={"invalidAttributeName": "value", "nickName": "Updated"},
-            )
-        ]
-    )
-    result = patch.patch(user)
-    assert result is True
-    assert user.nick_name == "Updated"
+    with pytest.raises(ValidationError, match="not declared by the resource schema"):
+        PatchOp[User].model_validate(
+            {
+                "Operations": [
+                    {
+                        "op": "add",
+                        "value": {
+                            "invalidAttributeName": "value",
+                            "nickName": "Updated",
+                        },
+                    }
+                ]
+            }
+        )
+    assert user.nick_name == "Test"
 
 
 def test_add_operation_with_non_dict_value_no_path():

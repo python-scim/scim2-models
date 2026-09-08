@@ -46,7 +46,10 @@ Fixed
   them the targets of the operation, so each one answers to §3.5.2 as a named path does: a
   :attr:`~scim2_models.Mutability.read_only` attribute is refused, and so is one annotated
   :attr:`Required.true <scim2_models.Required.true>` carrying a null value. An attribute the
-  model does not declare is left alone.
+  model does not declare answers ``invalidValue``, which :rfc:`RFC7644 §3.12
+  <7644#section-3.12>` names for a value "not compatible with [...] the resource schema" and
+  which §3.5.2 requires of an operation incompatible with an attribute's schema. It used to be
+  left alone, so a client naming an attribute it had misspelled was answered success.
 - Attributes annotated with :attr:`~scim2_models.Mutability.read_only` are left out of a
   payload dumped in the :attr:`~scim2_models.Context.RESOURCE_PATCH_REQUEST` context, as they
   already are in a creation or a replacement request. A PATCH operation cannot target them,

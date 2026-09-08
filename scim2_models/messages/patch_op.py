@@ -47,6 +47,24 @@ def _targeted_attributes(value: Any) -> dict[str, Any]:
     return value if isinstance(value, dict) else {}
 
 
+def _names_a_declared_target(
+    resource_class: type[Resource[Any]], attr_name: str
+) -> bool:
+    """Whether a pathless operation names something the model declares.
+
+    The ``value`` of a pathless operation names attributes of the resource, and
+    an extension by its schema URN, under which it names the attributes of that
+    extension.
+    """
+    if _resolved_field(resource_class, attr_name) is not None:
+        return True
+
+    lowered = attr_name.lower()
+    return any(
+        schema.lower() == lowered for schema in resource_class.get_extension_models()
+    )
+
+
 def _attribute_host(resource: Resource[Any], holder: type[BaseModel]) -> Any:
     """Return the object an attribute lives on.
 
@@ -134,7 +152,8 @@ class PatchOperation(ComplexAttribute, Generic[ResourceT]):
         else:
             return
 
-        # An attribute the model does not declare carries no annotation to check.
+        # An extension is named by its schema URN, which is no field of the
+        # resource and carries no annotation of its own to check.
         if (field := _resolved_field(resource_class, field_name)) is None:
             return
 
@@ -295,8 +314,16 @@ class PatchOp(Message, Generic[ResourceT]):
                 # §3.5.2.1 and §3.5.2.3: "If the path parameter is omitted, the
                 # target is assumed to be the resource itself", the value naming
                 # the attributes to write. Each of them is a target of its own,
-                # and one the model does not declare is left alone.
+                # and answers to §3.5.2 as a named path does.
                 for attr_name, written in _targeted_attributes(operation.value).items():
+                    if not _names_a_declared_target(resource_class, attr_name):
+                        # §3.5.2 has an operation that is not compatible with an
+                        # attribute's schema return an error, and §3.12 defines
+                        # invalidValue for a value "not compatible with [...] the
+                        # resource schema". There is no path here to call invalid.
+                        raise InvalidValueException(
+                            detail=f"attribute '{attr_name}' is not declared by the resource schema"
+                        ).as_pydantic_error()
                     operation._validate_mutability(resource_class, attr_name)
                     operation._validate_required_attribute(
                         resource_class, attr_name, written
