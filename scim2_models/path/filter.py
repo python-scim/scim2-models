@@ -20,7 +20,7 @@ from .expressions import _Expression
 from .expressions import _quote
 from .expressions import _text
 from .grammar import parse_filter
-from .resolution import ResolvedAttribute
+from .resolution import AttributeBinding
 from .resolution import coerce_value
 from .resolution import resolve_filter_path
 from .resolution import validate_operator
@@ -44,7 +44,7 @@ class _Validator(FilterVisitor[None]):
 
     def _resolve(
         self, attr_path: AttrPath, *, for_comparison: bool = False
-    ) -> ResolvedAttribute | None:
+    ) -> AttributeBinding | None:
         """Bind an attribute path to the first model of the union declaring it.
 
         An endpoint covering several resource types accepts a filter naming an
@@ -98,7 +98,7 @@ class _Validator(FilterVisitor[None]):
 
 
 def validate_value_filter(
-    resolved: ResolvedAttribute, val_filter: FilterNode, *, strict: bool = True
+    resolved: AttributeBinding, val_filter: FilterNode, *, strict: bool = True
 ) -> None:
     """Check the filter of a value selection against the attribute it selects from.
 
@@ -248,7 +248,7 @@ class ScimFilter(_BoundToModels, _Expression, Generic[ResourceT]):
 
     def resolve(
         self, attr_path: AttrPath, *, strict: bool = True
-    ) -> ResolvedAttribute | None:
+    ) -> AttributeBinding | None:
         """Bind an attribute path of this filter to the model it designates.
 
         The path is resolved as it is written, which is what a presence test
@@ -279,7 +279,7 @@ class ScimFilter(_BoundToModels, _Expression, Generic[ResourceT]):
 
     def resolve_comparison(
         self, attr_path: AttrPath, *, strict: bool = True
-    ) -> ResolvedAttribute | None:
+    ) -> AttributeBinding | None:
         """Bind the attribute path of a comparison to the model it designates.
 
         A comparison against a multi-valued complex attribute applies to its

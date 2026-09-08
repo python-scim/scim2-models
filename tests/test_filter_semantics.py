@@ -8,6 +8,7 @@ from lark.exceptions import LarkError
 from pydantic import BaseModel as PydanticBaseModel
 from pydantic import ValidationError
 
+from scim2_models import AttributeBinding
 from scim2_models import EnterpriseUser
 from scim2_models import Extension
 from scim2_models import Group
@@ -16,7 +17,6 @@ from scim2_models import Name
 from scim2_models import Path
 from scim2_models import PathNotFoundException
 from scim2_models import Required
-from scim2_models import ResolvedAttribute
 from scim2_models import Schema
 from scim2_models import ScimFilter
 from scim2_models import SearchRequest
@@ -973,7 +973,7 @@ def test_a_failure_without_a_position_still_reports_a_reason():
 
 def test_the_model_of_a_sub_attribute_on_a_simple_attribute_is_unknown():
     """``target_model`` has nothing to point at when the head is not complex."""
-    resolved = ResolvedAttribute(
+    resolved = AttributeBinding(
         model=User,
         field_name="user_name",
         field_type=str,

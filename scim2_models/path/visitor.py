@@ -15,7 +15,7 @@ from .expressions import LogicalOperator
 from .expressions import Not
 from .expressions import Present
 from .expressions import ValuePath
-from .resolution import ResolvedAttribute
+from .resolution import AttributeBinding
 from .resolution import attribute_host
 from .resolution import coerce_value
 from .resolution import resolve_filter_path
@@ -193,7 +193,7 @@ class Evaluator(FilterVisitor[bool]):
 
     def _resolve(
         self, attr_path: AttrPath, *, for_comparison: bool = False
-    ) -> ResolvedAttribute | None:
+    ) -> AttributeBinding | None:
         resolved = resolve_filter_path(
             self.model, attr_path, strict=self.strict, for_comparison=for_comparison
         )
@@ -201,7 +201,7 @@ class Evaluator(FilterVisitor[bool]):
             return resolved
         return resolved.nested_in(self.urn_prefix)
 
-    def _read(self, resolved: ResolvedAttribute) -> Any:
+    def _read(self, resolved: AttributeBinding) -> Any:
         """Read the compared value off the object, flattening multi-valued attributes."""
         host = attribute_host(self.obj, resolved)
         if host is None:
@@ -299,7 +299,7 @@ class Evaluator(FilterVisitor[bool]):
         ]
 
     def _matches_item(
-        self, item: Any, val_filter: FilterNode, resolved: ResolvedAttribute
+        self, item: Any, val_filter: FilterNode, resolved: AttributeBinding
     ) -> bool:
         """Evaluate a value filter against one entry of a multi-valued attribute."""
         if isinstance(item, BaseModel):

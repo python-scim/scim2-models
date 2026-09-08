@@ -107,7 +107,7 @@ never as text inside the query.
 
 Two decisions remain, and neither is automated:
 
-- **Case**, read from :attr:`~scim2_models.ResolvedAttribute.case_exact` and the type of the
+- **Case**, read from :attr:`~scim2_models.AttributeBinding.case_exact` and the type of the
   attribute. ``icontains`` and ``contains`` differ by one letter and by which resources they
   return.
 - **The three-valued logic of SQL**, where ``NULL <> 'Manager'`` is ``NULL`` and not true. A

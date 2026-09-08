@@ -7,6 +7,7 @@ import pydantic
 import pytest
 
 from scim2_models import URN
+from scim2_models import AttributeBinding
 from scim2_models import CaseExact
 from scim2_models import Email
 from scim2_models import EnterpriseUser
@@ -20,7 +21,6 @@ from scim2_models import Name
 from scim2_models import PatchOp
 from scim2_models import PathNotFoundException
 from scim2_models import Required
-from scim2_models import ResolvedAttribute
 from scim2_models import Resource
 from scim2_models import Returned
 from scim2_models import Uniqueness
@@ -1842,7 +1842,7 @@ def test_an_extension_urn_carries_an_attribute_behind_a_colon():
 
 def test_resolving_a_path_binds_it_to_the_attribute_it_designates():
     resolved = Path[User]("name.familyName").resolve()
-    assert isinstance(resolved, ResolvedAttribute)
+    assert isinstance(resolved, AttributeBinding)
     assert resolved.model is User
     assert resolved.field_name == "name"
     assert resolved.sub_field_name == "family_name"

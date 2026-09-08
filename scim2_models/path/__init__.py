@@ -17,7 +17,7 @@ from .filter import validate_value_filter
 from .grammar import parse_filter
 from .grammar import parse_path
 from .path import Path
-from .resolution import ResolvedAttribute
+from .resolution import AttributeBinding
 from .resolution import attribute_host
 from .resolution import coerce_value
 from .resolution import resolve_attr_path
@@ -33,6 +33,7 @@ __all__ = [
     "ORDERING_OPERATORS",
     "STRING_OPERATORS",
     "AttrPath",
+    "AttributeBinding",
     "CompareOperator",
     "Comparison",
     "Evaluator",
@@ -44,7 +45,6 @@ __all__ = [
     "Path",
     "PathNode",
     "Present",
-    "ResolvedAttribute",
     "ScimFilter",
     "ValuePath",
     "attribute_host",

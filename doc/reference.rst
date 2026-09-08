@@ -24,7 +24,7 @@ filter into a backend query. See :ref:`filter-transpiling` for a worked example.
 
 .. automodule:: scim2_models.path
    :members:
-   :exclude-members: Path, ResolvedAttribute, ScimFilter
+   :exclude-members: Path, AttributeBinding, ScimFilter
 
 .. currentmodule:: scim2_models.path
 

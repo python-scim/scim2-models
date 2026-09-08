@@ -39,7 +39,7 @@ def _unwrap_annotated(type_: Any) -> type | None:
 
 
 @dataclass(frozen=True)
-class ResolvedAttribute:
+class AttributeBinding:
     """A syntactic attribute path bound to the model it designates.
 
     Transpilers get everything they need to emit a query out of this: which
@@ -108,7 +108,7 @@ class ResolvedAttribute:
             return None
         return model.get_field_multiplicity(self.target_field_name)
 
-    def nested_in(self, urn: str) -> "ResolvedAttribute":
+    def nested_in(self, urn: str) -> "AttributeBinding":
         """Return the same attribute, qualified by the URN it was resolved under.
 
         An attribute resolved inside a value selection is resolved against a
@@ -118,7 +118,7 @@ class ResolvedAttribute:
         return replace(self, urn=f"{urn}.{self.urn}")
 
 
-def attribute_host(obj: Any, resolved: ResolvedAttribute) -> Any:
+def attribute_host(obj: Any, resolved: AttributeBinding) -> Any:
     """Return the object actually holding a resolved attribute.
 
     An attribute qualified by an extension URN lives on the extension instance,
@@ -225,7 +225,7 @@ def _target_model(
 
 def resolve_attr_path(
     model: type[BaseModel], attr_path: AttrPath, *, strict: bool = True
-) -> ResolvedAttribute | None:
+) -> AttributeBinding | None:
     """Bind an attribute path to the field it designates on a model.
 
     :param model: The resource or extension model to resolve against.
@@ -234,14 +234,14 @@ def resolve_attr_path(
         :data:`None`.
     :returns: The resolved attribute, or :data:`None` when it cannot be
         resolved and ``strict`` is false. Results are cached and shared, which
-        is safe since :class:`ResolvedAttribute` is immutable.
+        is safe since :class:`AttributeBinding` is immutable.
     :raises PathNotFoundException: If ``strict`` and the attribute is unknown.
     """
     # The cache is held by the model rather than by this module, so that it
     # cannot outlive the model it describes: a resolved attribute names the
     # model it was resolved on, which a cache keyed by that model would keep
     # alive for as long as the process runs.
-    cache: dict[tuple[AttrPath, bool], ResolvedAttribute | None] | None
+    cache: dict[tuple[AttrPath, bool], AttributeBinding | None] | None
     cache = model.__dict__.get(_RESOLVED_ATTRS)
     if cache is None:
         cache = {}
@@ -255,7 +255,7 @@ def resolve_attr_path(
 
 def _resolve_attr_path(
     model: type[BaseModel], attr_path: AttrPath, *, strict: bool
-) -> ResolvedAttribute | None:
+) -> AttributeBinding | None:
     """Bind an attribute path, without going through the cache of the model."""
     target = _target_model(model, attr_path, strict=strict)
     if target is None:
@@ -301,7 +301,7 @@ def _resolve_attr_path(
         == CaseExact.true
     )
 
-    return ResolvedAttribute(
+    return AttributeBinding(
         model=target,
         field_name=field_name,
         field_type=field_type,
@@ -313,7 +313,7 @@ def _resolve_attr_path(
     )
 
 
-def _addresses_entry_values(resolved: ResolvedAttribute) -> bool:
+def _addresses_entry_values(resolved: AttributeBinding) -> bool:
     """Whether a comparison against this attribute applies to ``value`` instead."""
     return (
         resolved.sub_field_name is None
@@ -326,7 +326,7 @@ def _addresses_entry_values(resolved: ResolvedAttribute) -> bool:
 
 def resolve_comparison_path(
     model: type[BaseModel], attr_path: AttrPath, *, strict: bool = True
-) -> ResolvedAttribute | None:
+) -> AttributeBinding | None:
     """Bind the attribute a comparison applies to.
 
     :rfc:`RFC7644 §3.4.2.2 <7644#section-3.4.2.2>` uses ``emails co
@@ -366,7 +366,7 @@ def resolve_filter_path(
     *,
     strict: bool = True,
     for_comparison: bool = False,
-) -> ResolvedAttribute | None:
+) -> AttributeBinding | None:
     """Bind an attribute path taken from a filter.
 
     An attribute a model does not declare makes the *filter* invalid rather
@@ -401,7 +401,7 @@ def _build_urn(model: type[BaseModel], attr_path: AttrPath) -> str:
 
 
 def coerce_value(
-    resolved: ResolvedAttribute, value: Any, op: CompareOperator | None = None
+    resolved: AttributeBinding, value: Any, op: CompareOperator | None = None
 ) -> Any:
     """Convert a raw comparison value to the Python type of its attribute.
 
@@ -447,7 +447,7 @@ def coerce_value(
         ) from exc
 
 
-def validate_operator(resolved: ResolvedAttribute, op: CompareOperator) -> None:
+def validate_operator(resolved: AttributeBinding, op: CompareOperator) -> None:
     """Check that an operator may be applied to an attribute.
 
     :rfc:`RFC7644 §3.4.2.2 <7644#section-3.4.2.2>` requires boolean and binary
@@ -471,7 +471,7 @@ def validate_operator(resolved: ResolvedAttribute, op: CompareOperator) -> None:
     )
 
 
-def validate_value_selection(resolved: ResolvedAttribute) -> None:
+def validate_value_selection(resolved: AttributeBinding) -> None:
     """Check that a value selection applies to a multi-valued attribute.
 
     :rfc:`RFC7644 §3.5.2 <7644#section-3.5.2>` defines the ``valuePath`` rule

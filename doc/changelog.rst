@@ -25,7 +25,7 @@ Added
   :rfc:`RFC7644 §3.4.2.1 <7644#section-3.4.2.1>` requires of a root query; a path resolves
   against the first type declaring it, so ``sortBy`` answers on a root query too.
 - :meth:`Path.resolve <scim2_models.Path.resolve>` resolves a path to the
-  :class:`~scim2_models.ResolvedAttribute` it designates.
+  :class:`~scim2_models.AttributeBinding` it designates.
 - lark is a new dependency.
 
 Changed

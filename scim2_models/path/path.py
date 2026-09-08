@@ -37,7 +37,7 @@ from .expressions import ValuePath
 from .expressions import _Expression
 from .expressions import _text
 from .grammar import parse_path
-from .resolution import ResolvedAttribute
+from .resolution import AttributeBinding
 from .resolution import designated_model
 from .resolution import resolve_attr_path
 
@@ -253,7 +253,7 @@ class Path(_BoundToModels, _Expression, Generic[ResourceT]):
                 return designated
         return None
 
-    def resolve(self) -> "ResolvedAttribute | None":
+    def resolve(self) -> "AttributeBinding | None":
         """Bind this path to the attribute it designates on the bound model.
 
         This is the single resolution the model-aware properties are built on.
