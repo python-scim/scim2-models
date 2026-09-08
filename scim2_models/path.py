@@ -246,7 +246,11 @@ class Path(str, Generic[ResourceT]):
 
         For paths like "urn:...:User:userName", returns "userName".
         For simple paths like "userName", returns "userName".
-        For schema-only paths like "urn:...:User", returns "".
+        For the empty path, which designates the resource itself, returns "".
+
+        Nothing tells a schema-only path from a qualified one, since the URN of
+        a schema is itself a colon-separated name: "urn:...:User" reads as the
+        attribute "User" of the schema "urn:...:2.0".
         """
         if ":" not in self:
             return str(self)

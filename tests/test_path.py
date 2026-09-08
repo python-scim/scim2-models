@@ -1040,9 +1040,15 @@ def test_attr_urn_dotted_path():
 
 
 def test_attr_schema_only_path():
-    """Schema-only path has empty attr."""
-    path = Path("urn:ietf:params:scim:schemas:core:2.0:User")
+    """A schema-only path reads as the last name of its own URN.
+
+    Nothing tells one from a qualified path, the URN of a schema being itself a
+    colon-separated name, and :attr:`~scim2_models.Path.urn` puts the two halves
+    back together either way.
+    """
+    path = Path[User]("urn:ietf:params:scim:schemas:core:2.0:User")
     assert path.attr == "User"
+    assert path.urn == "urn:ietf:params:scim:schemas:core:2.0:User"
 
 
 def test_attr_empty_path():
