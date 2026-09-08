@@ -1177,6 +1177,27 @@ def test_get_mismatched_urn_on_extension_instance():
 # --- set() edge cases ---
 
 
+def test_reading_an_unset_extension_does_not_bring_it_into_being():
+    """Only a write instantiates an extension that carries no value.
+
+    Reaching through one to read or to remove leaves the resource as it was,
+    where instantiating it would add its schema to a dump of the assigned
+    attributes and answer a resource the peer never sent.
+    """
+    path = Path[User[EnterpriseUser]](
+        "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:employeeNumber"
+    )
+
+    for read in (Path.get, Path.delete):
+        user = User[EnterpriseUser](user_name="bjensen")
+        assert read(path, user) in (None, False)
+        assert user[EnterpriseUser] is None
+
+    written = User[EnterpriseUser](user_name="bjensen")
+    assert path.set(written, "701984")
+    assert written[EnterpriseUser].employee_number == "701984"
+
+
 def test_set_explicit_schema_path_with_non_dict_raises():
     """Set with explicit schema path and non-dict value raises InvalidPathException."""
     user = User(user_name="john")
