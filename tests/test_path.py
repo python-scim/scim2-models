@@ -377,6 +377,32 @@ def test_get_extension_attribute_uppercase_urn():
     assert path.get(user) == "12345"
 
 
+@pytest.mark.parametrize("spelling", ["DISPLAYNAME", "displayname", "DisplayName"])
+def test_an_attribute_is_reached_whatever_the_spelling_of_its_name(spelling):
+    """Attribute names are case-insensitive per :rfc:`RFC7643 §2.1 <7643#section-2.1>`."""
+    user = User(user_name="john", display_name="John")
+    path = Path(spelling)
+
+    assert path.get(user) == "John"
+    assert path.set(user, "Changed") is True
+    assert user.display_name == "Changed"
+    assert path.delete(user) is True
+    assert user.display_name is None
+
+
+@pytest.mark.parametrize("spelling", ["NAME.FAMILYNAME", "name.familyname"])
+def test_a_sub_attribute_is_reached_whatever_the_spelling_of_its_name(spelling):
+    """Each segment of a path is matched regardless of its case."""
+    user = User(user_name="john", name=Name(family_name="Doe"))
+    path = Path(spelling)
+
+    assert path.get(user) == "Doe"
+    assert path.set(user, "Changed") is True
+    assert user.name.family_name == "Changed"
+    assert path.delete(user) is True
+    assert user.name.family_name is None
+
+
 def test_a_foreign_schema_urn_designates_nothing():
     """A qualified path is expressed in the schema of the model it applies to."""
     path = Path[EnterpriseUser]("urn:totally:unrelated:employeeNumber")
@@ -1294,6 +1320,12 @@ def test_get_schema_only_path_returns_resource():
     assert result is user
 
 
+def test_get_empty_path_returns_resource():
+    """The resource root designates the resource itself."""
+    user = User(user_name="john", display_name="John")
+    assert Path("").get(user) is user
+
+
 def test_set_on_extension_with_mismatched_urn():
     """Set on Extension instance with mismatched URN returns False."""
     ext = EnterpriseUser(employee_number="12345")
@@ -1335,6 +1367,14 @@ def test_delete_schema_only_path_raises():
     path = Path("urn:ietf:params:scim:schemas:core:2.0:User")
     with pytest.raises(InvalidPathException):
         path.delete(user)
+
+
+def test_delete_empty_path_raises():
+    """The resource root names no attribute to unassign."""
+    user = User(user_name="john")
+    with pytest.raises(InvalidPathException):
+        Path("").delete(user)
+    assert user.user_name == "john"
 
 
 def test_delete_dotted_path_intermediate_none():
