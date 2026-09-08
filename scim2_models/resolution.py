@@ -146,6 +146,36 @@ def _extension_models(model: type[BaseModel]) -> dict[str, type[BaseModel]]:
     return dict(model.get_extension_models())
 
 
+def designated_model(model: type[BaseModel], path: str) -> type[BaseModel] | None:
+    """Return the model a path designates when it is a bare schema URN.
+
+    Nothing tells a schema URN from a qualified path syntactically:
+    ``urn:ietf:params:scim:schemas:core:2.0:User`` reads as the attribute
+    ``User`` of the schema ``urn:ietf:params:scim:schemas:core:2.0``. So the
+    whole path is compared to the schemas the model knows, its own and those
+    of its extensions.
+
+    :param model: The resource or extension model to compare against.
+    :param path: The whole path, as written.
+    :returns: The model the path is the schema of, or :data:`None` when it is
+        not one.
+    """
+    from .resources.resource import Extension
+    from .resources.resource import Resource
+
+    if not (isclass(model) and issubclass(model, Resource | Extension)):
+        return None
+
+    path = path.lower()
+    if model.__schema__ and path == model.__schema__.lower():
+        return model
+
+    for schema, extension_model in _extension_models(model).items():
+        if path == schema.lower():
+            return extension_model
+    return None
+
+
 def _target_model(
     model: type[BaseModel], attr_path: AttrPath, *, strict: bool
 ) -> type[BaseModel] | None:

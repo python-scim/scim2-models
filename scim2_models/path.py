@@ -1,4 +1,3 @@
-from collections.abc import Iterable
 from collections.abc import Iterator
 from dataclasses import replace
 from inspect import isclass
@@ -43,29 +42,13 @@ from .filters.filter import validate_value_filter
 from .filters.visitor import Evaluator
 from .grammar import parse_path
 from .resolution import ResolvedAttribute
+from .resolution import _target_model
 from .resolution import attribute_host
+from .resolution import designated_model
 from .resolution import resolve_attr_path
 from .resolution import validate_value_selection
 
 ResourceT = TypeVar("ResourceT", bound="Resource[Any]")
-
-
-def _is_in_schema(path_lower: str, schema: str) -> bool:
-    schema_lower = schema.lower()
-    return path_lower == schema_lower or path_lower.startswith(f"{schema_lower}:")
-
-
-def _designating_schema(path_lower: str, schemas: Iterable[str]) -> str | None:
-    """Return the schema a qualified path is expressed in, if any.
-
-    The longest match wins: the URN of an extension may extend the URN of the
-    resource it extends, and then both match while only the longer one
-    designates the model the attribute lives on.
-    """
-    matching = [
-        schema for schema in schemas if schema and _is_in_schema(path_lower, schema)
-    ]
-    return max(matching, key=len) if matching else None
 
 
 def _node_attr_path(node: PathNode) -> AttrPath:
@@ -108,39 +91,15 @@ def _scim_name(model: type[BaseModel], field_name: str) -> str:
     return model.model_fields[field_name].serialization_alias or _to_camel(field_name)
 
 
-def _resolve_field_names(
-    model: type[BaseModel], parts: list[str], path: str
-) -> list[str]:
-    """Resolve each segment of a dotted path to the field name it designates.
+class _Root(NamedTuple):
+    """The path designates the object itself rather than one of its attributes.
 
-    The segments are resolved against the declared types rather than against
-    the values a resource happens to carry, so a path naming an attribute the
-    model does not declare is reported the same way whether or not the
-    attributes leading to it are assigned.
-
-    :raises PathNotFoundException: If a segment names an unknown field, or if a
-        segment other than the last one names an attribute with no
-        sub-attributes to descend into.
+    ``explicit`` tells a bare schema URN from the empty path: both land on the
+    object, but only the former spells it out, and a write of anything but a
+    mapping through it is a mistake to report rather than a no-op.
     """
-    field_names: list[str] = []
-    for part, next_part in zip(parts, parts[1:], strict=False):
-        field_name = _require_field(model, part, path)
-        field_type = model.get_field_root_type(field_name)
-        if not (isclass(field_type) and issubclass(field_type, BaseModel)):
-            raise PathNotFoundException(path=path, field=next_part)
-        field_names.append(field_name)
-        model = field_type
 
-    field_names.append(_require_field(model, parts[-1], path))
-    return field_names
-
-
-class _Resolution(NamedTuple):
-    """Result of instance path resolution."""
-
-    target: "BaseModel"
-    path_str: str
-    is_explicit_schema_path: bool = False
+    explicit: bool
 
 
 class _Target(NamedTuple):
@@ -349,36 +308,20 @@ class Path(_BoundToModels, _Expression, Generic[ResourceT]):
     def _designated_model(self) -> type[BaseModel] | None:
         """Return the model this path designates when it names no attribute.
 
-        The resource root and a bare schema URN both designate a model rather
-        than one of its attributes, and neither can go through attribute
-        resolution: the root names nothing, and nothing tells a schema URN from
-        a qualified path syntactically, so it is recognised by comparing the
-        whole path to the schemas the bound model knows.
+        The resource root designates the bound model, and a bare schema URN the
+        model it is the schema of, among the bound models and their extensions.
+        Neither can go through attribute resolution, since neither names an
+        attribute.
         """
-        from .resources.resource import Extension
-        from .resources.resource import Resource
-
         if not self.__scim_models__:
             return None
 
         if self.ast is None:
             return self.__scim_models__[0]
 
-        path = self.lower()
         for model in self.__scim_models__:
-            if not (isclass(model) and issubclass(model, Resource | Extension)):
-                continue
-
-            if model.__schema__ and path == model.__schema__.lower():
-                return model
-
-            if not issubclass(model, Resource):
-                continue
-
-            for schema, extension_model in model.get_extension_models().items():
-                if path == schema.lower():
-                    return extension_model
-
+            if (designated := designated_model(model, str(self))) is not None:
+                return designated
         return None
 
     def resolve(self) -> "ResolvedAttribute | None":
@@ -511,95 +454,71 @@ class Path(_BoundToModels, _Expression, Generic[ResourceT]):
             return None
         return resolved.model, resolved.field_name
 
-    def _resolve_instance(
+    def _walk(
         self, resource: BaseModel, *, create: bool = False
-    ) -> _Resolution | None:
-        """Resolve the target object and remaining path.
+    ) -> "_Root | _Target | None":
+        """Locate the objects holding the attribute this path designates.
 
-        :param resource: The resource to resolve against.
-        :param create: If True, create extension instance if it doesn't exist.
-        :returns: Resolution with target object and path, or None if target doesn't exist.
-        :raises InvalidPathException: If the path references an unknown extension.
+        The path is resolved against the type of the resource rather than the
+        model it is bound to, so an unbound path reads and writes like a bound
+        one, and a path bound to a union answers for the type it is applied to.
+        A path crossing a multi-valued attribute fans out over its entries, as
+        :rfc:`RFC7644 §3.5.2 <7644#section-3.5.2>` has an unfiltered path
+        designate every one of them.
+
+        :param resource: The object to walk from.
+        :param create: Whether an unassigned extension or complex attribute is
+            instantiated rather than ending the walk. Nothing is created for a
+            path that resolves to nothing.
+        :returns: The root when the path designates the resource itself, the
+            target otherwise, or :data:`None` when nothing is left to walk to.
+        :raises InvalidPathException: If the path is qualified by a URN that
+            designates neither the resource nor one of its extensions.
+        :raises PathNotFoundException: If the path names an attribute the model
+            does not declare, or a sub-attribute of one that has none.
         """
-        from .resources.resource import Extension
         from .resources.resource import Resource
 
-        path_str = str(self)
+        if self.ast is None:
+            return _Root(explicit=False)
 
-        if ":" not in path_str:
-            return _Resolution(resource, path_str)
+        model = type(resource)
+        if (designated := designated_model(model, str(self))) is not None:
+            if isinstance(resource, designated):
+                return _Root(explicit=True)
+            return _Target([resource], designated.__name__, False)
 
-        path_lower = path_str.lower()
-        model_schema = ""
-        if isinstance(resource, Resource | Extension):
-            model_schema = getattr(type(resource), "__schema__", "") or ""
-        extension_models = (
-            resource.get_extension_models() if isinstance(resource, Resource) else {}
-        )
+        attr_path = self._designated_attr_path()
+        assert attr_path is not None
 
-        schema = _designating_schema(path_lower, [model_schema, *extension_models])
-        if schema is None:
+        # A URN that designates no model the resource declares is refused on a
+        # resource, and reaches nothing on an object handled on its own.
+        if attr_path.uri and _target_model(model, attr_path, strict=False) is None:
             if isinstance(resource, Resource):
-                raise InvalidPathException(path=path_str)
+                raise InvalidPathException(path=str(self))
             return None
 
-        sub_path = path_str[len(schema) :].lstrip(":")
-        ext_model = extension_models.get(schema)
+        resolved = resolve_attr_path(model, attr_path, strict=True)
+        assert resolved is not None
 
-        if ext_model is None:
-            return _Resolution(resource, sub_path, path_lower == schema.lower())
-
-        if path_lower == schema.lower():
-            return _Resolution(resource, ext_model.__name__)
-
-        ext_obj = getattr(resource, ext_model.__name__)
-        if create and ext_obj is None:
-            # Checked on the declared type before anything is instantiated, so
-            # that a refused write leaves no half-built extension behind.
-            _resolve_field_names(ext_model, sub_path.split("."), path_str)
-            ext_obj = ext_model()
-            setattr(resource, ext_model.__name__, ext_obj)
-        if ext_obj is None:
-            return None
-        return _Resolution(ext_obj, sub_path)
-
-    def _walk_to_target(
-        self, obj: BaseModel, path_str: str, *, create: bool = False
-    ) -> "_Target | None":
-        """Navigate to the objects holding the field this path designates.
-
-        A multi-valued attribute crossed on the way fans the walk out over its
-        entries, as :rfc:`RFC7644 §3.5.2 <7644#section-3.5.2>` has an unfiltered
-        path designate every one of them.
-
-        :param obj: The object to walk from.
-        :param path_str: The dotted path to walk.
-        :param create: Whether an unassigned complex attribute is instantiated
-            rather than ending the walk.
-        :returns: The target, or None when nothing is left to walk to.
-        :raises PathNotFoundException: If a segment names an attribute the model
-            does not declare, or one with no sub-attributes to descend into.
-        """
-        field_names = _resolve_field_names(type(obj), path_str.split("."), str(self))
-        hosts = [obj]
-        multivalued = False
-
-        for field_name in field_names[:-1]:
-            entered: list[BaseModel] = []
-            for host in hosts:
-                value = getattr(host, field_name)
-                if value is None and create:
-                    value = self._create_intermediate(host, field_name)
-                if isinstance(value, list):
-                    multivalued = True
-                    entered.extend(value)
-                elif value is not None:
-                    entered.append(value)
-            if not entered:
+        host = attribute_host(resource, resolved)
+        if host is None:
+            if not create:
                 return None
-            hosts = entered
+            host = resolved.model()
+            setattr(resource, resolved.model.__name__, host)
 
-        return _Target(hosts, field_names[-1], multivalued)
+        if resolved.sub_field_name is None:
+            return _Target([host], resolved.field_name, False)
+
+        head = getattr(host, resolved.field_name)
+        if head is None and create:
+            head = self._create_intermediate(host, resolved.field_name)
+        if head is None:
+            return None
+        if isinstance(head, list):
+            return _Target(list(head), resolved.sub_field_name, True) if head else None
+        return _Target([head], resolved.sub_field_name, False)
 
     @staticmethod
     def _create_intermediate(host: BaseModel, field_name: str) -> BaseModel | None:
@@ -699,16 +618,11 @@ class Path(_BoundToModels, _Expression, Generic[ResourceT]):
             ]
             return values or None
 
-        if (resolution := self._resolve_instance(resource)) is None:
+        target = self._walk(resource)
+        if target is None:
             return None
-
-        if not resolution.path_str:
-            return resolution.target
-
-        if (
-            target := self._walk_to_target(resolution.target, resolution.path_str)
-        ) is None:
-            return None
+        if isinstance(target, _Root):
+            return resource
 
         values = [getattr(host, target.field_name) for host in target.hosts]
         return values if target.multivalued else values[0]
@@ -836,42 +750,44 @@ class Path(_BoundToModels, _Expression, Generic[ResourceT]):
         if (selection := self._select(resource)) is not None:
             return self._set_selected(selection, value, is_add=is_add)
 
-        if (resolution := self._resolve_instance(resource, create=True)) is None:
+        target = self._walk(resource, create=True)
+        if target is None:
             return False
-
-        obj = resolution.target
-        path_str = resolution.path_str
-        is_explicit_schema_path = resolution.is_explicit_schema_path
-
-        if not path_str:
-            if not isinstance(value, dict):
-                if is_explicit_schema_path:
-                    raise InvalidPathException(path=str(self))
-                return False
-            filtered_value = {
-                k: v
-                for k, v in value.items()
-                if _find_field_name(type(obj), k) is not None
-            }
-            if not filtered_value:
-                return False
-            old_data = obj.model_dump()
-            updated_data = {**old_data, **filtered_value}
-            if updated_data == old_data:
-                return False
-            updated_obj = type(obj).model_validate(updated_data)
-            obj.__dict__.update(updated_obj.__dict__)
-            obj.__pydantic_fields_set__.update(updated_obj.__pydantic_fields_set__)
-            return True
-
-        if (target := self._walk_to_target(obj, path_str, create=True)) is None:
-            return False
+        if isinstance(target, _Root):
+            return self._merge(resource, value, explicit=target.explicit)
 
         changed = [
             self._set_field_value(host, target.field_name, value, is_add)
             for host in target.hosts
         ]
         return any(changed)
+
+    def _merge(self, obj: BaseModel, value: Any, *, explicit: bool) -> bool:
+        """Write the attributes a mapping names onto the object the path designates.
+
+        :param explicit: Whether the object was designated by its schema URN,
+            in which case a value that is not a mapping is reported rather
+            than ignored.
+        :raises InvalidPathException: If ``explicit`` and the value is not a
+            mapping.
+        """
+        if not isinstance(value, dict):
+            if explicit:
+                raise InvalidPathException(path=str(self))
+            return False
+        filtered_value = {
+            k: v for k, v in value.items() if _find_field_name(type(obj), k) is not None
+        }
+        if not filtered_value:
+            return False
+        old_data = obj.model_dump()
+        updated_data = {**old_data, **filtered_value}
+        if updated_data == old_data:
+            return False
+        updated_obj = type(obj).model_validate(updated_data)
+        obj.__dict__.update(updated_obj.__dict__)
+        obj.__pydantic_fields_set__.update(updated_obj.__pydantic_fields_set__)
+        return True
 
     def set(
         self,
@@ -942,16 +858,11 @@ class Path(_BoundToModels, _Expression, Generic[ResourceT]):
         if (selection := self._select(resource)) is not None:
             return self._delete_selected(selection)
 
-        if (resolution := self._resolve_instance(resource)) is None:
+        target = self._walk(resource)
+        if target is None:
             return False
-
-        if not resolution.path_str:
+        if isinstance(target, _Root):
             raise InvalidPathException(path=str(self))
-
-        if (
-            target := self._walk_to_target(resolution.target, resolution.path_str)
-        ) is None:
-            return False
 
         changed = [
             self._delete_field_value(host, target.field_name, value)
