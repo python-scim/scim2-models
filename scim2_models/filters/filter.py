@@ -1,17 +1,11 @@
-from collections.abc import MutableMapping
 from inspect import isclass
 from typing import TYPE_CHECKING
 from typing import Any
 from typing import Generic
 from typing import TypeVar
-from weakref import WeakValueDictionary
-
-from pydantic import GetCoreSchemaHandler
-from pydantic import GetJsonSchemaHandler
-from pydantic.json_schema import JsonSchemaValue
-from pydantic_core import core_schema
 
 from ..base import BaseModel
+from ..binding import _BoundToModels
 from ..expressions import AttrPath
 from ..expressions import Comparison
 from ..expressions import FilterNode
@@ -29,7 +23,6 @@ from ..resolution import coerce_value
 from ..resolution import resolve_filter_path
 from ..resolution import validate_operator
 from ..resolution import validate_value_selection
-from ..utils import _model_union
 from .visitor import Evaluator
 from .visitor import FilterVisitor
 
@@ -37,16 +30,6 @@ if TYPE_CHECKING:
     from ..resources.resource import Resource
 
 ResourceT = TypeVar("ResourceT", bound="Resource[Any]")
-
-_FILTER_CACHE: "MutableMapping[tuple[type, tuple[type, ...]], type]" = (
-    WeakValueDictionary()
-)
-"""The classes subscription has already built, so that two subscriptions of the
-same resource types answer the same class.
-
-The classes are held weakly, as a path binding holds its own: one bound to a
-model built at runtime would otherwise keep that model alive for as long as the
-process runs."""
 
 
 class _Validator(FilterVisitor[None]):
@@ -131,7 +114,7 @@ def validate_value_filter(
     _Validator(item_model, strict=strict, urn_prefix=resolved.urn).visit(val_filter)
 
 
-class ScimFilter(_Expression, Generic[ResourceT]):
+class ScimFilter(_BoundToModels, _Expression, Generic[ResourceT]):
     """A SCIM filter, as defined at :rfc:`RFC7644 §3.4.2.2 <7644#section-3.4.2.2>`.
 
     A filter *is* the string it was built from, so it can be passed around,
@@ -172,27 +155,16 @@ class ScimFilter(_Expression, Generic[ResourceT]):
     :meth:`quote` quotes a value dropped into a plain string the same way.
     """
 
-    __scim_models__: tuple[type[BaseModel], ...] = ()
-
     _ast: FilterNode
 
-    def __class_getitem__(cls, model: type[ResourceT]) -> type["ScimFilter[ResourceT]"]:
-        """Create a filter class bound to a resource type, or to a union of them.
+    @property
+    def models(self) -> tuple[type[BaseModel], ...]:
+        """The resource types this filter is bound to, empty when it is unbound.
 
-        A union is what an endpoint covering several resource types binds, such
-        as the server root of :rfc:`RFC7644 §3.4.2.1 <7644#section-3.4.2.1>`.
+        It holds several models when the filter is bound to a union, which is
+        what an endpoint covering several resource types does.
         """
-        models = _model_union(model)
-        if models is None:
-            return super().__class_getitem__(model)  # type: ignore[misc,no-any-return]
-
-        cache_key = (cls, models)
-        if cache_key not in _FILTER_CACHE:
-            name = ", ".join(each.__name__ for each in models)
-            _FILTER_CACHE[cache_key] = type(
-                f"ScimFilter[{name}]", (cls,), {"__scim_models__": models}
-            )
-        return _FILTER_CACHE[cache_key]
+        return self.__scim_models__
 
     def __new__(
         cls, expression: "str | ScimFilter[Any] | FilterNode | Template"
@@ -213,30 +185,6 @@ class ScimFilter(_Expression, Generic[ResourceT]):
         if cls.__scim_models__:
             filter_._validate_semantics(strict=False)
         return filter_
-
-    @classmethod
-    def __get_pydantic_core_schema__(
-        cls,
-        _source_type: type[Any],
-        _handler: GetCoreSchemaHandler,
-    ) -> core_schema.CoreSchema:
-        def validate(value: Any) -> "ScimFilter[Any]":
-            if isinstance(value, str):
-                return cls(str(value))
-            raise ValueError(f"Expected str or ScimFilter, got {type(value).__name__}")
-
-        return core_schema.no_info_plain_validator_function(
-            validate,
-            serialization=core_schema.plain_serializer_function_ser_schema(str),
-        )
-
-    @classmethod
-    def __get_pydantic_json_schema__(
-        cls,
-        _core_schema: core_schema.CoreSchema,
-        _handler: GetJsonSchemaHandler,
-    ) -> JsonSchemaValue:
-        return {"type": "string"}
 
     @property
     def ast(self) -> FilterNode:
@@ -286,15 +234,6 @@ class ScimFilter(_Expression, Generic[ResourceT]):
                 f"got a union of {names}"
             )
         return self.model
-
-    @property
-    def models(self) -> tuple[type[BaseModel], ...]:
-        """The resource types this filter is bound to, empty when it is unbound.
-
-        It holds several models when the filter is bound to a union, which is
-        what an endpoint covering several resource types does.
-        """
-        return self.__scim_models__
 
     @property
     def model(self) -> type[BaseModel] | None:

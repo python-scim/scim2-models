@@ -1,6 +1,5 @@
 from collections.abc import Iterable
 from collections.abc import Iterator
-from collections.abc import MutableMapping
 from dataclasses import replace
 from inspect import isclass
 from typing import TYPE_CHECKING
@@ -11,18 +10,12 @@ from typing import TypeVar
 from typing import cast
 from typing import get_args
 from typing import get_origin
-from weakref import WeakValueDictionary
-
-from pydantic import GetCoreSchemaHandler
-from pydantic import GetJsonSchemaHandler
-from pydantic.json_schema import JsonSchemaValue
-from pydantic_core import core_schema
 
 from .base import BaseModel
+from .binding import _BoundToModels
 from .urn import URN
 from .utils import UNION_TYPES
 from .utils import _find_field_name
-from .utils import _model_union
 from .utils import _to_camel
 
 if TYPE_CHECKING:
@@ -55,16 +48,6 @@ from .resolution import resolve_attr_path
 from .resolution import validate_value_selection
 
 ResourceT = TypeVar("ResourceT", bound="Resource[Any]")
-
-_PATH_CACHE: "MutableMapping[tuple[type, tuple[type, ...]], type]" = (
-    WeakValueDictionary()
-)
-"""The classes subscription has already built, so that two subscriptions of the
-same resource types answer the same class.
-
-The classes are held weakly: one bound to a model built at runtime, as a server
-serving a schema it discovered does, would otherwise keep that model alive for
-as long as the process runs."""
 
 
 def _is_in_schema(path_lower: str, schema: str) -> bool:
@@ -185,32 +168,9 @@ class _Selection(NamedTuple):
     sub_attr: str | None
 
 
-class Path(_Expression, Generic[ResourceT]):
-    __scim_models__: tuple[type[BaseModel], ...] = ()
-
+class Path(_BoundToModels, _Expression, Generic[ResourceT]):
     _ast: "PathNode | None" = None
     """The parsed path, kept once :attr:`ast` has computed it."""
-
-    def __class_getitem__(cls, model: Any) -> type["Path[Any]"]:
-        """Create a Path class bound to a resource type, or to a union of them.
-
-        A union is what an endpoint covering several resource types binds, such
-        as the server root of :rfc:`RFC7644 §3.4.2.1 <7644#section-3.4.2.1>`.
-        Anything that is not a resource type, a type variable in particular, is
-        left to the generic machinery.
-        """
-        models = _model_union(model)
-        if models is None:
-            return super().__class_getitem__(model)  # type: ignore[misc,no-any-return]
-
-        cache_key = (cls, models)
-        if cache_key in _PATH_CACHE:
-            return _PATH_CACHE[cache_key]
-
-        names = ", ".join(each.__name__ for each in models)
-        new_class = type(f"Path[{names}]", (cls,), {"__scim_models__": models})
-        _PATH_CACHE[cache_key] = new_class
-        return new_class
 
     def _resolving_model(self) -> "type[BaseModel] | None":
         """Return the bound model this path resolves against.
@@ -231,33 +191,6 @@ class Path(_Expression, Generic[ResourceT]):
             if resolve_attr_path(model, designated, strict=False) is not None:
                 return model
         return self.__scim_models__[0]
-
-    @classmethod
-    def __get_pydantic_core_schema__(
-        cls,
-        _source_type: type[Any],
-        _handler: GetCoreSchemaHandler,
-    ) -> core_schema.CoreSchema:
-        def validate_path(value: Any) -> "Path[Any]":
-            if not isinstance(value, str):
-                raise ValueError(f"Expected str or Path, got {type(value).__name__}")
-            try:
-                return cls(str(value))
-            except InvalidPathException as exc:
-                raise exc.as_pydantic_error() from exc
-
-        return core_schema.no_info_plain_validator_function(
-            validate_path,
-            serialization=core_schema.plain_serializer_function_ser_schema(str),
-        )
-
-    @classmethod
-    def __get_pydantic_json_schema__(
-        cls,
-        _core_schema: core_schema.CoreSchema,
-        _handler: GetJsonSchemaHandler,
-    ) -> JsonSchemaValue:
-        return {"type": "string"}
 
     def __new__(cls, path: "str | Path[Any] | Template") -> "Path[Any]":
         text = _text(path)
