@@ -1,4 +1,6 @@
 import datetime
+import gc
+import weakref
 from typing import Union
 
 from pydantic import Base64Bytes
@@ -10,6 +12,7 @@ from scim2_models.annotations import Returned
 from scim2_models.annotations import Uniqueness
 from scim2_models.attributes import ComplexAttribute
 from scim2_models.context import Context
+from scim2_models.path import Path
 from scim2_models.reference import URI
 from scim2_models.reference import External
 from scim2_models.reference import Reference
@@ -2868,3 +2871,30 @@ def test_extensions_built_from_a_schema_know_their_attribute_urns():
         "schemas": ["urn:example:2.0:Single", "urn:example:2.0:Ext"],
         "urn:example:2.0:Ext": {"attr": "value"},
     }
+
+
+def test_a_model_built_at_runtime_is_collected_once_it_is_dropped():
+    """A model discovered from a schema is not kept alive by what binds to it.
+
+    A server serving the schemas of its tenants builds a model per schema, and
+    the classes a subscription answers used to hold every one of them for as
+    long as the process ran.
+    """
+    Model = Resource.from_schema(
+        _single_attribute_schema({"name": "label", "type": "string"})
+    )
+    reference = weakref.ref(Model)
+
+    # The assertion is made on a value that does not name the model, since
+    # pytest keeps the operands of an assertion for as long as the test runs.
+    bound = Path[Model]("label").field_name == "label"
+    assert bound
+
+    del Model
+
+    # The first pass frees the validators pydantic built for the model, which
+    # is what leaves the model itself unreachable for the second one.
+    gc.collect()
+    gc.collect()
+
+    assert reference() is None

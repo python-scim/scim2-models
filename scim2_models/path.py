@@ -1,6 +1,7 @@
 import re
 from collections.abc import Iterable
 from collections.abc import Iterator
+from collections.abc import MutableMapping
 from inspect import isclass
 from typing import TYPE_CHECKING
 from typing import Any
@@ -8,6 +9,7 @@ from typing import Generic
 from typing import NamedTuple
 from typing import TypeVar
 from typing import cast
+from weakref import WeakValueDictionary
 
 from pydantic import GetCoreSchemaHandler
 from pydantic import GetJsonSchemaHandler
@@ -34,7 +36,13 @@ ResourceT = TypeVar("ResourceT", bound="Resource[Any]")
 
 _VALID_PATH_PATTERN = re.compile(r'^[a-zA-Z][a-zA-Z0-9._:\-\[\]"=\s]*$')
 _ATTRIBUTE_NOTATION_PATTERN = re.compile(r"^[a-zA-Z][a-zA-Z0-9._:\-]*$")
-_PATH_CACHE: dict[tuple[type, type], type] = {}
+_PATH_CACHE: "MutableMapping[tuple[type, type], type]" = WeakValueDictionary()
+"""The classes subscription has already built, so that two subscriptions of the
+same resource type answer the same class.
+
+The classes are held weakly: one bound to a model built at runtime, as a server
+serving a schema it discovered does, would otherwise keep that model alive for
+as long as the process runs."""
 
 
 def _is_in_schema(path_lower: str, schema: str) -> bool:

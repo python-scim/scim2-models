@@ -79,6 +79,10 @@ Fixed
   a path expressed in it, and the longest match designates the model.
 - A path qualified by a URN that is neither the schema of the model nor that of one of its
   extensions designates nothing. It used to resolve as though the URN were the right one.
+- Subscribing a :class:`~scim2_models.Path` to a model no longer keeps that model alive for as
+  long as the process runs. The classes ``Path[Model]`` answers were filed in a cache that
+  never let go, so a server building a model per schema it discovers accumulated every one of
+  them.
 
 [0.7.0] - 2026-09-05
 --------------------
