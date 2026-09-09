@@ -167,12 +167,15 @@ def test_missing_resource_schema(load_sample):
 def test_resources_without_schemas_are_read(load_sample):
     """Resources omitting their 'schemas' attribute are read against the ListResponse parameter.
 
-    :rfc:`RFC7644 §3.4.3 <7644#section-3.4.3>` displays partial responses
-    where resources bear no 'schemas' attribute. A single-typed ListResponse
-    knows their type, so they are read as-is and the attribute is rebuilt on
-    serialization.
+    The :rfc:`RFC7644 §3.4.3 <7644#section-3.4.3>` example displays resources
+    bearing no 'schemas' attribute, which `erratum 8084
+    <https://www.rfc-editor.org/errata/eid8084>`_ restores; servers in the
+    wild still omit it. A single-typed ListResponse knows their type, so they
+    are read as-is and the attribute is rebuilt on serialization.
     """
     payload = load_sample("rfc7644-3.4.3-list_response-post_query.json")
+    for resource in payload["Resources"]:
+        del resource["schemas"]
 
     response = ListResponse[User].model_validate(
         payload, scim_ctx=Context.RESOURCE_QUERY_RESPONSE
@@ -192,11 +195,15 @@ def test_resources_without_schemas_are_read(load_sample):
 def test_resources_without_schemas_need_a_single_type(load_sample):
     """A ListResponse holding several types cannot guess the type of an unlabelled resource.
 
-    The :rfc:`RFC7644 §3.4.3 <7644#section-3.4.3>` example is undecidable:
-    its second resource only bears 'id' and 'displayName', which both
-    :class:`~scim2_models.User` and :class:`~scim2_models.Group` define.
+    Stripped of the 'schemas' `erratum 8084
+    <https://www.rfc-editor.org/errata/eid8084>`_ adds, the :rfc:`RFC7644
+    §3.4.3 <7644#section-3.4.3>` example is undecidable: its second resource
+    only bears 'id' and 'displayName', which both :class:`~scim2_models.User`
+    and :class:`~scim2_models.Group` define.
     """
     payload = load_sample("rfc7644-3.4.3-list_response-post_query.json")
+    for resource in payload["Resources"]:
+        del resource["schemas"]
 
     with pytest.raises(ValidationError) as exc_info:
         ListResponse[User | Group].model_validate(

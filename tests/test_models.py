@@ -33,7 +33,7 @@ SAMPLE_MODELS = {
     "schema": Schema,
     "resource_type": ResourceType,
     "service_provider_configuration": ServiceProviderConfig,
-    "list_response": ListResponse[User[EnterpriseUser] | Group | Schema | ResourceType],
+    "list_response": ListResponse[User | Group | Schema | ResourceType],
     "patch_op": PatchOp[User],
     "bulk_request": BulkRequest,
     "bulk_response": BulkResponse,
@@ -50,7 +50,6 @@ UNDECIDABLE = pytest.mark.skip(
 )
 UNDECIDABLE_SAMPLES = [
     "rfc7644-3.4.2-list_response-partial_attributes.json",
-    "rfc7644-3.4.3-list_response-post_query.json",
 ]
 DECIDABLE_SAMPLES = [
     pytest.param(sample, marks=UNDECIDABLE) if sample in UNDECIDABLE_SAMPLES else sample

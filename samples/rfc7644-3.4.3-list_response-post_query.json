@@ -8,11 +8,17 @@
     "Resources": [
         {
             "id": "2819c223-7f76-413861904646",
+            "schemas": [
+                "urn:ietf:params:scim:schemas:core:2.0:User"
+            ],
             "userName": "jsmith",
             "displayName": "Smith, James"
         },
         {
             "id": "c8596b90-7539-4f20968d1908",
+            "schemas": [
+                "urn:ietf:params:scim:schemas:core:2.0:Group"
+            ],
             "displayName": "Smith Family"
         }
     ]
