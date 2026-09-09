@@ -6,6 +6,7 @@ from pydantic import ValidationError
 
 from scim2_models import BulkRequest
 from scim2_models import BulkResponse
+from scim2_models import Context
 from scim2_models import EnterpriseUser
 from scim2_models import Error
 from scim2_models import Group
@@ -40,63 +41,108 @@ SAMPLE_MODELS = {
     "error": Error,
 }
 
+SAMPLES = sorted(os.listdir("samples"))
 
-def test_parse_and_serialize_examples(load_sample):
-    samples = list(os.walk("samples"))[0][2]
+UNDECIDABLE = pytest.mark.skip(
+    reason="the resources bear no schemas and the model holds several types, "
+    "so their type cannot be decided; tests/test_list_response.py covers "
+    "the single-typed case"
+)
+UNDECIDABLE_SAMPLES = [
+    "rfc7644-3.4.2-list_response-partial_attributes.json",
+    "rfc7644-3.4.3-list_response-post_query.json",
+]
+DECIDABLE_SAMPLES = [
+    pytest.param(sample, marks=UNDECIDABLE) if sample in UNDECIDABLE_SAMPLES else sample
+    for sample in SAMPLES
+]
 
-    for sample in samples:
-        model_name = sample.replace(".json", "").split("-")[2]
-        model = SAMPLE_MODELS[model_name]
+EXCHANGE_CONTEXTS = {
+    "post_request": Context.RESOURCE_CREATION_REQUEST,
+    "post_response": Context.RESOURCE_CREATION_RESPONSE,
+    "put_request": Context.RESOURCE_REPLACEMENT_REQUEST,
+    "put_response": Context.RESOURCE_REPLACEMENT_RESPONSE,
+}
 
-        skipped = [
-            # Those resources bear no schemas, and the model they are validated
-            # against holds several types, so their type cannot be decided.
-            # tests/test_list_response.py covers the single-typed case.
-            "rfc7644-3.4.2-list_response-partial_attributes.json",
-            "rfc7644-3.4.3-list_response-post_query.json",
-            # BulkOperation.data PatchOperation.value should be of type resource
-            # instead of Any, so serialization case would be respected.
-            "rfc7644-3.7.1-bulk_request-circular_conflict.json",
-            "rfc7644-3.7.2-bulk_request-enterprise_user.json",
-            "rfc7644-3.7.2-bulk_request-temporary_identifier.json",
-            "rfc7644-3.7.2-bulk_response-temporary_identifier.json",
-            "rfc7644-3.7.3-bulk_request-multiple_operations.json",
-            "rfc7644-3.7.3-bulk_response-error_invalid_syntax.json",
-            "rfc7644-3.7.3-bulk_response-multiple_errors.json",
-            "rfc7644-3.7.3-bulk_response-multiple_operations.json",
-        ]
-        if sample in skipped:
-            continue
+MESSAGE_CONTEXTS = {
+    "patch_op": Context.RESOURCE_PATCH_REQUEST,
+    "search_request": Context.SEARCH_REQUEST,
+    "list_response": Context.RESOURCE_QUERY_RESPONSE,
+    # An error answers any request.
+    "error": Context.RESOURCE_QUERY_RESPONSE,
+    # A bulk exchange is a POST on /Bulk.
+    "bulk_request": Context.RESOURCE_CREATION_REQUEST,
+    "bulk_response": Context.RESOURCE_CREATION_RESPONSE,
+}
 
-        payload = load_sample(sample)
-        obj = model.model_validate(payload)
-        assert obj.model_dump(exclude_unset=True) == payload
+# RFC7643 §8.2 and §8.3 illustrate every attribute at once. They carry a
+# password, which no response returns, next to an id and a meta, which no
+# request sends, so no HTTP exchange carries them as they are.
+SAMPLE_CONTEXTS = {
+    "rfc7643-8.2-user-full.json": Context.DEFAULT,
+    "rfc7643-8.3-enterprise_user.json": Context.DEFAULT,
+}
 
 
-def test_parse_json_and_decoded_examples(load_sample):
+def sample_model(sample: str) -> type:
+    return SAMPLE_MODELS[sample.removesuffix(".json").split("-")[2]]
+
+
+def sample_context(sample: str) -> Context:
+    """Return the context of the HTTP exchange a sample is taken from.
+
+    The file name carries the model and, for a resource, the exchange it
+    illustrates; a bare resource is the representation a query returns.
+    """
+    if sample in SAMPLE_CONTEXTS:
+        return SAMPLE_CONTEXTS[sample]
+
+    stem = sample.removesuffix(".json")
+    model_name = stem.split("-")[2]
+    if model_name in MESSAGE_CONTEXTS:
+        return MESSAGE_CONTEXTS[model_name]
+
+    for exchange, context in EXCHANGE_CONTEXTS.items():
+        if stem.endswith(exchange):
+            return context
+
+    return Context.RESOURCE_QUERY_RESPONSE
+
+
+@pytest.mark.parametrize("sample", DECIDABLE_SAMPLES)
+def test_parse_and_serialize_examples(sample, load_sample):
+    """Examples are serialized back as they were read."""
+    payload = load_sample(sample)
+    obj = sample_model(sample).model_validate(payload)
+    assert obj.model_dump(exclude_unset=True) == payload
+
+
+@pytest.mark.parametrize("sample", DECIDABLE_SAMPLES)
+def test_validate_examples_in_their_context(sample, load_sample):
+    """Examples pass the validation of the HTTP exchange they illustrate."""
+    sample_model(sample).model_validate(
+        load_sample(sample), scim_ctx=sample_context(sample)
+    )
+
+
+@pytest.mark.parametrize("sample", SAMPLES)
+def test_parse_json_and_decoded_examples(sample, load_sample):
     """JSON payloads and already decoded payloads are validated the same way."""
-    samples = list(os.walk("samples"))[0][2]
+    model = sample_model(sample)
+    payload = load_sample(sample)
+    raw = json.dumps(payload)
 
-    for sample in samples:
-        model_name = sample.replace(".json", "").split("-")[2]
-        model = SAMPLE_MODELS[model_name]
+    try:
+        obj = model.model_validate(payload)
+    except ValidationError as exc:
+        with pytest.raises(ValidationError) as json_exc:
+            model.model_validate_json(raw)
+        assert _error_summary(json_exc.value) == _error_summary(exc)
+        return
 
-        payload = load_sample(sample)
-        raw = json.dumps(payload)
-
-        try:
-            obj = model.model_validate(payload)
-        except ValidationError as exc:
-            with pytest.raises(ValidationError) as json_exc:
-                model.model_validate_json(raw)
-            assert _error_summary(json_exc.value) == _error_summary(exc)
-            continue
-
-        json_obj = model.model_validate_json(raw)
-        assert obj == json_obj
-        assert obj.model_dump(exclude_unset=True) == json_obj.model_dump(
-            exclude_unset=True
-        )
+    json_obj = model.model_validate_json(raw)
+    assert obj == json_obj
+    assert obj.model_dump(exclude_unset=True) == json_obj.model_dump(exclude_unset=True)
 
 
 def test_get_model_by_schema():
