@@ -108,7 +108,7 @@ issues_github_path = "python-scim/scim2-models"
 # -- Cross-references ----------------------------------------------
 
 
-def setup(app):
+def prefer_builtin_type():
     """Let the ``type`` builtin win over the SCIM attributes of the same name.
 
     :rfc:`RFC7643` gives most multi-valued attributes a ``type`` sub-attribute,
@@ -128,3 +128,26 @@ def setup(app):
         return [] if name == "type" and len(matches) > 1 else matches
 
     PythonDomain.find_obj = prefer_builtin
+
+
+# -- Members -------------------------------------------------------
+
+
+def skip_self_named_alias(app, what, name, obj, skip, options):
+    """Leave out a class exposed under its own name on another class.
+
+    ``User.Name`` is the ``Name`` model, as ``User.Emails`` is ``Email``.
+    autodoc renders the latter as an alias, but takes an attribute named like
+    the class it holds for a nested class, and describes ``Name`` a second time
+    under ``User``: the same canonical object twice, which the Python domain
+    reports as a duplicate description.
+    """
+    if what != "module" and isinstance(obj, type) and obj.__name__ == name:
+        return True
+    return None
+
+
+def setup(app):
+    """Register the adjustments the reference page needs."""
+    prefer_builtin_type()
+    app.connect("autodoc-skip-member", skip_self_named_alias)

@@ -120,4 +120,4 @@ jobs:
           enable-cache: true
       - name: Install dependencies
         run: uv sync --group doc
-      - run: uv run sphinx-build doc build/sphinx/html
+      - run: uv run sphinx-build -W --keep-going -b html doc build/sphinx/html
