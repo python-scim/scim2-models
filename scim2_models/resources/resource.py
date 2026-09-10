@@ -150,6 +150,19 @@ def _extension_serializer(
     return result or None
 
 
+def _qualified_extension(parameter: Any) -> tuple[Any, tuple[Any, ...]]:
+    """Split an extension parameter from what qualifies it.
+
+    ``User[Annotated[EnterpriseUser, Required.true]]`` names the extension and
+    says a resource of that type must carry it, which
+    :rfc:`RFC7643 §6 <7643#section-6>` lets a resource type declare.
+    """
+    if get_origin(parameter) is Annotated:
+        extension, *qualifiers = get_args(parameter)
+        return extension, tuple(qualifiers)
+    return parameter, ()
+
+
 class Resource(ScimObject, Generic[AnyExtension]):
     # Common attributes as defined by
     # https://www.rfc-editor.org/rfc/rfc7643#section-3.1
@@ -198,25 +211,33 @@ class Resource(ScimObject, Generic[AnyExtension]):
         if hasattr(cls, "__scim_extension_metadata__"):
             return cls
 
-        extensions = get_args(item) if get_origin(item) in UNION_TYPES else [item]
+        parameters = get_args(item) if get_origin(item) in UNION_TYPES else [item]
 
         # Skip TypeVar parameters and Any (used for generic class definitions)
-        valid_extensions = [
-            extension
-            for extension in extensions
-            if not isinstance(extension, TypeVar) and extension is not Any
+        valid_parameters = [
+            parameter
+            for parameter in parameters
+            if not isinstance(parameter, TypeVar) and parameter is not Any
         ]
 
-        if not valid_extensions:
+        if not valid_parameters:
             return cls
 
-        cache_key = (cls, tuple(valid_extensions))
+        # What qualifies a parameter belongs to the key, so that a required
+        # extension and an optional one are two classes.
+        cache_key = (cls, tuple(valid_parameters))
         if cache_key in _PARAMETERIZED_CLASSES:
             return _PARAMETERIZED_CLASSES[cache_key]
 
-        for extension in valid_extensions:
+        qualified_extensions = [
+            _qualified_extension(parameter) for parameter in valid_parameters
+        ]
+
+        for extension, _ in qualified_extensions:
             if not (isinstance(extension, type) and issubclass(extension, Extension)):
                 raise TypeError(f"{extension} is not a valid Extension type")
+
+        valid_extensions = [extension for extension, _ in qualified_extensions]
 
         class_name = (
             f"{cls.__name__}[{', '.join(ext.__name__ for ext in valid_extensions)}]"
@@ -234,10 +255,13 @@ class Resource(ScimObject, Generic[AnyExtension]):
 
         new_annotations = {
             extension.__name__: Annotated[
-                extension | None,
-                WrapSerializer(_extension_serializer),
+                (
+                    extension | None,
+                    WrapSerializer(_extension_serializer),
+                    *qualifiers,
+                )
             ]
-            for extension in valid_extensions
+            for extension, qualifiers in qualified_extensions
         }
 
         new_class = type(
