@@ -39,6 +39,12 @@ def canonic_schema(schema):
 
 
 def test_dynamic_group_schema(load_sample):
+    """Compare the generated Group schema with the one of RFC 7643 §8.7.1.
+
+    The sample carries a ``members.display`` sub-attribute the published schema
+    omits, as errata 6011 reports, declared ``readWrite`` like every other
+    ``display``.
+    """
     sample = Schema.model_validate(
         load_sample("rfc7643-8.7.1-schema-group.json")
     ).model_dump()

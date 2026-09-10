@@ -70,7 +70,7 @@
                     "description": "A human-readable name for the group member, primarily used for display purposes.",
                     "required": false,
                     "caseExact": false,
-                    "mutability": "readOnly",
+                    "mutability": "readWrite",
                     "returned": "default",
                     "uniqueness": "none"
                 }

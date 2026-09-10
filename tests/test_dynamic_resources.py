@@ -111,7 +111,7 @@ def test_make_group_model_from_schema(load_sample):
     )
     assert Members.get_field_annotation("display", Required) == Required.false
     assert Members.get_field_annotation("display", CaseExact) == CaseExact.false
-    assert Members.get_field_annotation("display", Mutability) == Mutability.read_only
+    assert Members.get_field_annotation("display", Mutability) == Mutability.read_write
     assert Members.get_field_annotation("display", Returned) == Returned.default
     assert Members.get_field_annotation("display", Uniqueness) == Uniqueness.none
 

@@ -385,10 +385,28 @@ def test_replace_accepts_an_entry_removed_from_a_multivalued_attribute():
 
 def test_replace_restores_a_read_only_sub_attribute_of_an_entry():
     """A read-only sub-attribute is taken from the stored entry, not from the client."""
-    original = Group(members=[GroupMember(value="u1", display="Barbara Jensen")])
-    replacement = Group(members=[GroupMember(value="u1", display="Somebody Else")])
+
+    class Membership(ComplexAttribute):
+        value: str | None = None
+        state: Annotated[str | None, Mutability.read_only] = None
+
+    class Team(Resource):
+        __schema__ = URN("urn:example:Team")
+
+        memberships: list[Membership] | None = None
+
+    original = Team(memberships=[Membership(value="u1", state="confirmed")])
+    replacement = Team(memberships=[Membership(value="u1", state="spoofed")])
     replacement.replace(original)
-    assert replacement.members[0].display == "Barbara Jensen"
+    assert replacement.memberships[0].state == "confirmed"
+
+
+def test_replace_keeps_a_read_write_sub_attribute_of_an_entry():
+    """The display of a group member is readWrite, so the client value stands."""
+    original = Group(members=[GroupMember(value="u1", display="Barbara Jensen")])
+    replacement = Group(members=[GroupMember(value="u1", display="Babs Jensen")])
+    replacement.replace(original)
+    assert replacement.members[0].display == "Babs Jensen"
 
 
 def test_replace_preserves_an_immutable_sub_attribute_left_out_of_an_entry():

@@ -34,7 +34,7 @@ class GroupMember(ComplexAttribute):
     )
     """A label indicating the attribute's function, e.g., "work" or "home"."""
 
-    display: Annotated[str | None, Mutability.read_only] = None
+    display: str | None = None
 
 
 class Group(Resource[Any]):

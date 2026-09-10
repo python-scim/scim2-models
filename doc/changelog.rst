@@ -67,6 +67,8 @@ Fixed
   sub-attributes of the entries a multi-valued attribute keeps, matched by their ``value``.
 - :meth:`Resource.to_schema <scim2_models.Resource.to_schema>` publishes the members of a string
   enumeration as the ``canonicalValues`` of an attribute.
+- :attr:`GroupMember.display <scim2_models.GroupMember.display>` is ``readWrite``, as
+  :rfc:`RFC7643 §8.7.1 <7643#section-8.7.1>` declares it.
 - A path naming a ``$ref`` sub-attribute, such as ``members.$ref`` or ``manager.$ref``, was
   refused as containing invalid characters, although it is the name
   :rfc:`RFC7643 §4 <7643#section-4>` gives the reference a complex attribute carries.
