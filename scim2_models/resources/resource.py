@@ -1,5 +1,6 @@
 import copyreg
 import warnings
+from collections.abc import MutableMapping
 from collections.abc import Sequence
 from datetime import datetime
 from enum import Enum
@@ -11,6 +12,7 @@ from typing import TypeVar
 from typing import Union
 from typing import get_args
 from typing import get_origin
+from weakref import WeakValueDictionary
 
 from pydantic import Field
 from pydantic import SerializationInfo
@@ -112,7 +114,15 @@ class Extension(ScimObject):
 
 AnyExtension = TypeVar("AnyExtension", bound="Extension")
 
-_PARAMETERIZED_CLASSES: dict[tuple[type, tuple[Any, ...]], type] = {}
+_PARAMETERIZED_CLASSES: "MutableMapping[tuple[type, tuple[Any, ...]], type]" = (
+    WeakValueDictionary()
+)
+"""The classes parameterization has already built, so that parameterizing a
+resource twice with the same extensions answers the same class.
+
+The classes are held weakly: one built on a model discovered at runtime, as a
+server serving the schemas of its tenants does, would otherwise keep that
+model alive for as long as the process runs."""
 
 
 def _extension_serializer(

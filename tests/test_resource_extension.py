@@ -1,15 +1,20 @@
 import datetime
+import gc
+import weakref
 
 import pytest
 from pydantic import TypeAdapter
 
 from scim2_models import URN
+from scim2_models import Attribute
 from scim2_models import Context
 from scim2_models import EnterpriseUser
 from scim2_models import Extension
 from scim2_models import InvalidPathException
 from scim2_models import Manager
 from scim2_models import Meta
+from scim2_models import Resource
+from scim2_models import Schema
 from scim2_models import User
 
 
@@ -404,3 +409,39 @@ def test_model_attribute_to_scim_attribute_error():
     finally:
         # Restore the original method
         TestModel.get_field_root_type = original_method
+
+
+def test_a_parameterized_model_built_at_runtime_is_collected_once_it_is_dropped():
+    """Parameterizing a model discovered from a schema does not keep it alive.
+
+    A server serving the schemas of its tenants builds a model per schema, then
+    parameterizes it with the extensions its ``ResourceType`` declares. The
+    classes parameterization answers used to hold every one of them for as long
+    as the process ran.
+    """
+    Model = Resource.from_schema(
+        Schema(
+            id="urn:example:2.0:Pet",
+            name="Pet",
+            attributes=[
+                Attribute(name="label", type=Attribute.Type.string, multi_valued=False)
+            ],
+        )
+    )
+    reference = weakref.ref(Model)
+
+    # The assertion is made on a value that does not name the model, since
+    # pytest keeps the operands of an assertion for as long as the test runs.
+    parameterized = Model[EnterpriseUser].get_extension_models() == {
+        EnterpriseUser.__schema__: EnterpriseUser
+    }
+    assert parameterized
+
+    del Model
+
+    # The first pass frees the validators pydantic built for the model, which
+    # is what leaves the model itself unreachable for the second one.
+    gc.collect()
+    gc.collect()
+
+    assert reference() is None

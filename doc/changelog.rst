@@ -154,6 +154,9 @@ Fixed
   describe that schema ``User[EnterpriseUser]``, although :rfc:`RFC7643 §3 <7643#section-3>`
   gives an extension a schema of its own that a resource points at through its ``schemas``
   attribute.
+- Parameterizing a resource with an extension no longer keeps the resource alive for as long as
+  the process runs, in the same way subscribing a :class:`~scim2_models.Path` to it no longer
+  does. The classes ``User[EnterpriseUser]`` answers were filed in a cache that never let go.
 
 [0.7.0] - 2026-09-05
 --------------------
