@@ -115,9 +115,13 @@ with. Parse the payload in the replacement-request context, then call
 
 The read-only attributes of the stored resource are carried over, so the response reports the
 identity and the version the server holds. An immutable attribute whose value differs from the
-stored one raises :class:`~scim2_models.MutabilityException` instead. The check covers the
-attributes of the resource and of its single-valued complex attributes; the entries of a
-multi-valued attribute are not compared.
+stored one raises :class:`~scim2_models.MutabilityException` instead. The check reaches the
+sub-attributes of a complex attribute, and the entries of a multi-valued one that the stored
+resource also holds: an entry is recognised by its ``value``, so adding and removing entries
+stays free, while changing an immutable sub-attribute of one that stays is refused. Two cases stay
+uncompared rather than risk refusing a legitimate replacement: an entry whose ``value``
+designates several entries, and an immutable reference, two spellings of one URI being
+equivalent per :rfc:`RFC7643 §2.4 <7643#section-2.4>`.
 
 Answer a rejected payload
 -------------------------

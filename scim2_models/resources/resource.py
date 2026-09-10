@@ -169,6 +169,13 @@ class Resource(ScimObject, Generic[AnyExtension]):
         ``immutable`` fields are preserved from *original* when absent,
         or checked for equality when present.
 
+        The same applies to the sub-attributes of a complex attribute, and to
+        those of an entry a multi-valued one keeps. Entries are matched on their
+        ``value`` sub-attribute, and only where it designates one entry on each
+        side. An immutable reference is preserved rather than compared, two
+        spellings of one URI being equivalent per :rfc:`RFC7643 §2.4
+        <7643#section-2.4>`.
+
         :param original: The original resource state to compare against.
         :raises MutabilityException: If an immutable field value differs.
         """

@@ -9,6 +9,8 @@ from scim2_models.annotations import Returned
 from scim2_models.attributes import ComplexAttribute
 from scim2_models.context import Context
 from scim2_models.resources.enterprise_user import EnterpriseUser
+from scim2_models.resources.group import Group
+from scim2_models.resources.group import GroupMember
 from scim2_models.resources.resource import Resource
 from scim2_models.resources.user import User
 from scim2_models.urn import URN
@@ -328,6 +330,142 @@ def test_replace_recurses_into_complex_attributes():
     replacement = Super(sub=Sub(immutable="x"))
     with pytest.raises(MutabilityException):
         replacement.replace(original)
+
+
+def test_replace_detects_a_changed_immutable_sub_attribute_of_an_entry():
+    """Replace raises when an entry keeps its value and changes an immutable sub-attribute."""
+    from scim2_models.exceptions import MutabilityException
+
+    original = Group(members=[GroupMember(value="u1", type="User")])
+    replacement = Group(members=[GroupMember(value="u1", type="Group")])
+    with pytest.raises(MutabilityException):
+        replacement.replace(original)
+
+
+def test_replace_matches_entries_by_value_and_not_by_position():
+    """The order of the entries of a multi-valued attribute carries no meaning."""
+    original = Group(
+        members=[
+            GroupMember(value="u1", type="User"),
+            GroupMember(value="u2", type="Group"),
+        ]
+    )
+    replacement = Group(
+        members=[
+            GroupMember(value="u2", type="Group"),
+            GroupMember(value="u1", type="User"),
+        ]
+    )
+    replacement.replace(original)
+    assert [member.value for member in replacement.members] == ["u2", "u1"]
+
+
+def test_replace_accepts_an_entry_added_to_a_multivalued_attribute():
+    """An entry whose value is unknown to the stored resource is a new entry."""
+    original = Group(members=[GroupMember(value="u1", type="User")])
+    replacement = Group(
+        members=[
+            GroupMember(value="u1", type="User"),
+            GroupMember(value="u2", type="Group"),
+        ]
+    )
+    replacement.replace(original)
+    assert [member.value for member in replacement.members] == ["u1", "u2"]
+
+
+def test_replace_accepts_an_entry_removed_from_a_multivalued_attribute():
+    """A stored entry the replacement leaves out is removed."""
+    original = Group(
+        members=[GroupMember(value="u1"), GroupMember(value="u2", type="Group")]
+    )
+    replacement = Group(members=[GroupMember(value="u1")])
+    replacement.replace(original)
+    assert [member.value for member in replacement.members] == ["u1"]
+
+
+def test_replace_restores_a_read_only_sub_attribute_of_an_entry():
+    """A read-only sub-attribute is taken from the stored entry, not from the client."""
+    original = Group(members=[GroupMember(value="u1", display="Barbara Jensen")])
+    replacement = Group(members=[GroupMember(value="u1", display="Somebody Else")])
+    replacement.replace(original)
+    assert replacement.members[0].display == "Barbara Jensen"
+
+
+def test_replace_preserves_an_immutable_sub_attribute_left_out_of_an_entry():
+    """Omitting an immutable sub-attribute is not a request to clear it."""
+    original = Group(members=[GroupMember(value="u1", type="User")])
+    replacement = Group(members=[GroupMember(value="u1")])
+    replacement.replace(original)
+    assert replacement.members[0].type == "User"
+
+
+def test_replace_accepts_a_multivalued_attribute_the_stored_resource_lacks():
+    """Entries have nothing to be compared against when the attribute was unassigned."""
+    original = Group(display_name="Tour Guides")
+    replacement = Group(members=[GroupMember(value="u1", type="User")])
+    replacement.replace(original)
+    assert replacement.members[0].value == "u1"
+
+
+def test_replace_leaves_an_ambiguous_entry_alone():
+    """A value borne by several entries identifies none of them.
+
+    :rfc:`RFC7643 §2.4 <7643#section-2.4>` lets one value appear twice under
+    different types, and the order of the entries carries no meaning, so the
+    pair to compare cannot be told apart.
+    """
+    original = Group(
+        members=[
+            GroupMember(value="u1", type="User"),
+            GroupMember(value="u1", type="Group"),
+        ]
+    )
+    replacement = Group(
+        members=[
+            GroupMember(value="u1", type="Group"),
+            GroupMember(value="u1", type="User"),
+        ]
+    )
+    replacement.replace(original)
+    assert [member.type for member in replacement.members] == ["Group", "User"]
+
+
+def test_replace_preserves_an_immutable_reference_instead_of_comparing_it():
+    """Two spellings of one reference URI are equivalent per RFC 7643 §2.4."""
+    original = Group(
+        members=[GroupMember(value="u1", ref="https://example.com/v2/Users/u1")]
+    )
+    replacement = Group(
+        members=[GroupMember(value="u1", ref="https://example.com/Users/u1")]
+    )
+    replacement.replace(original)
+    assert replacement.members[0].ref == "https://example.com/Users/u1"
+
+
+def test_replace_leaves_entries_without_a_value_sub_attribute_alone():
+    """An entry with no ``value`` sub-attribute has no identity to be matched by."""
+
+    class Entry(ComplexAttribute):
+        label: str | None = None
+        immutable: Annotated[str | None, Mutability.immutable] = None
+
+    class EntryResource(Resource):
+        __schema__ = URN("urn:example:EntryResource")
+
+        entries: list[Entry] | None = None
+
+    original = EntryResource(entries=[Entry(label="a", immutable="x")])
+    replacement = EntryResource(entries=[Entry(label="a", immutable="y")])
+    replacement.replace(original)
+    assert replacement.entries[0].immutable == "y"
+
+
+def test_replace_leaves_entries_whose_value_is_unassigned_alone():
+    """An entry carrying no value is not matched with a stored one."""
+    original = Group(members=[GroupMember(type="User")])
+    replacement = Group(members=[GroupMember(type="Group")])
+    replacement.replace(original)
+    assert replacement.members[0].type == "Group"
 
 
 def test_replace_ignores_readwrite_changes():

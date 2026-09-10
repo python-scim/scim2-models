@@ -128,6 +128,33 @@ class _SCIMClassInfo(NamedTuple):
     """Field names whose root type is a ``Extension`` subclass."""
 
 
+def _holds_reference(model: type["BaseModel"], field_name: str) -> bool:
+    """Say whether a field holds a reference URI, which is compared apart.
+
+    :rfc:`RFC7643 §2.4 <7643#section-2.4>` makes two spellings of one reference
+    equivalent, ``.../Users/2819c223`` and ``.../v2/Users/2819c223`` among them.
+    scim2-models implements no such equivalence, so an immutable reference is
+    preserved rather than compared.
+    """
+    root_type = model.get_field_root_type(field_name)
+    return isinstance(root_type, type) and issubclass(root_type, Reference)
+
+
+def _entries_by_value(entries: list[Any]) -> dict[Any, list[Any]]:
+    """Group the entries of a multi-valued attribute by their ``value``.
+
+    :rfc:`RFC7643 §2.4 <7643#section-2.4>` holds the significant value of an
+    entry there, but it is no key: one value may appear twice under different
+    ``type`` sub-attributes, and only the whole pair is unique.
+    """
+    grouped: dict[Any, list[Any]] = {}
+    for entry in entries:
+        value = getattr(entry, "value", None)
+        if value is not None:
+            grouped.setdefault(value, []).append(entry)
+    return grouped
+
+
 class BaseModel(PydanticBaseModel):
     """Base Model for everything."""
 
@@ -516,7 +543,11 @@ class BaseModel(PydanticBaseModel):
           ``self``; a :class:`~scim2_models.MutabilityException` is raised
           when the value differs.
 
-        Recursively applies to nested single-valued complex attributes.
+        Recursively applies to nested complex attributes, and to the entries of
+        a multi-valued one whose ``value`` designates a single entry on both
+        sides. An immutable reference is preserved rather than compared, since
+        two spellings of one URI are equivalent per :rfc:`RFC7643 §2.4
+        <7643#section-2.4>`.
         """
         for field_name in type(self).model_fields:
             mutability = type(self).get_field_annotation(field_name, Mutability)
@@ -531,7 +562,9 @@ class BaseModel(PydanticBaseModel):
                     # RFC 7643 §7: "SHALL NOT be updated" — omitting an
                     # immutable field is not a request to clear it.
                     self.__dict__[field_name] = original_val
-                elif self_val != original_val:
+                elif self_val != original_val and not _holds_reference(
+                    type(self), field_name
+                ):
                     # RFC 7644 §3.5.1: input values MUST match.
                     raise MutabilityException(
                         attribute=field_name, mutability="immutable"
@@ -541,11 +574,27 @@ class BaseModel(PydanticBaseModel):
             self.__scim_info__.extensions
         )
         for complex_attr in complex_and_extensions:
+            if type(self).get_field_annotation(complex_attr, Mutability) == (
+                Mutability.read_only
+            ):
+                # The whole attribute was already taken from *original*.
+                continue
+
+            original_sub = getattr(original, complex_attr)
+            replacement_sub = getattr(self, complex_attr)
+            if original_sub is None or replacement_sub is None:
+                continue
+
             if not type(self).get_field_multiplicity(complex_attr):
-                original_sub = getattr(original, complex_attr)
-                replacement_sub = getattr(self, complex_attr)
-                if original_sub is not None and replacement_sub is not None:
-                    replacement_sub._apply_replace_constraints(original_sub)
+                replacement_sub._apply_replace_constraints(original_sub)
+                continue
+
+            # A value borne by several entries identifies none of them.
+            stored_entries = _entries_by_value(original_sub)
+            for value, entries in _entries_by_value(replacement_sub).items():
+                candidates = stored_entries.get(value, [])
+                if len(entries) == 1 and len(candidates) == 1:
+                    entries[0]._apply_replace_constraints(candidates[0])
 
     def get_attribute_urn(self, field_name: str) -> str:
         """Build the full URN of the attribute.
