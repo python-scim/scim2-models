@@ -441,20 +441,40 @@ def _dedicated_attributes(
     return field_infos
 
 
+def _described_model(model: type[BaseModel]) -> type[BaseModel]:
+    """Return the model a parameterized class describes.
+
+    ``User[EnterpriseUser]`` is a class :meth:`Resource.__class_getitem__` built
+    to carry extension fields, and :func:`type` leaves it without a docstring.
+    The resource it describes stays ``User``.
+    """
+    if "__scim_extension_metadata__" in model.__dict__:
+        return model.__bases__[0]
+    return model
+
+
+def _is_extension_field(model: type[BaseModel], attribute_name: str) -> bool:
+    """Tell whether a field holds an extension rather than an attribute."""
+    root_type = model.get_field_root_type(attribute_name)
+    return isinstance(root_type, type) and issubclass(root_type, Extension)
+
+
 def _model_to_schema(model: type[BaseModel]) -> "Schema":
     from scim2_models.resources.schema import Schema
 
+    described = _described_model(model)
     schema_urn = getattr(model, "__schema__", "") or ""
     field_infos = _dedicated_attributes(model, [Resource])
     attributes = [
         _model_attribute_to_scim_attribute(model, attribute_name)
         for attribute_name in field_infos
         if attribute_name != "schemas"
+        and not _is_extension_field(model, attribute_name)
     ]
     schema = Schema(
-        name=model.__name__,
+        name=described.__name__,
         id=schema_urn,
-        description=model.__doc__ or model.__name__,
+        description=described.__doc__ or described.__name__,
         attributes=attributes,
     )
     return schema

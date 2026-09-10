@@ -148,6 +148,12 @@ Fixed
   long as the process runs. The classes ``Path[Model]`` answers were filed in a cache that
   never let go, so a server building a model per schema it discovers accumulated every one of
   them.
+- :meth:`Resource.to_schema <scim2_models.Resource.to_schema>` on a resource parameterized with
+  an extension describes the resource alone. ``User[EnterpriseUser].to_schema()`` used to
+  publish the URN of the extension as an attribute of the ``User`` schema, and to name and
+  describe that schema ``User[EnterpriseUser]``, although :rfc:`RFC7643 §3 <7643#section-3>`
+  gives an extension a schema of its own that a resource points at through its ``schemas``
+  attribute.
 
 [0.7.0] - 2026-09-05
 --------------------

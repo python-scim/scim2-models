@@ -258,3 +258,30 @@ def test_a_standard_resource_publishes_the_canonical_values_of_its_enumerations(
     }
     sub_attributes = {sub.name: sub for sub in attributes["emails"].sub_attributes}
     assert sub_attributes["type"].canonical_values == ["work", "home", "other"]
+
+
+def test_schema_of_a_parameterized_model_describes_the_resource_it_parameterizes():
+    """An extension is a schema of its own, not an attribute of the resource it extends.
+
+    :rfc:`RFC7643 §3 <7643#section-3>` gives an extension its own schema URI, and
+    a resource points at it through its ``schemas`` attribute. What
+    ``User[EnterpriseUser]`` publishes is thus the schema of ``User``, under the
+    name of ``User``.
+    """
+    assert (
+        User[EnterpriseUser].to_schema().model_dump() == User.to_schema().model_dump()
+    )
+
+
+def test_schema_of_a_subclass_of_a_parameterized_model_keeps_its_own_attributes():
+    """Only the extension fields disappear from the schema, not the declared ones."""
+
+    class VipUser(User[EnterpriseUser]):
+        vip_level: str | None = None
+
+    schema = VipUser.to_schema()
+    attribute_names = [attribute.name for attribute in schema.attributes]
+
+    assert schema.name == "VipUser"
+    assert "vipLevel" in attribute_names
+    assert EnterpriseUser.__schema__ not in attribute_names
