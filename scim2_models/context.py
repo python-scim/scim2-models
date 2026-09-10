@@ -145,7 +145,10 @@ class Context(Enum):
       :attr:`Required.true <scim2_models.Required.true>` unassigned, which a
       ``remove`` does, and so does a ``replace`` carrying a null value or an
       empty array, per :rfc:`RFC7643 §2.5 <7643#section-2.5>`,
-    - when a ``remove`` carries no ``path``, or an ``add`` no ``value``.
+    - when a ``remove`` carries no ``path``, or an ``add`` no ``value``,
+    - when a ``remove`` carries a ``value``, which :rfc:`RFC7644 §3.5.2.2
+      <7644#section-3.5.2.2>` gives no meaning: a filter in the ``path``
+      selects what to remove.
 
     Attributes annotated with :attr:`~scim2_models.Mutability.immutable` are
     checked by :meth:`~scim2_models.PatchOp.patch` instead, as it takes the

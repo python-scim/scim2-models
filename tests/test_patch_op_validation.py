@@ -77,14 +77,13 @@ def test_patch_op_remove_invalid_extension_path():
         patch_op.patch(user)
 
 
-def test_patch_op_remove_invalid_extension_path_with_value():
+def test_patch_op_remove_unknown_extension_attribute():
     user = User(user_name="john")
     patch_op = PatchOp[User](
         operations=[
             PatchOperation[User](
                 op="remove",
                 path="urn:ietf:params:scim:schemas:extension:enterprise:2.0:User.attr",
-                value="some_value",
             )
         ]
     )
@@ -508,8 +507,7 @@ def test_add_remove_operations_on_group_members_allowed():
                 {"op": "add", "path": "emails", "value": {"value": "test@example.com"}},
                 {
                     "op": "remove",
-                    "path": "emails",
-                    "value": {"value": "test@example.com"},
+                    "path": 'emails[value eq "test@example.com"]',
                 },
             ],
         },
@@ -652,7 +650,7 @@ def test_remove_value_at_path_invalid_field():
         patch.patch(user)
 
 
-def test_remove_specific_value_invalid_field():
+def test_remove_an_attribute_no_model_declares():
     """Test removing specific value from invalid field name."""
     user = User()
 
@@ -662,7 +660,6 @@ def test_remove_specific_value_invalid_field():
             PatchOperation[User](
                 op=PatchOperation.Op.remove,
                 path="invalidField",
-                value={"some": "value"},
             )
         ]
     )

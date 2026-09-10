@@ -12,8 +12,8 @@ Validation and application
 --------------------------
 
 Validating a PATCH message in :attr:`~scim2_models.Context.RESOURCE_PATCH_REQUEST` rejects what
-the message alone settles: a missing operation value, a ``remove`` without a path, a read-only
-target, and an operation that would unassign a required attribute.
+the message alone settles: a missing operation value, a ``remove`` without a path or carrying a
+value, a read-only target, and an operation that would unassign a required attribute.
 
 :meth:`~scim2_models.PatchOp.patch` then applies the message to the stored resource. Operations
 run in their listed order. This is where an immutable value can be compared with the value it
@@ -110,6 +110,42 @@ accepts a value selection at all, since implementations differ on it.
    Microsoft Entra ID sends ``add`` operations whose selection matches nothing, and expects the
    selected entry to be created. scim2-models does not create it, so an integration serving that
    client handles the case before applying the operation.
+
+What a remove selects
+---------------------
+
+:rfc:`RFC7644 §3.5.2.2 <7644#section-3.5.2.2>` defines a ``remove`` by its ``path`` alone: the
+four target locations it lists all read off ``path``, and a selection is spelled as a filter
+there. No member of the operation carries the entries to remove. An operation whose ``value`` is
+set is therefore incompatible with the schema of the attribute it targets, which
+:rfc:`RFC7644 §3.5.2 <7644#section-3.5.2>` answers with an error:
+
+.. doctest::
+
+    >>> patch = PatchOp[User](
+    ...     operations=[
+    ...         PatchOperation(
+    ...             op=PatchOperation.Op.remove,
+    ...             path="emails",
+    ...             value=[{"value": "work@example.com"}],
+    ...         )
+    ...     ]
+    ... )
+    >>> patch.patch(user)
+    Traceback (most recent call last):
+        ...
+    scim2_models.exceptions.InvalidValueException: a remove operation carries no value, a filter in the path selects what to remove
+
+Write the selection in the path instead, as ``emails[value eq "work@example.com"]``.
+
+.. note::
+
+   Microsoft Entra ID removes a group member with ``{"op": "Remove", "path": "members",
+   "value": [{"value": "..."}]}``, which this rejects. Microsoft `documents that form as
+   non-conformant
+   <https://learn.microsoft.com/en-us/entra/identity/app-provisioning/application-provisioning-config-problem-scim-compatibility>`_
+   and the ``aadOptscim062020`` flag, added to the tenant URL of the application, has Entra send
+   a filter path.
 
 Primary values
 --------------

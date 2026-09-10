@@ -169,6 +169,17 @@ class PatchOperation(ComplexAttribute, Generic[ResourceT]):
                 detail="Remove operation requires a path"
             ).as_pydantic_error()
 
+        # RFC 7644 Section 3.5.2.2 defines a remove by its path alone: the four
+        # target locations it lists all read off "path", and a selection is
+        # spelled as a filter there. An operation carrying a value is thus
+        # incompatible with the schema of the attribute it targets, which
+        # Section 3.5.2 answers with an error.
+        if self.op == PatchOperation.Op.remove and self.value is not None:
+            raise InvalidValueException(
+                detail="a remove operation carries no value, "
+                "a filter in the path selects what to remove"
+            ).as_pydantic_error()
+
         # RFC 7644 Section 3.5.2.1: "Value is required for add operations"
         if self.op == PatchOperation.Op.add and self.value is None:
             raise InvalidValueException(
@@ -552,4 +563,11 @@ class PatchOp(Message, Generic[ResourceT]):
         if operation.path is None:
             raise NoTargetException(detail="Remove operation requires a path")
 
-        return operation.path.delete(resource, operation.value)  # type: ignore[arg-type]
+        # Checked again here, a PatchOp built in Python reaching no validator.
+        if operation.value is not None:
+            raise InvalidValueException(
+                detail="a remove operation carries no value, "
+                "a filter in the path selects what to remove"
+            )
+
+        return operation.path.delete(resource)  # type: ignore[arg-type]

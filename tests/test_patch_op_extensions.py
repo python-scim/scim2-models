@@ -5,7 +5,6 @@ from pydantic import ValidationError
 
 from scim2_models import URN
 from scim2_models import Group
-from scim2_models import GroupMember
 from scim2_models import InvalidPathException
 from scim2_models import PatchOp
 from scim2_models import PatchOperation
@@ -203,44 +202,6 @@ def test_urn_parsing_errors():
         )
 
 
-def test_values_match_integration():
-    """Test values matching through remove operation with BaseModel objects."""
-    # Test removing existing member (values should match)
-    member1 = GroupMember(value="123", display="Test User")
-    group = Group(members=[member1])
-
-    # Remove with exact matching dict
-    patch_op = PatchOp[Group](
-        operations=[
-            PatchOperation[Group](
-                op=PatchOperation.Op.remove,
-                path="members",
-                value={"value": "123", "display": "Test User"},
-            )
-        ]
-    )
-    result = patch_op.patch(group)
-    assert result is True
-    assert group.members is None or len(group.members) == 0
-
-    # Test removing non-existing member (values should not match)
-    member2 = GroupMember(value="456", display="Other User")
-    group = Group(members=[member2])
-
-    patch_op = PatchOp[Group](
-        operations=[
-            PatchOperation[Group](
-                op=PatchOperation.Op.remove,
-                path="members",
-                value={"value": "123", "display": "Test User"},
-            )
-        ]
-    )
-    result = patch_op.patch(group)
-    assert result is False
-    assert len(group.members) == 1
-
-
 def test_generic_patchop_rejects_union():
     """Test that PatchOp rejects Union types."""
     with pytest.raises(
@@ -282,9 +243,8 @@ def test_patch_a_subattribute_of_an_unresolved_generic_attribute():
         patch.patch(user)
 
 
-def test_complex_object_creation_and_basemodel_matching():
-    """Test automatic complex object creation and BaseModel value matching in lists."""
-    # Test creation of parent object for valid complex field
+def test_add_creates_the_parent_of_a_complex_attribute():
+    """Adding a sub-attribute assigns the complex attribute holding it."""
     user = User()
     patch = PatchOp[User](
         operations=[
@@ -297,21 +257,6 @@ def test_complex_object_creation_and_basemodel_matching():
     result = patch.patch(user)
     assert result is True
     assert user.name.given_name == "John"
-
-    # Test BaseModel conversion in values matching
-    group = Group(members=[GroupMember(value="123", display="Test")])
-    patch = PatchOp[Group](
-        operations=[
-            PatchOperation[Group](
-                op=PatchOperation.Op.remove,
-                path="members",
-                value=GroupMember(value="123", display="Test"),
-            )
-        ]
-    )
-
-    result = patch.patch(group)
-    assert result is True
 
 
 def test_patch_extension_schema_path_without_attribute():

@@ -3,6 +3,7 @@ from pydantic import ValidationError
 
 from scim2_models import Group
 from scim2_models import GroupMember
+from scim2_models import InvalidValueException
 from scim2_models import NoTargetException
 from scim2_models import PatchOp
 from scim2_models import PatchOperation
@@ -30,25 +31,6 @@ def test_remove_operation_nonexistent_attribute():
     result = patch.patch(user)
     assert result is False
     assert user.nick_name is None
-
-
-def test_remove_operation_on_non_list_attribute():
-    """Test remove specific value operation on non-list attribute."""
-    user = User(nick_name="TestValue")
-
-    # Try to remove specific value from a single-valued field
-    patch = PatchOp[User](
-        operations=[
-            PatchOperation[User](
-                op=PatchOperation.Op.remove, path="nickName", value="TestValue"
-            )
-        ]
-    )
-
-    # Should return False because nickName is not a list
-    result = patch.patch(user)
-    assert result is False
-    assert user.nick_name == "TestValue"
 
 
 def test_remove_operation_sub_attribute():
@@ -113,120 +95,6 @@ def test_remove_operation_multiple_attribute_all():
     assert group.members is None or len(group.members) == 0
 
 
-def test_remove_operation_multiple_attribute_with_value():
-    """Test removing specific items from a multi-valued attribute by providing value."""
-    user = User(
-        emails=[
-            {"value": "work@example.com", "type": "work"},
-            {"value": "home@example.com", "type": "home"},
-        ]
-    )
-    patch = PatchOp[User](
-        operations=[
-            PatchOperation[User](
-                op=PatchOperation.Op.remove,
-                path="emails",
-                value={"value": "work@example.com", "type": "work"},
-            )
-        ]
-    )
-    result = patch.patch(user)
-    assert result is True
-    assert len(user.emails) == 1
-    assert user.emails[0].value == "home@example.com"
-
-
-def test_remove_operation_with_value_not_in_list():
-    """Test remove operation with value not present in list should return False."""
-    user = User(emails=[{"value": "test@example.com", "type": "work"}])
-    patch = PatchOp[User](
-        operations=[
-            PatchOperation[User](
-                op=PatchOperation.Op.remove,
-                path="emails",
-                value={"value": "other@example.com", "type": "work"},
-            )
-        ]
-    )
-    result = patch.patch(user)
-    assert result is False
-    assert len(user.emails) == 1
-    assert user.emails[0].value == "test@example.com"
-
-
-def test_values_match_basemodel_second_parameter():
-    """Test _values_match when first value is dict and second is BaseModel (line 423->426)."""
-    # Create a group with a member as dict
-    group = Group()
-    group.members = [{"value": "123", "display": "Test User"}]  # Dict, not BaseModel
-
-    # Try to remove using a BaseModel object
-    member_obj = GroupMember(value="123", display="Test User")  # BaseModel
-    patch = PatchOp[Group](
-        operations=[
-            PatchOperation[Group](
-                op=PatchOperation.Op.remove,
-                path="members",
-                value=member_obj,  # BaseModel as second parameter
-            )
-        ]
-    )
-
-    # This should trigger _values_match where:
-    # - value1 (dict from list) is not BaseModel -> skip lines 423-424
-    # - value2 (member_obj) is BaseModel -> execute lines 426-427
-    result = patch.patch(group)
-    assert result is True
-    assert group.members is None or len(group.members) == 0
-
-
-def test_remove_operations_on_nonexistent_and_basemodel_values():
-    """Test remove operations on non-existent values and BaseModel comparisons."""
-    user = User(emails=[{"value": "existing@example.com", "type": "work"}])
-
-    # Test removing non-existent value
-    patch = PatchOp[User](
-        operations=[
-            PatchOperation[User](
-                op=PatchOperation.Op.remove,
-                path="emails",
-                value={"value": "nonexistent@example.com", "type": "work"},
-            )
-        ]
-    )
-
-    result = patch.patch(user)
-    assert result is False
-    assert len(user.emails) == 1
-
-
-def test_complex_object_creation_and_basemodel_matching():
-    """Test complex object creation and BaseModel value matching."""
-    # Test removing from existing multi-valued attribute
-    group = Group(
-        members=[
-            GroupMember(value="123", display="Test User"),
-            GroupMember(value="456", display="Another User"),
-        ]
-    )
-
-    # Remove specific member by BaseModel value
-    patch = PatchOp[Group](
-        operations=[
-            PatchOperation[Group](
-                op=PatchOperation.Op.remove,
-                path="members",
-                value=GroupMember(value="123", display="Test User"),
-            )
-        ]
-    )
-
-    result = patch.patch(group)
-    assert result is True
-    assert len(group.members) == 1
-    assert group.members[0].value == "456"
-
-
 def test_remove_operation_bypass_validation_no_path():
     """Test remove operation with no path raises noTarget error per RFC7644 §3.5.2.2."""
     with pytest.raises(ValidationError, match="Remove operation requires a path"):
@@ -280,3 +148,67 @@ def test_remove_a_subattribute_of_every_entry():
         "bjensen@example.com",
         "babs@example.org",
     ]
+
+
+def test_remove_carrying_a_value_is_refused_at_validation():
+    """:rfc:`RFC7644 §3.5.2.2 <7644#section-3.5.2.2>` defines a remove by its path alone."""
+    with pytest.raises(ValidationError, match="carries no value"):
+        PatchOp[Group].model_validate(
+            {
+                "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+                "Operations": [
+                    {"op": "remove", "path": "members", "value": [{"value": "bob"}]}
+                ],
+            },
+            scim_ctx=Context.RESOURCE_PATCH_REQUEST,
+        )
+
+
+def test_remove_carrying_a_value_is_refused_when_applied():
+    """A remove built in Python skips validation, and must not silently do nothing."""
+    group = Group(display_name="eq", members=[GroupMember(value="bob", display="Bob")])
+    patch = PatchOp[Group](
+        operations=[
+            PatchOperation[Group](
+                op=PatchOperation.Op.remove,
+                path="members",
+                value=[{"value": "bob"}],
+            )
+        ]
+    )
+    with pytest.raises(InvalidValueException, match="carries no value"):
+        patch.patch(group)
+    assert [member.value for member in group.members] == ["bob"]
+
+
+def test_remove_carrying_a_value_on_a_singular_attribute_is_refused():
+    """The refusal holds wherever the path lands, not only on multi-valued attributes."""
+    user = User(nick_name="Babs")
+    patch = PatchOp[User](
+        operations=[
+            PatchOperation[User](
+                op=PatchOperation.Op.remove, path="nickName", value="Babs"
+            )
+        ]
+    )
+    with pytest.raises(InvalidValueException, match="carries no value"):
+        patch.patch(user)
+    assert user.nick_name == "Babs"
+
+
+def test_remove_selecting_nothing_reports_no_change():
+    """:rfc:`RFC7644 §3.5.2.2 <7644#section-3.5.2.2>` answers a success when a selection is empty.
+
+    'If the user was not a member of this group, no changes should be made to
+    the resource, and a success response should be returned.'
+    """
+    group = Group(display_name="eq", members=[GroupMember(value="bob")])
+    patch = PatchOp[Group](
+        operations=[
+            PatchOperation[Group](
+                op=PatchOperation.Op.remove, path='members[value eq "alice"]'
+            )
+        ]
+    )
+    assert patch.patch(group) is False
+    assert [member.value for member in group.members] == ["bob"]

@@ -30,6 +30,14 @@ Added
 
 Changed
 ^^^^^^^
+- A ``remove`` operation carrying a ``value`` is refused with ``invalidValue``, at validation and
+  when applied. :rfc:`RFC7644 §3.5.2.2 <7644#section-3.5.2.2>` defines a ``remove`` by its
+  ``path`` alone, a selection being spelled as a filter there. It used to remove the entries
+  equal to that ``value``, and to silently report no change when the ``value`` was a list or
+  described an entry only in part — the form `Microsoft Entra ID
+  <https://learn.microsoft.com/en-us/entra/identity/app-provisioning/application-provisioning-config-problem-scim-compatibility>`_
+  sends to remove a group member, where its ``aadOptscim062020`` tenant flag has it send a filter
+  path instead.
 - :attr:`Path.model <scim2_models.Path.model>` answers the model a path designates when it names
   no attribute: the bound model for the resource root, the resource or the extension for a bare
   schema URN, and :data:`None` for a path naming an attribute. It used to answer the type holding

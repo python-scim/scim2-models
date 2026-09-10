@@ -1733,3 +1733,13 @@ def test_every_enumerated_path_resolves_or_names_a_schema(model):
         assert resolved.target_type is not None
         assert resolved.target_is_multivalued is not None
         assert resolved.urn.endswith(path.attr)
+
+
+def test_delete_from_list_a_value_described_by_a_mapping():
+    """A mapping describes the entry to remove as well as a model does."""
+    user = User(
+        user_name="john",
+        emails=[Email(value="john@example.com"), Email(value="john@work.com")],
+    )
+    assert Path("emails").delete(user, {"value": "john@example.com"}) is True
+    assert [email.value for email in user.emails] == ["john@work.com"]
