@@ -48,6 +48,26 @@ class BulkOperation(ComplexAttribute):
 class BulkRequest(Message):
     """Bulk request as defined in :rfc:`RFC7644 §3.7 <7644#section-3.7>`.
 
+    The request groups independent SCIM operations. Its ``Operations`` field
+    keeps the SCIM capitalization during serialization:
+
+    >>> from scim2_models import BulkOperation, BulkRequest, Context
+    >>> request = BulkRequest(
+    ...     operations=[
+    ...         BulkOperation(
+    ...             method="POST",
+    ...             bulk_id="create-user",
+    ...             path="/Users",
+    ...             data={"userName": "bjensen"},
+    ...         )
+    ...     ]
+    ... )
+    >>> request.model_dump(scim_ctx=Context.RESOURCE_CREATION_REQUEST)["Operations"]
+    [{'method': 'POST', 'bulkId': 'create-user', 'path': '/Users', 'data': {'userName': 'bjensen'}}]
+
+    scim2-models validates and serializes the message. Applying the operations it
+    carries is left to the application.
+
     .. todo::
 
         The models for Bulk operations are defined, but their behavior is not implemented nor tested yet.
@@ -68,6 +88,9 @@ class BulkRequest(Message):
 
 class BulkResponse(Message):
     """Bulk response as defined in :rfc:`RFC7644 §3.7 <7644#section-3.7>`.
+
+    scim2-models validates and serializes the message. Building it from the
+    outcome of the operations is left to the application.
 
     .. todo::
 

@@ -7,7 +7,7 @@ Changelog
 Added
 ^^^^^
 - Support for the ``filter`` query parameter (:rfc:`RFC7644 §3.4.2.2 <7644#section-3.4.2.2>`)
-  with :class:`~scim2_models.ScimFilter`. See :doc:`filters`. :issue:`17`
+  with :class:`~scim2_models.ScimFilter`. See :doc:`explanation/filters`. :issue:`17`
 - Support for value selections in PATCH paths, such as ``emails[type eq "work"].value``
   (:rfc:`RFC7644 §3.5.2 <7644#section-3.5.2>`).
 - :meth:`ScimFilter.quote <scim2_models.ScimFilter.quote>` renders a value as a literal a filter

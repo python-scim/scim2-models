@@ -12,14 +12,16 @@ from datetime import timezone  # noqa: E402
 
 from pydantic import ValidationError  # noqa: E402
 
-from doc.guides._examples.integrations import sort_resources  # noqa: E402
-from doc.guides._examples.integrations import sort_value  # noqa: E402
-from doc.guides._examples.sqlalchemy_example import EmailRecord  # noqa: E402
-from doc.guides._examples.sqlalchemy_example import GroupRecord  # noqa: E402
-from doc.guides._examples.sqlalchemy_example import UserRecord  # noqa: E402
-from doc.guides._examples.sqlalchemy_example import create_session_factory  # noqa: E402
-from doc.guides._examples.sqlalchemy_example import query_users  # noqa: E402
-from doc.guides._examples.sqlalchemy_example import to_scim_user  # noqa: E402
+from doc.integrations._examples.integrations import sort_resources  # noqa: E402
+from doc.integrations._examples.integrations import sort_value  # noqa: E402
+from doc.integrations._examples.sqlalchemy_example import EmailRecord  # noqa: E402
+from doc.integrations._examples.sqlalchemy_example import GroupRecord  # noqa: E402
+from doc.integrations._examples.sqlalchemy_example import UserRecord  # noqa: E402
+from doc.integrations._examples.sqlalchemy_example import (  # noqa: E402
+    create_session_factory,
+)
+from doc.integrations._examples.sqlalchemy_example import query_users  # noqa: E402
+from doc.integrations._examples.sqlalchemy_example import to_scim_user  # noqa: E402
 from scim2_models import EnterpriseUser  # noqa: E402
 from scim2_models import InvalidPathException  # noqa: E402
 from scim2_models import ScimFilter  # noqa: E402
@@ -30,7 +32,7 @@ from scim2_models import User  # noqa: E402
 def create_flask_app():
     from flask import Flask
 
-    from doc.guides._examples import flask_example
+    from doc.integrations._examples import flask_example
 
     app = Flask(__name__)
     app.register_blueprint(flask_example.bp)
@@ -38,7 +40,7 @@ def create_flask_app():
 
 
 def test_flask_example_smoke():
-    from doc.guides._examples import integrations
+    from doc.integrations._examples import integrations
 
     integrations.records.clear()
     app = create_flask_app()
@@ -355,7 +357,7 @@ def test_django_example_smoke():
     settings.configure(
         DEBUG=True,
         SECRET_KEY="test-secret-key",
-        ROOT_URLCONF="doc.guides._examples.django_example",
+        ROOT_URLCONF="doc.integrations._examples.django_example",
         ALLOWED_HOSTS=["testserver"],
         MIDDLEWARE=[],
     )
@@ -364,11 +366,11 @@ def test_django_example_smoke():
     from django.test import Client
     from django.test import override_settings
 
-    from doc.guides._examples import integrations
+    from doc.integrations._examples import integrations
 
     integrations.records.clear()
 
-    with override_settings(ROOT_URLCONF="doc.guides._examples.django_example"):
+    with override_settings(ROOT_URLCONF="doc.integrations._examples.django_example"):
         client = Client()
 
         create_response = client.post(
@@ -542,13 +544,13 @@ def test_django_example_smoke():
 
 
 def test_fastapi_example_smoke():
-    from doc.guides._examples import integrations
+    from doc.integrations._examples import integrations
 
     integrations.records.clear()
 
     from starlette.testclient import TestClient
 
-    from doc.guides._examples.fastapi_example import app
+    from doc.integrations._examples.fastapi_example import app
 
     client = TestClient(app)
 
@@ -704,7 +706,7 @@ def test_fastapi_example_answers_a_scim_error_to_a_refused_query_parameter(
     """
     from starlette.testclient import TestClient
 
-    from doc.guides._examples.fastapi_example import app
+    from doc.integrations._examples.fastapi_example import app
 
     client = TestClient(app)
 

@@ -23,7 +23,7 @@ from ..annotations import Required
 from ..annotations import Returned
 from ..annotations import Uniqueness
 from ..attributes import ComplexAttribute
-from ..attributes import is_complex_attribute
+from ..attributes import _is_complex_attribute
 from ..base import BaseModel
 from ..constants import RESERVED_WORDS
 from ..reference import URI
@@ -82,7 +82,7 @@ def _make_python_model(
 
     for attr_name in model.model_fields:
         attr_type = model.get_field_root_type(attr_name)
-        if attr_type and is_complex_attribute(attr_type):
+        if attr_type and _is_complex_attribute(attr_type):
             setattr(model, attr_type.__name__, attr_type)
 
     return model
@@ -132,7 +132,7 @@ class Attribute(ComplexAttribute):
             if isinstance(pytype, type) and issubclass(pytype, Reference):
                 return cls.reference
 
-            if pytype and is_complex_attribute(pytype):
+            if pytype and _is_complex_attribute(pytype):
                 return cls.complex
 
             if pytype in (Required, CaseExact):

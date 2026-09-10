@@ -100,7 +100,7 @@ class MultiValuedComplexAttribute(ComplexAttribute):
     reference."""
 
 
-def is_complex_attribute(type_: type) -> bool:
+def _is_complex_attribute(type_: type) -> bool:
     # issubclass raise a TypeError with 'Reference' on python < 3.11
     return (
         get_origin(type_) != Reference

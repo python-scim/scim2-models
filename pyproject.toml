@@ -56,12 +56,11 @@ dev = [
 ]
 doc = [
     "autodoc-pydantic>=2.2.0",
-    "myst-parser>=3.0.1",
     "shibuya>=2024.5.15",
     "sphinx-paramlinks>=0.6.0",
+    "sphinx-reredirects>=0.1.6",  # 1.x requires Python 3.11
     "sphinx>=7.3.7",
     "sphinx-issues >= 5.0.0",
-    "sphinx-togglebutton>=0.3.2",
 ]
 
 [tool.coverage.run]
@@ -126,6 +125,8 @@ ignore-words-list = "selectin"
 plugins = [
   "pydantic.mypy"
 ]
+# ``string.templatelib.Template`` is None below 3.14, and a variable is not a type.
+python_version = "3.14"
 warn_unused_ignores = true
 exclude = [
   "tests/",

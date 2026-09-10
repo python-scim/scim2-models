@@ -74,9 +74,7 @@ class SCIMView(View):
                     etag = make_etag(app_record)
                     if etag not in parse_etags(if_match):
                         scim_error = Error(status=412, detail="ETag mismatch")
-                        return SCIMJsonResponse(
-                            scim_error.model_dump(), status=412
-                        )
+                        return SCIMJsonResponse(scim_error.model_dump(), status=412)
 
         response = super().dispatch(request, *args, **kwargs)
 
@@ -94,6 +92,7 @@ class SCIMView(View):
                 return HttpResponse(status=HTTPStatus.NOT_MODIFIED)
 
         return response
+
     # -- etag-end --
 
 
@@ -102,10 +101,11 @@ def resource_location(request, app_record):
     return request.build_absolute_uri(
         reverse("scim_user", kwargs={"app_record": app_record})
     )
+
+
 # -- setup-end --
 
 
-# -- refinements-start --
 # -- converters-start --
 class UserConverter:
     regex = "[^/]+"
@@ -129,6 +129,8 @@ def scim_validation_error(error):
     """Turn Pydantic validation errors into a SCIM error response."""
     scim_error = Error.from_validation_error(error.errors()[0])
     return SCIMJsonResponse(scim_error.model_dump(), status=scim_error.status)
+
+
 # -- validation-helper-end --
 
 
@@ -137,6 +139,8 @@ def scim_exception_error(error):
     """Turn SCIM exceptions into a SCIM error response."""
     scim_error = error.to_error()
     return SCIMJsonResponse(scim_error.model_dump(), status=scim_error.status)
+
+
 # -- scim-exception-helper-end --
 
 
@@ -148,15 +152,18 @@ def handler404(request, exception):
         scim_error.model_dump(),
         status=HTTPStatus.NOT_FOUND,
     )
+
+
 # -- error-handler-end --
-# -- refinements-end --
 
 
-# -- endpoints-start --
-# -- single-resource-start --
+# -- user-view-start --
 class UserView(SCIMView):
     """Handle GET, PUT, PATCH and DELETE on one SCIM user resource."""
 
+    # -- user-view-end --
+
+    # -- get-user-start --
     def get(self, request, app_record):
         try:
             req = ResponseParameters.model_validate(request.GET.dict())
@@ -172,10 +179,14 @@ class UserView(SCIMView):
             )
         )
 
+    # -- get-user-end --
+    # -- delete-user-start --
     def delete(self, request, app_record):
         delete_record(app_record["id"])
         return HttpResponse(status=HTTPStatus.NO_CONTENT)
 
+    # -- delete-user-end --
+    # -- put-user-start --
     def put(self, request, app_record):
         req = ResponseParameters.model_validate(request.GET.dict())
         existing_user = to_scim_user(app_record, resource_location(request, app_record))
@@ -207,6 +218,8 @@ class UserView(SCIMView):
             )
         )
 
+    # -- put-user-end --
+    # -- patch-user-start --
     def patch(self, request, app_record):
         req = ResponseParameters.model_validate(request.GET.dict())
         try:
@@ -233,10 +246,11 @@ class UserView(SCIMView):
                 excluded_attributes=req.excluded_attributes,
             )
         )
-# -- single-resource-end --
+
+    # -- patch-user-end --
 
 
-# -- collection-start --
+# -- users-response-start --
 def users_response(request, req, scim_ctx):
     """Return one page of users as a serialized SCIM ListResponse.
 
@@ -270,9 +284,16 @@ def users_response(request, req, scim_ctx):
     )
 
 
+# -- users-response-end --
+
+
+# -- users-view-start --
 class UsersView(SCIMView):
     """Handle GET and POST on the SCIM users collection."""
 
+    # -- users-view-end --
+
+    # -- list-users-start --
     def get(self, request):
         try:
             req = SearchRequest[User].model_validate(request.GET.dict())
@@ -283,6 +304,8 @@ class UsersView(SCIMView):
 
         return users_response(request, req, Context.RESOURCE_QUERY_RESPONSE)
 
+    # -- list-users-end --
+    # -- create-user-start --
     def post(self, request):
         req = ResponseParameters.model_validate(request.GET.dict())
         try:
@@ -309,8 +332,7 @@ class UsersView(SCIMView):
             status=HTTPStatus.CREATED,
         )
 
-
-# -- collection-end --
+    # -- create-user-end --
 
 
 # -- search-users-start --
@@ -329,6 +351,8 @@ class UsersSearchView(SCIMView):
             return users_response(request, req, Context.SEARCH_RESPONSE)
         except SCIMException as error:
             return scim_exception_error(error)
+
+
 # -- search-users-end --
 
 
@@ -376,6 +400,8 @@ class RootSearchView(SCIMView):
                 excluded_attributes=req.excluded_attributes,
             )
         )
+
+
 # -- search-root-end --
 
 
@@ -428,6 +454,8 @@ class SchemaView(SCIMView):
         return SCIMJsonResponse(
             schema.model_dump(scim_ctx=Context.RESOURCE_QUERY_RESPONSE)
         )
+
+
 # -- schemas-end --
 
 
@@ -466,9 +494,9 @@ class ResourceTypeView(SCIMView):
             return SCIMJsonResponse(
                 scim_error.model_dump(), status=HTTPStatus.NOT_FOUND
             )
-        return SCIMJsonResponse(
-            rt.model_dump(scim_ctx=Context.RESOURCE_QUERY_RESPONSE)
-        )
+        return SCIMJsonResponse(rt.model_dump(scim_ctx=Context.RESOURCE_QUERY_RESPONSE))
+
+
 # -- resource-types-end --
 
 
@@ -478,10 +506,10 @@ class ServiceProviderConfigView(SCIMView):
 
     def get(self, request):
         return SCIMJsonResponse(
-            service_provider_config.model_dump(
-                scim_ctx=Context.RESOURCE_QUERY_RESPONSE
-            )
+            service_provider_config.model_dump(scim_ctx=Context.RESOURCE_QUERY_RESPONSE)
         )
+
+
 # -- service-provider-config-end --
 
 
@@ -505,4 +533,3 @@ discovery_urlpatterns = [
     ),
 ]
 # -- discovery-end --
-# -- endpoints-end --

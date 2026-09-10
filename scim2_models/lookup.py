@@ -17,6 +17,12 @@ def get_model_by_schema(
 ) -> "type[AnyScimObject] | type[Extension] | None":
     """Given a model list and a schema, find the matching model.
 
+    Use the schema URI advertised by a SCIM resource to select its model:
+
+    >>> from scim2_models import Group, User, get_model_by_schema
+    >>> get_model_by_schema([User, Group], str(User.__schema__)) is User
+    True
+
     :param models: The models to look into.
     :param schema: The schema of the model to look for.
     :param with_extensions: Whether to look into the model extensions.
@@ -47,6 +53,14 @@ def get_model_by_payload(
     **kwargs: Any,
 ) -> "type[AnyScimObject] | type[Extension] | None":
     """Given a model list and a payload, find the matching model.
+
+    When a payload has a ``schemas`` member, the first schema selects the
+    model:
+
+    >>> from scim2_models import Group, User, get_model_by_payload
+    >>> payload = {"schemas": [str(Group.__schema__)]}
+    >>> get_model_by_payload([User, Group], payload) is Group
+    True
 
     :param models: The models to look into.
     :param payload: The payload which schemas are used to look for a model.

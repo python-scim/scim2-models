@@ -1,28 +1,28 @@
 SQLAlchemy
-----------
+==========
 
-This guide replaces the in-memory storage layer of the :doc:`index` section with a database,
-using `SQLAlchemy <https://www.sqlalchemy.org/>`_ and :mod:`scim2_models`.
-It is orthogonal to the framework guides: the HTTP layer stays the same, whichever of
-:doc:`flask`, :doc:`django` or :doc:`fastapi` it comes from.
+This guide replaces the in-memory storage layer of :doc:`helpers` with a database, using
+`SQLAlchemy <https://www.sqlalchemy.org/>`_ and :mod:`scim2_models`. It is orthogonal to the
+framework guides: the HTTP layer stays the same, whichever of :doc:`flask`, :doc:`django` or
+:doc:`fastapi` it comes from.
 
-It is written for people who know the SQLAlchemy object-relational mapper (ORM) and can read
-SQL, and it assumes you have read the :doc:`index` section and the :doc:`../filters` page. The
-example runs on SQLAlchemy 2.0 and later, installed with ``pip install sqlalchemy``. It covers
+It is written for people who know the SQLAlchemy object-relational mapper (ORM) and can read SQL,
+and it assumes the :doc:`helpers` page and :doc:`../explanation/filters`. The example runs on
+SQLAlchemy 2.0 and later, installed with ``pip install sqlalchemy``. It covers
 :class:`~scim2_models.User` only, and stops at querying: creation, patching and deletion are
 ordinary ORM work that SCIM does not weigh on.
 
-What changes is where the filter is applied. The other guides map every stored record to a
-SCIM resource and keep the ones :meth:`ScimFilter.match <scim2_models.ScimFilter.match>` accepts, which reads the
-whole store on every request. Here the filter becomes a ``WHERE`` clause, and sorting and
-pagination happen next to it, so a page costs a query over the matching rows and not a walk
-over all of them.
+What changes is where the filter is applied. The other guides map every stored record to a SCIM
+resource and keep the ones :meth:`ScimFilter.match <scim2_models.ScimFilter.match>` accepts,
+which reads the whole store on every request. Here the filter becomes a ``WHERE`` clause, and
+sorting and pagination happen next to it, so a page costs a query over the matching rows and not
+a walk over all of them.
 
 Models
-======
+------
 
-A multi-valued attribute becomes a table of its own, keyed on the resource holding it.
-Everything else is a column.
+A multi-valued attribute becomes a table of its own, keyed on the resource holding it. Everything
+else is a column.
 
 .. literalinclude:: _examples/sqlalchemy_example.py
    :language: python
@@ -31,7 +31,7 @@ Everything else is a column.
    :end-before: # -- models-end --
 
 Engine
-======
+------
 
 Whether a comparison respects case depends on the engine as much as on the schema. A case-exact
 attribute compares with ``LIKE``, which SQLite folds on ASCII unless ``case_sensitive_like`` is
@@ -44,10 +44,10 @@ set; PostgreSQL and MySQL settle it with the collation of the column instead.
    :end-before: # -- engine-end --
 
 Mapping application data to SCIM
-================================
+--------------------------------
 
-The conversion is the one of the :doc:`index` section, applied to ORM objects instead of
-dictionaries. One detail needs a function of its own.
+The conversion is the one of :doc:`helpers`, applied to ORM objects instead of dictionaries. One
+detail needs a function of its own.
 
 .. warning::
 
@@ -62,9 +62,10 @@ dictionaries. One detail needs a function of its own.
    :end-before: # -- mapping-end --
 
 Mapping attributes to columns
-=============================
+-----------------------------
 
-A filter names SCIM attributes, such as ``userName`` or ``emails.value``.
+A filter names SCIM attributes, such as :attr:`userName <scim2_models.User.user_name>` or
+:attr:`emails.value <scim2_models.Email.value>`.
 :meth:`ScimFilter.resolve_comparison <scim2_models.ScimFilter.resolve_comparison>` looks such a
 name up on the model and returns the field it designates: ``user_name`` on
 :class:`~scim2_models.User`, or ``value`` on the entries of ``emails``. Which column of which
@@ -84,11 +85,12 @@ entry lives in. An explicit table also decides what is *not* queryable: the visi
 attribute the table omits, instead of querying a column that does not exist.
 
 Transpiling a filter
-====================
+--------------------
 
-Turning the filter into a ``WHERE`` clause is the job of a ``FilterVisitor``, the class
-:ref:`filter-transpiling` introduces: a subclass says what to emit for each node of the parsed
-filter. The ``SqlAlchemyVisitor`` below emits SQLAlchemy expressions instead of SQL text:
+Turning the filter into a ``WHERE`` clause is the job of a
+:class:`~scim2_models.path.FilterVisitor`, the class :ref:`filter-transpiling` introduces: a
+subclass says what to emit for each node of the parsed filter. The ``SqlAlchemyVisitor`` of this
+guide emits SQLAlchemy expressions instead of SQL text:
 
 .. literalinclude:: _examples/sqlalchemy_example.py
    :language: python
@@ -117,15 +119,16 @@ The test on the case reads the SCIM type and not the Python one: ``emails.value`
 :class:`~pydantic.networks.EmailStr`, which is not a :class:`str` subclass.
 
 Sorting
-=======
+-------
 
-:attr:`SearchRequest.sort_by <scim2_models.SearchRequest.sort_by>` is a :class:`~scim2_models.Path`,
-already resolved against the model on a parameterised request. On a union, it resolves against
-the first resource type declaring the attribute. ``sort_expression`` looks the path up in the
-same table of columns as the filter does. A sub-attribute is filed under the attribute holding
-it, so ``meta.lastModified`` is found at ``("meta", "last_modified")``. The remaining step turns
-the column into an ``ORDER BY`` term, and :rfc:`RFC7644 §3.4.2.3 <7644#section-3.4.2.3>` decides
-the order in three ways a bare ``ORDER BY column`` follows none of:
+:attr:`SearchRequest.sort_by <scim2_models.SearchRequest.sort_by>` is a
+:class:`~scim2_models.Path`, already resolved against the model on a parameterised request. On a
+union, it resolves against the first resource type declaring the attribute. ``sort_expression``
+looks the path up in the same table of columns as the filter does. A sub-attribute is filed under
+the attribute holding it, so ``meta.lastModified`` is found at ``("meta", "last_modified")``. The
+remaining step turns the column into an ``ORDER BY`` term, and
+:rfc:`RFC7644 §3.4.2.3 <7644#section-3.4.2.3>` decides the order in three ways a bare
+``ORDER BY column`` follows none of:
 
 - **Case.** A case-insensitive attribute sorts on ``lower(column)``.
 - **Missing values.** They come "last if ascending and first if descending".
@@ -164,11 +167,11 @@ key, and a query carrying no ``sortBy`` at all, leave the engine free to return 
 pages and another on none. Closing the clause with the primary key makes a page reproducible.
 
 Querying
-========
+--------
 
-``totalResults`` counts what the filter kept, per :rfc:`RFC7644 §3.4.2 <7644#section-3.4.2>`,
-so the count runs on the filtered statement before it is paginated. ``MAX_RESULTS`` is the bound
-of the :doc:`index` section, the one the :class:`~scim2_models.ServiceProviderConfig` advertises.
+``totalResults`` counts what the filter kept, per :rfc:`RFC7644 §3.4.2 <7644#section-3.4.2>`, so
+the count runs on the filtered statement before it is paginated. ``MAX_RESULTS`` is the bound of
+:doc:`helpers`, the one the :class:`~scim2_models.ServiceProviderConfig` advertises.
 
 .. literalinclude:: _examples/sqlalchemy_example.py
    :language: python
@@ -181,9 +184,9 @@ them, and ``totalResults`` counts it:
 
 .. testsetup::
 
-   from doc.guides._examples.sqlalchemy_example import create_session_factory
-   from doc.guides._examples.sqlalchemy_example import from_scim_user
-   from doc.guides._examples.sqlalchemy_example import query_users
+   from doc.integrations._examples.sqlalchemy_example import create_session_factory
+   from doc.integrations._examples.sqlalchemy_example import from_scim_user
+   from doc.integrations._examples.sqlalchemy_example import query_users
 
 .. doctest::
 
@@ -200,16 +203,16 @@ them, and ``totalResults`` counts it:
     (1, ['bjensen'])
 
 Checking it against the evaluator
-=================================
+---------------------------------
 
-:meth:`ScimFilter.match <scim2_models.ScimFilter.match>` walks the same tree through the same resolution, on
-Python objects instead of on a database, so it answers the question the query is meant to
-answer. Running both over the same resources tells a mapping mistake from a correct query. Do it
-for any mapping written by hand.
+:meth:`ScimFilter.match <scim2_models.ScimFilter.match>` walks the same tree through the same
+resolution, on Python objects instead of on a database, so it answers the question the query is
+meant to answer. Running both over the same resources tells a mapping mistake from a correct
+query. Do it for any mapping written by hand.
 
 The test suite of this documentation runs its whole list of filters that way. Writing it caught
-three defects in this example that had passed review: the naive :class:`~datetime.datetime`
-above, the case-folding ``LIKE`` of SQLite, and a case test written on :class:`str` that
+three defects in this example that had passed review: the naive :class:`~datetime.datetime` of
+the warning, the case-folding ``LIKE`` of SQLite, and a case test written on :class:`str` that
 silently skipped ``emails.value``. The test is reproduced here as it stands:
 
 .. literalinclude:: ../../tests/test_doc_examples.py
@@ -218,12 +221,12 @@ silently skipped ``emails.value``. The test is reproduced here as it stands:
    :start-after: # -- oracle-start --
    :end-before: # -- oracle-end --
 
-The order answers to the same treatment. ``sort_resources``, the helper of the :doc:`index`
-section, applies the rules of §3.4.2.3 to Python values, and comparing the two over six
-attributes in both orders says whether an ``ORDER BY`` implements them. It caught two defects
-of its own. The example refused a ``sortBy`` naming a sub-attribute although its column is
-mapped, and the suite asserted the ``BINARY`` order of SQLite for ``sortBy=userName`` as though
-it were the one :rfc:`7644` asks for.
+The order answers to the same treatment. ``sort_resources``, the helper of :doc:`helpers`,
+applies the rules of §3.4.2.3 to Python values, and comparing the two over six attributes in both
+orders says whether an ``ORDER BY`` implements them. It caught two defects of its own. The
+example refused a ``sortBy`` naming a sub-attribute although its column is mapped, and the suite
+asserted the ``BINARY`` order of SQLite for ``sortBy=userName`` as though it were the one
+:rfc:`7644` asks for.
 
 .. literalinclude:: ../../tests/test_doc_examples.py
    :language: python

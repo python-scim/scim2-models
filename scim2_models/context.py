@@ -6,10 +6,16 @@ class Context(Enum):
     """Represent the different HTTP contexts detailed in :rfc:`RFC7644 §3.2 <7644#section-3.2>`.
 
     Contexts are intended to be used during model validation and serialization.
-    For instance a client preparing a resource creation POST request can use
-    :code:`resource.model_dump(Context.RESOURCE_CREATION_REQUEST)` and
-    the server can then validate it with
-    :code:`resource.model_validate(Context.RESOURCE_CREATION_REQUEST)`.
+    For instance, a client preparing a resource creation request serializes a
+    resource in the creation-request context:
+
+    >>> from scim2_models import Context, User
+    >>> user = User(user_name="bjensen")
+    >>> user.model_dump(scim_ctx=Context.RESOURCE_CREATION_REQUEST)
+    {'schemas': ['urn:ietf:params:scim:schemas:core:2.0:User'], 'userName': 'bjensen'}
+
+    A server validates a received payload in that same context with
+    :meth:`~scim2_models.BaseModel.model_validate`.
     """
 
     DEFAULT = auto()

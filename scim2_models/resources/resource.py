@@ -27,7 +27,7 @@ from ..annotations import Required
 from ..annotations import Returned
 from ..annotations import Uniqueness
 from ..attributes import ComplexAttribute
-from ..attributes import is_complex_attribute
+from ..attributes import _is_complex_attribute
 from ..base import BaseModel
 from ..context import Context
 from ..exceptions import InvalidPathException
@@ -473,7 +473,7 @@ def _model_attribute_to_scim_attribute(
                 or sub_attribute_name != "sub_attributes"
             )
         ]
-        if root_type and is_complex_attribute(root_type)
+        if root_type and _is_complex_attribute(root_type)
         else None
     )
 

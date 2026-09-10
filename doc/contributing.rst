@@ -1,47 +1,41 @@
-Contribution
+Contributing
 ============
 
 Contributions are welcome!
 
-The repository is hosted at `github.com/python-scim/scim2-models <https://github.com/python-scim/scim2-models>`_.
+The repository is hosted at
+`github.com/python-scim/scim2-models <https://github.com/python-scim/scim2-models>`_.
 
 Discuss
 -------
 
-If you want to implement a feature or a bugfix, please start by discussing it with us on
-the `bugtracker <https://github.com/python-scim/scim2-models/issues>`_.
+A feature or a bugfix starts with a discussion on the
+`bugtracker <https://github.com/python-scim/scim2-models/issues>`_.
 
 Unit tests
 ----------
 
-To run the tests, you just can run ``uv run pytest`` and/or ``tox`` to test all the supported python environments.
-Everything must be green before patches get merged.
+Run ``uv run pytest`` before submitting a patch. Run ``uv run tox`` to test every supported
+Python version. Everything must pass before a patch can be merged.
 
-The test coverage is 100%, patches won't be accepted if not entirely covered. You can check the
-test coverage with ``uv run pytest --cov --cov-report=html`` or ``tox -e coverage -- --cov-report=html``.
-You can check the HTML coverage report in the newly created `htmlcov` directory.
+The test coverage threshold is 100%. Check it with
+``uv run pytest --cov --cov-fail-under=100 --cov-report=html``. The report is written to
+``htmlcov``.
 
 Code style
 ----------
 
-We use `ruff <https://docs.astral.sh/ruff/>`_ along with other tools to format our code.
-Please run ``tox -e style`` on your patches before submitting them.
-In order to perform a style check and correction at each commit you can use our
-`prek <https://github.com/j178/prek>`_ configuration with ``prek install``.
+The project uses `ruff <https://docs.astral.sh/ruff/>`_ and other checks through
+`prek <https://github.com/j178/prek>`_. Run ``uv run prek run --all-files`` before submitting a
+patch. Install the hooks with ``uv run prek install`` to run them before each commit.
 
 Documentation
 -------------
 
-The documentation is generated when the tests run:
+Build the documentation with warnings treated as errors:
 
 .. code-block:: bash
 
-    tox -e doc
-
-You can also run sphinx by hand, that should be faster since it avoids the tox environment initialization:
-
-.. code-block:: bash
-
-   sphinx-build doc build/sphinx/html
+   uv run sphinx-build -W --keep-going --builder html doc build/sphinx/html
 
 The generated documentation is located at ``build/sphinx/html``.

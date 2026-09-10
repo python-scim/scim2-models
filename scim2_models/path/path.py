@@ -11,9 +11,9 @@ from typing import TypeVar
 from ..base import BaseModel
 from ..urn import URN
 from ..utils import _to_camel
-from .access import delete_value
-from .access import get_value
-from .access import set_value
+from .access import _delete_value
+from .access import _get_value
+from .access import _set_value
 from .binding import _BoundToModels
 
 if TYPE_CHECKING:
@@ -117,7 +117,7 @@ class Path(_BoundToModels, _Expression, Generic[ResourceT]):
         """Check that a path conforms to the ``PATH`` rule of :rfc:`RFC7644 §3.5.2 <7644#section-3.5.2>`.
 
         The grammar is the published ABNF as corrected by
-        `errata 7122 <https://www.rfc-editor.org/errata/eid7122>`_, so a path
+        `errata 7122 <https://errata.rfc-editor.org/eid7122/>`_, so a path
         is either an attribute path, a value selection optionally followed by a
         sub-attribute, or a bare comparison. An empty string is valid and
         represents the resource root.
@@ -176,8 +176,8 @@ class Path(_BoundToModels, _Expression, Generic[ResourceT]):
     def schema(self) -> str | None:
         """The schema URN portion of the path.
 
-        For paths like "urn:...:User:userName", returns "urn:...:User".
-        For simple paths like "userName", returns None.
+        For paths like ``urn:...:User:userName``, returns ``urn:...:User``.
+        For simple paths like ``userName``, returns :data:`None`.
         """
         node = self.ast
         return None if node is None else _node_attr_path(node).uri
@@ -206,14 +206,14 @@ class Path(_BoundToModels, _Expression, Generic[ResourceT]):
     def attr(self) -> str:
         """The attribute portion of the path, selection and filter excluded.
 
-        For paths like "urn:...:User:userName", returns "userName".
-        For simple paths like "userName", returns "userName".
-        For 'emails[type eq "work"].value', returns "emails.value".
-        For the empty path, which designates the resource itself, returns "".
+        For paths like ``urn:...:User:userName``, returns ``userName``.
+        For simple paths like ``userName``, returns ``userName``.
+        For ``emails[type eq "work"].value``, returns ``emails.value``.
+        For the empty path, which designates the resource itself, returns ``""``.
 
         Nothing tells a schema-only path from a qualified one, since the URN of
-        a schema is itself a colon-separated name: "urn:...:User" reads as the
-        attribute "User" of the schema "urn:...:2.0".
+        a schema is itself a colon-separated name: ``urn:...:User`` reads as the
+        attribute ``User`` of the schema ``urn:...:2.0``.
         """
         designated = self._designated_attr_path()
         if designated is None:
@@ -368,7 +368,7 @@ class Path(_BoundToModels, _Expression, Generic[ResourceT]):
             apply to the attribute it selects from.
         """
         try:
-            return get_value(self, resource)
+            return _get_value(self, resource)
         except (InvalidPathException, InvalidFilterException):
             if strict:
                 raise
@@ -402,7 +402,7 @@ class Path(_BoundToModels, _Expression, Generic[ResourceT]):
             selection matches nothing.
         """
         try:
-            return set_value(self, resource, value, is_add=is_add)
+            return _set_value(self, resource, value, is_add=is_add)
         except (InvalidPathException, InvalidFilterException, NoTargetException):
             if strict:
                 raise
@@ -429,7 +429,7 @@ class Path(_BoundToModels, _Expression, Generic[ResourceT]):
             apply to the attribute it selects from.
         """
         try:
-            return delete_value(self, resource, value)
+            return _delete_value(self, resource, value)
         except (InvalidPathException, InvalidFilterException):
             if strict:
                 raise

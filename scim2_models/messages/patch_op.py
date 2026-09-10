@@ -207,6 +207,16 @@ class PatchOp(Message, Generic[ResourceT]):
         - PatchOp[Resource] is not allowed - use a concrete subclass instead
         - Union types are not supported - use a specific resource type
         - Using PatchOp without a type parameter raises TypeError
+
+    >>> from scim2_models import PatchOp, User
+    >>> user = User(user_name="bjensen")
+    >>> patch = PatchOp[User](
+    ...     operations=[
+    ...         {"op": "replace", "path": "displayName", "value": "Barbara Jensen"}
+    ...     ]
+    ... )
+    >>> patch.patch(user), user.display_name
+    (True, 'Barbara Jensen')
     """
 
     def __new__(cls, *args: Any, **kwargs: Any) -> Self:

@@ -1,8 +1,8 @@
 import pytest
 
-from doc.guides._examples.sqlalchemy_example import create_session_factory
-from doc.guides._examples.sqlalchemy_example import from_scim_user
-from doc.guides._examples.sqlalchemy_example import query_users
+from doc.integrations._examples.sqlalchemy_example import create_session_factory
+from doc.integrations._examples.sqlalchemy_example import from_scim_user
+from doc.integrations._examples.sqlalchemy_example import query_users
 
 
 @pytest.fixture(autouse=True)

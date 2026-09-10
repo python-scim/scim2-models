@@ -11,15 +11,13 @@ sys.path.insert(0, os.path.abspath("../scim2_models"))
 extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.doctest",
-    "sphinx.ext.graphviz",
     "sphinx.ext.intersphinx",
     "sphinx.ext.todo",
     "sphinx.ext.viewcode",
     "sphinxcontrib.autodoc_pydantic",
     "sphinx_issues",
     "sphinx_paramlinks",
-    "sphinx_togglebutton",
-    "myst_parser",
+    "sphinx_reredirects",
 ]
 
 templates_path = ["_templates"]
@@ -28,16 +26,12 @@ project = "scim2-models"
 year = datetime.datetime.now().strftime("%Y")
 copyright = f"{year}, Yaal Coop"
 author = "Yaal Coop"
-source_suffix = {
-    ".rst": "restructuredtext",
-    ".txt": "markdown",
-    ".md": "markdown",
-}
+source_suffix = {".rst": "restructuredtext"}
 
 version = metadata.version("scim2-models")
 language = "en"
 pygments_style = "sphinx"
-todo_include_todos = True
+todo_include_todos = False
 toctree_collapse = False
 
 intersphinx_mapping = {
@@ -50,7 +44,6 @@ intersphinx_mapping = {
 # -- Options for HTML output ----------------------------------------------
 
 html_theme = "shibuya"
-# html_static_path = ["_static"]
 html_baseurl = "https://scim2-models.readthedocs.io"
 html_logo = "_static/python-scim.svg"
 html_theme_options = {
@@ -100,6 +93,21 @@ doctest_global_setup = """
 from scim2_models import *
 """
 
+# -- Redirections -------------------------------------------------
+
+# The pages the documentation reorganisation moved, so that published links
+# and bookmarks keep working.
+redirects = {
+    "tutorial": "overview.html",
+    "filters": "explanation/filters.html",
+    "patch": "explanation/patch.html",
+    "guides/index": "../integrations/index.html",
+    "guides/flask": "../integrations/flask.html",
+    "guides/django": "../integrations/django.html",
+    "guides/fastapi": "../integrations/fastapi.html",
+    "guides/sqlalchemy": "../integrations/sqlalchemy.html",
+}
+
 # -- Options for sphinx-issues -------------------------------------
 
 issues_github_path = "python-scim/scim2-models"
@@ -133,15 +141,21 @@ def prefer_builtin_type():
 # -- Members -------------------------------------------------------
 
 
-def skip_self_named_alias(app, what, name, obj, skip, options):
-    """Leave out a class exposed under its own name on another class.
+def skip_unwanted_member(app, what, name, obj, skip, options):
+    """Leave duplicate aliases and Pydantic implementation details out.
 
     ``User.Name`` is the ``Name`` model, as ``User.Emails`` is ``Email``.
     autodoc renders the latter as an alias, but takes an attribute named like
     the class it holds for a nested class, and describes ``Name`` a second time
     under ``User``: the same canonical object twice, which the Python domain
     reports as a duplicate description.
+
+    ``model_config`` and ``model_post_init`` respectively expose implementation
+    configuration and an inherited Pydantic lifecycle hook. They are not part of
+    the SCIM model API documented here.
     """
+    if what == "class" and name in {"model_config", "model_post_init"}:
+        return True
     if what != "module" and isinstance(obj, type) and obj.__name__ == name:
         return True
     return None
@@ -150,4 +164,4 @@ def skip_self_named_alias(app, what, name, obj, skip, options):
 def setup(app):
     """Register the adjustments the reference page needs."""
     prefer_builtin_type()
-    app.connect("autodoc-skip-member", skip_self_named_alias)
+    app.connect("autodoc-skip-member", skip_unwanted_member)

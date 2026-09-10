@@ -25,6 +25,15 @@ class SearchRequest(Message, ResponseParameters[ResourceT], Generic[ResourceT]):
     some of them declare stays valid there, and evaluates to false on the
     resources of the others, as
     :rfc:`RFC7644 §3.4.2.1 <7644#section-3.4.2.1>` requires.
+
+    >>> from scim2_models import Context, SearchRequest, User
+    >>> request = SearchRequest[User](
+    ...     filter='userName eq "bjensen"',
+    ...     sort_by="userName",
+    ...     count=100,
+    ... )
+    >>> request.model_dump(scim_ctx=Context.SEARCH_REQUEST)
+    {'schemas': ['urn:ietf:params:scim:api:messages:2.0:SearchRequest'], 'filter': 'userName eq "bjensen"', 'sortBy': 'userName', 'count': 100}
     """
 
     __schema__ = URN("urn:ietf:params:scim:api:messages:2.0:SearchRequest")

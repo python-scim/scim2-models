@@ -210,7 +210,7 @@ def _select(path: "Path[Any]", resource: BaseModel) -> "_Selection | None":
     return _Selection(host, resolved.field_name, matched, value_path.sub_attr)
 
 
-def get_value(path: "Path[Any]", resource: BaseModel) -> Any:
+def _get_value(path: "Path[Any]", resource: BaseModel) -> Any:
     """Read the value a path designates on a resource."""
     if (selection := _select(path, resource)) is not None:
         if selection.sub_attr is None:
@@ -246,7 +246,7 @@ def _set_selected(
         defined for ``replace`` only: :rfc:`§3.5.2.1 <7644#section-3.5.2.1>`
         says nothing of a selection that matches nothing for ``add``, so
         the operation is a no-op instead. `Errata 8097
-        <https://www.rfc-editor.org/errata/eid8097>`_ asks for value
+        <https://errata.rfc-editor.org/eid8097/>`_ asks for value
         selections in ``add`` to be clarified at all, implementations
         differing on whether they are allowed.
     """
@@ -331,7 +331,7 @@ def _delete_selected(path: "Path[Any]", selection: "_Selection") -> bool:
     return True
 
 
-def set_value(
+def _set_value(
     path: "Path[Any]", resource: BaseModel, value: Any, *, is_add: bool = False
 ) -> bool:
     """Write a value where a path designates on a resource."""
@@ -407,7 +407,7 @@ def _set_field_value(obj: BaseModel, field_name: str, value: Any, is_add: bool) 
     return True
 
 
-def delete_value(
+def _delete_value(
     path: "Path[Any]", resource: BaseModel, value: Any | None = None
 ) -> bool:
     """Unassign what a path designates on a resource, or remove a value from it."""
