@@ -100,7 +100,11 @@ class ResourceType(Resource[Any]):
             schema_extensions=[
                 SchemaExtension(
                     schema_=Reference[URI](extension.__schema__),
-                    required=False,
+                    required=bool(
+                        resource_model.get_field_annotation(
+                            extension.__name__, Required
+                        )
+                    ),
                 )
                 for extension in extensions
             ],

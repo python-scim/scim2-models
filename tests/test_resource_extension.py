@@ -1,9 +1,11 @@
 import datetime
 import gc
 import weakref
+from typing import Annotated
 
 import pytest
 from pydantic import TypeAdapter
+from pydantic import ValidationError
 
 from scim2_models import URN
 from scim2_models import Attribute
@@ -13,6 +15,7 @@ from scim2_models import Extension
 from scim2_models import InvalidPathException
 from scim2_models import Manager
 from scim2_models import Meta
+from scim2_models import Required
 from scim2_models import Resource
 from scim2_models import Schema
 from scim2_models import User
@@ -445,3 +448,68 @@ def test_a_parameterized_model_built_at_runtime_is_collected_once_it_is_dropped(
     gc.collect()
 
     assert reference() is None
+
+
+def test_a_required_extension_must_be_carried_by_a_creation_request():
+    """An extension a resource type declares required must be present.
+
+    :rfc:`RFC7643 §6 <7643#section-6>` has ``schemaExtensions.required`` mean
+    that "a resource of this type MUST include this schema extension", which
+    annotating the parameter with :attr:`Required.true <scim2_models.Required.true>`
+    expresses.
+    """
+    payload = {"schemas": [User.__schema__], "userName": "bjensen"}
+
+    with pytest.raises(ValidationError, match="Field 'EnterpriseUser' is required"):
+        User[Annotated[EnterpriseUser, Required.true]].model_validate(
+            payload, scim_ctx=Context.RESOURCE_CREATION_REQUEST
+        )
+
+
+def test_a_required_extension_is_accepted_when_the_payload_carries_it():
+    payload = {
+        "schemas": [User.__schema__, EnterpriseUser.__schema__],
+        "userName": "bjensen",
+        EnterpriseUser.__schema__: {"employeeNumber": "701984"},
+    }
+
+    user = User[Annotated[EnterpriseUser, Required.true]].model_validate(
+        payload, scim_ctx=Context.RESOURCE_CREATION_REQUEST
+    )
+
+    assert user[EnterpriseUser].employee_number == "701984"
+
+
+def test_an_optional_extension_may_be_left_out_of_a_creation_request():
+    """An extension is optional unless the parameter says otherwise.
+
+    :rfc:`RFC7643 §2.2 <7643#section-2.2>` makes optionality the implicit value
+    of any attribute, so both the bare parameter and the one annotated
+    :attr:`Required.false <scim2_models.Required.false>` accept the payload.
+    """
+    payload = {"schemas": [User.__schema__], "userName": "bjensen"}
+
+    for model in (
+        User[EnterpriseUser],
+        User[Annotated[EnterpriseUser, Required.false]],
+    ):
+        user = model.model_validate(payload, scim_ctx=Context.RESOURCE_CREATION_REQUEST)
+        assert user[EnterpriseUser] is None
+
+
+def test_the_necessity_of_an_extension_tells_two_parameterizations_apart():
+    required = User[Annotated[EnterpriseUser, Required.true]]
+
+    assert required is not User[EnterpriseUser]
+    assert required is User[Annotated[EnterpriseUser, Required.true]]
+
+
+def test_an_annotated_extension_is_reached_the_way_a_bare_one_is():
+    """The annotation qualifies the parameter, it does not rename it."""
+    model = User[Annotated[EnterpriseUser, Required.true]]
+    user = model(user_name="bjensen")
+
+    user[EnterpriseUser] = EnterpriseUser(employee_number="701984")
+
+    assert user[EnterpriseUser].employee_number == "701984"
+    assert model.get_extension_models() == {EnterpriseUser.__schema__: EnterpriseUser}

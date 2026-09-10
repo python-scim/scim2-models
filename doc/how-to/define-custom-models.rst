@@ -130,6 +130,34 @@ the extension as the resource type parameter, then access its values through the
    >>> user.model_dump()["urn:example:schemas:extension:pet:2.0:User"]["petName"]
    'Mochi'
 
+An extension is optional unless the parameter says otherwise. Annotate it with
+:attr:`Required.true <scim2_models.Required.true>` for a resource type that declares the
+extension required, as :rfc:`RFC7643 §6 <7643#section-6>` allows. A creation or a replacement
+request that leaves the extension out is then refused:
+
+.. doctest::
+
+   >>> from typing import Annotated
+   >>> from pydantic import ValidationError
+   >>> from scim2_models import Context, Required, ResourceType
+   >>> PetOwnerUser = User[Annotated[PetOwner, Required.true]]
+   >>> try:
+   ...     PetOwnerUser.model_validate(
+   ...         {"schemas": [User.__schema__], "userName": "bjensen"},
+   ...         scim_ctx=Context.RESOURCE_CREATION_REQUEST,
+   ...     )
+   ... except ValidationError as exc:
+   ...     print(exc.errors()[0]["msg"])
+   Field 'PetOwner' is required but value is missing or null
+
+:meth:`ResourceType.from_resource <scim2_models.ResourceType.from_resource>` publishes that
+necessity, so a server announces it on its ``/ResourceTypes`` endpoint:
+
+.. doctest::
+
+   >>> ResourceType.from_resource(PetOwnerUser).schema_extensions[0].required
+   True
+
 Publish the schema
 ------------------
 

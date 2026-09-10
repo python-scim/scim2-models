@@ -26,6 +26,12 @@ Added
   against the first type declaring it, so ``sortBy`` answers on a root query too.
 - :meth:`Path.resolve <scim2_models.Path.resolve>` resolves a path to the
   :class:`~scim2_models.AttributeBinding` it designates.
+- An extension may be declared required, as in
+  ``User[Annotated[EnterpriseUser, Required.true]]``. A creation or a replacement request that
+  leaves it out is refused, and
+  :meth:`ResourceType.from_resource <scim2_models.ResourceType.from_resource>` publishes the
+  necessity under ``schemaExtensions.required``, which :rfc:`RFC7643 §6 <7643#section-6>`
+  defines. See :doc:`how-to/define-custom-models`. :issue:`105`
 - lark is a new dependency.
 
 Changed
