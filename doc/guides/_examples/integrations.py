@@ -9,7 +9,6 @@ from scim2_models import AuthenticationScheme
 from scim2_models import Bulk
 from scim2_models import ChangePassword
 from scim2_models import ComplexAttribute
-from scim2_models import CaseExact
 from scim2_models import ETag
 from scim2_models import Filter
 from scim2_models import InvalidPathException
@@ -23,6 +22,7 @@ from scim2_models import SearchRequest
 from scim2_models import Sort
 from scim2_models import UniquenessException
 from scim2_models import User
+from scim2_models.path import attribute_host
 
 # -- storage-start --
 records = {}
@@ -73,19 +73,19 @@ def sort_resources(resources, sort_by, sort_order=None):
     :param sort_order: The ``sortOrder`` query parameter, ascending by default.
     :raises InvalidPathException: If the attribute is unknown.
     """
-    if sort_by.field_name is None:
+    resolved = sort_by.resolve()
+    if resolved is None:
         raise InvalidPathException(
             path=str(sort_by), detail=f"Cannot sort on {sort_by!r}"
         )
 
-    # "String type attributes are case insensitive by default, unless the
-    # attribute type is defined as a case-exact string."
-    case_exact = sort_by.model.get_field_annotation(sort_by.field_name, CaseExact)
     descending = sort_order == SearchRequest.SortOrder.descending
 
     def key(resource):
-        value = sort_value(resource, sort_by)
-        if isinstance(value, str) and not case_exact:
+        value = sort_value(resource, resolved)
+        # "String type attributes are case insensitive by default, unless the
+        # attribute type is defined as a case-exact string."
+        if isinstance(value, str) and not resolved.case_exact:
             value = value.casefold()
         # "if there is no data for the specified sortBy value, they are sorted
         # via the sortOrder parameter, i.e., they are ordered last if ascending
@@ -95,7 +95,7 @@ def sort_resources(resources, sort_by, sort_order=None):
     return sorted(resources, key=key, reverse=descending)
 
 
-def sort_value(resource, sort_by):
+def sort_value(resource, resolved):
     """Return the single value a resource is ordered by.
 
     A path crossing a multi-valued attribute designates the sub-attribute of
@@ -103,15 +103,13 @@ def sort_value(resource, sort_by):
     picked first and the sub-attribute read from it.
 
     :param resource: The resource to read.
-    :param sort_by: The ``sortBy`` query parameter, resolved by its request.
+    :param resolved: The attribute the ``sortBy`` designates.
     """
-    sub_field_name = sort_by.field_name if len(sort_by.parts) > 1 else None
-    attribute = sort_by
-    if sub_field_name is not None:
-        attribute = type(sort_by)(str(sort_by).rsplit(".", 1)[0])
-    value = attribute.get(resource, strict=False)
+    host = attribute_host(resource, resolved)
+    value = None if host is None else getattr(host, resolved.field_name, None)
+    sub_field_name = resolved.sub_field_name
 
-    if attribute.is_multivalued:
+    if resolved.is_multivalued:
         entries = value or []
         # "resources are sorted by the value of the primary attribute, if any,
         # or else the first value in the list, if any."
@@ -179,7 +177,11 @@ def to_scim_user(record, location=None):
         user_name=record["user_name"],
         display_name=record.get("display_name"),
         active=record.get("active", True),
-        emails=[User.Emails(value=record["email"])] if record.get("email") else None,
+        emails=(
+            [User.Emails(value=record["email"], type=record.get("email_type"))]
+            if record.get("email")
+            else None
+        ),
         meta=Meta(
             resource_type="User",
             version=make_etag(record),
@@ -192,12 +194,14 @@ def to_scim_user(record, location=None):
 
 def from_scim_user(scim_user):
     """Convert a validated SCIM payload into the application shape."""
+    email = scim_user.emails[0] if scim_user.emails else None
     return {
         "id": scim_user.id,
         "user_name": scim_user.user_name,
         "display_name": scim_user.display_name,
         "active": True if scim_user.active is None else scim_user.active,
-        "email": scim_user.emails[0].value if scim_user.emails else None,
+        "email": email.value if email else None,
+        "email_type": str(email.type) if email and email.type else None,
     }
 
 
@@ -258,7 +262,7 @@ def get_resource_type(resource_type_id):
 service_provider_config = ServiceProviderConfig(
     patch=Patch(supported=True),
     bulk=Bulk(supported=False, max_operations=0, max_payload_size=0),
-    filter=Filter(supported=False, max_results=0),
+    filter=Filter(supported=True, max_results=MAX_RESULTS),
     change_password=ChangePassword(supported=False),
     sort=Sort(supported=True),
     etag=ETag(supported=True),

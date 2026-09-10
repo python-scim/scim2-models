@@ -1,6 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
+from scim2_models import EnterpriseUser
 from scim2_models import Group
 from scim2_models import User
 from scim2_models.messages.search_request import SearchRequest
@@ -129,9 +130,9 @@ def test_search_request_valid_urn_attributes():
 def test_search_request_invalid_attributes():
     """Test that invalid attribute paths are rejected."""
     invalid_cases = [
-        (["123invalid"], "Paths cannot start with a digit"),
-        (["valid", "invalid..path"], "Paths cannot contain double dots"),
-        (["invalid@character"], "The path contains invalid characters"),
+        (["123invalid"], "invalid syntax at column 1"),
+        (["valid", "invalid..path"], "invalid syntax at column 8"),
+        (["invalid@character"], "invalid syntax at column 8"),
     ]
 
     for attributes, error_match in invalid_cases:
@@ -145,8 +146,9 @@ def test_search_request_invalid_excluded_attributes():
         "excluded_attributes": ["valid", "123invalid"],  # Second one starts with digit
     }
 
-    with pytest.raises(ValidationError, match="Paths cannot start with a digit"):
+    with pytest.raises(ValidationError) as raised:
         SearchRequest.model_validate(invalid_data)
+    assert raised.value.errors()[0]["type"] == "scim_invalidPath"
 
 
 def test_search_request_invalid_sort_by():
@@ -297,14 +299,83 @@ def test_a_parameter_asking_for_an_attribute_accepts_a_reference():
     assert request.sort_by == "members.$ref"
 
 
+def test_a_parameterised_request_resolves_its_filter_against_the_model():
+    request = SearchRequest[User].model_validate({"filter": 'userName eq "bjensen"'})
+    assert request.filter.match(User(user_name="bjensen"))
+
+
+def test_a_parameterised_request_rejects_a_comparison_its_attribute_cannot_take():
+    with pytest.raises(
+        ValidationError, match="operator 'gt' cannot be applied"
+    ) as raised:
+        SearchRequest[User].model_validate({"filter": "active gt true"})
+    assert raised.value.errors()[0]["type"] == "scim_invalidFilter"
+
+
+def test_a_parameterised_request_rejects_an_attribute_the_model_does_not_declare():
+    """Naming the served resource type is what makes this a client error rather than an empty page."""
+    with pytest.raises(ValidationError, match="Field not found: nonexistent") as raised:
+        SearchRequest[User].model_validate({"filter": 'nonexistent eq "x"'})
+    assert raised.value.errors()[0]["type"] == "scim_invalidFilter"
+
+
+def test_a_parameterised_request_rejects_a_qualified_attribute_in_a_value_selection():
+    """The path inside the brackets names a sub-attribute, which no URN qualifies.
+
+    Prefixing it with a URN used to escape the resolution altogether, so the
+    filter was accepted and then matched nothing.
+    """
+    for uri in ("urn:example:2.0:Thing", User.__schema__):
+        with pytest.raises(ValidationError, match="cannot qualify") as raised:
+            SearchRequest[User].model_validate(
+                {"filter": f'emails[{uri}:value eq "x"]'}
+            )
+        assert raised.value.errors()[0]["type"] == "scim_invalidFilter"
+
+
+def test_a_parameterised_request_declares_the_extensions_it_serves():
+    payload = {
+        "filter": 'urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:employeeNumber eq "1"'
+    }
+    with pytest.raises(
+        ValidationError, match="Field not found: employeeNumber"
+    ) as raised:
+        SearchRequest[User].model_validate(payload)
+    assert raised.value.errors()[0]["type"] == "scim_invalidFilter"
+
+    assert SearchRequest[User[EnterpriseUser]].model_validate(payload).filter
+
+
+def test_a_parameterised_request_resolves_its_sort_by():
+    request = SearchRequest[User].model_validate({"sortBy": "userName"})
+    assert request.sort_by.resolve().target_field_name == "user_name"
+
+
+def test_an_unparameterised_request_only_checks_the_filter_syntax():
+    """§3.4.2.1 has an endpoint covering several resource types evaluate an undeclared attribute to false."""
+    request = SearchRequest.model_validate({"filter": 'nonexistent eq "x"'})
+    assert request.filter == 'nonexistent eq "x"'
+    assert request.filter.model is None
+    assert (
+        SearchRequest.model_validate({"sortBy": "userName"}).sort_by.resolve() is None
+    )
+
+
 def test_a_request_covering_several_resource_types_takes_a_union():
     """§3.4.2.1 has the server root cover every type it serves."""
     request = SearchRequest[User | Group].model_validate(
-        {"sortBy": "userName", "attributes": "members"}
+        {
+            "filter": 'userName eq "bjensen" or members pr',
+            "sortBy": "userName",
+            "attributes": "members",
+        }
     )
+    assert request.filter.models == (User, Group)
+    assert request.filter.match(User(user_name="bjensen"))
+    assert request.filter.match(Group(display_name="admins", members=[{"value": "u1"}]))
     assert request.sort_by.models == (User, Group)
-    assert request.sort_by.field_name == "user_name"
-    assert request.attributes[0].model is Group
+    assert request.sort_by.resolve().target_field_name == "user_name"
+    assert request.attributes[0].resolve().target_model is Group
 
 
 def test_a_parameterised_request_rejects_a_sort_by_the_model_does_not_declare():
@@ -330,7 +401,7 @@ def test_a_parameterised_request_rejects_a_sort_by_designating_a_resource():
 def test_a_sort_by_on_a_union_answers_to_the_type_declaring_it():
     """§3.4.2.1 has a root query cover types that do not share every attribute."""
     request = SearchRequest[User | Group].model_validate({"sortBy": "members"})
-    assert request.sort_by.model is Group
+    assert request.sort_by.resolve().target_model is Group
 
     with pytest.raises(ValidationError) as raised:
         SearchRequest[User | Group].model_validate({"sortBy": "nonexistent"})
@@ -341,3 +412,45 @@ def test_a_parameterised_request_reports_a_sort_by_selecting_values_as_such():
     """A selection is refused for what it is, before its attribute is looked up."""
     with pytest.raises(ValidationError, match="not in attribute notation"):
         SearchRequest[User].model_validate({"sortBy": 'emails[type eq "work"]'})
+
+
+def test_a_union_request_rejects_an_attribute_no_resource_type_declares():
+    with pytest.raises(ValidationError, match="Field not found: nonexistent") as raised:
+        SearchRequest[User | Group].model_validate({"filter": 'nonexistent eq "x"'})
+    assert raised.value.errors()[0]["type"] == "scim_invalidFilter"
+
+
+def test_a_union_request_resolves_its_sort_by():
+    """A root query sorts on an attribute only some of the types it serves declare."""
+    request = SearchRequest[User | Group].model_validate({"sortBy": "userName"})
+    assert request.sort_by.resolve().target_field_name == "user_name"
+    assert request.sort_by.resolve().target_model is User
+
+
+def test_a_parameterised_request_resolves_its_attributes():
+    """A server reads the attribute a client asked for, rather than its spelling."""
+    request = SearchRequest[User].model_validate(
+        {"attributes": ["userName", "emails.value"]}
+    )
+    assert [path.resolve().target_field_name for path in request.attributes] == [
+        "user_name",
+        "value",
+    ]
+    assert [path.resolve().target_model.__name__ for path in request.attributes] == [
+        "User",
+        "Email",
+    ]
+
+
+def test_a_union_request_resolves_its_attributes():
+    request = SearchRequest[User | Group].model_validate(
+        {"attributes": ["userName", "members"]}
+    )
+    assert [path.resolve().target_model for path in request.attributes] == [User, Group]
+
+
+def test_an_unparameterised_request_leaves_its_attributes_unresolved():
+    """§3.9 makes no promise about an attribute a resource type does not declare."""
+    request = SearchRequest.model_validate({"attributes": "userName"})
+    assert request.attributes == ["userName"]
+    assert request.attributes[0].resolve() is None

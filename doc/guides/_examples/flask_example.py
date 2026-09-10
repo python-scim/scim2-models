@@ -213,7 +213,8 @@ def users_response(req, scim_ctx):
     """Return one page of users as a serialized SCIM ListResponse.
 
     A query applies to the SCIM representation rather than to the stored
-    records, so the store is mapped before it is ordered and paginated.
+    records, so the store is mapped before it is filtered, ordered and
+    paginated.
 
     :param req: The parsed query, whichever verb carried it.
     :param scim_ctx: The context to serialize the response in.
@@ -221,6 +222,8 @@ def users_response(req, scim_ctx):
     users = [
         to_scim_user(record, resource_location(record)) for record in list_records()
     ]
+    if req.filter:
+        users = [user for user in users if req.filter.match(user)]
     total, page = page_of(users, req)
     response = ListResponse[User](
         total_results=total,
@@ -260,9 +263,10 @@ def search_root():
     """Query every resource type the server serves.
 
     :rfc:`RFC7644 §3.4.2.1 <7644#section-3.4.2.1>` has a root query cover them
-    all, so the request is parameterised with a union and the response gathers
-    groups alongside users. These guides expose no ``/Groups`` endpoint; the
-    groups they gather are read-only fixtures.
+    all, so the request is parameterised with a union: the filter is checked
+    against both models, and an attribute only one of them declares evaluates
+    to false on the other. These guides expose no ``/Groups`` endpoint, yet the
+    root query gathers groups all the same.
     """
     req = SearchRequest[User | Group].model_validate_json(
         request.data, scim_ctx=Context.SEARCH_REQUEST
@@ -271,6 +275,10 @@ def search_root():
         to_scim_user(record, resource_location(record)) for record in list_records()
     ]
     resources += [to_scim_group(record) for record in list_group_records()]
+    if req.filter:
+        resources = [
+            resource for resource in resources if req.filter.match(resource)
+        ]
     total, page = page_of(resources, req)
     response = ListResponse[User | Group](
         total_results=total,

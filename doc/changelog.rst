@@ -6,26 +6,55 @@ Changelog
 
 Added
 ^^^^^
+- Support for the ``filter`` query parameter (:rfc:`RFC7644 §3.4.2.2 <7644#section-3.4.2.2>`)
+  with :class:`~scim2_models.ScimFilter`. See :doc:`filters`. :issue:`17`
+- Support for value selections in PATCH paths, such as ``emails[type eq "work"].value``
+  (:rfc:`RFC7644 §3.5.2 <7644#section-3.5.2>`).
+- :meth:`ScimFilter.quote <scim2_models.ScimFilter.quote>` renders a value as a literal a filter
+  can carry, and on Python 3.14 :class:`~scim2_models.ScimFilter` and :class:`~scim2_models.Path`
+  take a t-string: an interpolated value is quoted so that it cannot be read as syntax, and an
+  interpolated path or filter is inserted as it stands.
 - :class:`~scim2_models.SearchRequest` and :class:`~scim2_models.ResponseParameters` take the
   resource type an endpoint serves, as in ``SearchRequest[User]``, which resolves
-  :attr:`~scim2_models.SearchRequest.sort_by`,
+  :attr:`~scim2_models.SearchRequest.filter`, :attr:`~scim2_models.SearchRequest.sort_by`,
   :attr:`~scim2_models.ResponseParameters.attributes` and
   :attr:`~scim2_models.ResponseParameters.excluded_attributes` against that model. An endpoint
-  covering several of them takes a union, as in ``SearchRequest[User | Group]``, and so does
-  :class:`~scim2_models.Path`; a path resolves against the first type declaring it, so
-  ``sortBy`` answers on a root query too.
+  covering several of them takes a union, as in ``SearchRequest[User | Group]``, and so do
+  :class:`~scim2_models.ScimFilter` and :class:`~scim2_models.Path`. A filter attribute only
+  some of the types declare is valid, and evaluates to false on the others, which is what
+  :rfc:`RFC7644 §3.4.2.1 <7644#section-3.4.2.1>` requires of a root query; a path resolves
+  against the first type declaring it, so ``sortBy`` answers on a root query too.
+- :meth:`Path.resolve <scim2_models.Path.resolve>` resolves a path to the
+  :class:`~scim2_models.AttributeBinding` it designates.
+- lark is a new dependency.
 
 Changed
 ^^^^^^^
+- :attr:`Path.model <scim2_models.Path.model>` answers the model a path designates when it names
+  no attribute: the bound model for the resource root, the resource or the extension for a bare
+  schema URN, and :data:`None` for a path naming an attribute. It used to answer the type holding
+  the attribute, which :meth:`Path.resolve <scim2_models.Path.resolve>` now does through
+  :class:`~scim2_models.AttributeBinding`.
 - :attr:`SearchRequest.sort_by <scim2_models.SearchRequest.sort_by>` is resolved against the
   model a parameterised request names, and an attribute none of its resource types declares
   answers ``invalidPath`` at validation time instead of being carried to the endpoint. Where an
   unknown entry of :attr:`~scim2_models.ResponseParameters.attributes` is ignored, an order
   cannot be: a ``sortBy`` left out answers an arbitrary order the client cannot tell from the
   one it asked for.
+- :attr:`SearchRequest.filter <scim2_models.SearchRequest.filter>` is a :class:`~scim2_models.ScimFilter` instead of a
+  :class:`str`, so a malformed filter is rejected at validation time.
+- Paths are parsed with the :rfc:`RFC7644 §3.5.2 <7644#section-3.5.2>` grammar instead of being
+  checked character by character, so malformed paths such as ``emails[`` or ``userName ==``,
+  which used to be accepted, are now rejected.
 
 Removed
 ^^^^^^^
+- ``Path.field_name``, ``Path.field_type``, ``Path.is_multivalued``, ``Path.get_annotation`` and
+  ``Path.urn``. They read the attribute a path designates with the words of
+  :class:`~scim2_models.AttributeBinding` turned around, ``field_name`` naming the sub-attribute
+  where the binding names the head. :meth:`Path.resolve <scim2_models.Path.resolve>` answers the
+  binding, which carries them as ``target_field_name``, ``target_type``,
+  ``target_is_multivalued``, :meth:`~scim2_models.AttributeBinding.get_annotation` and ``urn``.
 - ``Path.is_prefix_of`` and ``Path.has_prefix``. They compared the text of two paths, which
   anything between brackets defeated, and answered differently from the comparison
   :attr:`~scim2_models.ResponseParameters.attributes` and

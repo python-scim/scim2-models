@@ -44,7 +44,9 @@ from .messages.patch_op import PatchOp
 from .messages.patch_op import PatchOperation
 from .messages.response_parameters import ResponseParameters
 from .messages.search_request import SearchRequest
+from .path import AttributeBinding
 from .path import Path
+from .path import ScimFilter
 from .reference import URI
 from .reference import External
 from .reference import Reference
@@ -90,6 +92,7 @@ __all__ = [
     "AnyResource",
     "AnyScimObject",
     "Attribute",
+    "AttributeBinding",
     "AuthenticationScheme",
     "BaseModel",
     "Bulk",
@@ -152,6 +155,7 @@ __all__ = [
     "SCIMException",
     "SCIMSerializer",
     "SCIMValidator",
+    "ScimFilter",
     "Schema",
     "SchemaExtension",
     "ScimObject",

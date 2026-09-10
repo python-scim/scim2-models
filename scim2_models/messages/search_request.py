@@ -4,9 +4,11 @@ from typing import Generic
 
 from pydantic import field_validator
 
+from ..exceptions import InvalidFilterException
 from ..exceptions import InvalidPathException
 from ..path import Path
-from ..path import ResourceT
+from ..path import ScimFilter
+from ..path.path import ResourceT
 from ..urn import URN
 from .message import Message
 from .response_parameters import ResponseParameters
@@ -16,16 +18,46 @@ class SearchRequest(Message, ResponseParameters[ResourceT], Generic[ResourceT]):
     """SearchRequest object defined at :rfc:`RFC7644 §3.4.3 <7644#section-3.4.3>`.
 
     Parameterising the request with the resource type an endpoint serves, as in
-    ``SearchRequest[User]``, resolves :attr:`sort_by` and the attributes of
-    :class:`~scim2_models.ResponseParameters` against that model. An endpoint
-    covering several types, such as the server root, takes a union of them, as
-    in ``SearchRequest[User | Group]``.
+    ``SearchRequest[User]`` for ``/Users`` and ``/Users/.search``, resolves
+    :attr:`filter` and :attr:`sort_by` against that model. An endpoint covering
+    several resource types, such as the server root and the ``/.search`` mounted
+    on it, names them all: ``SearchRequest[User | Group]``. An attribute only
+    some of them declare stays valid there, and evaluates to false on the
+    resources of the others, as
+    :rfc:`RFC7644 §3.4.2.1 <7644#section-3.4.2.1>` requires.
     """
 
     __schema__ = URN("urn:ietf:params:scim:api:messages:2.0:SearchRequest")
 
-    filter: str | None = None
-    """The filter string used to request a subset of resources."""
+    filter: ScimFilter[ResourceT] | None = None
+    """The filter used to request a subset of resources.
+
+    Assigning a string parses it, so a malformed filter is rejected at
+    validation time rather than by the server. On a parameterised request the
+    filter is checked against the model as well, unknown attributes included,
+    and is ready to be matched::
+
+        SearchRequest[User](filter='userName eq "bjensen"').filter.match(user)
+
+    An unparameterised request only has its syntax checked, there being no
+    model to resolve attribute names against.
+    """
+
+    @field_validator("filter")
+    @classmethod
+    def _resolvable_filter(
+        cls, value: "ScimFilter[Any] | None"
+    ) -> "ScimFilter[Any] | None":
+        """Reject an attribute the bound model does not declare."""
+        # Parameterising the request names the resource types the endpoint
+        # serves, which is what makes an attribute none of them declares a
+        # client error rather than something to evaluate to false.
+        if value is not None and value.models:
+            try:
+                value._validate_semantics()
+            except InvalidFilterException as exc:
+                raise exc.as_pydantic_error() from exc
+        return value
 
     sort_by: Path[ResourceT] | None = None
     """A string indicating the attribute whose value SHALL be used to order the
@@ -60,7 +92,7 @@ class SearchRequest(Message, ResponseParameters[ResourceT], Generic[ResourceT]):
         # Parameterising the request names the resource types the endpoint
         # serves, which is what makes an attribute none of them declares a
         # client error rather than something to resolve later.
-        if value is not None and value.models and value.field_name is None:
+        if value is not None and value.models and value.resolve() is None:
             raise InvalidPathException(
                 path=str(value), detail=f"Cannot sort on {str(value)!r}"
             ).as_pydantic_error()

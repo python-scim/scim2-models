@@ -7,6 +7,7 @@ import pydantic
 import pytest
 
 from scim2_models import URN
+from scim2_models import AttributeBinding
 from scim2_models import CaseExact
 from scim2_models import Email
 from scim2_models import EnterpriseUser
@@ -72,13 +73,13 @@ def test_a_reference_sub_attribute_is_a_valid_path():
     """RFC 7643 spells the reference of a complex attribute ``$ref``."""
     path = Path[Group]("members.$ref")
     path.check_attribute_notation()
-    assert path.field_name == "ref"
+    assert path.resolve().target_field_name == "ref"
     assert path.attr == "members.$ref"
 
     qualified = Path[User[EnterpriseUser]](
         "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:manager.$ref"
     )
-    assert qualified.field_name == "ref"
+    assert qualified.resolve().target_field_name == "ref"
 
     group = Group(
         display_name="admins",
@@ -157,129 +158,50 @@ def test_path_validation_rejects_invalid_type():
 # --- Path bound to model tests ---
 
 
-def test_model_simple_attribute():
-    """Model property returns the target model for simple attribute."""
-    path = Path[User]("userName")
-    assert path.model == User
+def test_a_bound_path_resolves_to_the_attribute_it_designates():
+    """The binding names the model holding the attribute, its field and its URN."""
+    resolved = Path[User]("userName").resolve()
+    assert resolved.target_model is User
+    assert resolved.target_field_name == "user_name"
+    assert resolved.urn == "urn:ietf:params:scim:schemas:core:2.0:User:userName"
 
 
-def test_model_complex_attribute():
-    """Model property returns the nested model for complex attribute."""
-    path = Path[User]("name.familyName")
-    assert path.model == Name
+def test_a_sub_attribute_resolves_to_the_complex_type_holding_it():
+    resolved = Path[User]("name.familyName").resolve()
+    assert resolved.target_model is Name
+    assert resolved.target_field_name == "family_name"
+    assert resolved.urn == "urn:ietf:params:scim:schemas:core:2.0:User:name.familyName"
 
 
-def test_model_extension_attribute():
-    """Model property returns extension model for extension path."""
-    path = Path[User[EnterpriseUser]](
-        "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:employeeNumber"
-    )
-    assert path.model == EnterpriseUser
+def test_an_extension_attribute_resolves_to_the_extension_declaring_it():
+    enterprise = "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"
+    resolved = Path[User[EnterpriseUser]](f"{enterprise}:employeeNumber").resolve()
+    assert resolved.target_model is EnterpriseUser
+    assert resolved.target_field_name == "employee_number"
+    assert resolved.urn == f"{enterprise}:employeeNumber"
+
+    nested = Path[User[EnterpriseUser]](f"{enterprise}:manager.value").resolve()
+    assert nested.target_model is Manager
+    assert nested.target_field_name == "value"
 
 
-def test_model_extension_complex_attribute():
-    """Model property navigates into extension complex attributes."""
-    path = Path[User[EnterpriseUser]](
-        "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:manager.value"
-    )
-    assert path.model == Manager
-
-
-def test_model_invalid_attribute():
-    """Model property returns None for invalid attribute."""
-    path = Path[User]("invalidAttribute")
-    assert path.model is None
-
-
-def test_model_unbound_path():
-    """Model property returns None for unbound path."""
-    path = Path("userName")
-    assert path.model is None
-
-
-def test_field_name_simple_attribute():
-    """field_name property returns snake_case field name."""
-    path = Path[User]("userName")
-    assert path.field_name == "user_name"
-
-
-def test_field_name_complex_attribute():
-    """field_name property returns snake_case for nested attribute."""
-    path = Path[User]("name.familyName")
-    assert path.field_name == "family_name"
-
-
-def test_field_name_extension_attribute():
-    """field_name property works for extension attributes."""
-    path = Path[User[EnterpriseUser]](
-        "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:employeeNumber"
-    )
-    assert path.field_name == "employee_number"
-
-
-def test_field_name_invalid_attribute():
-    """field_name property returns None for invalid attribute."""
-    path = Path[User]("invalidAttribute")
-    assert path.field_name is None
-
-
-def test_field_name_unbound_path():
-    """field_name property returns None for unbound path."""
-    path = Path("userName")
-    assert path.field_name is None
-
-
-def test_field_name_schema_only():
-    """field_name property returns None for schema-only path."""
-    path = Path[User]("urn:ietf:params:scim:schemas:core:2.0:User")
-    assert path.field_name is None
-
-
-def test_urn_simple_attribute():
-    """URN property returns fully qualified URN."""
-    path = Path[User]("userName")
-    assert path.urn == "urn:ietf:params:scim:schemas:core:2.0:User:userName"
-
-
-def test_urn_complex_attribute():
-    """URN property includes dotted path."""
-    path = Path[User]("name.familyName")
-    assert path.urn == "urn:ietf:params:scim:schemas:core:2.0:User:name.familyName"
-
-
-def test_urn_already_qualified():
-    """URN property preserves already qualified paths."""
+def test_a_qualified_path_resolves_to_the_urn_it_spells():
     path = Path[User]("urn:ietf:params:scim:schemas:core:2.0:User:userName")
-    assert path.urn == "urn:ietf:params:scim:schemas:core:2.0:User:userName"
+    assert path.resolve().urn == str(path)
 
 
-def test_urn_extension_attribute():
-    """URN property works for extension attributes."""
-    path = Path[User[EnterpriseUser]](
-        "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:employeeNumber"
-    )
-    assert (
-        path.urn
-        == "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:employeeNumber"
-    )
-
-
-def test_urn_invalid_attribute():
-    """URN property returns None for invalid attribute."""
-    path = Path[User]("invalidAttribute")
-    assert path.urn is None
-
-
-def test_urn_unbound_path():
-    """URN property returns None for unbound path."""
-    path = Path("userName")
-    assert path.urn is None
-
-
-def test_urn_schema_only():
-    """URN property returns schema for schema-only path."""
-    path = Path[User]("urn:ietf:params:scim:schemas:core:2.0:User")
-    assert path.urn == "urn:ietf:params:scim:schemas:core:2.0:User"
+@pytest.mark.parametrize(
+    "path",
+    [
+        "invalidAttribute",
+        "invalidAttr.familyName",
+        "userName.subField",
+        "name.invalidField",
+    ],
+)
+def test_a_path_naming_an_unknown_attribute_resolves_to_nothing(path):
+    """A missing head, a sub-attribute of a scalar, a missing sub-attribute alike."""
+    assert Path[User](path).resolve() is None
 
 
 def test_path_caching():
@@ -429,8 +351,7 @@ def test_a_foreign_schema_urn_designates_nothing():
     """A qualified path is expressed in the schema of the model it applies to."""
     path = Path[EnterpriseUser]("urn:totally:unrelated:employeeNumber")
     assert path.model is None
-    assert path.field_name is None
-    assert path.urn is None
+    assert path.resolve() is None
 
 
 def test_an_extension_urn_may_extend_the_urn_of_the_resource_it_extends():
@@ -454,9 +375,10 @@ def test_an_extension_urn_may_extend_the_urn_of_the_resource_it_extends():
     thing[Ext] = Ext(label="labelled")
 
     path = Path[Thing[Ext]]("urn:example:2.0:Thing:Ext:label")
-    assert path.model is Ext
-    assert path.field_name == "label"
-    assert path.urn == "urn:example:2.0:Thing:Ext:label"
+    resolved = path.resolve()
+    assert resolved.target_model is Ext
+    assert resolved.target_field_name == "label"
+    assert resolved.urn == "urn:example:2.0:Thing:Ext:label"
     assert path.get(thing) == "labelled"
     assert path.set(thing, "renamed") is True
     assert thing[Ext].label == "renamed"
@@ -840,7 +762,7 @@ def test_iter_paths_returns_bound_paths():
     paths = list(Path[User[EnterpriseUser]].iter_paths(include_subattributes=False))
 
     user_name_path = next(p for p in paths if str(p) == "userName")
-    assert user_name_path.model == User[EnterpriseUser]
+    assert user_name_path.resolve().target_model is User[EnterpriseUser]
 
     ext_path = next(
         p
@@ -848,7 +770,7 @@ def test_iter_paths_returns_bound_paths():
         if str(p)
         == "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:employeeNumber"
     )
-    assert ext_path.model == EnterpriseUser
+    assert ext_path.resolve().target_model is EnterpriseUser
 
 
 def test_iter_paths_without_extensions():
@@ -872,7 +794,7 @@ def test_iter_paths_spells_a_reference_sub_attribute_as_ref():
     group_paths = list(Path[Group].iter_paths())
     assert "members.$ref" in group_paths
     assert "members.ref" not in group_paths
-    assert all(path.field_name is not None for path in group_paths)
+    assert all(path.resolve() is not None for path in group_paths)
 
     user_paths = list(Path[User[EnterpriseUser]].iter_paths())
     assert "groups.$ref" in user_paths
@@ -894,30 +816,29 @@ def test_a_path_binds_to_a_union_of_resource_types():
 
 
 def test_a_union_path_resolves_against_the_first_type_declaring_it():
-    assert Path[User | Group]("userName").model is User
-    assert Path[User | Group]("userName").field_name == "user_name"
-    assert Path[User | Group]("members").model is Group
-    assert Path[User | Group]("members").field_name == "members"
+    assert Path[User | Group]("userName").resolve().target_model is User
+    assert Path[User | Group]("userName").resolve().target_field_name == "user_name"
+    assert Path[User | Group]("members").resolve().target_model is Group
+    assert Path[User | Group]("members").resolve().target_field_name == "members"
 
     assert (
-        Path[User | Group]("displayName").urn
+        Path[User | Group]("displayName").resolve().urn
         == "urn:ietf:params:scim:schemas:core:2.0:User:displayName"
     )
     assert (
-        Path[User | Group]("members.$ref").urn
+        Path[User | Group]("members.$ref").resolve().urn
         == "urn:ietf:params:scim:schemas:core:2.0:Group:members.$ref"
     )
 
     schema_only = Path[User | Group]("urn:ietf:params:scim:schemas:core:2.0:Group")
     assert schema_only.model is Group
-    assert schema_only.field_name is None
+    assert schema_only.resolve() is None
 
 
 def test_a_union_path_answers_none_for_an_attribute_no_type_declares():
     path = Path[User | Group]("nonexistent")
     assert path.model is None
-    assert path.field_name is None
-    assert path.urn is None
+    assert path.resolve() is None
 
 
 def test_a_union_path_reads_an_attribute_the_resource_declares():
@@ -1166,12 +1087,12 @@ def test_attr_schema_only_path():
     """A schema-only path reads as the last name of its own URN.
 
     Nothing tells one from a qualified path, the URN of a schema being itself a
-    colon-separated name, and :attr:`~scim2_models.Path.urn` puts the two halves
-    back together either way.
+    colon-separated name, and only :attr:`~scim2_models.Path.model` tells the
+    schema from the attribute.
     """
     path = Path[User]("urn:ietf:params:scim:schemas:core:2.0:User")
     assert path.attr == "User"
-    assert path.urn == "urn:ietf:params:scim:schemas:core:2.0:User"
+    assert path.model is User
 
 
 def test_attr_empty_path():
@@ -1210,51 +1131,46 @@ def test_parts_empty_path():
     assert path.parts == ()
 
 
-def test_parts_deeply_nested():
-    """Deeply nested path splits all parts."""
-    path = Path("a.b.c.d")
-    assert path.parts == ("a", "b", "c", "d")
+def test_parts_rejects_more_than_one_sub_attribute():
+    """A path cannot nest beyond a single sub-attribute.
+
+    The ``attrPath`` ABNF rule reads ``*1subAttr``, and SCIM defines no nested
+    complex attributes.
+    """
+    with pytest.raises(InvalidPathException):
+        Path("a.b.c.d")
+
+
+def test_parts_value_filter_is_not_a_segment():
+    """A value selection does not appear in the path segments."""
+    path = Path('emails[type eq "work"].value')
+    assert path.parts == ("emails", "value")
 
 
 # --- Bound path resolution edge cases ---
 
 
-def test_model_extension_schema_only_path():
-    """Model property returns extension for schema-only extension path."""
+def test_a_bare_extension_urn_designates_the_extension():
+    """The path names the extension itself, so it resolves to no attribute."""
     path = Path[User[EnterpriseUser]](
         "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"
     )
-    assert path.model == EnterpriseUser
-    assert path.field_name is None
+    assert path.model is EnterpriseUser
+    assert path.resolve() is None
 
 
-def test_model_urn_unknown_extension():
-    """Model property returns None for URN not matching any extension."""
+def test_an_unknown_extension_urn_designates_nothing():
     path = Path[User[EnterpriseUser]](
         "urn:ietf:params:scim:schemas:extension:unknown:2.0:User:field"
     )
     assert path.model is None
+    assert path.resolve() is None
 
 
-def test_model_dotted_path_invalid_intermediate():
-    """Model property returns None when intermediate part is invalid."""
-    path = Path[User]("invalidAttr.familyName")
-    assert path.model is None
-
-
-def test_model_dotted_path_intermediate_not_complex():
-    """Model property returns None when intermediate type is not a complex attribute."""
-    path = Path[User]("userName.subField")
-    assert path.model is None
-
-
-def test_urn_empty_path_non_resource():
-    """URN property handles empty path on non-Resource model."""
-    path = Path[Name]("")
-    assert path.urn is None
-
-
-# --- get() edge cases ---
+def test_the_root_of_a_complex_attribute_designates_it():
+    """A complex attribute is a model too, and its root names it."""
+    assert Path[Name]("").model is Name
+    assert Path[Name]("").resolve() is None
 
 
 def test_get_extension_attribute_when_extension_is_none():
@@ -1420,12 +1336,6 @@ def test_delete_extension_already_none():
     assert result is False
 
 
-def test_model_dotted_path_invalid_last_part():
-    """Model property returns None when last part of dotted path is invalid."""
-    path = Path[User]("name.invalidField")
-    assert path.model is None
-
-
 def test_get_schema_only_path_returns_resource():
     """Get with schema-only path returns the resource itself."""
     user = User(user_name="john", display_name="John")
@@ -1501,9 +1411,10 @@ def test_delete_dotted_path_intermediate_none():
 
 
 def test_model_extension_bound_with_mismatched_urn():
-    """Model property on Extension-bound path with unrelated URN."""
+    """A path bound to an extension designates nothing under a foreign URN."""
     path = Path[EnterpriseUser]("urn:ietf:params:scim:schemas:core:2.0:User:userName")
     assert path.model is None
+    assert path.resolve() is None
 
 
 def test_iter_paths_on_extension():
@@ -1521,116 +1432,25 @@ def test_iter_paths_on_extension():
     )
 
 
-# --- field_type property tests ---
+# --- What the binding of a path reports ---
 
 
-def test_field_type_simple_attribute():
-    """field_type returns the Python type for simple attribute."""
-    path = Path[User]("userName")
-    assert path.field_type is str
+def test_the_binding_reports_the_python_type_of_the_attribute():
+    """A multi-valued attribute reports the type of its entries."""
+    assert Path[User]("userName").resolve().target_type is str
+    assert Path[User]("name").resolve().target_type is Name
+    assert Path[User]("emails").resolve().target_type is Email
+    assert Path[User]("name.familyName").resolve().target_type is str
 
 
-def test_field_type_complex_attribute():
-    """field_type returns the complex attribute class."""
-    path = Path[User]("name")
-    assert path.field_type is Name
+def test_the_binding_answers_the_annotations_of_the_attribute():
+    """A sub-attribute answers for itself, not for the attribute holding it."""
+    resolved = Path[User]("userName").resolve()
+    assert resolved.get_annotation(Required) is Required.true
+    assert resolved.get_annotation(Mutability) is Mutability.read_write
 
-
-def test_field_type_multivalued_attribute():
-    """field_type returns the element type for multi-valued attributes."""
-    path = Path[User]("emails")
-    assert path.field_type is Email
-
-
-def test_field_type_nested_attribute():
-    """field_type returns the type for nested attribute."""
-    path = Path[User]("name.familyName")
-    assert path.field_type is str
-
-
-def test_field_type_invalid_attribute():
-    """field_type returns None for invalid attribute."""
-    path = Path[User]("invalidAttribute")
-    assert path.field_type is None
-
-
-def test_field_type_unbound_path():
-    """field_type returns None for unbound path."""
-    path = Path("userName")
-    assert path.field_type is None
-
-
-def test_field_type_schema_only_path():
-    """field_type returns None for schema-only path."""
-    path = Path[User]("urn:ietf:params:scim:schemas:core:2.0:User")
-    assert path.field_type is None
-
-
-# --- is_multivalued property tests ---
-
-
-def test_is_multivalued_true():
-    """is_multivalued returns True for multi-valued attribute."""
-    path = Path[User]("emails")
-    assert path.is_multivalued is True
-
-
-def test_is_multivalued_false():
-    """is_multivalued returns False for single-valued attribute."""
-    path = Path[User]("userName")
-    assert path.is_multivalued is False
-
-
-def test_is_multivalued_nested_attribute():
-    """is_multivalued works for nested attributes."""
-    path = Path[User]("name.familyName")
-    assert path.is_multivalued is False
-
-
-def test_is_multivalued_invalid_attribute():
-    """is_multivalued returns None for invalid attribute."""
-    path = Path[User]("invalidAttribute")
-    assert path.is_multivalued is None
-
-
-def test_is_multivalued_unbound_path():
-    """is_multivalued returns None for unbound path."""
-    path = Path("emails")
-    assert path.is_multivalued is None
-
-
-# --- get_annotation() method tests ---
-
-
-def test_get_annotation_required():
-    """get_annotation returns Required annotation value."""
-    path = Path[User]("userName")
-    assert path.get_annotation(Required) == Required.true
-
-
-def test_get_annotation_mutability():
-    """get_annotation returns Mutability annotation value."""
-    path = Path[User]("userName")
-    assert path.get_annotation(Mutability) == Mutability.read_write
-
-
-def test_get_annotation_nested_attribute():
-    """get_annotation works for nested attributes."""
-    path = Path[User]("name.familyName")
-    result = path.get_annotation(Required)
-    assert result is None or isinstance(result, Required)
-
-
-def test_get_annotation_invalid_attribute():
-    """get_annotation returns None for invalid attribute."""
-    path = Path[User]("invalidAttribute")
-    assert path.get_annotation(Required) is None
-
-
-def test_get_annotation_unbound_path():
-    """get_annotation returns None for unbound path."""
-    path = Path("userName")
-    assert path.get_annotation(Required) is None
+    nested = Path[User]("name.familyName").resolve()
+    assert nested.get_annotation(Mutability) is Mutability.read_write
 
 
 # --- iter_paths() with filters tests ---
@@ -1645,7 +1465,7 @@ def test_iter_paths_filter_by_required():
 
     assert "userName" in path_strings
     for path in paths:
-        assert path.get_annotation(Required) == Required.true
+        assert path.resolve().get_annotation(Required) == Required.true
 
 
 def test_iter_paths_filter_by_mutability():
@@ -1657,7 +1477,7 @@ def test_iter_paths_filter_by_mutability():
     )
 
     for path in paths:
-        assert path.get_annotation(Mutability) == Mutability.read_only
+        assert path.resolve().get_annotation(Mutability) == Mutability.read_only
 
 
 def test_iter_paths_filter_by_required_and_mutability():
@@ -1671,8 +1491,8 @@ def test_iter_paths_filter_by_required_and_mutability():
     )
 
     for path in paths:
-        assert path.get_annotation(Required) == Required.true
-        assert path.get_annotation(Mutability) == Mutability.read_write
+        assert path.resolve().get_annotation(Required) == Required.true
+        assert path.resolve().get_annotation(Mutability) == Mutability.read_write
 
 
 def test_iter_paths_filter_includes_subattributes():
@@ -1682,7 +1502,7 @@ def test_iter_paths_filter_includes_subattributes():
     )
 
     for path in paths:
-        assert path.get_annotation(Required) == Required.true
+        assert path.resolve().get_annotation(Required) == Required.true
 
 
 def test_iter_paths_filter_no_match():
@@ -1709,7 +1529,7 @@ def test_iter_paths_filter_excludes_subattributes():
     assert len(paths_with_filter) < len(paths_without_filter)
 
     for path in paths_with_filter:
-        assert path.get_annotation(Required) == Required.true
+        assert path.resolve().get_annotation(Required) == Required.true
 
 
 def test_iter_paths_filter_skips_non_matching_subattributes():
@@ -1743,7 +1563,7 @@ def test_iter_paths_filter_by_uniqueness():
 
     assert "userName" in path_strings
     for path in paths:
-        assert path.get_annotation(Uniqueness) == Uniqueness.server
+        assert path.resolve().get_annotation(Uniqueness) == Uniqueness.server
 
 
 def test_iter_paths_filter_by_returned():
@@ -1755,7 +1575,7 @@ def test_iter_paths_filter_by_returned():
 
     assert "password" in path_strings
     for path in paths:
-        assert path.get_annotation(Returned) == Returned.never
+        assert path.resolve().get_annotation(Returned) == Returned.never
 
 
 def test_iter_paths_filter_by_case_exact():
@@ -1767,7 +1587,7 @@ def test_iter_paths_filter_by_case_exact():
 
     assert "externalId" in path_strings
     for path in paths:
-        assert path.get_annotation(CaseExact) == CaseExact.true
+        assert path.resolve().get_annotation(CaseExact) == CaseExact.true
 
 
 def test_path_init_with_path_object():
@@ -1812,9 +1632,12 @@ def test_a_schema_urn_carries_an_attribute_behind_a_colon():
     URN that merely starts like it.
     """
     assert (
-        Path[User]("urn:ietf:params:scim:schemas:core:2.0:User:id").field_name == "id"
+        Path[User]("urn:ietf:params:scim:schemas:core:2.0:User:id")
+        .resolve()
+        .target_field_name
+        == "id"
     )
-    assert Path[User]("urn:ietf:params:scim:schemas:core:2.0:UserId").field_name is None
+    assert Path[User]("urn:ietf:params:scim:schemas:core:2.0:UserId").resolve() is None
 
 
 def test_an_extension_urn_carries_an_attribute_behind_a_colon():
@@ -1827,3 +1650,86 @@ def test_an_extension_urn_carries_an_attribute_behind_a_colon():
     assert bound(f"{enterprise}:employeeNumber").get(user) == "701984"
     with pytest.raises(InvalidPathException):
         bound(f"{enterprise}EmployeeNumber").get(user)
+
+
+def test_resolving_a_path_binds_it_to_the_attribute_it_designates():
+    resolved = Path[User]("name.familyName").resolve()
+    assert isinstance(resolved, AttributeBinding)
+    assert resolved.model is User
+    assert resolved.field_name == "name"
+    assert resolved.sub_field_name == "family_name"
+    assert resolved.target_model is Name
+    assert resolved.target_field_name == "family_name"
+
+
+def test_a_path_designating_a_model_rather_than_an_attribute_resolves_to_nothing():
+    """The resource root and a bare schema URN both name a model, an attribute path none."""
+    assert Path[User]("").resolve() is None
+    assert Path[User]("").model is User
+
+    extension_urn = "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"
+    schema_only = Path[User[EnterpriseUser]](extension_urn)
+    assert schema_only.resolve() is None
+    assert schema_only.model is EnterpriseUser
+
+    assert Path[User]("userName").model is None
+    assert Path[User]("name.familyName").model is None
+
+
+def test_an_unbound_or_unknown_path_resolves_to_nothing():
+    assert Path("userName").resolve() is None
+    assert Path[User]("nonexistent").resolve() is None
+    assert Path("").model is None
+    assert Path("userName").model is None
+
+
+def test_a_path_bound_to_a_complex_attribute_resolves_its_sub_attributes():
+    """A complex attribute is a model too, though it carries no schema."""
+    resolved = Path[Name]("familyName").resolve()
+    assert resolved.target_model is Name
+    assert resolved.target_field_name == "family_name"
+    assert resolved.target_type is str
+    assert resolved.get_annotation(Mutability) is Mutability.read_write
+
+
+def test_the_type_of_an_annotated_attribute_is_unwrapped():
+    """A ``binary`` attribute declared as Base64Bytes reports bytes."""
+    assert Path[User]("x509Certificates.value").resolve().target_type is bytes
+
+
+def test_a_sub_attribute_of_a_multivalued_attribute_is_not_multivalued():
+    """``emails`` holds several values, ``emails.value`` designates one per entry."""
+    assert Path[User]("emails").resolve().target_is_multivalued is True
+    assert Path[User]("emails.value").resolve().target_is_multivalued is False
+    assert Path[User]("userName").resolve().target_is_multivalued is False
+    assert Path[User]("name.familyName").resolve().target_is_multivalued is False
+
+
+@pytest.mark.parametrize(
+    "model",
+    [
+        pytest.param(User, id="User"),
+        pytest.param(User[EnterpriseUser], id="User with an extension"),
+        pytest.param(Group, id="Group"),
+    ],
+)
+def test_every_enumerated_path_resolves_or_names_a_schema(model):
+    """Every path ``iter_paths`` yields designates an attribute or a schema.
+
+    This covers the full attribute surface of a resource and its extensions at
+    once, and breaks if the enumeration and the resolution stop agreeing.
+    """
+    paths = list(Path[model].iter_paths())
+    assert paths
+
+    for path in paths:
+        resolved = path.resolve()
+        if resolved is None:
+            assert path.model is not None
+            continue
+
+        assert path.model is None
+        assert resolved.target_field_name in resolved.target_model.model_fields
+        assert resolved.target_type is not None
+        assert resolved.target_is_multivalued is not None
+        assert resolved.urn.endswith(path.attr)
