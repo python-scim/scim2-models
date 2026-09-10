@@ -61,7 +61,7 @@ class Email(ComplexAttribute):
     display: str | None = None
     """A human-readable name, primarily used for display purposes."""
 
-    type: Type | None = Field(None, examples=["work", "home", "other"])
+    type: Type | None = None
     """A label indicating the attribute's function, e.g., 'work' or 'home'."""
 
     primary: bool | None = None
@@ -85,9 +85,7 @@ class PhoneNumber(ComplexAttribute):
     display: str | None = None
     """A human-readable name, primarily used for display purposes."""
 
-    type: Type | None = Field(
-        None, examples=["work", "home", "mobile", "fax", "pager", "other"]
-    )
+    type: Type | None = None
     """A label indicating the attribute's function, e.g., 'work', 'home',
     'mobile'."""
 
@@ -114,9 +112,7 @@ class Im(ComplexAttribute):
     display: str | None = None
     """A human-readable name, primarily used for display purposes."""
 
-    type: Type | None = Field(
-        None, examples=["aim", "gtalk", "icq", "xmpp", "msn", "skype", "qq", "yahoo"]
-    )
+    type: Type | None = None
     """A label indicating the attribute's function, e.g., 'aim', 'gtalk',
     'xmpp'."""
 
@@ -136,7 +132,7 @@ class Photo(ComplexAttribute):
     display: str | None = None
     """A human-readable name, primarily used for display purposes."""
 
-    type: Type | None = Field(None, examples=["photo", "thumbnail"])
+    type: Type | None = None
     """A label indicating the attribute's function, i.e., 'photo' or
     'thumbnail'."""
 
@@ -174,7 +170,7 @@ class Address(ComplexAttribute):
     country: str | None = None
     """The country name component."""
 
-    type: Type | None = Field(None, examples=["work", "home", "other"])
+    type: Type | None = None
     """A label indicating the attribute's function, e.g., 'work' or 'home'."""
 
     primary: bool | None = None

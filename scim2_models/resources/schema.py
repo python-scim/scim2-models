@@ -153,9 +153,7 @@ class Attribute(ComplexAttribute):
     )
     """The attribute's name."""
 
-    type: Annotated[Type | None, Mutability.read_only, Required.true] = Field(
-        None, examples=[item.value for item in Type]
-    )
+    type: Annotated[Type | None, Mutability.read_only, Required.true] = None
     """The attribute's data type."""
 
     multi_valued: Annotated[bool | None, Mutability.read_only, Required.true] = None
@@ -184,20 +182,20 @@ class Attribute(ComplexAttribute):
 
     mutability: Annotated[
         Mutability, Mutability.read_only, Required.false, CaseExact.true
-    ] = Field(Mutability.read_write, examples=[item.value for item in Mutability])
+    ] = Mutability.read_write
     """A single keyword indicating the circumstances under which the value of
     the attribute can be (re)defined."""
 
     returned: Annotated[
         Returned, Mutability.read_only, Required.false, CaseExact.true
-    ] = Field(Returned.default, examples=[item.value for item in Returned])
+    ] = Returned.default
     """A single keyword that indicates when an attribute and associated values
     are returned in response to a GET request or in response to a PUT, POST, or
     PATCH request."""
 
     uniqueness: Annotated[
         Uniqueness, Mutability.read_only, Required.false, CaseExact.true
-    ] = Field(Uniqueness.none, examples=[item.value for item in Uniqueness])
+    ] = Uniqueness.none
     """A single keyword value that specifies how the service provider enforces
     uniqueness of attribute values."""
 

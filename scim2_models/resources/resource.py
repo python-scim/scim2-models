@@ -2,6 +2,7 @@ import copyreg
 import warnings
 from collections.abc import Sequence
 from datetime import datetime
+from enum import Enum
 from typing import TYPE_CHECKING
 from typing import Annotated
 from typing import Any
@@ -459,6 +460,22 @@ def _model_to_schema(model: type[BaseModel]) -> "Schema":
     return schema
 
 
+def _enumerated_canonical_values(root_type: Any) -> list[str] | None:
+    """Return the values a string enumeration declares, as canonical values.
+
+    :rfc:`RFC7643 §7 <7643#section-7>` gives ``canonicalValues`` to string
+    attributes, so an enumeration holding anything else declares none. A value
+    an :class:`~scim2_models.ExtensibleStringEnum` accepted beyond its members
+    never joins them, and thus never reaches a published schema.
+    """
+    if not (isinstance(root_type, type) and issubclass(root_type, Enum)):
+        return None
+    values = [member.value for member in root_type]
+    if not all(isinstance(value, str) for value in values):
+        return None
+    return values
+
+
 def _model_attribute_to_scim_attribute(
     model: type[BaseModel], attribute_name: str
 ) -> "Attribute":
@@ -489,7 +506,8 @@ def _model_attribute_to_scim_attribute(
         "type": Attribute.Type(attribute_type),
         "multi_valued": model.get_field_multiplicity(attribute_name),
         "description": field_info.description,
-        "canonical_values": field_info.examples,
+        "canonical_values": field_info.examples
+        or _enumerated_canonical_values(root_type),
         "required": model.get_field_annotation(attribute_name, Required),
         "case_exact": model.get_field_annotation(attribute_name, CaseExact),
         "mutability": model.get_field_annotation(attribute_name, Mutability),

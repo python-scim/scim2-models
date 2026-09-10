@@ -2,9 +2,11 @@ import copyreg
 import operator
 
 import pytest
+from pydantic import Field
 from pydantic.fields import FieldInfo
 
 from scim2_models import URN
+from scim2_models.attributes import ExtensibleStringEnum
 from scim2_models.context import Context
 from scim2_models.resources.enterprise_user import EnterpriseUser
 from scim2_models.resources.group import Group
@@ -191,3 +193,62 @@ def test_make_python_model_validates_name():
 
     with pytest.raises(ValueError, match="Schema or Attribute 'name' must be defined"):
         _make_python_model(attribute, Resource)
+
+
+def test_canonical_values_are_read_from_a_string_enumeration():
+    """The members of a string enumeration are the canonical values of an attribute."""
+
+    class Kind(ExtensibleStringEnum):
+        cat = "cat"
+        dog = "dog"
+
+    class Pet(Resource):
+        __schema__ = URN("urn:example:Pet")
+
+        kind: Kind | None = None
+
+    assert Pet.to_schema().attributes[0].canonical_values == ["cat", "dog"]
+
+
+def test_canonical_values_declared_as_examples_are_kept():
+    """An explicit list of examples answers for the canonical values of an attribute."""
+
+    class Kind(ExtensibleStringEnum):
+        cat = "cat"
+        dog = "dog"
+
+    class Pet(Resource):
+        __schema__ = URN("urn:example:Pet")
+
+        kind: Kind | None = Field(None, examples=["cat"])
+
+    assert Pet.to_schema().attributes[0].canonical_values == ["cat"]
+
+
+def test_a_boolean_enumeration_declares_no_canonical_values():
+    """``canonicalValues`` describes string attributes, where Required holds booleans."""
+    attributes = Schema.to_schema().attributes
+    described = next(
+        attribute for attribute in attributes if attribute.name == "attributes"
+    )
+    sub_attributes = {sub.name: sub for sub in described.sub_attributes}
+    assert sub_attributes["required"].canonical_values is None
+    assert sub_attributes["type"].canonical_values == [
+        "string",
+        "complex",
+        "boolean",
+        "decimal",
+        "integer",
+        "dateTime",
+        "reference",
+        "binary",
+    ]
+
+
+def test_a_standard_resource_publishes_the_canonical_values_of_its_enumerations():
+    """The canonical values of ``emails.type`` are the members of its enumeration."""
+    attributes = {
+        attribute.name: attribute for attribute in User.to_schema().attributes
+    }
+    sub_attributes = {sub.name: sub for sub in attributes["emails"].sub_attributes}
+    assert sub_attributes["type"].canonical_values == ["work", "home", "other"]
