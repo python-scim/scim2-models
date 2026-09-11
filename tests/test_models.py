@@ -34,8 +34,8 @@ SAMPLE_MODELS = {
     "service_provider_configuration": ServiceProviderConfig,
     "list_response": ListResponse[User | Group | Schema | ResourceType],
     "patch_op": PatchOp[User],
-    "bulk_request": BulkRequest,
-    "bulk_response": BulkResponse,
+    "bulk_request": BulkRequest[User | User[EnterpriseUser] | Group],
+    "bulk_response": BulkResponse[User | User[EnterpriseUser] | Group],
     "search_request": SearchRequest,
     "error": Error,
 }

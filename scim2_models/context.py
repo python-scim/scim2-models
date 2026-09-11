@@ -185,7 +185,7 @@ class Context(Enum):
 
     Should be used for servers building a payload for a bulk response,
     and clients validating bulk response payloads.
-    
+
     - When used for validation, it will raise a :class:`~pydantic_core.ValidationError` when finding attributes annotated with :attr:`~scim2_models.Returned.never` or when attributes annotated with :attr:`~scim2_models.Returned.always` are missing or :data:`None`;
     - When used for serialization, it will:
         - always dump attributes annotated with :attr:`~scim2_models.Returned.always`;

@@ -14,7 +14,7 @@ from scim2_models.resources.user import User
 
 
 def test_bulk_operation_delete():
-    BulkOperation.model_validate(
+    BulkOperation[User].model_validate(
         {
             "method": BulkOperation.Method.delete,
             "path": "/Users/2819c223-7f76-453a-919d-413861904646",
@@ -41,22 +41,22 @@ def test_bulkId_required_for_post_bulk_operations():
 
     :rfc:`RFC7644` §3.7 <7644#section-3.7>: "bulkId [is] REQUIRED when "method" is "POST"."
     """
-    BulkOperation.model_validate(
+    BulkOperation[User].model_validate(
         {
             "method": BulkOperation.Method.post,
             "bulkId": "qwerty",
             "path": "/Users",
-            "data": {"displayName": "John Doe"},
+            "data": User(user_name="John Doe"),
         },
         context={"scim": Context.RESOURCE_CREATION_REQUEST},
     )
     with pytest.raises(ValidationError):
-        BulkOperation.model_validate(
+        BulkOperation[User].model_validate(
             {
                 "method": BulkOperation.Method.post,
                 "bulkId": None,
                 "path": "/Users",
-                "data": {"displayName": "John Doe"},
+                "data": User(user_name="John Doe"),
             },
             context={"scim": Context.RESOURCE_CREATION_REQUEST},
         )
@@ -67,26 +67,26 @@ def test_path_required_for_request_bulk_operations():
 
     :rfc:`RFC7644` §3.7 <7644#section-3.7>: "path [...] REQUIRED in a request."
     """
-    BulkOperation.model_validate(
+    BulkOperation[User].model_validate(
         {
             "method": BulkOperation.Method.post,
             "bulkId": "qwerty",
             "path": "/Users",
-            "data": {"displayName": "John Doe"},
+            "data": User(user_name="John Doe"),
         },
         context={"scim": Context.RESOURCE_CREATION_REQUEST},
     )
     with pytest.raises(ValidationError):
-        BulkOperation.model_validate(
+        BulkOperation[User].model_validate(
             {
                 "method": BulkOperation.Method.post,
                 "bulkId": "qwerty",
                 "path": None,
-                "data": {"displayName": "John Doe"},
+                "data": User(user_name="John Doe"),
             },
             context={"scim": Context.RESOURCE_CREATION_REQUEST},
         )
-    BulkOperation.model_validate(
+    BulkOperation[User].model_validate(
         {
             "method": BulkOperation.Method.post,
             "bulkId": "qwerty",
@@ -104,35 +104,35 @@ def test_data_required_for_post_put_patch_request_bulk_operations():
     :rfc:`RFC7644` §3.7 <7644#section-3.7>: "data  The resource data as it would appear for a single SCIM POST,
     PUT, or PATCH operation.  REQUIRED in a request when "method" is "POST", "PUT", or "PATCH"."
     """
-    BulkOperation.model_validate(
+    BulkOperation[User].model_validate(
         {
             "method": BulkOperation.Method.post,
             "bulkId": "qwerty",
             "path": "/Users",
-            "data": {"displayName": "John Doe"},
+            "data": User(user_name="John Doe"),
         },
         context={"scim": Context.RESOURCE_CREATION_REQUEST},
     )
-    BulkOperation.model_validate(
+    BulkOperation[User].model_validate(
         {
             "method": BulkOperation.Method.patch,
             "bulkId": "qwerty",
             "path": "/Users/2819c223-7f76-453a-919d-413861904646",
-            "data": {"displayName": "John Doe"},
+            "data": User(user_name="John Doe"),
         },
         context={"scim": Context.RESOURCE_PATCH_REQUEST},
     )
-    BulkOperation.model_validate(
+    BulkOperation[User].model_validate(
         {
             "method": BulkOperation.Method.put,
             "bulkId": "qwerty",
             "path": "/Users/2819c223-7f76-453a-919d-413861904646",
-            "data": {"displayName": "John Doe"},
+            "data": User(user_name="John Doe"),
         },
         context={"scim": Context.RESOURCE_REPLACEMENT_REQUEST},
     )
     with pytest.raises(ValidationError):
-        BulkOperation.model_validate(
+        BulkOperation[User].model_validate(
             {
                 "method": BulkOperation.Method.post,
                 "bulkId": "qwerty",
@@ -142,7 +142,7 @@ def test_data_required_for_post_put_patch_request_bulk_operations():
             context={"scim": Context.RESOURCE_CREATION_REQUEST},
         )
     with pytest.raises(ValidationError):
-        BulkOperation.model_validate(
+        BulkOperation[User].model_validate(
             {
                 "method": BulkOperation.Method.patch,
                 "bulkId": "qwerty",
@@ -152,7 +152,7 @@ def test_data_required_for_post_put_patch_request_bulk_operations():
             context={"scim": Context.RESOURCE_PATCH_REQUEST},
         )
     with pytest.raises(ValidationError):
-        BulkOperation.model_validate(
+        BulkOperation[User].model_validate(
             {
                 "method": BulkOperation.Method.put,
                 "bulkId": "qwerty",
@@ -169,7 +169,7 @@ def test_location_required_for_response_bulk_operations_except_post_errors():
     :rfc:`RFC7644` §3.7 <7644#section-3.7>: "location  The resource endpoint URL.  REQUIRED in a response,
     except in the event of a POST failure."
     """
-    BulkOperation.model_validate(
+    BulkOperation[User].model_validate(
         {
             "method": BulkOperation.Method.post,
             "bulkId": "qwerty",
@@ -178,7 +178,7 @@ def test_location_required_for_response_bulk_operations_except_post_errors():
         },
         context={"scim": Context.RESOURCE_CREATION_RESPONSE},
     )
-    BulkOperation.model_validate(
+    BulkOperation[User].model_validate(
         {
             "method": BulkOperation.Method.post,
             "bulkId": "qwerty",
@@ -191,7 +191,7 @@ def test_location_required_for_response_bulk_operations_except_post_errors():
         context={"scim": Context.RESOURCE_CREATION_RESPONSE},
     )
     with pytest.raises(ValidationError):
-        BulkOperation.model_validate(
+        BulkOperation[User].model_validate(
             {
                 "method": BulkOperation.Method.post,
                 "bulkId": "qwerty",
@@ -201,7 +201,7 @@ def test_location_required_for_response_bulk_operations_except_post_errors():
             context={"scim": Context.RESOURCE_CREATION_RESPONSE},
         )
     with pytest.raises(ValidationError):
-        BulkOperation.model_validate(
+        BulkOperation[User].model_validate(
             {
                 "method": BulkOperation.Method.patch,
                 "bulkId": "qwerty",
@@ -215,18 +215,18 @@ def test_location_required_for_response_bulk_operations_except_post_errors():
 def test_method_required_for_bulk_operations():
     """Test that method is required for bulk operations."""
     with pytest.raises(ValidationError):
-        BulkOperation.model_validate(
+        BulkOperation[User].model_validate(
             {
                 "bulkId": "qwerty",
                 "path": "/Users",
-                "data": {"displayName": "John Doe"},
+                "data": User(user_name="John Doe"),
             },
             context={"scim": Context.RESOURCE_CREATION_REQUEST},
         )
 
 
 def test_error_response_required_in_response():
-    BulkOperation.model_validate(
+    BulkOperation[User].model_validate(
         {
             "method": BulkOperation.Method.post,
             "bulkId": "qwerty",
@@ -238,7 +238,7 @@ def test_error_response_required_in_response():
         context={"scim": Context.RESOURCE_CREATION_RESPONSE},
     )
     with pytest.raises(ValidationError):
-        BulkOperation.model_validate(
+        BulkOperation[User].model_validate(
             {
                 "method": BulkOperation.Method.post,
                 "bulkId": "qwerty",
@@ -253,7 +253,7 @@ def test_bulk_operation_with_group():
         display_name="Group 1",
         members=[GroupMember(value="123", display="Test User")],
     )
-    BulkOperation.model_validate(
+    BulkOperation[Group].model_validate(
         {
             "method": BulkOperation.Method.post,
             "bulkId": "qwerty",
@@ -272,7 +272,7 @@ def test_bulk_operation_with_patch_operation():
             )
         ]
     )
-    BulkOperation.model_validate(
+    BulkOperation[User].model_validate(
         {
             "method": BulkOperation.Method.patch,
             "bulkId": "qwerty",
@@ -281,3 +281,73 @@ def test_bulk_operation_with_patch_operation():
         },
         context={"scim": Context.RESOURCE_PATCH_REQUEST},
     )
+
+
+def test_bulk_request_with_multiple_resource_types():
+    """A single bulk request can create both users and groups."""
+    request = BulkRequest[User | Group].model_validate(
+        {
+            "operations": [
+                {
+                    "method": BulkOperation.Method.post,
+                    "bulkId": "create-user",
+                    "path": "/Users",
+                    "data": {"userName": "bjensen"},
+                },
+                {
+                    "method": BulkOperation.Method.post,
+                    "bulkId": "create-group",
+                    "path": "/Groups",
+                    "data": {"displayName": "Tour Guides"},
+                },
+            ]
+        },
+        context={"scim": Context.BULK_REQUEST},
+    )
+
+    assert isinstance(request.operations[0].data, User)
+    assert request.operations[0].data.user_name == "bjensen"
+    assert isinstance(request.operations[1].data, Group)
+    assert request.operations[1].data.display_name == "Tour Guides"
+
+
+def test_bulk_response_with_multiple_resource_types():
+    """A single bulk response can carry both user and group results."""
+    response = BulkResponse[User | Group].model_validate(
+        {
+            "operations": [
+                {
+                    "method": BulkOperation.Method.post,
+                    "bulkId": "create-user",
+                    "location": "https://example.com/v2/Users/92b725cd-9465-4d2f-9d49-d0d8aabb54d1",
+                    "status": 201,
+                    "response": {
+                        "id": "92b725cd-9465-4d2f-9d49-d0d8aabb54d1",
+                        "userName": "bjensen",
+                    },
+                },
+                {
+                    "method": BulkOperation.Method.post,
+                    "bulkId": "create-group",
+                    "location": "https://example.com/v2/Groups/e9e30dba-f08f-4109-8486-d5c6a331660a",
+                    "status": 201,
+                    "response": {
+                        "id": "e9e30dba-f08f-4109-8486-d5c6a331660a",
+                        "displayName": "Tour Guides",
+                        "members": [
+                            {
+                                "value": "92b725cd-9465-4d2f-9d49-d0d8aabb54d1",
+                                "display": "bjensen",
+                            }
+                        ],
+                    },
+                },
+            ]
+        },
+        context={"scim": Context.BULK_RESPONSE},
+    )
+
+    assert isinstance(response.operations[0].response, User)
+    assert response.operations[0].response.user_name == "bjensen"
+    assert isinstance(response.operations[1].response, Group)
+    assert response.operations[1].response.display_name == "Tour Guides"

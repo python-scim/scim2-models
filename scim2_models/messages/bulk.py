@@ -1,6 +1,11 @@
 from enum import Enum
 from typing import Annotated
 from typing import Any
+from typing import Generic
+from typing import TypeVar
+from typing import Union
+from typing import get_args
+from typing import get_origin
 
 from pydantic import Field
 from pydantic import PlainSerializer
@@ -13,13 +18,18 @@ from ..annotations import Returned
 from ..attributes import ComplexAttribute
 from ..context import Context
 from ..exceptions import InvalidValueException
+from ..resources.resource import Resource
 from ..urn import URN
+from ..utils import UNION_TYPES
 from ..utils import _int_to_str
 from .error import Error
 from .message import Message
+from .patch_op import PatchOp
+
+ResourceT = TypeVar("ResourceT", bound=Resource[Any])
 
 
-class BulkOperation(ComplexAttribute):
+class BulkOperation(ComplexAttribute, Generic[ResourceT]):
     class Method(str, Enum):
         post = "POST"
         put = "PUT"
@@ -39,18 +49,37 @@ class BulkOperation(ComplexAttribute):
     path: Annotated[str | None, Returned.request] = None
     """The resource's relative path to the SCIM service provider's root."""
 
-    data: Annotated[Any | None, Returned.request] = None
+    data: Annotated[ResourceT | PatchOp[ResourceT] | None, Returned.request] = None
     """The resource data as it would appear for a single SCIM POST, PUT, or
     PATCH operation."""
 
     location: str | None = None
     """The resource endpoint URL."""
 
-    response: Any | None = None
+    response: ResourceT | Error | None = None
     """The HTTP response body for the specified request operation."""
 
     status: Annotated[int | None, PlainSerializer(_int_to_str)] = None
     """The HTTP response status code for the requested operation."""
+
+    def __class_getitem__(cls, item: Any) -> Any:
+        """Turn ``BulkOperation[User | Group]`` into ``BulkOperation[User] | BulkOperation[Group]``.
+
+        A bulk job's operations can each target a different resource type, but
+        substituting the union directly for ``ResourceT`` would build ``data``'s
+        ``PatchOp[User | Group]``, which :class:`PatchOp` rejects: a PATCH
+        always targets one concrete resource type.
+        """
+        # Pydantic sometimes re-subscripts an already partially-parameterized
+        # model (e.g. while substituting BulkRequest's own type parameter)
+        # by passing a 1-tuple instead of the bare value.
+        param = item[0] if isinstance(item, tuple) and len(item) == 1 else item
+
+        if not isinstance(param, TypeVar) and get_origin(param) in UNION_TYPES:
+            members = get_args(param)
+            return Union[tuple(cls[member] for member in members)]  # type: ignore  # noqa: UP007
+
+        return super().__class_getitem__(item)
 
     @model_validator(mode="after")
     def validate_operation_requirements(self, info: ValidationInfo) -> Self:
@@ -94,10 +123,10 @@ class BulkOperation(ComplexAttribute):
             if (
                 self.status is not None
                 and not 200 <= self.status < 300
-                and not isinstance(self.response, Error)
+                and (self.response is None or not isinstance(self.response, Error))
             ):
                 raise InvalidValueException(
-                    detail="response error parameter is required"
+                    detail="response parameter describing error is required"
                 ).as_pydantic_error()
 
         # RFC 7644 Section 3.7: "bulkId [...] REQUIRED when "method" is "POST"."
@@ -109,16 +138,18 @@ class BulkOperation(ComplexAttribute):
         return self
 
 
-class BulkRequest(Message):
+class BulkRequest(Message, Generic[ResourceT]):
     """Bulk request as defined in :rfc:`RFC7644 §3.7 <7644#section-3.7>`.
 
     The request groups independent SCIM operations. Its ``Operations`` field
-    keeps the SCIM capitalization during serialization:
+    keeps the SCIM capitalization during serialization. Parameterize it with
+    the resource type(s) the operations carry, e.g. ``BulkRequest[User |
+    Group]`` when a single bulk job creates both users and groups:
 
-    >>> from scim2_models import BulkOperation, BulkRequest, Context
-    >>> request = BulkRequest(
+    >>> from scim2_models import BulkOperation, BulkRequest, Context, User
+    >>> request = BulkRequest[User](
     ...     operations=[
-    ...         BulkOperation(
+    ...         BulkOperation[User](
     ...             method="POST",
     ...             bulk_id="create-user",
     ...             path="/Users",
@@ -126,8 +157,8 @@ class BulkRequest(Message):
     ...         )
     ...     ]
     ... )
-    >>> request.model_dump(scim_ctx=Context.RESOURCE_CREATION_REQUEST)["Operations"]
-    [{'method': 'POST', 'bulkId': 'create-user', 'path': '/Users', 'data': {'userName': 'bjensen'}}]
+    >>> request.model_dump(scim_ctx=Context.BULK_REQUEST)["Operations"]
+    [{'method': 'POST', 'bulkId': 'create-user', 'path': '/Users', 'data': {'schemas': ['urn:ietf:params:scim:schemas:core:2.0:User'], 'userName': 'bjensen'}}]
 
     scim2-models validates and serializes the message. Applying the operations it
     carries is left to the application.
@@ -144,17 +175,19 @@ class BulkRequest(Message):
     will accept before the operation is terminated and an error response is
     returned."""
 
-    operations: Annotated[list[BulkOperation] | None, Required.true] = Field(
+    operations: Annotated[list[BulkOperation[ResourceT]] | None, Required.true] = Field(
         None, serialization_alias="Operations"
     )
     """Defines operations within a bulk job."""
 
 
-class BulkResponse(Message):
+class BulkResponse(Message, Generic[ResourceT]):
     """Bulk response as defined in :rfc:`RFC7644 §3.7 <7644#section-3.7>`.
 
     scim2-models validates and serializes the message. Building it from the
-    outcome of the operations is left to the application.
+    outcome of the operations is left to the application. Parameterize it
+    with the resource type(s) the operations carry, e.g. ``BulkResponse[User
+    | Group]``.
 
     .. todo::
 
@@ -163,7 +196,7 @@ class BulkResponse(Message):
 
     __schema__ = URN("urn:ietf:params:scim:api:messages:2.0:BulkResponse")
 
-    operations: Annotated[list[BulkOperation] | None, Required.true] = Field(
+    operations: Annotated[list[BulkOperation[ResourceT]] | None, Required.true] = Field(
         None, serialization_alias="Operations"
     )
     """Defines operations within a bulk job."""
