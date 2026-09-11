@@ -83,9 +83,7 @@ class Context(Enum):
     and servers validating resource replacement request payloads.
 
     - When used for serialization, it will not dump attributes annotated with :attr:`~scim2_models.Mutability.read_only`.
-    - When used for validation, it will ignore attributes annotated with :attr:`scim2_models.Mutability.read_only` and raise a :class:`~pydantic_core.ValidationError`:
-        - when finding attributes annotated with :attr:`~scim2_models.Mutability.immutable` different than the ``original`` parameter passed to :meth:`~scim2_models.BaseModel.model_validate`;
-        - when attributes annotated with :attr:`Required.true <scim2_models.Required.true>` are missing on null.
+    - When used for validation, it will ignore attributes annotated with :attr:`scim2_models.Mutability.read_only` and raise a :class:`~pydantic_core.ValidationError` when attributes annotated with :attr:`Required.true <scim2_models.Required.true>` are missing or null. Comparing the payload against the stored resource is :meth:`~scim2_models.Resource.replace`'s business.
     """
 
     RESOURCE_REPLACEMENT_RESPONSE = auto()

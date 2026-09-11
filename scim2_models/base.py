@@ -1,4 +1,3 @@
-import warnings
 from collections.abc import Mapping
 from inspect import isclass
 from types import MappingProxyType
@@ -7,7 +6,6 @@ from typing import Any
 from typing import ClassVar
 from typing import NamedTuple
 from typing import NoReturn
-from typing import Optional
 from typing import cast
 from typing import get_args
 from typing import get_origin
@@ -432,13 +430,10 @@ class BaseModel(PydanticBaseModel):
         if not scim_context or scim_context == Context.DEFAULT:
             return self
 
-        from scim2_models.resources.resource import Resource
-
         is_create_or_replace = scim_context in (
             Context.RESOURCE_CREATION_REQUEST,
             Context.RESOURCE_REPLACEMENT_REQUEST,
         )
-        original = info.context.get("original") if info.context else None
         fields_set = self.model_fields_set
 
         for field_name in self.__class__.model_fields:
@@ -455,14 +450,6 @@ class BaseModel(PydanticBaseModel):
 
             if self.get_field_multiplicity(field_name) and value is not None:
                 self._check_primary_uniqueness(field_name, value)
-
-        # DEPRECATED: Remove when original is not used in validation
-        if (
-            scim_context == Context.RESOURCE_REPLACEMENT_REQUEST
-            and original is not None
-            and issubclass(type(self), Resource)
-        ):
-            self._check_replacement_mutability(original)
 
         return self
 
@@ -549,13 +536,6 @@ class BaseModel(PydanticBaseModel):
                     "field_name": field_name,
                 },
             )
-
-    def _check_replacement_mutability(self, original: "BaseModel") -> None:
-        """Check if 'immutable' attributes have been mutated in replacement requests."""
-        try:
-            self._apply_replace_constraints(original)
-        except MutabilityException as exc:
-            raise exc.as_pydantic_error() from exc
 
     def _check_primary_uniqueness(self, field_name: str, value: Any) -> None:
         """Validate that only one attribute can be marked as primary in multi-valued lists, per :rfc:`RFC7643 §2.4 <7643#section-2.4>`."""
@@ -794,13 +774,11 @@ class BaseModel(PydanticBaseModel):
     def _prepare_model_validate(
         cls,
         scim_ctx: Context | None = Context.DEFAULT,
-        original: Optional["BaseModel"] = None,
         scim_policy: ScimPolicy | None = None,
         **kwargs: Any,
     ) -> dict[str, Any]:
         context = kwargs.setdefault("context", {})
         context.setdefault("scim", scim_ctx)
-        context.setdefault("original", original)
         context.setdefault("scim_policy", scim_policy)
         return kwargs
 
@@ -809,7 +787,6 @@ class BaseModel(PydanticBaseModel):
         cls,
         *args: Any,
         scim_ctx: Context | None = Context.DEFAULT,
-        original: Optional["BaseModel"] = None,
         scim_policy: ScimPolicy | None = None,
         **kwargs: Any,
     ) -> Self:
@@ -818,26 +795,8 @@ class BaseModel(PydanticBaseModel):
         :param scim_ctx: The SCIM :class:`~scim2_models.Context` in which the validation happens.
         :param scim_policy: The :class:`~scim2_models.ScimPolicy` the validation
             runs under. Defaults to the strict reading of the specification.
-        :param original: If this parameter is set during :attr:`~Context.RESOURCE_REPLACEMENT_REQUEST`,
-            :attr:`~scim2_models.Mutability.immutable` parameters will be compared against the *original* model value.
-            An exception is raised if values are different.
-
-            .. deprecated:: 0.6.7
-                Use :meth:`~scim2_models.Resource.replace` on the validated instance instead.
-                Will be removed in 0.8.0.
         """
-        if original is not None:
-            warnings.warn(
-                "The 'original' parameter is deprecated, "
-                "use the 'replace' method on the validated instance instead. "
-                "Will be removed in 0.8.0.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-
-        validate_kwargs = cls._prepare_model_validate(
-            scim_ctx, original, scim_policy, **kwargs
-        )
+        validate_kwargs = cls._prepare_model_validate(scim_ctx, scim_policy, **kwargs)
         return super().model_validate(*args, **validate_kwargs)
 
     @classmethod

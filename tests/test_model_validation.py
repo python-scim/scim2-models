@@ -184,120 +184,6 @@ def test_mutability_error_location_is_prefixed_by_its_parents():
     ]
 
 
-def test_validate_replacement_request_mutability():
-    """Test query validation for resource model replacement requests.
-
-    Attributes marked as:
-    - Mutability.immutable raise a ValidationError if different than the 'original' item.
-    - Mutability.read_only are copied from the original
-    """
-    original = MutResource(read_only="y", read_write="y", write_only="y", immutable="y")
-    with pytest.warns(DeprecationWarning, match="original"):
-        assert MutResource.model_validate(
-            {
-                "schemas": ["urn:example:MutResource"],
-                "readOnly": "x",
-                "readWrite": "x",
-                "writeOnly": "x",
-                "immutable": "y",
-            },
-            scim_ctx=Context.RESOURCE_REPLACEMENT_REQUEST,
-            original=original,
-        ) == MutResource(
-            schemas=["urn:example:MutResource"],
-            read_only="y",
-            readWrite="x",
-            writeOnly="x",
-            immutable="y",
-        )
-
-    with pytest.warns(DeprecationWarning, match="original"):
-        MutResource.model_validate(
-            {
-                "schemas": ["urn:example:MutResource"],
-                "immutable": "y",
-            },
-            scim_ctx=Context.RESOURCE_REPLACEMENT_REQUEST,
-            original=original,
-        )
-
-    with pytest.warns(DeprecationWarning, match="original"):
-        with pytest.raises(
-            ValidationError,
-            match="mutability",
-        ):
-            MutResource.model_validate(
-                {
-                    "schemas": ["urn:example:MutResource"],
-                    "immutable": "x",
-                },
-                scim_ctx=Context.RESOURCE_REPLACEMENT_REQUEST,
-                original=original,
-            )
-
-
-def test_validate_replacement_request_mutability_sub_attributes():
-    """Test query validation for resource model replacement requests.
-
-    Sub-attributes marked as:
-    - Mutability.immutable raise a ValidationError if different than the 'original' item.
-    - Mutability.read_only are ignored
-    """
-
-    class Sub(ComplexAttribute):
-        immutable: Annotated[str | None, Mutability.immutable] = None
-
-    class Super(Resource):
-        __schema__ = URN("urn:example:Super")
-        sub: Sub | None = None
-
-    original = Super(sub=Sub(immutable="y"))
-    with pytest.warns(DeprecationWarning, match="original"):
-        assert Super.model_validate(
-            {
-                "schemas": ["urn:example:Super"],
-                "sub": {
-                    "immutable": "y",
-                },
-            },
-            scim_ctx=Context.RESOURCE_REPLACEMENT_REQUEST,
-            original=original,
-        ) == Super(
-            schemas=["urn:example:Super"],
-            sub=Sub(
-                immutable="y",
-            ),
-        )
-
-    with pytest.warns(DeprecationWarning, match="original"):
-        Super.model_validate(
-            {
-                "schemas": ["urn:example:Super"],
-                "sub": {
-                    "immutable": "y",
-                },
-            },
-            scim_ctx=Context.RESOURCE_REPLACEMENT_REQUEST,
-            original=original,
-        )
-
-    with pytest.warns(DeprecationWarning, match="original"):
-        with pytest.raises(
-            ValidationError,
-            match="mutability",
-        ):
-            Super.model_validate(
-                {
-                    "schemas": ["urn:example:Super"],
-                    "sub": {
-                        "immutable": "x",
-                    },
-                },
-                scim_ctx=Context.RESOURCE_REPLACEMENT_REQUEST,
-                original=original,
-            )
-
-
 def test_replace_detects_changed_field():
     """Replace raises MutabilityException when an immutable field differs."""
     from scim2_models.exceptions import MutabilityException
@@ -597,19 +483,8 @@ def test_replace_copies_read_only_in_extension():
     assert replacement[MyExt].read_write == "new"
 
 
-def test_original_parameter_emits_deprecation_warning():
-    """Passing 'original' to model_validate emits a DeprecationWarning."""
-    original = MutResource(immutable="y")
-    with pytest.warns(DeprecationWarning, match="original"):
-        MutResource.model_validate(
-            {"schemas": ["urn:example:MutResource"], "immutable": "y"},
-            scim_ctx=Context.RESOURCE_REPLACEMENT_REQUEST,
-            original=original,
-        )
-
-
-def test_replacement_request_without_original_parameter():
-    """Replacement requests work without 'original' when using replace manually."""
+def test_replace_after_validating_a_replacement_request():
+    """A replacement request is validated on its own, then compared to the stored resource."""
     from scim2_models.exceptions import MutabilityException
 
     original = MutResource(immutable="y")
@@ -621,8 +496,8 @@ def test_replacement_request_without_original_parameter():
         replacement.replace(original)
 
 
-def test_replacement_request_without_original_allows_matching_values():
-    """Replacement requests validate and replace succeeds with identical immutable values."""
+def test_replace_after_validating_a_replacement_request_that_changes_nothing():
+    """A replacement request repeating the immutable values it was given is accepted."""
     original = MutResource(immutable="y")
     replacement = MutResource.model_validate(
         {"schemas": ["urn:example:MutResource"], "immutable": "y"},

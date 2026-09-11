@@ -12,7 +12,6 @@ from scim2_models import Error
 from scim2_models import Group
 from scim2_models import ListResponse
 from scim2_models import PatchOp
-from scim2_models import Resource
 from scim2_models import ResourceType
 from scim2_models import Schema
 from scim2_models import SearchRequest
@@ -173,24 +172,6 @@ def test_get_model_by_schema():
         )
         == EnterpriseUser
     )
-
-
-def test_get_by_schema_deprecation():
-    """Resource.get_by_schema is kept as a deprecated alias."""
-    with pytest.warns(DeprecationWarning, match="get_model_by_schema"):
-        assert (
-            Resource.get_by_schema(
-                [Group], "urn:ietf:params:scim:schemas:core:2.0:Group"
-            )
-            == Group
-        )
-
-
-def test_get_by_payload_deprecation():
-    """Resource.get_by_payload is kept as a deprecated alias."""
-    payload = {"schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"]}
-    with pytest.warns(DeprecationWarning, match="get_model_by_payload"):
-        assert Resource.get_by_payload([Group], payload) == Group
 
 
 def test_get_message_by_schema_along_resources():

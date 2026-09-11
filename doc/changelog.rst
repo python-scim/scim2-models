@@ -60,6 +60,15 @@ Changed
 
 Removed
 ^^^^^^^
+- ``Resource.get_by_schema`` and ``Resource.get_by_payload``, deprecated in 0.6.13. Use
+  :func:`~scim2_models.get_model_by_schema` and :func:`~scim2_models.get_model_by_payload`, whose
+  ``resource_types`` parameter is named ``models``.
+- The ``original`` parameter of :meth:`~scim2_models.BaseModel.model_validate`, deprecated in
+  0.6.7. Validate the payload, then call :meth:`~scim2_models.Resource.replace` on the result to
+  compare it against the stored resource. A replacement request is no longer checked against an
+  original at validation time, so an immutable attribute that changed raises
+  :exc:`~scim2_models.MutabilityException` from ``replace`` instead of a
+  :exc:`~pydantic.ValidationError` from ``model_validate``.
 - ``Path.field_name``, ``Path.field_type``, ``Path.is_multivalued``, ``Path.get_annotation`` and
   ``Path.urn``. Use :meth:`~scim2_models.Path.resolve`, whose
   :class:`~scim2_models.AttributeBinding` carries them.

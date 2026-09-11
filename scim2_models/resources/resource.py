@@ -1,7 +1,5 @@
 import copyreg
-import warnings
 from collections.abc import MutableMapping
-from collections.abc import Sequence
 from datetime import datetime
 from enum import Enum
 from typing import TYPE_CHECKING
@@ -34,12 +32,9 @@ from ..attributes import _is_complex_attribute
 from ..base import BaseModel
 from ..context import Context
 from ..exceptions import InvalidPathException
-from ..lookup import get_model_by_payload
-from ..lookup import get_model_by_schema
 from ..path import Path
 from ..policy import ScimPolicy
 from ..policy import _policy
-from ..scim_object import AnyScimObject
 from ..scim_object import ScimObject
 from ..utils import UNION_TYPES
 from ..utils import _normalize_attribute_name
@@ -365,44 +360,6 @@ class Resource(ScimObject, Generic[AnyExtension]):
             if schema == name_or_schema or extension.__name__ == name_or_schema:
                 return extension
         return None
-
-    @staticmethod
-    def get_by_schema(
-        resource_types: Sequence[type[AnyScimObject]],
-        schema: str,
-        with_extensions: bool = True,
-    ) -> type[AnyScimObject] | type["Extension"] | None:
-        """Given a resource type list and a schema, find the matching resource type.
-
-        .. deprecated:: 0.6.13
-            Use :func:`~scim2_models.get_model_by_schema` instead.
-        """
-        warnings.warn(
-            "Resource.get_by_schema is deprecated, use "
-            "scim2_models.get_model_by_schema instead. Will be removed in 0.8.0.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return get_model_by_schema(resource_types, schema, with_extensions)
-
-    @staticmethod
-    def get_by_payload(
-        resource_types: Sequence[type[AnyScimObject]],
-        payload: dict[str, Any],
-        **kwargs: Any,
-    ) -> type[AnyScimObject] | type["Extension"] | None:
-        """Given a resource type list and a payload, find the matching resource type.
-
-        .. deprecated:: 0.6.13
-            Use :func:`~scim2_models.get_model_by_payload` instead.
-        """
-        warnings.warn(
-            "Resource.get_by_payload is deprecated, use "
-            "scim2_models.get_model_by_payload instead. Will be removed in 0.8.0.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return get_model_by_payload(resource_types, payload, **kwargs)
 
     def _model_schemas(self) -> list[str]:
         """List the base schema and the schemas of the declared extensions."""
