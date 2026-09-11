@@ -6,283 +6,184 @@ Changelog
 
 Added
 ^^^^^
-- Support for the ``filter`` query parameter (:rfc:`RFC7644 §3.4.2.2 <7644#section-3.4.2.2>`)
-  with :class:`~scim2_models.ScimFilter`. See :doc:`explanation/filters`. :issue:`17`
-- Support for value selections in PATCH paths, such as ``emails[type eq "work"].value``
-  (:rfc:`RFC7644 §3.5.2 <7644#section-3.5.2>`).
-- :meth:`ScimFilter.quote <scim2_models.ScimFilter.quote>` renders a value as a literal a filter
-  can carry, and on Python 3.14 :class:`~scim2_models.ScimFilter` and :class:`~scim2_models.Path`
-  take a t-string: an interpolated value is quoted so that it cannot be read as syntax, and an
-  interpolated path or filter is inserted as it stands.
+- :class:`~scim2_models.ScimFilter` parses the ``filter`` query parameter and matches resources
+  against it with :meth:`~scim2_models.ScimFilter.match`. See :doc:`explanation/filters`.
+  :issue:`17`
+- PATCH paths take a value selection, such as ``emails[type eq "work"].value``.
 - :class:`~scim2_models.SearchRequest` and :class:`~scim2_models.ResponseParameters` take the
-  resource type an endpoint serves, as in ``SearchRequest[User]``, which resolves
-  :attr:`~scim2_models.SearchRequest.filter`, :attr:`~scim2_models.SearchRequest.sort_by`,
-  :attr:`~scim2_models.ResponseParameters.attributes` and
-  :attr:`~scim2_models.ResponseParameters.excluded_attributes` against that model. An endpoint
-  covering several of them takes a union, as in ``SearchRequest[User | Group]``, and so do
-  :class:`~scim2_models.ScimFilter` and :class:`~scim2_models.Path`. A filter attribute only
-  some of the types declare is valid, and evaluates to false on the others, which is what
-  :rfc:`RFC7644 §3.4.2.1 <7644#section-3.4.2.1>` requires of a root query; a path resolves
-  against the first type declaring it, so ``sortBy`` answers on a root query too.
-- :meth:`Path.resolve <scim2_models.Path.resolve>` resolves a path to the
-  :class:`~scim2_models.AttributeBinding` it designates.
+  resource type an endpoint serves, as in ``SearchRequest[User]``, or ``SearchRequest[User |
+  Group]`` for an endpoint serving several. Their :attr:`~scim2_models.SearchRequest.filter`,
+  :attr:`~scim2_models.SearchRequest.sort_by`, :attr:`~scim2_models.ResponseParameters.attributes`
+  and :attr:`~scim2_models.ResponseParameters.excluded_attributes` resolve against those models,
+  so a misspelled attribute is caught at validation time.
+- :meth:`Path.resolve <scim2_models.Path.resolve>` answers the
+  :class:`~scim2_models.AttributeBinding` a path designates: the model holding the attribute, its
+  type, its URN and its annotations.
+- :meth:`ScimFilter.quote <scim2_models.ScimFilter.quote>` renders a value as a filter literal.
+  On Python 3.14, :class:`~scim2_models.ScimFilter` and :class:`~scim2_models.Path` take a
+  t-string and quote what is interpolated, so a value cannot be read as syntax.
+- :class:`~scim2_models.ScimProvider` describes a SCIM service: the models it serves, and the
+  :class:`~scim2_models.Schema`, :class:`~scim2_models.ResourceType` and
+  :class:`~scim2_models.ServiceProviderConfig` objects its discovery endpoints answer.
+  :meth:`~scim2_models.ScimProvider.from_discovery` builds one from what a service publishes, and
+  a service that cannot be described is refused with
+  :class:`~scim2_models.ScimProviderError`. See :doc:`how-to/describe-a-scim-service`. :issue:`108`
 - An extension may be declared required, as in
   ``User[Annotated[EnterpriseUser, Required.true]]``. A creation or a replacement request that
-  leaves it out is refused, and
-  :meth:`ResourceType.from_resource <scim2_models.ResourceType.from_resource>` publishes the
-  necessity under ``schemaExtensions.required``, which :rfc:`RFC7643 §6 <7643#section-6>`
-  defines. See :doc:`how-to/define-custom-models`. :issue:`105`
-- :class:`~scim2_models.ScimProvider` describes a SCIM service: the models it builds its
-  resources from, and the :class:`~scim2_models.Schema`, :class:`~scim2_models.ResourceType` and
-  :class:`~scim2_models.ServiceProviderConfig` objects its discovery endpoints answer
-  (:rfc:`RFC7644 §4 <7644#section-4>`). Its ``models`` hold bare resources and extensions alike,
-  and its ``resource_types`` bind them as :rfc:`RFC7643 §6 <7643#section-6>` defines: a name or
-  an endpoint answers the composed model, a schema URI answers the bare one. Two resource types
-  may therefore share a base schema and differ by the extensions they carry, each served under
-  its own endpoint. A service whose models share a schema, whose resource types share a name or
-  an endpoint, or whose resource type names a schema no model describes, is refused with
-  :class:`~scim2_models.ScimProviderError`. See :doc:`how-to/describe-a-scim-service`.
-  :issue:`108`
-- :meth:`ScimProvider.from_discovery <scim2_models.ScimProvider.from_discovery>` builds a
-  provider from what a service publishes, turning each resource type into a model carrying the
-  extensions it declares, required ones included. A resource type naming a schema the service
-  does not publish is refused with an error naming that schema.
-- :class:`~scim2_models.ScimPolicy` states how much a payload may depart from
-  :rfc:`RFC7643 <7643>` and :rfc:`RFC7644 <7644>` and still be read. Pass it as the
-  ``scim_policy`` argument of :meth:`~scim2_models.BaseModel.model_validate`,
-  :meth:`~scim2_models.BaseModel.model_dump` and :meth:`PatchOp.patch
-  <scim2_models.PatchOp.patch>`, or open a ``with`` block on a policy or on a
-  :class:`~scim2_models.ScimProvider` carrying one. Every setting defaults to the strict reading,
-  so nothing changes until one is chosen. See :doc:`explanation/policies` and
-  :doc:`how-to/tolerate-a-nonconformant-peer`. :issue:`108`
-- :attr:`ScimPolicy.unknown <scim2_models.ScimPolicy.unknown>` reads a payload carrying attributes
-  no model declares, unmodelled extensions included. ``ignore`` drops them and ``keep`` writes
-  them back with the spelling the peer used; both leave them readable on
-  :attr:`~scim2_models.BaseModel.unknown_attributes`, at the level they were found. :issue:`85`
-- :attr:`ScimPolicy.remove_value_as_filter
-  <scim2_models.ScimPolicy.remove_value_as_filter>` reads the ``value`` of a PATCH ``remove`` as
-  the selection :rfc:`RFC7644 §3.5.2.2 <7644#section-3.5.2.2>` spells in the ``path``, which is
-  the form `Microsoft Entra ID
+  leaves it out is refused. See :doc:`how-to/define-custom-models`. :issue:`105`
+- :class:`~scim2_models.ScimPolicy` states how much a payload may depart from the specification
+  and still be read. :attr:`~scim2_models.ScimPolicy.unknown` accepts the attributes no model
+  declares, and :attr:`~scim2_models.ScimPolicy.remove_value_as_filter` accepts the PATCH
+  ``remove`` `Microsoft Entra ID
   <https://learn.microsoft.com/en-us/entra/identity/app-provisioning/application-provisioning-config-problem-scim-compatibility>`_
-  sends to remove a group member.
+  sends. Name a policy at the call, or open a ``with`` block on it
+  or on a provider carrying one. Every setting defaults to the strict reading, so nothing changes
+  until one is chosen. See :doc:`how-to/tolerate-a-nonconformant-peer`. :issue:`85` :issue:`108`
 - lark is a new dependency.
 
 Changed
 ^^^^^^^
-- A ``remove`` operation carrying a ``value`` is refused with ``invalidValue``, at validation and
-  when applied. :rfc:`RFC7644 §3.5.2.2 <7644#section-3.5.2.2>` defines a ``remove`` by its
-  ``path`` alone, a selection being spelled as a filter there. It used to remove the entries
-  equal to that ``value``, and to silently report no change when the ``value`` was a list or
-  described an entry only in part — the form `Microsoft Entra ID
-  <https://learn.microsoft.com/en-us/entra/identity/app-provisioning/application-provisioning-config-problem-scim-compatibility>`_
-  sends to remove a group member, where its ``aadOptscim062020`` tenant flag has it send a filter
-  path instead.
+- :attr:`SearchRequest.filter <scim2_models.SearchRequest.filter>` is a
+  :class:`~scim2_models.ScimFilter` instead of a :class:`str`, so a malformed filter is rejected
+  at validation time.
+- Paths are parsed with the :rfc:`RFC7644 §3.5.2 <7644#section-3.5.2>` grammar, so malformed ones
+  such as ``emails[`` or ``userName ==``, which used to be accepted, are now rejected.
 - :attr:`Path.model <scim2_models.Path.model>` answers the model a path designates when it names
-  no attribute: the bound model for the resource root, the resource or the extension for a bare
-  schema URN, and :data:`None` for a path naming an attribute. It used to answer the type holding
-  the attribute, which :meth:`Path.resolve <scim2_models.Path.resolve>` now does through
-  :class:`~scim2_models.AttributeBinding`.
-- :attr:`SearchRequest.sort_by <scim2_models.SearchRequest.sort_by>` is resolved against the
-  model a parameterised request names, and an attribute none of its resource types declares
-  answers ``invalidPath`` at validation time instead of being carried to the endpoint. Where an
-  unknown entry of :attr:`~scim2_models.ResponseParameters.attributes` is ignored, an order
-  cannot be: a ``sortBy`` left out answers an arbitrary order the client cannot tell from the
-  one it asked for.
-- :attr:`SearchRequest.filter <scim2_models.SearchRequest.filter>` is a :class:`~scim2_models.ScimFilter` instead of a
-  :class:`str`, so a malformed filter is rejected at validation time.
-- Paths are parsed with the :rfc:`RFC7644 §3.5.2 <7644#section-3.5.2>` grammar instead of being
-  checked character by character, so malformed paths such as ``emails[`` or ``userName ==``,
-  which used to be accepted, are now rejected.
+  no attribute, and :data:`None` otherwise. :meth:`~scim2_models.Path.resolve` answers what it
+  used to.
+- :attr:`SearchRequest.sort_by <scim2_models.SearchRequest.sort_by>` naming an attribute no
+  resource type declares answers ``invalidPath``, where it used to be carried to the endpoint.
+- A PATCH ``remove`` carrying a ``value`` is refused with ``invalidValue``, at validation and
+  when applied. It used to remove the entries equal to that ``value``, and to report no change
+  when the ``value`` was a list or described an entry only in part. Set
+  :attr:`~scim2_models.ScimPolicy.remove_value_as_filter` to keep reading it.
 
 Removed
 ^^^^^^^
 - ``Path.field_name``, ``Path.field_type``, ``Path.is_multivalued``, ``Path.get_annotation`` and
-  ``Path.urn``. They read the attribute a path designates with the words of
-  :class:`~scim2_models.AttributeBinding` turned around, ``field_name`` naming the sub-attribute
-  where the binding names the head. :meth:`Path.resolve <scim2_models.Path.resolve>` answers the
-  binding, which carries them as ``target_field_name``, ``target_type``,
-  ``target_is_multivalued``, :meth:`~scim2_models.AttributeBinding.get_annotation` and ``urn``.
+  ``Path.urn``. Use :meth:`~scim2_models.Path.resolve`, whose
+  :class:`~scim2_models.AttributeBinding` carries them.
 - ``Path.is_prefix_of`` and ``Path.has_prefix``. They compared the text of two paths, which
-  anything between brackets defeated, and answered differently from the comparison
-  :attr:`~scim2_models.ResponseParameters.attributes` and
-  :attr:`~scim2_models.ResponseParameters.excluded_attributes` are matched with. Neither was
-  documented.
+  anything between brackets defeated.
 
 Fixed
 ^^^^^
+- A PATCH operation targeting an attribute of an extension answers for the constraints that
+  extension declares, where it used to look them up on the resource and find none. A refused
+  operation no longer leaves the extension instantiated on the resource.
+- A PATCH operation carrying no ``path`` accepts a resource as its ``value``, and checks the
+  attributes it names against the model. They used to go through unexamined, so a client naming
+  an attribute it had misspelled was answered success.
+- A refused PATCH ``add`` on a multi-valued attribute leaves the attribute as it was. The entry
+  used to be appended before being validated, and outlived the failure.
+- A PATCH operation carrying no ``path`` marks the attributes it assigns as set, so
+  ``exclude_unset`` dumps them.
+- A PATCH ``replace`` of a :attr:`Required.true <scim2_models.Required.true>` attribute with a
+  null value or an empty array is refused, and an operation leaving such an attribute unassigned
+  answers ``invalidValue`` instead of ``mutability``.
+- Attributes annotated :attr:`~scim2_models.Mutability.read_only` are left out of a payload
+  dumped in the :attr:`~scim2_models.Context.RESOURCE_PATCH_REQUEST` context, as they already are
+  in a creation or a replacement request.
+- Paths resolve against the attributes a model declares instead of the values a resource carries,
+  so ``name.unknown`` is refused on a resource carrying no ``name``, and ``userName.foo`` answers
+  ``invalidPath`` instead of raising an :exc:`AttributeError`.
+- A path crossing a multi-valued attribute, such as ``emails.value``, reads, writes and removes
+  the sub-attribute of every entry. It used to raise an :exc:`AttributeError` on a read or a
+  removal, and do nothing at all on a write.
+- A path names a ``$ref`` sub-attribute under that spelling, as in ``members.$ref``, both when it
+  is parsed and in :meth:`~scim2_models.Path.iter_paths`.
+- A schema URN carries its attribute behind a colon, so
+  ``urn:ietf:params:scim:schemas:core:2.0:UserId`` no longer reads as the ``id`` of a ``User``,
+  and a URN that is neither the schema of the model nor that of one of its extensions designates
+  nothing.
 - :meth:`Resource.replace <scim2_models.Resource.replace>` checks the immutable and read-only
-  sub-attributes of the entries a multi-valued attribute keeps, matched by their ``value``.
+  sub-attributes of the entries a multi-valued attribute keeps.
 - :meth:`Resource.to_schema <scim2_models.Resource.to_schema>` publishes the members of a string
-  enumeration as the ``canonicalValues`` of an attribute.
+  enumeration as ``canonicalValues``, and describes the resource alone on
+  ``User[EnterpriseUser]``, where it used to publish the extension URN as an attribute of the
+  ``User`` schema.
 - :attr:`GroupMember.display <scim2_models.GroupMember.display>` is ``readWrite``, as
   :rfc:`RFC7643 §8.7.1 <7643#section-8.7.1>` declares it.
-- A path naming a ``$ref`` sub-attribute, such as ``members.$ref`` or ``manager.$ref``, was
-  refused as containing invalid characters, although it is the name
-  :rfc:`RFC7643 §4 <7643#section-4>` gives the reference a complex attribute carries.
-- :meth:`Path.iter_paths <scim2_models.Path.iter_paths>` spelled a ``$ref`` sub-attribute
-  ``ref``, as in ``members.ref``, a name no schema declares. It now yields the name the
-  attribute is serialized under.
-- A PATCH operation targeting an attribute of an extension answers for the constraints that
-  extension declares. The checks read the first segment of the path and looked it up on the
-  resource, which declares none of them, so a
-  :attr:`Mutability.read_only <scim2_models.Mutability.read_only>` or
-  :attr:`~scim2_models.Mutability.immutable` attribute of an extension could be written, and a
-  :attr:`Required.true <scim2_models.Required.true>` one unassigned.
-- A path crossing a multi-valued attribute, such as ``emails.value``, reads, writes and
-  removes the sub-attribute of each of its entries, where it used to raise an
-  :exc:`AttributeError` on a read or a removal and do nothing at all on a write.
-  :rfc:`RFC7644 §3.5.2 <7644#section-3.5.2>` reaches every entry of a path carrying no filter,
-  so a read answers with one item per entry, :data:`None` included for an entry carrying none,
-  which is what a write through the same path reaches.
-- A PATCH operation that would leave an attribute annotated
-  :attr:`Required.true <scim2_models.Required.true>` unassigned answers ``mutability`` instead
-  of ``invalidValue``, which is the ``scimType``
-  :rfc:`RFC7644 §3.5.2.2 <7644#section-3.5.2.2>` names for it.
-- A PATCH operation refused for naming an attribute its extension does not declare left that
-  extension instantiated on the resource, so a resource the operation did not change carried
-  a schema the client never sent. The attribute is looked up before the extension is brought
-  into being.
-- A PATCH operation carrying no ``path`` accepts a resource as its ``value``, and not only a
-  mapping. Such a resource used to be ignored without a word: neither checked against the
-  model, nor written to the patched resource.
-- A PATCH operation carrying no ``path`` has the attributes of its ``value`` checked, where
-  they used to go through unexamined. :rfc:`RFC7644 §3.5.2.3 <7644#section-3.5.2.3>` makes
-  them the targets of the operation, so each one answers to §3.5.2 as a named path does: a
-  :attr:`~scim2_models.Mutability.read_only` attribute is refused, and so is one annotated
-  :attr:`Required.true <scim2_models.Required.true>` carrying a null value. An attribute the
-  model does not declare answers ``invalidValue``, which :rfc:`RFC7644 §3.12
-  <7644#section-3.12>` names for a value "not compatible with [...] the resource schema" and
-  which §3.5.2 requires of an operation incompatible with an attribute's schema. It used to be
-  left alone, so a client naming an attribute it had misspelled was answered success.
-- Attributes annotated with :attr:`~scim2_models.Mutability.read_only` are left out of a
-  payload dumped in the :attr:`~scim2_models.Context.RESOURCE_PATCH_REQUEST` context, as they
-  already are in a creation or a replacement request. A PATCH operation cannot target them,
-  per :rfc:`RFC7644 §3.5.2 <7644#section-3.5.2>`.
-- A PATCH ``replace`` carrying a null value or an empty array on an attribute
-  annotated with :attr:`Required.true <scim2_models.Required.true>` is rejected,
-  as :rfc:`RFC7643 §2.5 <7643#section-2.5>` makes those equivalent to an
-  unassigned attribute, which :rfc:`RFC7644 §3.5.2.2 <7644#section-3.5.2.2>`
-  refuses on a required one.
-- A PATCH ``add`` on a multi-valued attribute that is refused leaves the attribute as it was.
-  The value used to be appended to the very list the resource holds before being validated, so
-  a rejected entry outlived the failure and left a resource that could no longer be serialized.
-- A PATCH operation carrying no ``path`` marks the attributes it assigns as set. It wrote them
-  around pydantic, which tracks assigned fields apart from their values, so the patched
-  resource dumped with ``exclude_unset`` came back without them.
-- A schema URN carries an attribute behind a colon, where a bare prefix used to be enough.
-  ``urn:ietf:params:scim:schemas:core:2.0:UserId`` read as the ``Id`` attribute of
-  ``urn:ietf:params:scim:schemas:core:2.0:User``, so a PATCH operation reached a
-  :attr:`Mutability.read_only <scim2_models.Mutability.read_only>` attribute that every other
-  spelling of it was refused. Extension URNs, and models declaring no schema at all, went the
-  same way.
-- A path naming a sub-attribute of an attribute that has none, such as ``userName.foo``,
-  answers ``invalidPath`` instead of raising an :exc:`AttributeError`.
-- A path is resolved against the attributes the model declares, not against the values the
-  resource carries: ``name.unknown`` used to be refused only on a resource carrying a ``name``.
-- An extension may name itself under the URN of the resource it extends. Both URNs then prefix
-  a path expressed in it, and the longest match designates the model.
-- A path qualified by a URN that is neither the schema of the model nor that of one of its
-  extensions designates nothing. It used to resolve as though the URN were the right one.
-- Subscribing a :class:`~scim2_models.Path` to a model no longer keeps that model alive for as
-  long as the process runs. The classes ``Path[Model]`` answers were filed in a cache that
-  never let go, so a server building a model per schema it discovers accumulated every one of
-  them.
-- :meth:`Resource.to_schema <scim2_models.Resource.to_schema>` on a resource parameterized with
-  an extension describes the resource alone. ``User[EnterpriseUser].to_schema()`` used to
-  publish the URN of the extension as an attribute of the ``User`` schema, and to name and
-  describe that schema ``User[EnterpriseUser]``, although :rfc:`RFC7643 §3 <7643#section-3>`
-  gives an extension a schema of its own that a resource points at through its ``schemas``
-  attribute.
-- Parameterizing a resource with an extension no longer keeps the resource alive for as long as
-  the process runs, in the same way subscribing a :class:`~scim2_models.Path` to it no longer
-  does. The classes ``User[EnterpriseUser]`` answers were filed in a cache that never let go.
+- Subscribing a :class:`~scim2_models.Path` to a model, and parameterizing a resource with an
+  extension, no longer keep those classes alive for as long as the process runs. A server
+  building a model per schema it discovers used to accumulate every one of them.
 
 [0.7.0] - 2026-09-05
 --------------------
 
 Added
 ^^^^^
-- :func:`~scim2_models.get_model_by_schema` and :func:`~scim2_models.get_model_by_payload` module functions.
-  They look models up by schema, accept any sequence of :class:`~scim2_models.ScimObject` subclasses,
-  and reflect the input types in the returned type.
-- :class:`~scim2_models.ScimObject` and ``AnyScimObject`` are exposed in the public API, so that downstream projects can annotate values that are either resources or messages.
-- :class:`~scim2_models.ExtensibleStringEnum` is exposed in the public API, so custom models
-  can define string attributes that suggest canonical values without restricting them.
+- :func:`~scim2_models.get_model_by_schema` and :func:`~scim2_models.get_model_by_payload` look a
+  model up among any sequence of :class:`~scim2_models.ScimObject` subclasses, and reflect the
+  input types in the returned type.
+- :class:`~scim2_models.ScimObject` and ``AnyScimObject`` are exposed in the public API, so a
+  downstream project can annotate a value that is either a resource or a message.
+- :class:`~scim2_models.ExtensibleStringEnum` is exposed in the public API, so a custom model can
+  suggest canonical values without restricting them.
 - :meth:`~scim2_models.BaseModel.model_validate_json` takes a ``scim_ctx`` parameter, like the
-  other validation and serialization methods, so JSON payloads can be validated without being
+  other validation and serialization methods, so a JSON payload can be validated without being
   decoded first. :issue:`150`
 
 Changed
 ^^^^^^^
 - :class:`~scim2_models.Path` subclasses :class:`str` instead of
-  :class:`~collections.UserString`, so a path passes ``isinstance(path, str)`` and goes wherever
-  a string does. The string operators answer a plain :class:`str` rather than building a path
-  out of the result, which used to validate it again and fail when the outcome was no longer
-  one: ``Path("emails.value")[6:]`` answered ``invalidPath`` where it now answers ``".value"``.
+  :class:`~collections.UserString`, so a path goes wherever a string does. Its string operators
+  answer a plain :class:`str`: ``Path("emails.value")[6:]`` answers ``".value"`` where it used to
+  answer ``invalidPath``.
+- A malformed :class:`~scim2_models.Path` answers ``invalidPath`` instead of ``invalidSyntax``,
+  and building one directly raises :exc:`~scim2_models.InvalidPathException` instead of a plain
+  :exc:`ValueError`. A model holding one still raises a :exc:`~pydantic.ValidationError`, now
+  naming the field and carrying the ``scimType``.
 - :attr:`SearchRequest.sort_by <scim2_models.SearchRequest.sort_by>`,
   :attr:`~scim2_models.ResponseParameters.attributes` and
   :attr:`~scim2_models.ResponseParameters.excluded_attributes` refuse a path selecting values,
-  such as ``emails[type eq "work"]``. :rfc:`RFC7644 §3.4.2.3 <7644#section-3.4.2.3>` and
-  :rfc:`§3.9 <7644#section-3.9>` require them in the attribute notation of §3.10, which names an
-  attribute rather than the values it holds.
-- A malformed :class:`~scim2_models.Path` answers ``invalidPath`` instead of ``invalidSyntax``,
-  which :rfc:`RFC7644 §3.12 <7644#section-3.12>` reserves for a path that is "invalid or
-  malformed". Building one directly raises :exc:`~scim2_models.InvalidPathException` where it
-  used to raise a plain :exc:`ValueError`; a model holding one still raises a
-  :exc:`~pydantic.ValidationError`, now naming the field and carrying the ``scimType``.
-- ``model_dump`` and ``model_dump_json`` are defined on :class:`~scim2_models.BaseModel` instead of
-  :class:`~scim2_models.ScimObject`, so every model is dumped in a SCIM context by default.
-  Complex attributes dumped on their own use their SCIM attribute names:
-  ``Name(family_name="Doe").model_dump()`` returns ``{"familyName": "Doe"}``
-  instead of ``{"family_name": "Doe"}``.
+  such as ``emails[type eq "work"]``. The attribute notation of
+  :rfc:`RFC7644 §3.10 <7644#section-3.10>` names an attribute, not the values it holds.
+- ``model_dump`` and ``model_dump_json`` move from :class:`~scim2_models.ScimObject` to
+  :class:`~scim2_models.BaseModel`, so every model is dumped in a SCIM context by default:
+  ``Name(family_name="Doe").model_dump()`` returns ``{"familyName": "Doe"}`` instead of
+  ``{"family_name": "Doe"}``.
 - :meth:`~scim2_models.BaseModel.model_dump` with ``scim_ctx=None`` returns the native pydantic
   dump, ``None`` values included, as its documentation states. Pass ``exclude_none=True`` to get
   the former output.
-- :meth:`~scim2_models.Resource.replace` does not mark the fields it copies from the original
-  resource as set anymore, so ``model_fields_set`` only holds the attributes asserted by the
-  client, as defined by :rfc:`7644` §3.5.1.
-- Attributes suggesting :rfc:`7643` canonical values accept values outside of their canonical
-  set, as :rfc:`7643` §2.3.1 only allows service providers to restrict them. This covers the
-  ``type`` attribute of :class:`~scim2_models.Email`, :class:`~scim2_models.PhoneNumber`,
-  :class:`~scim2_models.Im`, :class:`~scim2_models.Photo`, :class:`~scim2_models.Address` and
-  :class:`~scim2_models.AuthenticationScheme`.
-  :issue:`34`
-- ``str()`` on those attributes returns the SCIM value instead of the enum representation:
-  ``str(Email.Type.work)`` returns ``"work"`` instead of ``"Type.work"``.
-- Canonical values are matched case-insensitively, as :rfc:`7643` §2.2 makes those attributes
-  case-insensitive: ``Email(type="WORK").type`` is ``Email.Type.work``.
-- The JSON schema of those attributes advertises the canonical values as ``examples`` instead of
-  a restrictive ``enum``.
-- The ``schemas`` attribute of SCIM payloads is built from the model definition on
-  serialization, as it describes the serialized document rather than the object. It holds what
-  a peer asserted, and is empty when a payload omitted it, so the omission stays visible in
-  ``model_fields_set``. Objects built by the caller are still filled, as the model they are
-  built from asserts their type.
-- Resources omitting their ``schemas`` attribute are read instead of being rejected, which
-  covers the partial responses of :rfc:`7644` §3.4.3. Their type comes from the
+- :meth:`~scim2_models.Resource.replace` leaves the fields it copies from the original resource
+  unset, so ``model_fields_set`` only holds the attributes the client asserted.
+- Attributes suggesting canonical values accept values outside that set, and match it
+  case-insensitively: ``Email(type="WORK").type`` is ``Email.Type.work``. ``str()`` on them
+  answers the SCIM value instead of the enum representation, and their JSON schema advertises the
+  set as ``examples`` rather than a restrictive ``enum``. This covers the ``type`` of
+  :class:`~scim2_models.Email`, :class:`~scim2_models.PhoneNumber`, :class:`~scim2_models.Im`,
+  :class:`~scim2_models.Photo`, :class:`~scim2_models.Address` and
+  :class:`~scim2_models.AuthenticationScheme`. :issue:`34`
+- The ``schemas`` attribute is built from the model definition on serialization. It holds what a
+  peer asserted otherwise, and is empty when the payload omitted it, so the omission stays
+  visible in ``model_fields_set``. It is not subject to attribute filtering anymore.
+- A resource omitting its ``schemas`` attribute is read instead of being rejected, which covers
+  the partial responses of :rfc:`7644` §3.4.3. Its type comes from the
   :class:`~scim2_models.ListResponse` parameter, so a response holding several resource types
-  still cannot decide the type of an unlabelled resource. :issue:`20`
+  still cannot tell what an unlabelled resource is. :issue:`20`
 - A ``schemas`` attribute that does not contain the model base schema is rejected whatever the
-  validation context, as an object cannot contradict the model it is an instance of. It used to
-  be accepted without a SCIM context.
-- The ``schemas`` attribute is not subject to attribute filtering anymore, as :rfc:`7643` §3
-  requires it in every representation. It lost its :attr:`~scim2_models.Returned.always`
-  annotation, which :rfc:`7643` does not define for it, and which the filtering exemption
-  replaces.
+  validation context. It used to be accepted without a SCIM context.
 
 Fixed
 ^^^^^
-- ``reference`` and ``binary`` attributes are case-exact, unless a schema explicitly states otherwise. :rfc:`7643` §2.3.6 and §2.3.7, `erratum 6001 <https://www.rfc-editor.org/errata/eid6001>`_
-- :class:`~scim2_models.ResourceType` ``endpoint`` is case-exact. :rfc:`7643` `erratum 8475 <https://www.rfc-editor.org/errata/eid8475>`_
-- :class:`~scim2_models.GroupMember` and :class:`~scim2_models.GroupMembership` ``value`` are case-exact, as they hold resource ``id`` values. :rfc:`7643` §3.1, in the spirit of `erratum 8472 <https://www.rfc-editor.org/errata/eid8472>`_
-- :meth:`~scim2_models.Resource.from_schema` no longer crashes on ``reference`` attributes missing the optional ``referenceTypes``, and reads them as :class:`~scim2_models.URI` references.
-- Looking a model up by schema no longer crashes when the model list mixes resources with messages such as :class:`~scim2_models.ListResponse`.
-- Check recursively extensions' replace constraints.
 - The ``readOnly``, ``immutable`` and ``required`` constraints of a PATCH operation are checked
-  against the attribute its path resolves to, instead of against a literal field name match.
-  They used to be skipped whenever the two differed, so ``userName`` could be removed and a
-  path spelled ``GROUPS`` could write to a ``readOnly`` attribute, :rfc:`7643` §2.1 making
-  attribute names case-insensitive.
+  against the attribute its path resolves to, instead of a literal field name match. They used
+  to be skipped whenever the two differed, so ``userName`` could be removed and a path spelled
+  ``GROUPS`` could write to a ``readOnly`` attribute.
+- :meth:`~scim2_models.Resource.replace` checks the constraints an extension declares,
+  recursively.
+- ``reference`` and ``binary`` attributes are case-exact, unless a schema states otherwise.
+  :rfc:`7643` §2.3.6 and §2.3.7, `erratum 6001 <https://www.rfc-editor.org/errata/eid6001>`_
+- :class:`~scim2_models.ResourceType` ``endpoint`` and the ``value`` of
+  :class:`~scim2_models.GroupMember` and :class:`~scim2_models.GroupMembership` are case-exact,
+  the latter holding resource ``id`` values. :rfc:`7643` errata
+  `8475 <https://www.rfc-editor.org/errata/eid8475>`_ and
+  `8472 <https://www.rfc-editor.org/errata/eid8472>`_
+- :meth:`~scim2_models.Resource.from_schema` reads a ``reference`` attribute missing the optional
+  ``referenceTypes`` as a :class:`~scim2_models.URI` reference, instead of crashing.
+- Looking a model up by schema no longer crashes when the model list mixes resources with
+  messages such as :class:`~scim2_models.ListResponse`.
 
 Removed
 ^^^^^^^
@@ -304,12 +205,10 @@ Deprecated
 
 Performance
 ^^^^^^^^^^^
-- Cached commonly used metadata of fields to ``__scim_info__``.
-- Collapsed all scim context validators in :class:`~scim2_models.BaseModel` to one model validator.
-- Collapsed serialization to one model serializer in :class:`~scim2_models.BaseModel`.
-- Moved ``model_dump`` and ``model_dump_json`` to :class:`~scim2_models.BaseModel`.
-- Cached ``_normalize_attribute_name``.
-- Simplified ``normalize_attribute_names``.
+- Validation and serialization each run through a single model validator and serializer, where
+  every SCIM context used to add its own.
+- Commonly used field metadata is cached on ``__scim_info__``, and so is attribute name
+  normalization.
 
 [0.6.12] - 2026-04-13
 ---------------------
