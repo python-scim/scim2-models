@@ -21,7 +21,11 @@ from ..exceptions import InvalidValueException
 from ..exceptions import MutabilityException
 from ..exceptions import NoTargetException
 from ..path import Path
+from ..path import ScimFilter
 from ..path import attribute_host
+from ..policy import ScimPolicy
+from ..policy import _effective_policy
+from ..policy import _policy
 from ..resources.resource import Resource
 from ..urn import URN
 from ..utils import _find_field_name
@@ -174,7 +178,11 @@ class PatchOperation(ComplexAttribute, Generic[ResourceT]):
         # spelled as a filter there. An operation carrying a value is thus
         # incompatible with the schema of the attribute it targets, which
         # Section 3.5.2 answers with an error.
-        if self.op == PatchOperation.Op.remove and self.value is not None:
+        if (
+            self.op == PatchOperation.Op.remove
+            and self.value is not None
+            and _policy(info).remove_value_as_filter != ScimPolicy.RemoveValue.apply
+        ):
             raise InvalidValueException(
                 detail="a remove operation carries no value, "
                 "a filter in the path selects what to remove"
@@ -354,7 +362,7 @@ class PatchOp(Message, Generic[ResourceT]):
 
         return self
 
-    def patch(self, resource: ResourceT) -> bool:
+    def patch(self, resource: ResourceT, scim_policy: ScimPolicy | None = None) -> bool:
         """Apply all PATCH operations to the given SCIM resource in sequence.
 
         The resource is modified in-place.
@@ -369,6 +377,8 @@ class PatchOp(Message, Generic[ResourceT]):
         attribute will have their ``primary`` set to ``False`` automatically.
 
         :param resource: The SCIM resource to patch. This object is modified in-place.
+        :param scim_policy: The :class:`~scim2_models.ScimPolicy` the patch is
+            applied under. Defaults to the strict reading of the specification.
         :return: True if the resource was modified by any operation, False otherwise.
         :raises InvalidValueException: If multiple values are marked as primary in a single
             operation, or if multiple primary values already exist before the patch.
@@ -377,10 +387,13 @@ class PatchOp(Message, Generic[ResourceT]):
             return False
 
         modified = False
-        # RFC 7644 Section 3.5.2: "Apply each operation in sequence"
-        for operation in self.operations:
-            if self._apply_operation(resource, operation):
-                modified = True
+        # The policy is made ambient for the whole application: the passes it
+        # governs below are revalidations that start from no call of ours.
+        with _effective_policy(scim_policy):
+            # RFC 7644 Section 3.5.2: "Apply each operation in sequence"
+            for operation in self.operations:
+                if self._apply_operation(resource, operation):
+                    modified = True
 
         return modified
 
@@ -565,9 +578,50 @@ class PatchOp(Message, Generic[ResourceT]):
 
         # Checked again here, a PatchOp built in Python reaching no validator.
         if operation.value is not None:
-            raise InvalidValueException(
-                detail="a remove operation carries no value, "
-                "a filter in the path selects what to remove"
+            if (
+                _effective_policy().remove_value_as_filter
+                != ScimPolicy.RemoveValue.apply
+            ):
+                raise InvalidValueException(
+                    detail="a remove operation carries no value, "
+                    "a filter in the path selects what to remove"
+                )
+            return self._remove_selected_values(
+                resource, operation.path, operation.value
             )
 
         return operation.path.delete(resource)  # type: ignore[arg-type]
+
+    def _remove_selected_values(
+        self, resource: Resource[Any], path: Path[ResourceT], value: Any
+    ) -> bool:
+        """Remove the entries the value of a remove operation selects.
+
+        Microsoft Entra puts the selection in ``value`` where
+        :rfc:`RFC7644 §3.5.2.2 <7644#section-3.5.2.2>` puts it in ``path``.
+        Each entry becomes a filter on the sub-attributes it names, which is
+        the path the operation should have carried.
+        """
+        if path.value_filter is not None:
+            raise InvalidValueException(
+                detail="a remove operation carrying a value cannot also "
+                "select values in its path"
+            )
+
+        entries = value if isinstance(value, list) else [value]
+        if not all(isinstance(entry, dict) and entry for entry in entries):
+            raise InvalidValueException(
+                detail="the value of a remove operation names the "
+                "sub-attributes selecting what to remove"
+            )
+
+        removed = False
+        for entry in entries:
+            conditions = " and ".join(
+                f"{name} eq {ScimFilter.quote(item)}" for name, item in entry.items()
+            )
+            # Subscripted through the call the syntax stands for: mypy reads
+            # the index of a generic as a type, not as a value.
+            selection = Path.__class_getitem__(type(resource))(f"{path}[{conditions}]")
+            removed = selection.delete(resource) or removed
+        return removed

@@ -35,15 +35,13 @@ from .integrations import delete_record
 from .integrations import from_scim_user
 from .integrations import get_record
 from .integrations import get_resource_type
-from .integrations import get_resource_types
 from .integrations import get_schema
-from .integrations import get_schemas
 from .integrations import list_group_records
 from .integrations import list_records
 from .integrations import page_of
 from .integrations import make_etag
 from .integrations import save_record
-from .integrations import service_provider_config
+from .integrations import provider
 from .integrations import to_scim_group
 from .integrations import to_scim_user
 
@@ -340,7 +338,7 @@ async def create_user(
 @router.get("/Schemas")
 async def list_schemas(req: Annotated[SearchRequest[Schema], Query()]):
     """Return one page of SCIM schemas the server exposes."""
-    total, page = page_of(get_schemas(), req)
+    total, page = page_of(provider.schemas, req)
     response = ListResponse[Schema](
         total_results=total,
         start_index=req.start_index or 1,
@@ -370,7 +368,7 @@ async def get_schema_by_id(schema_id: str):
 @router.get("/ResourceTypes")
 async def list_resource_types(req: Annotated[SearchRequest[ResourceType], Query()]):
     """Return one page of SCIM resource types the server exposes."""
-    total, page = page_of(get_resource_types(), req)
+    total, page = page_of(provider.resource_types, req)
     response = ListResponse[ResourceType](
         total_results=total,
         start_index=req.start_index or 1,
@@ -404,7 +402,7 @@ async def get_service_provider_config() -> QueryResponseContext[
     ServiceProviderConfig
 ]:
     """Return the SCIM service provider configuration."""
-    return service_provider_config
+    return provider.config
 # -- service-provider-config-end --
 # -- discovery-end --
 

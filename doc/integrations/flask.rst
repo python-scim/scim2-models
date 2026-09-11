@@ -233,8 +233,8 @@ the resources it exposes. The shared :ref:`discovery helpers <helpers-discovery>
 GET /Schemas and GET /Schemas/<id>
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Return all :class:`~scim2_models.Schema` objects or look one up by its URI. Schemas are built
-automatically from resource models with :meth:`~scim2_models.Resource.to_schema`. The collection
+Return all :class:`~scim2_models.Schema` objects or look one up by its URI. The
+:class:`~scim2_models.ScimProvider` derives them from the resource models it holds. The collection
 endpoint parses pagination parameters with :class:`~scim2_models.SearchRequest`, following the
 same pattern as ``GET /Users``.
 
@@ -246,9 +246,8 @@ same pattern as ``GET /Users``.
 GET /ResourceTypes and GET /ResourceTypes/<id>
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Return all :class:`~scim2_models.ResourceType` objects or look one up by its identifier. Resource
-types are built automatically from resource models with
-:meth:`~scim2_models.ResourceType.from_resource`. The collection endpoint parses pagination
+Return all :class:`~scim2_models.ResourceType` objects or look one up by its identifier. The
+:class:`~scim2_models.ScimProvider` derives them from the resource models it holds. The collection endpoint parses pagination
 parameters with :class:`~scim2_models.SearchRequest`, following the same pattern as
 ``GET /Users``.
 

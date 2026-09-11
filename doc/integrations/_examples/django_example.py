@@ -27,15 +27,13 @@ from .integrations import delete_record
 from .integrations import from_scim_user
 from .integrations import get_record
 from .integrations import get_resource_type
-from .integrations import get_resource_types
 from .integrations import get_schema
-from .integrations import get_schemas
 from .integrations import list_records
 from .integrations import list_group_records
 from .integrations import page_of
 from .integrations import make_etag
 from .integrations import save_record
-from .integrations import service_provider_config
+from .integrations import provider
 from .integrations import to_scim_user
 from .integrations import to_scim_group
 
@@ -428,7 +426,7 @@ class SchemasView(SCIMView):
         except ValidationError as error:
             return scim_validation_error(error)
 
-        total, page = page_of(get_schemas(), req)
+        total, page = page_of(provider.schemas, req)
         response = ListResponse[Schema](
             total_results=total,
             start_index=req.start_index or 1,
@@ -469,7 +467,7 @@ class ResourceTypesView(SCIMView):
         except ValidationError as error:
             return scim_validation_error(error)
 
-        total, page = page_of(get_resource_types(), req)
+        total, page = page_of(provider.resource_types, req)
         response = ListResponse[ResourceType](
             total_results=total,
             start_index=req.start_index or 1,
@@ -506,7 +504,7 @@ class ServiceProviderConfigView(SCIMView):
 
     def get(self, request):
         return SCIMJsonResponse(
-            service_provider_config.model_dump(scim_ctx=Context.RESOURCE_QUERY_RESPONSE)
+            provider.config.model_dump(scim_ctx=Context.RESOURCE_QUERY_RESPONSE)
         )
 
 

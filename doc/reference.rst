@@ -71,7 +71,14 @@ SCIM core resources and the complex attributes used by users and groups.
 Schemas and service discovery
 -----------------------------
 
-Models that describe resource schemas, resource types, and a service provider's capabilities.
+Models that describe resource schemas, resource types, and a service provider's capabilities,
+and the registry gathering them.
+
+.. autoclass:: scim2_models.ScimProvider
+   :members:
+
+.. autoclass:: scim2_models.ScimProviderError
+   :members:
 
 .. autoclass:: scim2_models.Attribute
    :members:
@@ -148,8 +155,11 @@ errors.
 Validation and serialization
 ----------------------------
 
-Contexts, annotations, and Pydantic metadata that control which attributes a SCIM operation
-accepts or returns.
+The policy, contexts, annotations, and Pydantic metadata that control which attributes a SCIM
+operation accepts or returns.
+
+.. autoclass:: scim2_models.ScimPolicy
+   :members:
 
 .. autoclass:: scim2_models.Context
    :members:
@@ -310,6 +320,11 @@ Type aliases
 ------------
 
 Aliases used where an API accepts more than one SCIM object or resource type.
+
+.. data:: scim2_models.DescribedModel
+
+   A model a schema describes: a resource, or an extension of one. This is what
+   :class:`~scim2_models.ScimProvider` holds in its catalogue.
 
 .. data:: scim2_models.AnyResource
    :type: typing.TypeVar

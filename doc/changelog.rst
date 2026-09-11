@@ -32,6 +32,39 @@ Added
   :meth:`ResourceType.from_resource <scim2_models.ResourceType.from_resource>` publishes the
   necessity under ``schemaExtensions.required``, which :rfc:`RFC7643 §6 <7643#section-6>`
   defines. See :doc:`how-to/define-custom-models`. :issue:`105`
+- :class:`~scim2_models.ScimProvider` describes a SCIM service: the models it builds its
+  resources from, and the :class:`~scim2_models.Schema`, :class:`~scim2_models.ResourceType` and
+  :class:`~scim2_models.ServiceProviderConfig` objects its discovery endpoints answer
+  (:rfc:`RFC7644 §4 <7644#section-4>`). Its ``models`` hold bare resources and extensions alike,
+  and its ``resource_types`` bind them as :rfc:`RFC7643 §6 <7643#section-6>` defines: a name or
+  an endpoint answers the composed model, a schema URI answers the bare one. Two resource types
+  may therefore share a base schema and differ by the extensions they carry, each served under
+  its own endpoint. A service whose models share a schema, whose resource types share a name or
+  an endpoint, or whose resource type names a schema no model describes, is refused with
+  :class:`~scim2_models.ScimProviderError`. See :doc:`how-to/describe-a-scim-service`.
+  :issue:`108`
+- :meth:`ScimProvider.from_discovery <scim2_models.ScimProvider.from_discovery>` builds a
+  provider from what a service publishes, turning each resource type into a model carrying the
+  extensions it declares, required ones included. A resource type naming a schema the service
+  does not publish is refused with an error naming that schema.
+- :class:`~scim2_models.ScimPolicy` states how much a payload may depart from
+  :rfc:`RFC7643 <7643>` and :rfc:`RFC7644 <7644>` and still be read. Pass it as the
+  ``scim_policy`` argument of :meth:`~scim2_models.BaseModel.model_validate`,
+  :meth:`~scim2_models.BaseModel.model_dump` and :meth:`PatchOp.patch
+  <scim2_models.PatchOp.patch>`, or open a ``with`` block on a policy or on a
+  :class:`~scim2_models.ScimProvider` carrying one. Every setting defaults to the strict reading,
+  so nothing changes until one is chosen. See :doc:`explanation/policies` and
+  :doc:`how-to/tolerate-a-nonconformant-peer`. :issue:`108`
+- :attr:`ScimPolicy.unknown <scim2_models.ScimPolicy.unknown>` reads a payload carrying attributes
+  no model declares, unmodelled extensions included. ``ignore`` drops them and ``keep`` writes
+  them back with the spelling the peer used; both leave them readable on
+  :attr:`~scim2_models.BaseModel.unknown_attributes`, at the level they were found. :issue:`85`
+- :attr:`ScimPolicy.remove_value_as_filter
+  <scim2_models.ScimPolicy.remove_value_as_filter>` reads the ``value`` of a PATCH ``remove`` as
+  the selection :rfc:`RFC7644 §3.5.2.2 <7644#section-3.5.2.2>` spells in the ``path``, which is
+  the form `Microsoft Entra ID
+  <https://learn.microsoft.com/en-us/entra/identity/app-provisioning/application-provisioning-config-problem-scim-compatibility>`_
+  sends to remove a group member.
 - lark is a new dependency.
 
 Changed

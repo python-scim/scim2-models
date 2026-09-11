@@ -16,6 +16,7 @@ from pydantic import AliasGenerator
 from pydantic import Base64Bytes
 from pydantic import BaseModel as PydanticBaseModel
 from pydantic import ConfigDict
+from pydantic import PrivateAttr
 from pydantic import SerializationInfo
 from pydantic import SerializerFunctionWrapHandler
 from pydantic import ValidationError
@@ -33,6 +34,8 @@ from scim2_models.annotations import Required
 from scim2_models.annotations import Returned
 from scim2_models.context import Context
 from scim2_models.exceptions import MutabilityException
+from scim2_models.policy import ScimPolicy
+from scim2_models.policy import _policy
 from scim2_models.reference import Reference
 from scim2_models.utils import UNION_TYPES
 from scim2_models.utils import _normalize_attribute_name
@@ -127,6 +130,13 @@ class _SCIMClassInfo(NamedTuple):
     extensions: frozenset[str] = frozenset()
     """Field names whose root type is a ``Extension`` subclass."""
 
+    known_keys: frozenset[str] = frozenset()
+    """Every payload key the class accepts, normalized.
+
+    Field names and aliases alike: an extension is named by its URN in a
+    payload and by its class name as a field, and both name the same thing.
+    """
+
 
 def _holds_reference(model: type["BaseModel"], field_name: str) -> bool:
     """Say whether a field holds a reference URI, which is compared apart.
@@ -171,6 +181,19 @@ class BaseModel(PydanticBaseModel):
 
     __scim_info__: ClassVar[_SCIMClassInfo] = _SCIMClassInfo()
     """Cached model metadata"""
+
+    _unknown_attributes: dict[str, Any] = PrivateAttr(default_factory=dict)
+
+    @property
+    def unknown_attributes(self) -> dict[str, Any]:
+        """The attributes of the payload that no field of this model declares.
+
+        Keyed by the spelling the peer used. Empty unless the
+        :class:`~scim2_models.ScimPolicy` the validation ran under tolerated
+        them, and filled at the level they were found: a sub-attribute lands on
+        the complex attribute that carries it, not on the resource above.
+        """
+        return self._unknown_attributes
 
     @classmethod
     def get_field_annotation(cls, field_name: str, annotation_type: type) -> Any:
@@ -362,6 +385,10 @@ class BaseModel(PydanticBaseModel):
             attribute_urns=attribute_urns,
             complex_fields=frozenset(complex_fields),
             extensions=frozenset(extensions),
+            known_keys=frozenset(
+                _normalize_attribute_name(key)
+                for key in (*cls.model_fields, *alias_to_field)
+            ),
         )
 
     @model_validator(mode="wrap")
@@ -369,15 +396,35 @@ class BaseModel(PydanticBaseModel):
     def normalize_attribute_names(
         cls, value: Any, handler: ValidatorFunctionWrapHandler, info: ValidationInfo
     ) -> Self:
-        """Normalize payload attribute names.
+        """Normalize payload attribute names, and set aside the ones no field declares.
 
         :rfc:`RFC7643 §2.1 <7643#section-2.1>` indicate that attribute
         names should be case-insensitive. Any attribute name is
         transformed in lowercase so any case is handled the same way.
+
+        Unless the policy forbids them, unknown keys are taken out of the
+        payload with the spelling the peer used. Pydantic never sees them, so
+        the ``extra="forbid"`` of the class has nothing to refuse.
         """
+        unknown: dict[str, Any] = {}
         if isinstance(value, dict):
-            value = {_normalize_attribute_name(k): v for k, v in value.items()}
-        return cast(Self, handler(value))
+            if _policy(info).unknown == ScimPolicy.Unknown.forbid:
+                value = {_normalize_attribute_name(k): v for k, v in value.items()}
+            else:
+                known = cls.__scim_info__.known_keys
+                normalized = {}
+                for key, item in value.items():
+                    name = _normalize_attribute_name(key)
+                    if name in known:
+                        normalized[name] = item
+                    else:
+                        unknown[key] = item
+                value = normalized
+
+        obj = cast(Self, handler(value))
+        if unknown:
+            obj._unknown_attributes = unknown
+        return obj
 
     @model_validator(mode="after")
     def enforce_scim_context(self, info: ValidationInfo) -> Self:
@@ -638,7 +685,7 @@ class BaseModel(PydanticBaseModel):
         serialized: dict[str, Any] = handler(self)
 
         if not scim_ctx:
-            return serialized
+            return self._restore_unknown_attributes(serialized, info)
 
         # Delete empty extensions
         for extension_field in self.__scim_info__.extensions:
@@ -668,6 +715,19 @@ class BaseModel(PydanticBaseModel):
                 # Must be request
                 self._scim_request_serializer(serialized, scim_ctx)
 
+        return self._restore_unknown_attributes(serialized, info)
+
+    def _restore_unknown_attributes(
+        self, serialized: dict[str, Any], info: SerializationInfo
+    ) -> dict[str, Any]:
+        """Put back the attributes no field declares, as the peer spelled them.
+
+        This runs after the context filters, which map every key back to the
+        field that carries it: an unknown key has none, and
+        :meth:`get_attribute_urn` would raise on it.
+        """
+        if _policy(info).unknown == ScimPolicy.Unknown.keep:
+            serialized.update(self._unknown_attributes)
         return serialized
 
     def _scim_request_serializer(
@@ -735,11 +795,13 @@ class BaseModel(PydanticBaseModel):
         cls,
         scim_ctx: Context | None = Context.DEFAULT,
         original: Optional["BaseModel"] = None,
+        scim_policy: ScimPolicy | None = None,
         **kwargs: Any,
     ) -> dict[str, Any]:
         context = kwargs.setdefault("context", {})
         context.setdefault("scim", scim_ctx)
         context.setdefault("original", original)
+        context.setdefault("scim_policy", scim_policy)
         return kwargs
 
     @classmethod
@@ -748,11 +810,14 @@ class BaseModel(PydanticBaseModel):
         *args: Any,
         scim_ctx: Context | None = Context.DEFAULT,
         original: Optional["BaseModel"] = None,
+        scim_policy: ScimPolicy | None = None,
         **kwargs: Any,
     ) -> Self:
         """Validate SCIM payloads and generate model representation by using Pydantic :meth:`~pydantic.BaseModel.model_validate`.
 
         :param scim_ctx: The SCIM :class:`~scim2_models.Context` in which the validation happens.
+        :param scim_policy: The :class:`~scim2_models.ScimPolicy` the validation
+            runs under. Defaults to the strict reading of the specification.
         :param original: If this parameter is set during :attr:`~Context.RESOURCE_REPLACEMENT_REQUEST`,
             :attr:`~scim2_models.Mutability.immutable` parameters will be compared against the *original* model value.
             An exception is raised if values are different.
@@ -770,7 +835,9 @@ class BaseModel(PydanticBaseModel):
                 stacklevel=2,
             )
 
-        validate_kwargs = cls._prepare_model_validate(scim_ctx, original, **kwargs)
+        validate_kwargs = cls._prepare_model_validate(
+            scim_ctx, original, scim_policy, **kwargs
+        )
         return super().model_validate(*args, **validate_kwargs)
 
     @classmethod
@@ -778,6 +845,7 @@ class BaseModel(PydanticBaseModel):
         cls,
         *args: Any,
         scim_ctx: Context | None = Context.DEFAULT,
+        scim_policy: ScimPolicy | None = None,
         **kwargs: Any,
     ) -> Self:
         """Validate SCIM JSON payloads and generate model representation by using Pydantic :meth:`~pydantic.BaseModel.model_validate_json`.
@@ -786,8 +854,12 @@ class BaseModel(PydanticBaseModel):
         any other SCIM validation failure.
 
         :param scim_ctx: The SCIM :class:`~scim2_models.Context` in which the validation happens.
+        :param scim_policy: The :class:`~scim2_models.ScimPolicy` the validation
+            runs under. Defaults to the strict reading of the specification.
         """
-        validate_kwargs = cls._prepare_model_validate(scim_ctx, **kwargs)
+        validate_kwargs = cls._prepare_model_validate(
+            scim_ctx, scim_policy=scim_policy, **kwargs
+        )
         return super().model_validate_json(*args, **validate_kwargs)
 
     def _prepare_model_dump(
@@ -795,9 +867,12 @@ class BaseModel(PydanticBaseModel):
         scim_ctx: Context | None = Context.DEFAULT,
         attributes: list["str | Path[Any]"] | None = None,
         excluded_attributes: list["str | Path[Any]"] | None = None,
+        scim_policy: ScimPolicy | None = None,
         **kwargs: Any,
     ) -> dict[str, Any]:
-        kwargs.setdefault("context", {}).setdefault("scim", scim_ctx)
+        context = kwargs.setdefault("context", {})
+        context.setdefault("scim", scim_ctx)
+        context.setdefault("scim_policy", scim_policy)
 
         if scim_ctx:
             kwargs.setdefault("exclude_none", True)
@@ -818,6 +893,7 @@ class BaseModel(PydanticBaseModel):
         scim_ctx: Context | None = Context.DEFAULT,
         attributes: list["str | Path[Any]"] | None = None,
         excluded_attributes: list["str | Path[Any]"] | None = None,
+        scim_policy: ScimPolicy | None = None,
         **kwargs: Any,
     ) -> dict[str, Any]:
         """Create a model representation that can be included in SCIM messages by using Pydantic :code:`BaseModel.model_dump`.
@@ -830,11 +906,15 @@ class BaseModel(PydanticBaseModel):
             would be returned by default. Invalid values are ignored.
         :param excluded_attributes: A multi-valued list of strings indicating the names of resource
             attributes to be removed from the default set of attributes to return. Invalid values are ignored.
+        :param scim_policy: The :class:`~scim2_models.ScimPolicy` the
+            serialization runs under. Defaults to the strict reading of the
+            specification.
         """
         dump_kwargs = self._prepare_model_dump(
             scim_ctx,
             attributes=attributes,
             excluded_attributes=excluded_attributes,
+            scim_policy=scim_policy,
             **kwargs,
         )
         if scim_ctx:
@@ -847,6 +927,7 @@ class BaseModel(PydanticBaseModel):
         scim_ctx: Context | None = Context.DEFAULT,
         attributes: list["str | Path[Any]"] | None = None,
         excluded_attributes: list["str | Path[Any]"] | None = None,
+        scim_policy: ScimPolicy | None = None,
         **kwargs: Any,
     ) -> str:
         """Create a JSON model representation that can be included in SCIM messages by using Pydantic :code:`BaseModel.model_dump_json`.
@@ -859,11 +940,15 @@ class BaseModel(PydanticBaseModel):
             would be returned by default. Invalid values are ignored.
         :param excluded_attributes: A multi-valued list of strings indicating the names of resource
             attributes to be removed from the default set of attributes to return. Invalid values are ignored.
+        :param scim_policy: The :class:`~scim2_models.ScimPolicy` the
+            serialization runs under. Defaults to the strict reading of the
+            specification.
         """
         dump_kwargs = self._prepare_model_dump(
             scim_ctx,
             attributes=attributes,
             excluded_attributes=excluded_attributes,
+            scim_policy=scim_policy,
             **kwargs,
         )
         return super().model_dump_json(*args, **dump_kwargs)

@@ -25,15 +25,13 @@ from .integrations import delete_record
 from .integrations import from_scim_user
 from .integrations import get_record
 from .integrations import get_resource_type
-from .integrations import get_resource_types
 from .integrations import get_schema
-from .integrations import get_schemas
 from .integrations import list_records
 from .integrations import page_of
 from .integrations import list_group_records
 from .integrations import make_etag
 from .integrations import save_record
-from .integrations import service_provider_config
+from .integrations import provider
 from .integrations import to_scim_user
 from .integrations import to_scim_group
 
@@ -325,7 +323,7 @@ def create_user():
 def list_schemas():
     """Return one page of SCIM schemas the server exposes."""
     req = SearchRequest[Schema].model_validate(request.args.to_dict())
-    total, page = page_of(get_schemas(), req)
+    total, page = page_of(provider.schemas, req)
     response = ListResponse[Schema](
         total_results=total,
         start_index=req.start_index or 1,
@@ -352,7 +350,7 @@ def get_schema_by_id(schema_id):
 def list_resource_types():
     """Return one page of SCIM resource types the server exposes."""
     req = SearchRequest[ResourceType].model_validate(request.args.to_dict())
-    total, page = page_of(get_resource_types(), req)
+    total, page = page_of(provider.resource_types, req)
     response = ListResponse[ResourceType](
         total_results=total,
         start_index=req.start_index or 1,
@@ -380,7 +378,7 @@ def get_resource_type_by_id(resource_type_id):
 @bp.get("/ServiceProviderConfig")
 def get_service_provider_config():
     """Return the SCIM service provider configuration."""
-    return service_provider_config.model_dump(
+    return provider.config.model_dump(
         scim_ctx=Context.RESOURCE_QUERY_RESPONSE
     )
 # -- service-provider-config-end --
