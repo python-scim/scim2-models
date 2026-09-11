@@ -15,6 +15,7 @@ from ..context import Context
 from ..exceptions import InvalidValueException
 from ..urn import URN
 from ..utils import _int_to_str
+from .error import Error
 from .message import Message
 
 
@@ -68,7 +69,11 @@ class BulkOperation(ComplexAttribute):
 
             # RFC 7644 Section 3.7: "data  The resource data as it would appear for a single SCIM POST,
             # PUT, or PATCH operation.  REQUIRED in a request when "method" is "POST", "PUT", or "PATCH"."
-            if self.data is None:
+            if self.data is None and self.method in (
+                BulkOperation.Method.post,
+                BulkOperation.Method.put,
+                BulkOperation.Method.patch,
+            ):
                 raise InvalidValueException(
                     detail="data is required for POST, PUT, or PATCH request operations"
                 ).as_pydantic_error()
@@ -85,16 +90,14 @@ class BulkOperation(ComplexAttribute):
                 ).as_pydantic_error()
 
             # RFC 7644 Section 3.7: "When indicating a response with an HTTP status
-            # other than a 200-series response, the response body MUST be included.
-            # [...] When indicating an error, the "response" attribute MUST contain
-            # the detail error response
+            # other than a 200-series response, the response body MUST be included."
             if (
                 self.status is not None
                 and not 200 <= self.status < 300
-                and not (self.response and self.response.get("detail"))
+                and not isinstance(self.response, Error)
             ):
                 raise InvalidValueException(
-                    detail="response error detail is required"
+                    detail="response error parameter is required"
                 ).as_pydantic_error()
 
         # RFC 7644 Section 3.7: "bulkId [...] REQUIRED when "method" is "POST"."

@@ -1,6 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
+from scim2_models import Error
 from scim2_models.base import Context
 from scim2_models.messages.bulk import BulkOperation
 from scim2_models.messages.bulk import BulkRequest
@@ -183,11 +184,9 @@ def test_location_required_for_response_bulk_operations_except_post_errors():
             "bulkId": "qwerty",
             "location": None,
             "status": 400,
-            "response": {
-                "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
-                "status": 400,
-                "detail": "Error",
-            },
+            "response": Error(
+                status=400,
+            ),
         },
         context={"scim": Context.RESOURCE_CREATION_RESPONSE},
     )
@@ -226,17 +225,15 @@ def test_method_required_for_bulk_operations():
         )
 
 
-def test_error_detail_required_in_response():
+def test_error_response_required_in_response():
     BulkOperation.model_validate(
         {
             "method": BulkOperation.Method.post,
             "bulkId": "qwerty",
             "status": 400,
-            "response": {
-                "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
-                "status": 400,
-                "detail": "Error",
-            },
+            "response": Error(
+                status=400,
+            ),
         },
         context={"scim": Context.RESOURCE_CREATION_RESPONSE},
     )
@@ -246,19 +243,6 @@ def test_error_detail_required_in_response():
                 "method": BulkOperation.Method.post,
                 "bulkId": "qwerty",
                 "status": 400,
-            },
-            context={"scim": Context.RESOURCE_CREATION_RESPONSE},
-        )
-    with pytest.raises(ValidationError):
-        BulkOperation.model_validate(
-            {
-                "method": BulkOperation.Method.post,
-                "bulkId": "qwerty",
-                "status": 400,
-                "response": {
-                    "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
-                    "status": 400,
-                },
             },
             context={"scim": Context.RESOURCE_CREATION_RESPONSE},
         )
