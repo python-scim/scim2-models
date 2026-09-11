@@ -435,6 +435,7 @@ class BaseModel(PydanticBaseModel):
         is_create_or_replace = scim_context in (
             Context.RESOURCE_CREATION_REQUEST,
             Context.RESOURCE_REPLACEMENT_REQUEST,
+            Context.BULK_REQUEST,
         )
         fields_set = self.model_fields_set
 
@@ -498,7 +499,11 @@ class BaseModel(PydanticBaseModel):
 
         elif (
             scim_context
-            in (Context.RESOURCE_CREATION_REQUEST, Context.RESOURCE_REPLACEMENT_REQUEST)
+            in (
+                Context.RESOURCE_CREATION_REQUEST,
+                Context.RESOURCE_REPLACEMENT_REQUEST,
+                Context.BULK_REQUEST,
+            )
             and mutability == Mutability.read_only
         ):
             # Avoid re-triggering this validation by using __dict__
@@ -726,6 +731,7 @@ class BaseModel(PydanticBaseModel):
                     Context.RESOURCE_CREATION_REQUEST,
                     Context.RESOURCE_REPLACEMENT_REQUEST,
                     Context.RESOURCE_PATCH_REQUEST,
+                    Context.BULK_REQUEST,
                 )
                 and mutability == Mutability.read_only
             ):

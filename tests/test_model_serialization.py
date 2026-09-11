@@ -508,6 +508,7 @@ def test_invalid_excluded_attributes():
         Context.RESOURCE_QUERY_RESPONSE,
         Context.RESOURCE_REPLACEMENT_RESPONSE,
         Context.SEARCH_RESPONSE,
+        Context.BULK_RESPONSE,
     ],
 )
 def test_dump_response(context, ret_resource):

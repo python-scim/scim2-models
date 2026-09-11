@@ -682,10 +682,10 @@ The :attr:`~scim2_models.BulkRequest.operations` attribute contains multiple :cl
     ...   ]
     ... }
     >>> bulk = BulkRequest.model_validate(
-    ...     payload, scim_ctx=Context.RESOURCE_CREATION_REQUEST
+    ...     payload, scim_ctx=Context.BULK_REQUEST
     ... )
 
-    >>> print(bulk.operations[0].data)
+    >>> bulk.operations[0].data
     {'schemas': ['urn:ietf:params:scim:schemas:core:2.0:User'], 'userName': 'Alice'}
-    >>> print(bulk.operations[1].path)
-    /Groups
+    >>> bulk.operations[1].path
+    '/Groups'

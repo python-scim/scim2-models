@@ -623,6 +623,7 @@ def test_validate_default_response_returnability():
         Context.RESOURCE_QUERY_RESPONSE,
         Context.RESOURCE_REPLACEMENT_RESPONSE,
         Context.SEARCH_RESPONSE,
+        Context.BULK_RESPONSE,
     ],
 )
 def test_validate_response_returnability(context):

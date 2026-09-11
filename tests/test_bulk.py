@@ -25,14 +25,14 @@ def test_bulk_operation_delete():
 def test_operations_required_for_bulk_request():
     with pytest.raises(ValidationError):
         BulkRequest.model_validate(
-            {"operations": None}, context={"scim": Context.RESOURCE_CREATION_REQUEST}
+            {"operations": None}, context={"scim": Context.BULK_REQUEST}
         )
 
 
 def test_operations_required_for_bulk_response():
     with pytest.raises(ValidationError):
         BulkResponse.model_validate(
-            {"operations": None}, context={"scim": Context.RESOURCE_CREATION_REQUEST}
+            {"operations": None}, context={"scim": Context.BULK_REQUEST}
         )
 
 
