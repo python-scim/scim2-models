@@ -39,6 +39,11 @@ Added
   sends. Name a policy at the call, or open a ``with`` block on it
   or on a provider carrying one. Every setting defaults to the strict reading, so nothing changes
   until one is chosen. See :doc:`how-to/tolerate-a-nonconformant-peer`. :issue:`85` :issue:`108`
+- :meth:`~scim2_models.BaseModel.model_dump` and
+  :meth:`~scim2_models.BaseModel.model_dump_json` take a ``response_parameters``: the
+  :class:`~scim2_models.ResponseParameters` a client sent, instead of its ``attributes`` and
+  ``excludedAttributes`` spelled out one by one. A :class:`~scim2_models.SearchRequest` is one,
+  so a server answering ``POST /.search`` passes the request it received. :issue:`141`
 - lark is a new dependency.
 
 Changed
@@ -74,6 +79,14 @@ Removed
   :class:`~scim2_models.AttributeBinding` carries them.
 - ``Path.is_prefix_of`` and ``Path.has_prefix``. They compared the text of two paths, which
   anything between brackets defeated.
+
+Deprecated
+^^^^^^^^^^
+- The ``attributes`` and ``excluded_attributes`` parameters of
+  :meth:`~scim2_models.BaseModel.model_dump` and
+  :meth:`~scim2_models.BaseModel.model_dump_json`. Pass a
+  :class:`~scim2_models.ResponseParameters` as ``response_parameters`` instead; naming both
+  raises a :exc:`TypeError`. They will be removed in 0.9.0. :issue:`141`
 
 Fixed
 ^^^^^

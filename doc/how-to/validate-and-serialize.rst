@@ -62,17 +62,18 @@ Return only the attributes a client asked for
 ---------------------------------------------
 
 A client narrows a response with the ``attributes`` or ``excludedAttributes`` query parameters of
-:rfc:`RFC7644 §3.9 <7644#section-3.9>`. Both take SCIM attribute names, and go straight to the
-dump method:
+:rfc:`RFC7644 §3.9 <7644#section-3.9>`. Read them into a
+:class:`~scim2_models.ResponseParameters` and hand it to the dump method:
 
 .. doctest::
 
+   >>> from scim2_models import ResponseParameters
    >>> user.id = "2819c223-7f76-453a-919d-413861904646"
    >>> user.display_name = "Babs Jensen"
    >>> user.title = "Manager"
    >>> user.model_dump(
    ...     scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
-   ...     attributes=["userName"],
+   ...     response_parameters=ResponseParameters(attributes=["userName"]),
    ... )  # doctest: +NORMALIZE_WHITESPACE
    {'schemas': ['urn:ietf:params:scim:schemas:core:2.0:User'],
     'id': '2819c223-7f76-453a-919d-413861904646',
@@ -82,6 +83,10 @@ dump method:
 attribute annotated :attr:`Returned.always <scim2_models.Returned.always>` cannot be left out.
 Symmetrically, an attribute annotated :attr:`Returned.never <scim2_models.Returned.never>`, such
 as :attr:`User.password <scim2_models.User.password>`, never appears whatever a client asks.
+
+A :class:`~scim2_models.SearchRequest` is a :class:`~scim2_models.ResponseParameters`, so a server
+answering ``POST /.search`` passes the request it received rather than spelling the two parameters
+out.
 
 Replace a stored resource
 -------------------------

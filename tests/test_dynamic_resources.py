@@ -12,6 +12,7 @@ from scim2_models.annotations import Returned
 from scim2_models.annotations import Uniqueness
 from scim2_models.attributes import ComplexAttribute
 from scim2_models.context import Context
+from scim2_models.messages.response_parameters import ResponseParameters
 from scim2_models.path import Path
 from scim2_models.path import ScimFilter
 from scim2_models.reference import URI
@@ -2844,7 +2845,9 @@ def test_models_built_from_a_schema_know_their_attribute_urns():
     assert obj.get_attribute_urn("attr") == "urn:example:2.0:Single:attr"
     assert obj.model_dump(
         scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
-        attributes=["urn:example:2.0:Single:attr"],
+        response_parameters=ResponseParameters(
+            attributes=["urn:example:2.0:Single:attr"]
+        ),
     ) == {"schemas": ["urn:example:2.0:Single"], "attr": "value"}
 
 
@@ -2867,7 +2870,7 @@ def test_extensions_built_from_a_schema_know_their_attribute_urns():
     assert obj[ExtModel].get_attribute_urn("attr") == "urn:example:2.0:Ext:attr"
     assert obj.model_dump(
         scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
-        attributes=["urn:example:2.0:Ext:attr"],
+        response_parameters=ResponseParameters(attributes=["urn:example:2.0:Ext:attr"]),
     ) == {
         "schemas": ["urn:example:2.0:Single", "urn:example:2.0:Ext"],
         "urn:example:2.0:Ext": {"attr": "value"},

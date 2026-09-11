@@ -3,6 +3,9 @@ from typing import Annotated
 import pytest
 
 from scim2_models import URN
+from scim2_models import ResponseParameters
+from scim2_models import SearchRequest
+from scim2_models import User
 from scim2_models.annotations import Mutability
 from scim2_models.annotations import Returned
 from scim2_models.attributes import ComplexAttribute
@@ -418,7 +421,8 @@ def test_invalid_attributes():
     # Invalid attributes should be silently ignored: no match means only
     # Returned.always attributes remain.
     result = resource.model_dump(
-        scim_ctx=Context.RESOURCE_QUERY_RESPONSE, attributes={"invalidAttribute"}
+        scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
+        response_parameters=ResponseParameters(attributes={"invalidAttribute"}),
     )
     assert result == {
         "schemas": ["urn:org:example:SupRetResource"],
@@ -428,7 +432,9 @@ def test_invalid_attributes():
 
     result = resource.model_dump(
         scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
-        attributes={"urn:org:example:SupRetResource:invalidAttribute"},
+        response_parameters=ResponseParameters(
+            attributes={"urn:org:example:SupRetResource:invalidAttribute"}
+        ),
     )
     assert result == {
         "schemas": ["urn:org:example:SupRetResource"],
@@ -438,7 +444,9 @@ def test_invalid_attributes():
 
     result = resource.model_dump(
         scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
-        attributes={"urn:invalid:schema:invalidAttribute"},
+        response_parameters=ResponseParameters(
+            attributes={"urn:invalid:schema:invalidAttribute"}
+        ),
     )
     assert result == {
         "schemas": ["urn:org:example:SupRetResource"],
@@ -454,7 +462,9 @@ def test_invalid_excluded_attributes():
     # Invalid excluded_attributes should be ignored, not raise errors
     result = resource.model_dump(
         scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
-        excluded_attributes={"invalidAttribute"},
+        response_parameters=ResponseParameters(
+            excluded_attributes={"invalidAttribute"}
+        ),
     )
     # Should return default response (nothing excluded)
     assert result == {
@@ -466,7 +476,9 @@ def test_invalid_excluded_attributes():
 
     result = resource.model_dump(
         scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
-        excluded_attributes={"urn:org:example:SupRetResource:invalidAttribute"},
+        response_parameters=ResponseParameters(
+            excluded_attributes={"urn:org:example:SupRetResource:invalidAttribute"}
+        ),
     )
     assert result == {
         "schemas": ["urn:org:example:SupRetResource"],
@@ -477,7 +489,9 @@ def test_invalid_excluded_attributes():
 
     result = resource.model_dump(
         scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
-        excluded_attributes={"urn:invalid:schema:invalidAttribute"},
+        response_parameters=ResponseParameters(
+            excluded_attributes={"urn:invalid:schema:invalidAttribute"}
+        ),
     )
     assert result == {
         "schemas": ["urn:org:example:SupRetResource"],
@@ -518,20 +532,27 @@ def test_dump_response(context, ret_resource):
         },
     }
 
-    assert ret_resource.model_dump(scim_ctx=context, attributes={"alwaysReturned"}) == {
-        "schemas": ["urn:org:example:SupRetResource"],
-        "id": "id",
-        "alwaysReturned": "x",
-    }
-
-    assert ret_resource.model_dump(scim_ctx=context, attributes={"neverReturned"}) == {
+    assert ret_resource.model_dump(
+        scim_ctx=context,
+        response_parameters=ResponseParameters(attributes={"alwaysReturned"}),
+    ) == {
         "schemas": ["urn:org:example:SupRetResource"],
         "id": "id",
         "alwaysReturned": "x",
     }
 
     assert ret_resource.model_dump(
-        scim_ctx=context, attributes={"defaultReturned"}
+        scim_ctx=context,
+        response_parameters=ResponseParameters(attributes={"neverReturned"}),
+    ) == {
+        "schemas": ["urn:org:example:SupRetResource"],
+        "id": "id",
+        "alwaysReturned": "x",
+    }
+
+    assert ret_resource.model_dump(
+        scim_ctx=context,
+        response_parameters=ResponseParameters(attributes={"defaultReturned"}),
     ) == {
         "schemas": ["urn:org:example:SupRetResource"],
         "id": "id",
@@ -539,18 +560,8 @@ def test_dump_response(context, ret_resource):
         "defaultReturned": "x",
     }
 
-    assert ret_resource.model_dump(scim_ctx=context, attributes={"sub"}) == {
-        "schemas": ["urn:org:example:SupRetResource"],
-        "id": "id",
-        "alwaysReturned": "x",
-        "sub": {
-            "alwaysReturned": "x",
-            "defaultReturned": "x",
-        },
-    }
-
     assert ret_resource.model_dump(
-        scim_ctx=context, attributes={"sub.defaultReturned"}
+        scim_ctx=context, response_parameters=ResponseParameters(attributes={"sub"})
     ) == {
         "schemas": ["urn:org:example:SupRetResource"],
         "id": "id",
@@ -562,7 +573,21 @@ def test_dump_response(context, ret_resource):
     }
 
     assert ret_resource.model_dump(
-        scim_ctx=context, attributes={"requestReturned"}
+        scim_ctx=context,
+        response_parameters=ResponseParameters(attributes={"sub.defaultReturned"}),
+    ) == {
+        "schemas": ["urn:org:example:SupRetResource"],
+        "id": "id",
+        "alwaysReturned": "x",
+        "sub": {
+            "alwaysReturned": "x",
+            "defaultReturned": "x",
+        },
+    }
+
+    assert ret_resource.model_dump(
+        scim_ctx=context,
+        response_parameters=ResponseParameters(attributes={"requestReturned"}),
     ) == {
         "schemas": ["urn:org:example:SupRetResource"],
         "id": "id",
@@ -572,7 +597,9 @@ def test_dump_response(context, ret_resource):
 
     assert ret_resource.model_dump(
         scim_ctx=context,
-        attributes={"defaultReturned", "requestReturned"},
+        response_parameters=ResponseParameters(
+            attributes={"defaultReturned", "requestReturned"}
+        ),
     ) == {
         "schemas": ["urn:org:example:SupRetResource"],
         "id": "id",
@@ -582,45 +609,8 @@ def test_dump_response(context, ret_resource):
     }
 
     assert ret_resource.model_dump(
-        scim_ctx=context, excluded_attributes={"alwaysReturned"}
-    ) == {
-        "schemas": ["urn:org:example:SupRetResource"],
-        "id": "id",
-        "alwaysReturned": "x",
-        "defaultReturned": "x",
-        "sub": {
-            "alwaysReturned": "x",
-            "defaultReturned": "x",
-        },
-    }
-
-    assert ret_resource.model_dump(
-        scim_ctx=context, excluded_attributes={"neverReturned"}
-    ) == {
-        "schemas": ["urn:org:example:SupRetResource"],
-        "id": "id",
-        "alwaysReturned": "x",
-        "defaultReturned": "x",
-        "sub": {
-            "alwaysReturned": "x",
-            "defaultReturned": "x",
-        },
-    }
-
-    assert ret_resource.model_dump(
-        scim_ctx=context, excluded_attributes={"defaultReturned"}
-    ) == {
-        "schemas": ["urn:org:example:SupRetResource"],
-        "id": "id",
-        "alwaysReturned": "x",
-        "sub": {
-            "alwaysReturned": "x",
-            "defaultReturned": "x",
-        },
-    }
-
-    assert ret_resource.model_dump(
-        scim_ctx=context, excluded_attributes={"requestReturned"}
+        scim_ctx=context,
+        response_parameters=ResponseParameters(excluded_attributes={"alwaysReturned"}),
     ) == {
         "schemas": ["urn:org:example:SupRetResource"],
         "id": "id",
@@ -634,7 +624,21 @@ def test_dump_response(context, ret_resource):
 
     assert ret_resource.model_dump(
         scim_ctx=context,
-        excluded_attributes={"defaultReturned", "requestReturned"},
+        response_parameters=ResponseParameters(excluded_attributes={"neverReturned"}),
+    ) == {
+        "schemas": ["urn:org:example:SupRetResource"],
+        "id": "id",
+        "alwaysReturned": "x",
+        "defaultReturned": "x",
+        "sub": {
+            "alwaysReturned": "x",
+            "defaultReturned": "x",
+        },
+    }
+
+    assert ret_resource.model_dump(
+        scim_ctx=context,
+        response_parameters=ResponseParameters(excluded_attributes={"defaultReturned"}),
     ) == {
         "schemas": ["urn:org:example:SupRetResource"],
         "id": "id",
@@ -644,3 +648,96 @@ def test_dump_response(context, ret_resource):
             "defaultReturned": "x",
         },
     }
+
+    assert ret_resource.model_dump(
+        scim_ctx=context,
+        response_parameters=ResponseParameters(excluded_attributes={"requestReturned"}),
+    ) == {
+        "schemas": ["urn:org:example:SupRetResource"],
+        "id": "id",
+        "alwaysReturned": "x",
+        "defaultReturned": "x",
+        "sub": {
+            "alwaysReturned": "x",
+            "defaultReturned": "x",
+        },
+    }
+
+    assert ret_resource.model_dump(
+        scim_ctx=context,
+        response_parameters=ResponseParameters(
+            excluded_attributes={"defaultReturned", "requestReturned"}
+        ),
+    ) == {
+        "schemas": ["urn:org:example:SupRetResource"],
+        "id": "id",
+        "alwaysReturned": "x",
+        "sub": {
+            "alwaysReturned": "x",
+            "defaultReturned": "x",
+        },
+    }
+
+
+def test_response_parameters_select_what_the_dump_carries():
+    """A ResponseParameters selects the attributes, as the two keywords used to."""
+    user = User(id="id", user_name="bjensen", display_name="Babs")
+    parameters = ResponseParameters(attributes=["userName"])
+
+    assert user.model_dump(
+        scim_ctx=Context.RESOURCE_QUERY_RESPONSE, response_parameters=parameters
+    ) == {
+        "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+        "id": "id",
+        "userName": "bjensen",
+    }
+
+
+def test_a_search_request_selects_what_the_dump_carries():
+    """A SearchRequest is a ResponseParameters, so a server passes the request it received."""
+    user = User(id="id", user_name="bjensen", display_name="Babs")
+    request = SearchRequest[User](excluded_attributes=["displayName"])
+
+    dumped = user.model_dump(
+        scim_ctx=Context.RESOURCE_QUERY_RESPONSE, response_parameters=request
+    )
+    assert "displayName" not in dumped
+    assert dumped["userName"] == "bjensen"
+
+
+def test_response_parameters_reach_the_json_dump():
+    """model_dump_json takes the selection the same way model_dump does."""
+    user = User(id="id", user_name="bjensen", display_name="Babs")
+    dumped = user.model_dump_json(
+        scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
+        response_parameters=ResponseParameters(attributes=["userName"]),
+    )
+    assert "displayName" not in dumped
+    assert '"userName":"bjensen"' in dumped
+
+
+@pytest.mark.parametrize("method", ["model_dump", "model_dump_json"])
+@pytest.mark.parametrize("keyword", ["attributes", "excluded_attributes"])
+def test_the_two_spellings_of_the_selection_cannot_be_mixed(method, keyword):
+    """Naming both a ResponseParameters and a bare list leaves the selection ambiguous."""
+    user = User(id="id", user_name="bjensen")
+    with pytest.raises(TypeError, match="Cannot pass both"):
+        getattr(user, method)(
+            scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
+            response_parameters=ResponseParameters(attributes=["userName"]),
+            **{keyword: ["displayName"]},
+        )
+
+
+@pytest.mark.parametrize("method", ["model_dump", "model_dump_json"])
+@pytest.mark.parametrize(
+    ("keyword", "carried"), [("attributes", True), ("excluded_attributes", False)]
+)
+def test_the_bare_selection_keywords_are_deprecated(method, keyword, carried):
+    """The two keywords still select, and announce their replacement."""
+    user = User(id="id", user_name="bjensen", display_name="Babs")
+    with pytest.warns(DeprecationWarning, match="response_parameters"):
+        dumped = getattr(user, method)(
+            scim_ctx=Context.RESOURCE_QUERY_RESPONSE, **{keyword: ["userName"]}
+        )
+    assert ("bjensen" in str(dumped)) is carried

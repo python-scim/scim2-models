@@ -59,7 +59,7 @@ attributes:
 
 .. doctest::
 
-   >>> from scim2_models import Context, User
+   >>> from scim2_models import Context, ResponseParameters, User
    >>> payload = {
    ...     "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
    ...     "id": "client-supplied",
@@ -78,7 +78,7 @@ projection requested by a client:
    >>> user.display_name = "Babs Jensen"
    >>> response = user.model_dump(
    ...     scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
-   ...     excluded_attributes=["displayName"],
+   ...     response_parameters=ResponseParameters(excluded_attributes=["displayName"]),
    ... )
    >>> response["id"]
    '2819c223-7f76-453a-919d-413861904646'
