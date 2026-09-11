@@ -445,7 +445,9 @@ class BaseModel(PydanticBaseModel):
             if Context.is_request(scim_context):
                 if field_name in fields_set:
                     self._check_mutability(field_name, scim_context)
-                if is_create_or_replace:
+                if is_create_or_replace and not self._is_unresolved_bulk_reference(
+                    field_name, scim_context
+                ):
                     self._check_necessity(field_name, value)
             else:
                 # Must be response
@@ -455,6 +457,29 @@ class BaseModel(PydanticBaseModel):
                 self._check_primary_uniqueness(field_name, value)
 
         return self
+
+    def _is_unresolved_bulk_reference(
+        self, field_name: str, scim_context: Context
+    ) -> bool:
+        """Whether a required Reference field targets a resource still being created.
+
+        :rfc:`RFC7644 §3.7.2 <7644#section-3.7.2>` lets one bulk operation
+        reference a resource another operation in the same request is still
+        creating, via a ``"bulkId:"``-prefixed placeholder in the sibling
+        ``value`` attribute (e.g. ``manager.value``). That reference's URI
+        can only be resolved once the target exists, so a required Reference
+        sub-attribute (e.g. ``manager.$ref``) isn't checked for necessity in
+        this one documented case.
+        """
+        if scim_context != Context.BULK_REQUEST:
+            return False
+
+        root_type = self.__class__.get_field_root_type(field_name)
+        if not (isclass(root_type) and issubclass(root_type, Reference)):
+            return False
+
+        sibling_value = getattr(self, "value", None)
+        return isinstance(sibling_value, str) and sibling_value.startswith("bulkId:")
 
     def _raise_field_error(
         self, field_name: str, error: PydanticCustomError
