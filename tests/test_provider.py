@@ -48,6 +48,7 @@ def resource_type(name, endpoint, schema, extensions=()):
 
 
 def test_a_provider_publishes_the_schema_of_each_model():
+    """Every model contributes one schema to ``/Schemas``, in the order it was listed."""
     provider = ScimProvider(models=[User, Group, PetOwner])
 
     assert [schema.id for schema in provider.schemas] == [
@@ -93,6 +94,8 @@ def test_a_model_that_is_neither_a_resource_nor_an_extension_is_refused():
 
 
 def test_a_model_declaring_no_schema_is_refused():
+    """A model with no ``__schema__`` cannot be indexed, nor named by a resource type."""
+
     class Anonymous(Resource[Any]):
         label: str | None = None
 
@@ -104,6 +107,7 @@ def test_a_model_declaring_no_schema_is_refused():
 
 
 def test_a_resource_type_composes_its_resource_with_its_extensions():
+    """The catalogue holds bare models, and the resource type says how to assemble them."""
     provider = ScimProvider(
         models=[User, EnterpriseUser],
         resource_types=[ResourceType.from_resource(User[EnterpriseUser])],
@@ -113,6 +117,7 @@ def test_a_resource_type_composes_its_resource_with_its_extensions():
 
 
 def test_a_required_extension_is_composed_as_required():
+    """``schemaExtensions.required`` survives composition and refuses a creation without it."""
     provider = ScimProvider(
         models=[User, EnterpriseUser],
         resource_types=[
@@ -152,6 +157,7 @@ def test_two_resource_types_serve_two_variants_of_one_schema():
 
 
 def test_resource_types_are_derived_without_extensions_when_they_are_left_out():
+    """A service whose resources carry no extension needs to declare nothing."""
     provider = ScimProvider(models=[User, Group])
 
     assert [(rt.name, rt.endpoint) for rt in provider.resource_types] == [
@@ -162,11 +168,13 @@ def test_resource_types_are_derived_without_extensions_when_they_are_left_out():
 
 
 def test_a_resource_type_naming_a_schema_no_model_describes_is_refused():
+    """A resource type the provider cannot compose is a broken description."""
     with pytest.raises(ScimProviderError, match=str(Group.__schema__)):
         ScimProvider(models=[User], resource_types=[ResourceType.from_resource(Group)])
 
 
 def test_a_resource_type_naming_an_extension_no_model_describes_is_refused():
+    """An extension is looked up in the catalogue like the resource it extends."""
     with pytest.raises(ScimProviderError, match=str(EnterpriseUser.__schema__)):
         ScimProvider(
             models=[User],
@@ -207,6 +215,7 @@ def test_a_schema_uri_answers_the_bare_model():
 
 
 def test_a_name_and_an_endpoint_answer_the_composed_model():
+    """The four ways of naming a resource type all reach the same composed class."""
     provider = ScimProvider(
         models=[User, EnterpriseUser],
         resource_types=[ResourceType.from_resource(User[EnterpriseUser])],
@@ -282,6 +291,7 @@ def test_the_discovery_resources_are_known_without_being_registered():
 
 
 def test_two_resource_types_sharing_a_name_are_refused():
+    """The name is a lookup key, and ``meta.resourceType`` could not tell the two apart."""
     with pytest.raises(ScimProviderError, match="User"):
         ScimProvider(
             models=[User, Group],
@@ -293,6 +303,7 @@ def test_two_resource_types_sharing_a_name_are_refused():
 
 
 def test_two_resource_types_sharing_an_endpoint_are_refused():
+    """The endpoint is a lookup key, and a URL could not tell the two apart."""
     with pytest.raises(ScimProviderError, match="/Users"):
         ScimProvider(
             models=[User, Group],
@@ -307,6 +318,7 @@ def test_two_resource_types_sharing_an_endpoint_are_refused():
 
 
 def test_a_provider_carries_the_service_provider_config():
+    """What a service announces travels with what it serves."""
     config = ServiceProviderConfig(documentation_uri="https://example.com")
 
     provider = ScimProvider(models=[User], config=config)
@@ -368,6 +380,7 @@ def test_a_required_extension_survives_discovery():
 
 
 def test_an_optional_extension_survives_discovery():
+    """An extension declared optional stays optional once the models are rebuilt."""
     served = ScimProvider(
         models=[User, EnterpriseUser],
         resource_types=[ResourceType.from_resource(User[EnterpriseUser])],
@@ -392,6 +405,7 @@ def test_discovering_a_resource_type_whose_base_schema_is_missing_is_refused():
 
 
 def test_a_discovered_provider_carries_the_config_it_is_given():
+    """``/ServiceProviderConfig`` is part of what a client learns about its peer."""
     config = ServiceProviderConfig(documentation_uri="https://example.com")
     served = ScimProvider(models=[User])
 

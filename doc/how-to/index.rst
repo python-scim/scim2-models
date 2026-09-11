@@ -12,4 +12,5 @@ ends where an application resumes its own work, and assumes the :doc:`../overvie
    define-custom-models
    describe-a-scim-service
    generate-models-from-schemas
+   tolerate-a-nonconformant-peer
    validate-and-serialize

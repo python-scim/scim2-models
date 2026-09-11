@@ -47,6 +47,7 @@ from .messages.search_request import SearchRequest
 from .path import AttributeBinding
 from .path import Path
 from .path import ScimFilter
+from .policy import ScimPolicy
 from .provider import DescribedModel
 from .provider import ScimProvider
 from .provider import ScimProviderError
@@ -160,6 +161,7 @@ __all__ = [
     "SCIMSerializer",
     "SCIMValidator",
     "ScimFilter",
+    "ScimPolicy",
     "ScimProvider",
     "ScimProviderError",
     "Schema",

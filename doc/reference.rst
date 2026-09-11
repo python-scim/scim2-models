@@ -155,8 +155,11 @@ errors.
 Validation and serialization
 ----------------------------
 
-Contexts, annotations, and Pydantic metadata that control which attributes a SCIM operation
-accepts or returns.
+The policy, contexts, annotations, and Pydantic metadata that control which attributes a SCIM
+operation accepts or returns.
+
+.. autoclass:: scim2_models.ScimPolicy
+   :members:
 
 .. autoclass:: scim2_models.Context
    :members:

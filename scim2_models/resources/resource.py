@@ -37,6 +37,8 @@ from ..exceptions import InvalidPathException
 from ..lookup import get_model_by_payload
 from ..lookup import get_model_by_schema
 from ..path import Path
+from ..policy import ScimPolicy
+from ..policy import _policy
 from ..scim_object import AnyScimObject
 from ..scim_object import ScimObject
 from ..utils import UNION_TYPES
@@ -416,6 +418,9 @@ class Resource(ScimObject, Generic[AnyExtension]):
 
         scim_ctx = info.context.get("scim") if info.context else None
         if scim_ctx is None or scim_ctx == Context.DEFAULT:
+            return obj
+
+        if _policy(info).unknown != ScimPolicy.Unknown.forbid:
             return obj
 
         base_schema = getattr(cls, "__schema__", None)

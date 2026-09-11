@@ -145,7 +145,10 @@ Write the selection in the path instead, as ``emails[value eq "work@example.com"
    non-conformant
    <https://learn.microsoft.com/en-us/entra/identity/app-provisioning/application-provisioning-config-problem-scim-compatibility>`_
    and the ``aadOptscim062020`` flag, added to the tenant URL of the application, has Entra send
-   a filter path.
+   a filter path. An application serving that client without the flag reads the ``value`` as a
+   selection with
+   :attr:`ScimPolicy.RemoveValue.apply <scim2_models.ScimPolicy.RemoveValue.apply>`; see
+   :doc:`../how-to/tolerate-a-nonconformant-peer`.
 
 Primary values
 --------------

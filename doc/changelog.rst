@@ -47,6 +47,24 @@ Added
   provider from what a service publishes, turning each resource type into a model carrying the
   extensions it declares, required ones included. A resource type naming a schema the service
   does not publish is refused with an error naming that schema.
+- :class:`~scim2_models.ScimPolicy` states how much a payload may depart from
+  :rfc:`RFC7643 <7643>` and :rfc:`RFC7644 <7644>` and still be read. Pass it as the
+  ``scim_policy`` argument of :meth:`~scim2_models.BaseModel.model_validate`,
+  :meth:`~scim2_models.BaseModel.model_dump` and :meth:`PatchOp.patch
+  <scim2_models.PatchOp.patch>`, or open a ``with`` block on a policy or on a
+  :class:`~scim2_models.ScimProvider` carrying one. Every setting defaults to the strict reading,
+  so nothing changes until one is chosen. See :doc:`explanation/policies` and
+  :doc:`how-to/tolerate-a-nonconformant-peer`. :issue:`108`
+- :attr:`ScimPolicy.unknown <scim2_models.ScimPolicy.unknown>` reads a payload carrying attributes
+  no model declares, unmodelled extensions included. ``ignore`` drops them and ``keep`` writes
+  them back with the spelling the peer used; both leave them readable on
+  :attr:`~scim2_models.BaseModel.unknown_attributes`, at the level they were found. :issue:`85`
+- :attr:`ScimPolicy.remove_value_as_filter
+  <scim2_models.ScimPolicy.remove_value_as_filter>` reads the ``value`` of a PATCH ``remove`` as
+  the selection :rfc:`RFC7644 §3.5.2.2 <7644#section-3.5.2.2>` spells in the ``path``, which is
+  the form `Microsoft Entra ID
+  <https://learn.microsoft.com/en-us/entra/identity/app-provisioning/application-provisioning-config-problem-scim-compatibility>`_
+  sends to remove a group member.
 - lark is a new dependency.
 
 Changed

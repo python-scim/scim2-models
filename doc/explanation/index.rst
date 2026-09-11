@@ -10,4 +10,5 @@ written to be read away from the keyboard, rather than consulted while completin
 
    filters
    patch
+   policies
    scim-contexts

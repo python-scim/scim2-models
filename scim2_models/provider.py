@@ -4,12 +4,14 @@ import operator
 from collections.abc import Iterable
 from functools import cached_property
 from functools import reduce
+from types import TracebackType
 from typing import Annotated
 from typing import Any
 from typing import TypeVar
 from typing import cast
 
 from .annotations import Required
+from .policy import ScimPolicy
 from .resources.resource import Extension
 from .resources.resource import Resource
 from .resources.resource_type import ResourceType
@@ -112,9 +114,11 @@ class ScimProvider:
         models: Iterable[DescribedModel] = (),
         resource_types: Iterable[ResourceType] | None = None,
         config: ServiceProviderConfig | None = None,
+        policy: ScimPolicy | None = None,
     ) -> None:
         self._models = tuple(models)
         self._config = config
+        self._policy = policy or ScimPolicy()
         self._models_by_schema = self._index_models()
         self._resource_types = (
             tuple(resource_types)
@@ -210,6 +214,29 @@ class ScimProvider:
         """What the service publishes on ``/ServiceProviderConfig``."""
         return self._config
 
+    @property
+    def policy(self) -> ScimPolicy:
+        """How much the payloads the service reads may depart from the specification.
+
+        Unlike :attr:`config`, this is never :data:`None`: a policy always
+        applies, and a provider given none declares the strict reading.
+        """
+        return self._policy
+
+    def __enter__(self) -> "ScimProvider":
+        """Make the policy of this provider the one the block runs under."""
+        self._policy.__enter__()
+        return self
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
+        """Restore the policy the block interrupted."""
+        self._policy.__exit__(exc_type, exc_value, traceback)
+
     @cached_property
     def schemas(self) -> tuple[Schema, ...]:
         """What the service publishes on ``/Schemas``.
@@ -280,6 +307,7 @@ class ScimProvider:
         schemas: Iterable[Schema],
         resource_types: Iterable[ResourceType],
         config: ServiceProviderConfig | None = None,
+        policy: ScimPolicy | None = None,
     ) -> "ScimProvider":
         """Build a provider from what a service publishes about itself.
 
@@ -291,6 +319,9 @@ class ScimProvider:
         :param schemas: What ``/Schemas`` answered.
         :param resource_types: What ``/ResourceTypes`` answered.
         :param config: What ``/ServiceProviderConfig`` answered.
+        :param policy: How much the answers of the peer are allowed to depart
+            from the specification. This is a choice, not something a service
+            publishes about itself.
         :raises ScimProviderError: When a resource type names a schema the
             service does not publish.
         """
@@ -306,4 +337,9 @@ class ScimProvider:
             else Resource.from_schema(schema)
             for schema in schemas
         ]
-        return cls(models=models, resource_types=resource_types, config=config)
+        return cls(
+            models=models,
+            resource_types=resource_types,
+            config=config,
+            policy=policy,
+        )
