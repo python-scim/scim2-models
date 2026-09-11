@@ -65,3 +65,7 @@ Parameterize the resource with the generated extension before parsing its payloa
 
 Keep the schema with the generated class. It remains the source of the schema URN and attribute
 characteristics used when the model validates or serializes a resource.
+
+:meth:`ScimProvider.from_discovery <scim2_models.ScimProvider.from_discovery>` does all of this
+at once for a whole service, pairing each schema with the resource type declaring it. See
+:doc:`describe-a-scim-service`.

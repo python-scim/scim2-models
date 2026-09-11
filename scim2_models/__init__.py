@@ -47,6 +47,9 @@ from .messages.search_request import SearchRequest
 from .path import AttributeBinding
 from .path import Path
 from .path import ScimFilter
+from .provider import DescribedModel
+from .provider import ScimProvider
+from .provider import ScimProviderError
 from .reference import URI
 from .reference import External
 from .reference import Reference
@@ -105,6 +108,7 @@ __all__ = [
     "Context",
     "CreationRequestContext",
     "CreationResponseContext",
+    "DescribedModel",
     "ETag",
     "Email",
     "EnterpriseUser",
@@ -156,6 +160,8 @@ __all__ = [
     "SCIMSerializer",
     "SCIMValidator",
     "ScimFilter",
+    "ScimProvider",
+    "ScimProviderError",
     "Schema",
     "SchemaExtension",
     "ScimObject",

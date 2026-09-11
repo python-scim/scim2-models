@@ -17,6 +17,7 @@ from scim2_models import Meta
 from scim2_models import Path
 from scim2_models import Patch
 from scim2_models import ResourceType
+from scim2_models import ScimProvider
 from scim2_models import ServiceProviderConfig
 from scim2_models import SearchRequest
 from scim2_models import Sort
@@ -228,50 +229,44 @@ def to_scim_group(record):
 
 
 # -- discovery-start --
-RESOURCE_MODELS = [User]
+provider = ScimProvider(
+    models=[User],
+    config=ServiceProviderConfig(
+        patch=Patch(supported=True),
+        bulk=Bulk(supported=False, max_operations=0, max_payload_size=0),
+        filter=Filter(supported=True, max_results=MAX_RESULTS),
+        change_password=ChangePassword(supported=False),
+        sort=Sort(supported=True),
+        etag=ETag(supported=True),
+        authentication_schemes=[
+            AuthenticationScheme(
+                type=AuthenticationScheme.Type.httpbasic,
+                name="HTTP Basic",
+                description="Authentication via HTTP Basic",
+            ),
+        ],
+    ),
+)
+"""What this server serves, and what it announces of itself.
 
-
-def get_schemas():
-    """Return every :class:`~scim2_models.Schema` the server exposes."""
-    return [model.to_schema() for model in RESOURCE_MODELS]
+``provider.schemas`` and ``provider.resource_types`` are derived from the
+models, so the three discovery endpoints and the resources they describe can
+never drift apart.
+"""
 
 
 def get_schema(schema_id):
     """Return the :class:`~scim2_models.Schema` matching *schema_id*, or raise KeyError."""
-    for model in RESOURCE_MODELS:
-        schema = model.to_schema()
+    for schema in provider.schemas:
         if schema.id == schema_id:
             return schema
     raise KeyError(schema_id)
 
 
-def get_resource_types():
-    """Return every :class:`~scim2_models.ResourceType` the server exposes."""
-    return [ResourceType.from_resource(model) for model in RESOURCE_MODELS]
-
-
 def get_resource_type(resource_type_id):
     """Return the :class:`~scim2_models.ResourceType` matching *resource_type_id*, or raise KeyError."""
-    for model in RESOURCE_MODELS:
-        rt = ResourceType.from_resource(model)
-        if rt.id == resource_type_id:
-            return rt
+    for resource_type in provider.resource_types:
+        if resource_type.id == resource_type_id:
+            return resource_type
     raise KeyError(resource_type_id)
-
-
-service_provider_config = ServiceProviderConfig(
-    patch=Patch(supported=True),
-    bulk=Bulk(supported=False, max_operations=0, max_payload_size=0),
-    filter=Filter(supported=True, max_results=MAX_RESULTS),
-    change_password=ChangePassword(supported=False),
-    sort=Sort(supported=True),
-    etag=ETag(supported=True),
-    authentication_schemes=[
-        AuthenticationScheme(
-            type=AuthenticationScheme.Type.httpbasic,
-            name="HTTP Basic",
-            description="Authentication via HTTP Basic",
-        ),
-    ],
-)
 # -- discovery-end --

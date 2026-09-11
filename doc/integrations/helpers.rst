@@ -113,9 +113,14 @@ Server discovery
 
 SCIM clients discover the server capabilities by querying three read-only endpoints:
 ``/Schemas``, ``/ResourceTypes`` and ``/ServiceProviderConfig`` (:rfc:`RFC 7644 §4
-<7644#section-4>`). The helpers of this section build :class:`~scim2_models.Schema` and
-:class:`~scim2_models.ResourceType` objects from the resource models a server exposes, and define
-a :class:`~scim2_models.ServiceProviderConfig` describing its capabilities.
+<7644#section-4>`). A :class:`~scim2_models.ScimProvider` answers all three: give it the resource
+models the server serves and the capabilities it announces, and it derives the
+:class:`~scim2_models.Schema` and :class:`~scim2_models.ResourceType` objects the first two
+endpoints return.
+
+Deriving them is what keeps the three endpoints and the resources they describe from drifting
+apart. The two helpers below only pick one object out of a collection, which is what
+``/Schemas/<id>`` and ``/ResourceTypes/<id>`` serve.
 
 .. literalinclude:: _examples/integrations.py
    :language: python

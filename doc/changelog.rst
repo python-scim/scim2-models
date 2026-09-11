@@ -32,6 +32,21 @@ Added
   :meth:`ResourceType.from_resource <scim2_models.ResourceType.from_resource>` publishes the
   necessity under ``schemaExtensions.required``, which :rfc:`RFC7643 §6 <7643#section-6>`
   defines. See :doc:`how-to/define-custom-models`. :issue:`105`
+- :class:`~scim2_models.ScimProvider` describes a SCIM service: the models it builds its
+  resources from, and the :class:`~scim2_models.Schema`, :class:`~scim2_models.ResourceType` and
+  :class:`~scim2_models.ServiceProviderConfig` objects its discovery endpoints answer
+  (:rfc:`RFC7644 §4 <7644#section-4>`). Its ``models`` hold bare resources and extensions alike,
+  and its ``resource_types`` bind them as :rfc:`RFC7643 §6 <7643#section-6>` defines: a name or
+  an endpoint answers the composed model, a schema URI answers the bare one. Two resource types
+  may therefore share a base schema and differ by the extensions they carry, each served under
+  its own endpoint. A service whose models share a schema, whose resource types share a name or
+  an endpoint, or whose resource type names a schema no model describes, is refused with
+  :class:`~scim2_models.ScimProviderError`. See :doc:`how-to/describe-a-scim-service`.
+  :issue:`108`
+- :meth:`ScimProvider.from_discovery <scim2_models.ScimProvider.from_discovery>` builds a
+  provider from what a service publishes, turning each resource type into a model carrying the
+  extensions it declares, required ones included. A resource type naming a schema the service
+  does not publish is refused with an error naming that schema.
 - lark is a new dependency.
 
 Changed
