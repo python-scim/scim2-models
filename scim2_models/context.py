@@ -168,6 +168,32 @@ class Context(Enum):
         - not dump attributes annotated with :attr:`~scim2_models.Returned.request` unless they are explicitly included.
     """
 
+    BULK_REQUEST = auto()
+    """The bulk request context.
+
+    Should be used for clients building a payload for a bulk request,
+    and servers validating bulk request payloads.
+
+    - When used for serialization, it will not dump attributes annotated with :attr:`~scim2_models.Mutability.read_only`.
+    - When used for validation, it will raise a :class:`~pydantic_core.ValidationError`:
+        - when finding attributes annotated with :attr:`~scim2_models.Mutability.read_only`,
+        - when attributes annotated with :attr:`Required.true <scim2_models.Required.true>` are missing or null.
+    """
+
+    BULK_RESPONSE = auto()
+    """The bulk response context.
+
+    Should be used for servers building a payload for a bulk response,
+    and clients validating bulk response payloads.
+
+    - When used for validation, it will raise a :class:`~pydantic_core.ValidationError` when finding attributes annotated with :attr:`~scim2_models.Returned.never` or when attributes annotated with :attr:`~scim2_models.Returned.always` are missing or :data:`None`;
+    - When used for serialization, it will:
+        - always dump attributes annotated with :attr:`~scim2_models.Returned.always`;
+        - never dump attributes annotated with :attr:`~scim2_models.Returned.never`;
+        - dump attributes annotated with :attr:`~scim2_models.Returned.default` unless they are explicitly excluded;
+        - not dump attributes annotated with :attr:`~scim2_models.Returned.request` unless they are explicitly included.
+    """
+
     @classmethod
     def is_request(cls, ctx: "Context") -> bool:
         return ctx in (
@@ -176,6 +202,7 @@ class Context(Enum):
             cls.RESOURCE_REPLACEMENT_REQUEST,
             cls.SEARCH_REQUEST,
             cls.RESOURCE_PATCH_REQUEST,
+            cls.BULK_REQUEST,
         )
 
     @classmethod
@@ -186,4 +213,5 @@ class Context(Enum):
             cls.RESOURCE_REPLACEMENT_RESPONSE,
             cls.SEARCH_RESPONSE,
             cls.RESOURCE_PATCH_RESPONSE,
+            cls.BULK_RESPONSE,
         )

@@ -11,40 +11,15 @@ Added
   :issue:`17`
 - PATCH paths take a value selection, such as ``emails[type eq "work"].value``.
 - :class:`~scim2_models.SearchRequest` and :class:`~scim2_models.ResponseParameters` take the
-  resource type an endpoint serves, as in ``SearchRequest[User]``, or ``SearchRequest[User |
-  Group]`` for an endpoint serving several. Their :attr:`~scim2_models.SearchRequest.filter`,
-  :attr:`~scim2_models.SearchRequest.sort_by`, :attr:`~scim2_models.ResponseParameters.attributes`
-  and :attr:`~scim2_models.ResponseParameters.excluded_attributes` resolve against those models,
-  so a misspelled attribute is caught at validation time.
-- :meth:`Path.resolve <scim2_models.Path.resolve>` answers the
-  :class:`~scim2_models.AttributeBinding` a path designates: the model holding the attribute, its
-  type, its URN and its annotations.
-- :meth:`ScimFilter.quote <scim2_models.ScimFilter.quote>` renders a value as a filter literal.
-  On Python 3.14, :class:`~scim2_models.ScimFilter` and :class:`~scim2_models.Path` take a
-  t-string and quote what is interpolated, so a value cannot be read as syntax.
-- :class:`~scim2_models.ScimProvider` describes a SCIM service: the models it serves, and the
-  :class:`~scim2_models.Schema`, :class:`~scim2_models.ResourceType` and
-  :class:`~scim2_models.ServiceProviderConfig` objects its discovery endpoints answer.
-  :meth:`~scim2_models.ScimProvider.from_discovery` builds one from what a service publishes, and
-  a service that cannot be described is refused with
-  :class:`~scim2_models.ScimProviderError`. See :doc:`how-to/describe-a-scim-service`. :issue:`108`
-- An extension may be declared required, as in
-  ``User[Annotated[EnterpriseUser, Required.true]]``. A creation or a replacement request that
-  leaves it out is refused. See :doc:`how-to/define-custom-models`. :issue:`105`
-- :class:`~scim2_models.ScimPolicy` states how much a payload may depart from the specification
-  and still be read. :attr:`~scim2_models.ScimPolicy.unknown` accepts the attributes no model
-  declares, and :attr:`~scim2_models.ScimPolicy.remove_value_as_filter` accepts the PATCH
-  ``remove`` `Microsoft Entra ID
-  <https://learn.microsoft.com/en-us/entra/identity/app-provisioning/application-provisioning-config-problem-scim-compatibility>`_
-  sends. Name a policy at the call, or open a ``with`` block on it
-  or on a provider carrying one. Every setting defaults to the strict reading, so nothing changes
-  until one is chosen. See :doc:`how-to/tolerate-a-nonconformant-peer`. :issue:`85` :issue:`108`
-- :meth:`~scim2_models.BaseModel.model_dump` and
-  :meth:`~scim2_models.BaseModel.model_dump_json` take a ``response_parameters``: the
-  :class:`~scim2_models.ResponseParameters` a client sent, instead of its ``attributes`` and
-  ``excludedAttributes`` spelled out one by one. A :class:`~scim2_models.SearchRequest` is one,
-  so a server answering ``POST /.search`` passes the request it received. :issue:`141`
-- lark is a new dependency.
+  resource type an endpoint serves, as in ``SearchRequest[User]``, which resolves
+  :attr:`~scim2_models.SearchRequest.sort_by`,
+  :attr:`~scim2_models.ResponseParameters.attributes` and
+  :attr:`~scim2_models.ResponseParameters.excluded_attributes` against that model. An endpoint
+  covering several of them takes a union, as in ``SearchRequest[User | Group]``, and so does
+  :class:`~scim2_models.Path`; a path resolves against the first type declaring it, so
+  ``sortBy`` answers on a root query too.
+- Support for bulk operations.
+
 
 Changed
 ^^^^^^^
