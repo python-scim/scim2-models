@@ -1,3 +1,4 @@
+import warnings
 from collections.abc import Mapping
 from inspect import isclass
 from types import MappingProxyType
@@ -40,6 +41,7 @@ from scim2_models.utils import _normalize_attribute_name
 from scim2_models.utils import _to_camel
 
 if TYPE_CHECKING:
+    from scim2_models.messages.response_parameters import ResponseParameters
     from scim2_models.path import Path
 
 
@@ -846,10 +848,47 @@ class BaseModel(PydanticBaseModel):
 
         return kwargs
 
+    @staticmethod
+    def _attribute_selection(
+        response_parameters: "ResponseParameters[Any] | None",
+        attributes: list["str | Path[Any]"] | None,
+        excluded_attributes: list["str | Path[Any]"] | None,
+    ) -> tuple[list["str | Path[Any]"] | None, list["str | Path[Any]"] | None]:
+        """Read the attribute selection of a dump, from either spelling."""
+        if response_parameters is None:
+            if attributes is not None or excluded_attributes is not None:
+                warnings.warn(
+                    "The 'attributes' and 'excluded_attributes' parameters are "
+                    "deprecated, pass a ResponseParameters as 'response_parameters' "
+                    "instead. Will be removed in 0.9.0.",
+                    DeprecationWarning,
+                    stacklevel=3,
+                )
+            return attributes, excluded_attributes
+
+        if attributes is not None or excluded_attributes is not None:
+            raise TypeError(
+                "Cannot pass both 'response_parameters' and "
+                "'attributes' or 'excluded_attributes'"
+            )
+        # les listes de ResponseParameters sont invariantes, on les recopie élargies
+        selected: list[str | Path[Any]] | None = (
+            list(response_parameters.attributes)
+            if response_parameters.attributes is not None
+            else None
+        )
+        excluded: list[str | Path[Any]] | None = (
+            list(response_parameters.excluded_attributes)
+            if response_parameters.excluded_attributes is not None
+            else None
+        )
+        return selected, excluded
+
     def model_dump(
         self,
         *args: Any,
         scim_ctx: Context | None = Context.DEFAULT,
+        response_parameters: "ResponseParameters[Any] | None" = None,
         attributes: list["str | Path[Any]"] | None = None,
         excluded_attributes: list["str | Path[Any]"] | None = None,
         scim_policy: ScimPolicy | None = None,
@@ -860,15 +899,31 @@ class BaseModel(PydanticBaseModel):
         :param scim_ctx: If a SCIM context is passed, some default values of
             Pydantic :code:`BaseModel.model_dump` are tuned to generate valid SCIM
             messages. Pass :data:`None` to get the default Pydantic behavior.
+        :param response_parameters: The
+            :class:`~scim2_models.ResponseParameters` a client sent, whose
+            ``attributes`` and ``excludedAttributes`` select what the dump
+            carries. A :class:`~scim2_models.SearchRequest` is one, so a server
+            may pass the request it received.
         :param attributes: A multi-valued list of strings indicating the names of resource
             attributes to return in the response, overriding the set of attributes that
             would be returned by default. Invalid values are ignored.
+
+            .. deprecated:: 0.8.0
+                Pass a :class:`~scim2_models.ResponseParameters` as
+                *response_parameters* instead. Will be removed in 0.9.0.
         :param excluded_attributes: A multi-valued list of strings indicating the names of resource
             attributes to be removed from the default set of attributes to return. Invalid values are ignored.
+
+            .. deprecated:: 0.8.0
+                Pass a :class:`~scim2_models.ResponseParameters` as
+                *response_parameters* instead. Will be removed in 0.9.0.
         :param scim_policy: The :class:`~scim2_models.ScimPolicy` the
             serialization runs under. Defaults to the strict reading of the
             specification.
         """
+        attributes, excluded_attributes = self._attribute_selection(
+            response_parameters, attributes, excluded_attributes
+        )
         dump_kwargs = self._prepare_model_dump(
             scim_ctx,
             attributes=attributes,
@@ -884,6 +939,7 @@ class BaseModel(PydanticBaseModel):
         self,
         *args: Any,
         scim_ctx: Context | None = Context.DEFAULT,
+        response_parameters: "ResponseParameters[Any] | None" = None,
         attributes: list["str | Path[Any]"] | None = None,
         excluded_attributes: list["str | Path[Any]"] | None = None,
         scim_policy: ScimPolicy | None = None,
@@ -894,15 +950,31 @@ class BaseModel(PydanticBaseModel):
         :param scim_ctx: If a SCIM context is passed, some default values of
             Pydantic :code:`BaseModel.model_dump` are tuned to generate valid SCIM
             messages. Pass :data:`None` to get the default Pydantic behavior.
+        :param response_parameters: The
+            :class:`~scim2_models.ResponseParameters` a client sent, whose
+            ``attributes`` and ``excludedAttributes`` select what the dump
+            carries. A :class:`~scim2_models.SearchRequest` is one, so a server
+            may pass the request it received.
         :param attributes: A multi-valued list of strings indicating the names of resource
             attributes to return in the response, overriding the set of attributes that
             would be returned by default. Invalid values are ignored.
+
+            .. deprecated:: 0.8.0
+                Pass a :class:`~scim2_models.ResponseParameters` as
+                *response_parameters* instead. Will be removed in 0.9.0.
         :param excluded_attributes: A multi-valued list of strings indicating the names of resource
             attributes to be removed from the default set of attributes to return. Invalid values are ignored.
+
+            .. deprecated:: 0.8.0
+                Pass a :class:`~scim2_models.ResponseParameters` as
+                *response_parameters* instead. Will be removed in 0.9.0.
         :param scim_policy: The :class:`~scim2_models.ScimPolicy` the
             serialization runs under. Defaults to the strict reading of the
             specification.
         """
+        attributes, excluded_attributes = self._attribute_selection(
+            response_parameters, attributes, excluded_attributes
+        )
         dump_kwargs = self._prepare_model_dump(
             scim_ctx,
             attributes=attributes,

@@ -7,6 +7,7 @@ from scim2_models import Group
 from scim2_models import ListResponse
 from scim2_models import Resource
 from scim2_models import ResourceType
+from scim2_models import ResponseParameters
 from scim2_models import ServiceProviderConfig
 from scim2_models import User
 from scim2_models.urn import URN
@@ -282,7 +283,8 @@ def test_attributes_inclusion():
         ],
     )
     payload = response.model_dump(
-        scim_ctx=Context.RESOURCE_QUERY_RESPONSE, attributes=["userName"]
+        scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
+        response_parameters=ResponseParameters(attributes=["userName"]),
     )
     assert payload == {
         "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
@@ -306,7 +308,8 @@ def test_excluded_attributes():
         ],
     )
     payload = response.model_dump(
-        scim_ctx=Context.RESOURCE_QUERY_RESPONSE, excluded_attributes=["displayName"]
+        scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
+        response_parameters=ResponseParameters(excluded_attributes=["displayName"]),
     )
     assert "displayName" not in payload["Resources"][0]
     assert payload["Resources"][0]["userName"] == "user-name"
@@ -322,7 +325,9 @@ def test_attributes_inclusion_with_full_urn():
     )
     payload = response.model_dump(
         scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
-        attributes=["urn:ietf:params:scim:schemas:core:2.0:User:userName"],
+        response_parameters=ResponseParameters(
+            attributes=["urn:ietf:params:scim:schemas:core:2.0:User:userName"]
+        ),
     )
     resource = payload["Resources"][0]
     assert resource["userName"] == "user-name"
@@ -339,7 +344,11 @@ def test_excluded_attributes_with_full_urn():
     )
     payload = response.model_dump(
         scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
-        excluded_attributes=["urn:ietf:params:scim:schemas:core:2.0:User:displayName"],
+        response_parameters=ResponseParameters(
+            excluded_attributes=[
+                "urn:ietf:params:scim:schemas:core:2.0:User:displayName"
+            ]
+        ),
     )
     resource = payload["Resources"][0]
     assert "displayName" not in resource
@@ -359,7 +368,8 @@ def test_attributes_with_union_type(load_sample):
     }
     response = ListResponse[User | Group].model_validate(payload)
     dumped = response.model_dump(
-        scim_ctx=Context.RESOURCE_QUERY_RESPONSE, attributes=["userName"]
+        scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
+        response_parameters=ResponseParameters(attributes=["userName"]),
     )
     user_resource = dumped["Resources"][0]
     assert "userName" in user_resource
@@ -370,7 +380,8 @@ def test_attributes_with_empty_resources():
     """ListResponse serialization handles empty resources when attributes are set."""
     response = ListResponse[User](total_results=0, resources=[])
     payload = response.model_dump(
-        scim_ctx=Context.RESOURCE_QUERY_RESPONSE, attributes=["userName"]
+        scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
+        response_parameters=ResponseParameters(attributes=["userName"]),
     )
     assert payload["Resources"] == []
 

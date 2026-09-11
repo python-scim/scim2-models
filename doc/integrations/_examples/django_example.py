@@ -172,8 +172,7 @@ class UserView(SCIMView):
         return SCIMJsonResponse(
             scim_user.model_dump(
                 scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
-                attributes=req.attributes,
-                excluded_attributes=req.excluded_attributes,
+                response_parameters=req,
             )
         )
 
@@ -211,8 +210,7 @@ class UserView(SCIMView):
         return SCIMJsonResponse(
             response_user.model_dump(
                 scim_ctx=Context.RESOURCE_REPLACEMENT_RESPONSE,
-                attributes=req.attributes,
-                excluded_attributes=req.excluded_attributes,
+                response_parameters=req,
             )
         )
 
@@ -240,8 +238,7 @@ class UserView(SCIMView):
         return SCIMJsonResponse(
             scim_user.model_dump(
                 scim_ctx=Context.RESOURCE_PATCH_RESPONSE,
-                attributes=req.attributes,
-                excluded_attributes=req.excluded_attributes,
+                response_parameters=req,
             )
         )
 
@@ -276,8 +273,7 @@ def users_response(request, req, scim_ctx):
     return SCIMJsonResponse(
         response.model_dump(
             scim_ctx=scim_ctx,
-            attributes=req.attributes,
-            excluded_attributes=req.excluded_attributes,
+            response_parameters=req,
         )
     )
 
@@ -324,8 +320,7 @@ class UsersView(SCIMView):
         return SCIMJsonResponse(
             response_user.model_dump(
                 scim_ctx=Context.RESOURCE_CREATION_RESPONSE,
-                attributes=req.attributes,
-                excluded_attributes=req.excluded_attributes,
+                response_parameters=req,
             ),
             status=HTTPStatus.CREATED,
         )
@@ -394,8 +389,7 @@ class RootSearchView(SCIMView):
         return SCIMJsonResponse(
             response.model_dump(
                 scim_ctx=Context.SEARCH_RESPONSE,
-                attributes=req.attributes,
-                excluded_attributes=req.excluded_attributes,
+                response_parameters=req,
             )
         )
 

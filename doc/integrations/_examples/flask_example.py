@@ -142,8 +142,7 @@ def get_user(app_record):
     scim_user = to_scim_user(app_record, resource_location(app_record))
     return scim_user.model_dump(
         scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
-        attributes=req.attributes,
-        excluded_attributes=req.excluded_attributes,
+        response_parameters=req,
     )
 # -- get-user-end --
 
@@ -165,8 +164,7 @@ def patch_user(app_record):
 
     return scim_user.model_dump(
         scim_ctx=Context.RESOURCE_PATCH_RESPONSE,
-        attributes=req.attributes,
-        excluded_attributes=req.excluded_attributes,
+        response_parameters=req,
     )
 # -- patch-user-end --
 
@@ -189,8 +187,7 @@ def replace_user(app_record):
     response_user = to_scim_user(updated_record, resource_location(updated_record))
     return response_user.model_dump(
         scim_ctx=Context.RESOURCE_REPLACEMENT_RESPONSE,
-        attributes=req.attributes,
-        excluded_attributes=req.excluded_attributes,
+        response_parameters=req,
     )
 # -- put-user-end --
 
@@ -231,8 +228,7 @@ def users_response(req, scim_ctx):
     )
     return response.model_dump(
         scim_ctx=scim_ctx,
-        attributes=req.attributes,
-        excluded_attributes=req.excluded_attributes,
+        response_parameters=req,
     )
 
 
@@ -286,8 +282,7 @@ def search_root():
     )
     return response.model_dump(
         scim_ctx=Context.SEARCH_RESPONSE,
-        attributes=req.attributes,
-        excluded_attributes=req.excluded_attributes,
+        response_parameters=req,
     )
 # -- search-root-end --
 
@@ -308,8 +303,7 @@ def create_user():
     return (
         response_user.model_dump(
             scim_ctx=Context.RESOURCE_CREATION_RESPONSE,
-            attributes=req.attributes,
-            excluded_attributes=req.excluded_attributes,
+            response_parameters=req,
         ),
         HTTPStatus.CREATED,
     )

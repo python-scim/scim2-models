@@ -144,8 +144,7 @@ async def get_user(
     return SCIMResponse(
         scim_user.model_dump(
             scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
-            attributes=req.attributes,
-            excluded_attributes=req.excluded_attributes,
+            response_parameters=req,
         ),
     )
 # -- get-user-end --
@@ -171,8 +170,7 @@ async def patch_user(
     return SCIMResponse(
         response_user.model_dump(
             scim_ctx=Context.RESOURCE_PATCH_RESPONSE,
-            attributes=req.attributes,
-            excluded_attributes=req.excluded_attributes,
+            response_parameters=req,
         ),
     )
 # -- patch-user-end --
@@ -198,8 +196,7 @@ async def replace_user(
     return SCIMResponse(
         response_user.model_dump(
             scim_ctx=Context.RESOURCE_REPLACEMENT_RESPONSE,
-            attributes=req.attributes,
-            excluded_attributes=req.excluded_attributes,
+            response_parameters=req,
         ),
     )
 # -- put-user-end --
@@ -245,8 +242,7 @@ def users_response(request, req, scim_ctx):
     return SCIMResponse(
         response.model_dump(
             scim_ctx=scim_ctx,
-            attributes=req.attributes,
-            excluded_attributes=req.excluded_attributes,
+            response_parameters=req,
         ),
     )
 
@@ -302,8 +298,7 @@ async def search_root(
     return SCIMResponse(
         response.model_dump(
             scim_ctx=Context.SEARCH_RESPONSE,
-            attributes=req.attributes,
-            excluded_attributes=req.excluded_attributes,
+            response_parameters=req,
         ),
     )
 # -- search-root-end --
@@ -324,8 +319,7 @@ async def create_user(
     return SCIMResponse(
         response_user.model_dump(
             scim_ctx=Context.RESOURCE_CREATION_RESPONSE,
-            attributes=req.attributes,
-            excluded_attributes=req.excluded_attributes,
+            response_parameters=req,
         ),
         status_code=HTTPStatus.CREATED,
     )

@@ -17,6 +17,7 @@ from scim2_models import Manager
 from scim2_models import Meta
 from scim2_models import Required
 from scim2_models import Resource
+from scim2_models import ResponseParameters
 from scim2_models import Schema
 from scim2_models import User
 
@@ -297,9 +298,11 @@ def test_extensions_schemas():
     )
     assert user.model_dump(
         scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
-        attributes=[
-            "urn:ietf:params:scim:schemas:core:2.0:User:userName",
-        ],
+        response_parameters=ResponseParameters(
+            attributes=[
+                "urn:ietf:params:scim:schemas:core:2.0:User:userName",
+            ]
+        ),
     ) == {
         "schemas": [
             "urn:ietf:params:scim:schemas:core:2.0:User",

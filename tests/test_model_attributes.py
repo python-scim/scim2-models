@@ -6,6 +6,7 @@ from pydantic import Base64Bytes
 from pydantic import Field
 
 from scim2_models import URN
+from scim2_models import ResponseParameters
 from scim2_models.annotations import CaseExact
 from scim2_models.annotations import Returned
 from scim2_models.attributes import ComplexAttribute
@@ -157,25 +158,8 @@ def test_attribute_inclusion_case_sensitivity():
     """
     user = User.model_validate({"userName": "foobar"})
     assert user.model_dump(
-        scim_ctx=Context.RESOURCE_QUERY_RESPONSE, attributes=["userName"]
-    ) == {
-        "userName": "foobar",
-        "schemas": [
-            "urn:ietf:params:scim:schemas:core:2.0:User",
-        ],
-    }
-
-    assert user.model_dump(
-        scim_ctx=Context.RESOURCE_QUERY_RESPONSE, attributes=["username"]
-    ) == {
-        "userName": "foobar",
-        "schemas": [
-            "urn:ietf:params:scim:schemas:core:2.0:User",
-        ],
-    }
-
-    assert user.model_dump(
-        scim_ctx=Context.RESOURCE_QUERY_RESPONSE, attributes=["USERNAME"]
+        scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
+        response_parameters=ResponseParameters(attributes=["userName"]),
     ) == {
         "userName": "foobar",
         "schemas": [
@@ -185,7 +169,7 @@ def test_attribute_inclusion_case_sensitivity():
 
     assert user.model_dump(
         scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
-        attributes=["urn:ietf:params:scim:schemas:core:2.0:User:userName"],
+        response_parameters=ResponseParameters(attributes=["username"]),
     ) == {
         "userName": "foobar",
         "schemas": [
@@ -195,7 +179,31 @@ def test_attribute_inclusion_case_sensitivity():
 
     assert user.model_dump(
         scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
-        attributes=["urn:ietf:params:scim:schemas:core:2.0:User:username"],
+        response_parameters=ResponseParameters(attributes=["USERNAME"]),
+    ) == {
+        "userName": "foobar",
+        "schemas": [
+            "urn:ietf:params:scim:schemas:core:2.0:User",
+        ],
+    }
+
+    assert user.model_dump(
+        scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
+        response_parameters=ResponseParameters(
+            attributes=["urn:ietf:params:scim:schemas:core:2.0:User:userName"]
+        ),
+    ) == {
+        "userName": "foobar",
+        "schemas": [
+            "urn:ietf:params:scim:schemas:core:2.0:User",
+        ],
+    }
+
+    assert user.model_dump(
+        scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
+        response_parameters=ResponseParameters(
+            attributes=["urn:ietf:params:scim:schemas:core:2.0:User:username"]
+        ),
     ) == {
         "userName": "foobar",
         "schemas": [
@@ -204,7 +212,9 @@ def test_attribute_inclusion_case_sensitivity():
     }
     assert user.model_dump(
         scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
-        attributes=["URN:IETF:PARAMS:SCIM:SCHEMAS:CORE:2.0:USER:USERNAME"],
+        response_parameters=ResponseParameters(
+            attributes=["URN:IETF:PARAMS:SCIM:SCHEMAS:CORE:2.0:USER:USERNAME"]
+        ),
     ) == {
         "userName": "foobar",
         "schemas": [
@@ -238,10 +248,12 @@ def test_attribute_inclusion_schema_extensions():
     assert (
         user.model_dump(
             scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
-            attributes=[
-                "urn:ietf:params:scim:schemas:core:2.0:User:userName",
-                "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:employeeNumber",
-            ],
+            response_parameters=ResponseParameters(
+                attributes=[
+                    "urn:ietf:params:scim:schemas:core:2.0:User:userName",
+                    "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:employeeNumber",
+                ]
+            ),
         )
         == expected
     )
@@ -249,10 +261,12 @@ def test_attribute_inclusion_schema_extensions():
     assert (
         user.model_dump(
             scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
-            attributes=[
-                "urn:ietf:params:scim:schemas:core:2.0:User:userName",
-                "URN:IETF:PARAMS:SCIM:SCHEMAS:EXTENSION:ENTERPRISE:2.0:USER:EMPLOYEENUMBER",
-            ],
+            response_parameters=ResponseParameters(
+                attributes=[
+                    "urn:ietf:params:scim:schemas:core:2.0:User:userName",
+                    "URN:IETF:PARAMS:SCIM:SCHEMAS:EXTENSION:ENTERPRISE:2.0:USER:EMPLOYEENUMBER",
+                ]
+            ),
         )
         == expected
     )
@@ -370,7 +384,7 @@ def test_complex_attribute_inclusion_includes_sub_attributes():
     )
     result = user.model_dump(
         scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
-        attributes=["name"],
+        response_parameters=ResponseParameters(attributes=["name"]),
     )
     assert result["name"] == {"givenName": "Barbara", "familyName": "Jensen"}
 
@@ -387,7 +401,7 @@ def test_multivalued_complex_attribute_inclusion_includes_sub_attributes():
     )
     result = group.model_dump(
         scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
-        attributes=["members"],
+        response_parameters=ResponseParameters(attributes=["members"]),
     )
     assert result["members"] == [
         {"value": "user-1", "type": "User"},
@@ -431,9 +445,11 @@ def test_extension_excluded_by_full_urn():
     )
     result = user.model_dump(
         scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
-        excluded_attributes=[
-            "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:employeeNumber"
-        ],
+        response_parameters=ResponseParameters(
+            excluded_attributes=[
+                "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:employeeNumber"
+            ]
+        ),
     )
     ext = result["urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"]
     assert "employeeNumber" not in ext
