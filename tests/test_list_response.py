@@ -10,6 +10,7 @@ from scim2_models import ResourceType
 from scim2_models import ResponseParameters
 from scim2_models import ServiceProviderConfig
 from scim2_models import User
+from scim2_models.exceptions import InvalidCursorException
 from scim2_models.urn import URN
 
 
@@ -438,6 +439,29 @@ def test_cursor_pagination_first_page():
     dumped = response.model_dump(scim_ctx=Context.RESOURCE_QUERY_RESPONSE)
     assert "nextCursor" in dumped
     assert "prevCursor" not in dumped
+
+
+def test_invalid_cursor_exception():
+    """An invalid cursor value raises InvalidCursorException."""
+    payload = {
+        "totalResults": 1,
+        "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
+        "nextCursor": "not a valid cursor!",
+        "Resources": [
+            {
+                "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+                "id": "user-1",
+                "userName": "bjensen",
+            }
+        ],
+    }
+    with pytest.raises(ValidationError) as exc_info:
+        ListResponse[User].model_validate(payload)
+
+    error = exc_info.value.errors()[0]
+    assert error["type"] == "scim_invalidCursor"
+    assert error["ctx"]["scim_type"] == InvalidCursorException.scim_type
+    assert error["ctx"]["status"] == InvalidCursorException.status
 
 
 def test_cursor_absent_when_none():

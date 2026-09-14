@@ -4,6 +4,7 @@ from pydantic import ValidationError
 from scim2_models import EnterpriseUser
 from scim2_models import Group
 from scim2_models import User
+from scim2_models.exceptions import InvalidCursorException
 from scim2_models.messages.search_request import SearchRequest
 
 
@@ -270,6 +271,17 @@ def test_cursor_with_start_index():
     }
     with pytest.raises(ValidationError):
         SearchRequest.model_validate(invalid_search)
+
+
+def test_invalid_cursor_exception():
+    """An invalid cursor value raises InvalidCursorException."""
+    with pytest.raises(ValidationError) as exc_info:
+        SearchRequest(cursor="not a valid cursor!")
+
+    error = exc_info.value.errors()[0]
+    assert error["type"] == "scim_invalidCursor"
+    assert error["ctx"]["scim_type"] == InvalidCursorException.scim_type
+    assert error["ctx"]["status"] == InvalidCursorException.status
 
 
 def test_cursor_with_count():
