@@ -1,9 +1,11 @@
+from collections.abc import Iterator
 from enum import Enum
 from inspect import isclass
 from typing import Annotated
 from typing import Any
 from typing import Generic
 from typing import TypeVar
+from typing import cast
 
 from pydantic import BaseModel as PydanticBaseModel
 from pydantic import Field
@@ -77,6 +79,137 @@ def _resolved_field(resource_class: type[BaseModel], attr_name: str) -> str | No
     resolve the name instead of matching it against ``model_fields``.
     """
     return _find_field_name(resource_class, attr_name)
+
+
+_ENVELOPE_FIELDS = frozenset({"schemas"})
+"""Fields that carry the payload rather than the state it describes."""
+
+
+def _attribute_name(model: type[BaseModel], field_name: str) -> str:
+    """Return the SCIM spelling of a field, as a path segment."""
+    return model.model_fields[field_name].serialization_alias or field_name
+
+
+def _asserted_sub_attributes(entries: Any) -> set[str]:
+    """Return the sub-attributes the entries of a wanted state name."""
+    asserted: set[str] = set()
+    for entry in entries or []:
+        if isinstance(entry, BaseModel):
+            asserted |= entry.model_fields_set
+    return asserted
+
+
+def _projection(entries: Any, asserted: set[str]) -> list[Any]:
+    """Reduce the entries of a multi-valued attribute to what is worth comparing.
+
+    :rfc:`RFC7643 §2.4 <7643#section-2.4>` gives no significance to the order of
+    a multi-valued attribute, so the projections are sorted before comparison.
+    """
+    projected = [
+        tuple(sorted((name, getattr(entry, name, None)) for name in asserted))
+        if isinstance(entry, BaseModel)
+        else entry
+        for entry in entries or []
+    ]
+    return sorted(projected, key=repr)
+
+
+def _operation(
+    path: str, old: Any, new: Any, mutability: Mutability | None
+) -> tuple["PatchOperation.Op", str, Any]:
+    """Return the operation writing *new* where the current state holds *old*.
+
+    Called once a difference is established. :rfc:`RFC7644 §3.5.2.3
+    <7644#section-3.5.2.3>` has a service provider treat a ``replace`` on an
+    unset target as an ``add``, so a single operation covers both. An immutable
+    attribute is the exception: :rfc:`RFC7644 §3.5.2 <7644#section-3.5.2>` lets
+    a client add a value to one that had none, and nothing else.
+    """
+    if mutability == Mutability.immutable:
+        if old is not None:
+            raise MutabilityException(
+                attribute=path, mutability="immutable", operation="replace"
+            )
+        return PatchOperation.Op.add, path, new
+
+    if new is None or new == []:
+        return PatchOperation.Op.remove, path, None
+
+    return PatchOperation.Op.replace_, path, new
+
+
+def _diff_multi_valued(
+    path: str, old: Any, new: Any, mutability: Mutability | None
+) -> Iterator[tuple["PatchOperation.Op", str, Any]]:
+    """Diff a multi-valued attribute, which is replaced as a whole.
+
+    Only the sub-attributes the wanted entries name take part in the
+    comparison, so the sub-attributes the peer alone maintains do not read as a
+    difference. When the collection does change it is replaced entirely:
+    :rfc:`RFC7643 §2.4 <7643#section-2.4>` gives the entries no identity, so an
+    entry that changed cannot be told from a removed one and an added one.
+    """
+    asserted = _asserted_sub_attributes(new)
+    if _projection(old, asserted) == _projection(new, asserted):
+        return
+
+    yield _operation(path, old, new, mutability)
+
+
+def _diff_sub_object(
+    prefix: str,
+    path: str,
+    old: Any,
+    new: Any,
+    mutability: Mutability | None,
+) -> Iterator[tuple["PatchOperation.Op", str, Any]]:
+    """Diff a complex attribute or an extension, one sub-attribute at a time."""
+    if new is not None:
+        yield from _diff(old, new, prefix)
+        return
+
+    if old is not None:
+        yield _operation(path, old, None, mutability)
+
+
+def _diff(
+    before: Any, after: Any, prefix: str = ""
+) -> Iterator[tuple["PatchOperation.Op", str, Any]]:
+    """Yield the operations turning *before* into *after*.
+
+    Only the attributes *after* names are candidates: what a wanted state never
+    mentions is left to the peer. Attributes are visited in declaration order,
+    so a diff is reproducible.
+    """
+    model = type(after)
+    info = model.__scim_info__
+    for field_name in model.model_fields:
+        if field_name not in after.model_fields_set:
+            continue
+
+        if field_name in _ENVELOPE_FIELDS:
+            continue
+
+        mutability = model.get_field_annotation(field_name, Mutability)
+        if mutability == Mutability.read_only:
+            continue
+
+        old = getattr(before, field_name, None) if before is not None else None
+        new = getattr(after, field_name, None)
+        path = f"{prefix}{_attribute_name(model, field_name)}"
+
+        if model.get_field_multiplicity(field_name):
+            yield from _diff_multi_valued(path, old, new, mutability)
+
+        elif field_name in info.extensions:
+            urn = info.attribute_urns[field_name]
+            yield from _diff_sub_object(f"{urn}:", urn, old, new, mutability)
+
+        elif field_name in info.complex_fields:
+            yield from _diff_sub_object(f"{path}.", path, old, new, mutability)
+
+        elif old != new:
+            yield _operation(path, old, new, mutability)
 
 
 class PatchOperation(ComplexAttribute, Generic[ResourceT]):
@@ -361,6 +494,56 @@ class PatchOp(Message, Generic[ResourceT]):
             )
 
         return self
+
+    @classmethod
+    def build_from(
+        cls, before: ResourceT, after: ResourceT
+    ) -> "PatchOp[ResourceT] | None":
+        """Build the patch turning a resource state into another one.
+
+        Only the attributes *after* names take part in the comparison: what a
+        wanted state never mentions is left to the peer, which is what
+        distinguishes a patch from the :meth:`~scim2_models.Resource.replace`
+        it stands for. An attribute named with no value is removed, as
+        ``title=None`` reads as "clear the title" where an unnamed ``title``
+        reads as "leave it alone".
+
+        A multi-valued attribute is replaced as a whole, and only the
+        sub-attributes the wanted entries name decide whether it changed.
+        Read-only attributes never appear in the patch.
+
+        >>> from scim2_models import PatchOp, User
+        >>> patch = PatchOp.build_from(User(nick_name="Barb"), User(nick_name="Babs"))
+        >>> patch.model_dump()["Operations"]
+        [{'op': 'replace', 'path': 'nickName', 'value': 'Babs'}]
+
+        :param before: The state the peer is believed to hold.
+        :param after: The state the peer should hold.
+        :return: The patch to send, or :data:`None` when the two states agree.
+        :raises MutabilityException: If an immutable attribute already holding a
+            value would be modified.
+        :raises TypeError: If the two states are not of the same resource type.
+        """
+        if type(before) is not type(after):
+            raise TypeError(
+                "Cannot compare two states of different types: "
+                f"{type(before).__name__} and {type(after).__name__}"
+            )
+
+        # Subscripted through the call the syntax stands for: mypy reads the
+        # index of a generic as a type, not as a value.
+        model = type(after)
+        operation_class: Any = PatchOperation.__class_getitem__(model)
+        path_class = Path.__class_getitem__(model)
+        operations = [
+            operation_class(op=op, path=path_class(path), value=value)
+            for op, path, value in _diff(before, after)
+        ]
+        if not operations:
+            return None
+
+        patch_class = PatchOp.__class_getitem__(model)
+        return cast("PatchOp[ResourceT]", patch_class(operations=operations))
 
     def patch(self, resource: ResourceT, scim_policy: ScimPolicy | None = None) -> bool:
         """Apply all PATCH operations to the given SCIM resource in sequence.
