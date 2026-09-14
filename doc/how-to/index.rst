@@ -8,6 +8,7 @@ ends where an application resumes its own work, and assumes the :doc:`../overvie
    :maxdepth: 1
 
    access-resource-values
+   build-a-patch
    build-filters
    define-custom-models
    describe-a-scim-service
