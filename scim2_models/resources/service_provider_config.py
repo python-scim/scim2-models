@@ -72,7 +72,6 @@ class Pagination(ComplexAttribute):
     """An integer value specifying the cursor timeout in seconds."""
 
 
-
 class AuthenticationScheme(ComplexAttribute):
     class Type(ExtensibleStringEnum):
         oauth = "oauth"

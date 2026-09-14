@@ -81,11 +81,13 @@ def test_too_many_exception():
     assert exc.status == 400
     assert exc.scim_type == "tooMany"
 
+
 def test_invalid_cursor_exception():
     """InvalidCursorException has correct status and scim_type."""
     exc = InvalidCursorException()
     assert exc.status == 400
     assert exc.scim_type == "invalidCursor"
+
 
 def test_expired_cursor_exception():
     """ExpiredCursorException has correct status and scim_type."""
@@ -93,11 +95,13 @@ def test_expired_cursor_exception():
     assert exc.status == 400
     assert exc.scim_type == "expiredCursor"
 
+
 def test_invalid_count_exception():
     """InvalidCountException has correct status and scim_type."""
     exc = InvalidCountException()
     assert exc.status == 400
     assert exc.scim_type == "invalidCount"
+
 
 def test_uniqueness_exception():
     """UniquenessException has status 409 and stores attribute/value."""

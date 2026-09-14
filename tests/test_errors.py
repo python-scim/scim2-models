@@ -1,5 +1,3 @@
-import warnings
-
 from scim2_models.exceptions import ExpiredCursorException
 from scim2_models.exceptions import InvalidCountException
 from scim2_models.exceptions import InvalidCursorException

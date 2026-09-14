@@ -440,7 +440,6 @@ def test_cursor_pagination_first_page():
     assert "prevCursor" not in dumped
 
 
-
 def test_cursor_absent_when_none():
     response = ListResponse[User](
         total_results=1,

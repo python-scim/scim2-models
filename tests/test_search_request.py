@@ -82,12 +82,14 @@ def test_index_0_properties():
     assert req.stop_index_0 == 10
     assert not req.cursor
 
+
 def test_default_pagination():
     req = SearchRequest(count=10)
     assert req.start_index == 1
     assert req.start_index_0 == 0
     assert req.stop_index_0 == 10
     assert not req.cursor
+
 
 def test_pagination_does_not_default_if_cursor():
     req = SearchRequest(count=10, cursor="")
@@ -246,6 +248,7 @@ def test_comma_separated_empty_string():
     req = SearchRequest.model_validate({"attributes": ""})
     assert req.attributes == []
 
+
 def test_cursor_model_validate():
     payload = {
         "schemas": ["urn:ietf:params:scim:api:messages:2.0:SearchRequest"],
@@ -256,17 +259,18 @@ def test_cursor_model_validate():
     assert sr.cursor == "cursor-xyz"
     assert sr.count == 10
 
+
 def test_cursor_with_start_index():
     """Cursor and start_index are mutually exclusive."""
     invalid_search = {
         "schemas": ["urn:ietf:params:scim:api:messages:2.0:SearchRequest"],
         "cursor": "",
         "count": 10,
-        "start_index": 1
+        "start_index": 1,
     }
     with pytest.raises(ValidationError):
         SearchRequest.model_validate(invalid_search)
-    
+
 
 def test_cursor_with_count():
     """Count is valid alongside cursor per RFC 9875."""

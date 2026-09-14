@@ -189,7 +189,7 @@ class SearchRequest(Message, ResponseParameters[ResourceT], Generic[ResourceT]):
             obj.start_index = 1
 
         return obj
-    
+
     @model_validator(mode="after")
     def check_cursor_and_index(self, info: ValidationInfo) -> Self:
         if self.cursor is not None and self.start_index is not None:
