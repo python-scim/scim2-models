@@ -37,6 +37,19 @@ from .message import _get_resource_class
 ResourceT = TypeVar("ResourceT", bound=Resource[Any])
 
 
+def _commit(resource: Any, working: Any) -> None:
+    """Write a patched copy back onto the resource the caller holds.
+
+    Assignment is bypassed on purpose: ``working`` was built by the very passes
+    ``validate_assignment`` would run again.
+    """
+    resource.__dict__.clear()
+    resource.__dict__.update(working.__dict__)
+    resource.__pydantic_fields_set__.clear()
+    resource.__pydantic_fields_set__.update(working.__pydantic_fields_set__)
+    resource.__pydantic_private__ = working.__pydantic_private__
+
+
 def _targeted_attributes(value: Any) -> dict[str, Any]:
     """Return the attributes an operation without a path writes.
 
@@ -559,6 +572,11 @@ class PatchOp(Message, Generic[ResourceT]):
         ``primary`` sub-attribute to ``True``, any other values in the same multi-valued
         attribute will have their ``primary`` set to ``False`` automatically.
 
+        The operations are applied as a whole: when one fails, the resource is
+        left as it was. The resource object itself is kept, but the values it
+        holds are replaced, so a reference taken on one of them beforehand no
+        longer reflects the resource.
+
         :param resource: The SCIM resource to patch. This object is modified in-place.
         :param scim_policy: The :class:`~scim2_models.ScimPolicy` the patch is
             applied under. Defaults to the strict reading of the specification.
@@ -570,14 +588,20 @@ class PatchOp(Message, Generic[ResourceT]):
             return False
 
         modified = False
+        # §3.5.2 has a failing operation leave the resource as it was, and an
+        # operation only fails once tried: a filter selecting nothing is known
+        # from the state, not from the payload.
+        working = resource.model_copy(deep=True)
+
         # The policy is made ambient for the whole application: the passes it
         # governs below are revalidations that start from no call of ours.
         with _effective_policy(scim_policy):
             # RFC 7644 Section 3.5.2: "Apply each operation in sequence"
             for operation in self.operations:
-                if self._apply_operation(resource, operation):
+                if self._apply_operation(working, operation):
                     modified = True
 
+        _commit(resource, working)
         return modified
 
     def _apply_operation(
