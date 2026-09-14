@@ -62,6 +62,11 @@ Changed
   when applied. It used to remove the entries equal to that ``value``, and to report no change
   when the ``value`` was a list or described an entry only in part. Set
   :attr:`~scim2_models.ScimPolicy.remove_value_as_filter` to keep reading it.
+- :meth:`SCIMException.from_error <scim2_models.SCIMException.from_error>` reconstructs
+  :class:`~scim2_models.InvalidCursorException`, :class:`~scim2_models.ExpiredCursorException` and
+  :class:`~scim2_models.InvalidCountException` from an :class:`~scim2_models.Error` carrying the
+  matching ``scimType``, as :rfc:`RFC9865 §2.1 <9865#section-2.1>` defines them. They used to fall
+  back to the base :class:`~scim2_models.SCIMException`.
 
 Removed
 ^^^^^^^

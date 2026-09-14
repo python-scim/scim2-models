@@ -345,4 +345,7 @@ _SCIM_TYPE_TO_EXCEPTION: dict[str, type[SCIMException]] = {
     "invalidValue": InvalidValueException,
     "invalidVers": InvalidVersionException,
     "sensitive": SensitiveException,
+    "invalidCursor": InvalidCursorException,
+    "expiredCursor": ExpiredCursorException,
+    "invalidCount": InvalidCountException,
 }

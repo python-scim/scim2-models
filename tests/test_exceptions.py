@@ -332,6 +332,9 @@ def test_all_exceptions_inherit_from_scim_exception():
         InvalidValueException(),
         InvalidVersionException(),
         SensitiveException(),
+        InvalidCursorException(),
+        ExpiredCursorException(),
+        InvalidCountException(),
     ]
     for exc in exceptions:
         assert isinstance(exc, SCIMException)
@@ -424,6 +427,30 @@ def test_from_error_sensitive():
     exc = SCIMException.from_error(error)
     assert isinstance(exc, SensitiveException)
     assert exc.detail == "Sensitive data in URI"
+
+
+def test_from_error_invalid_cursor():
+    """from_error() creates InvalidCursorException from Error with scim_type invalidCursor."""
+    error = Error(status=400, scim_type="invalidCursor", detail="Bad cursor")
+    exc = SCIMException.from_error(error)
+    assert isinstance(exc, InvalidCursorException)
+    assert exc.detail == "Bad cursor"
+
+
+def test_from_error_expired_cursor():
+    """from_error() creates ExpiredCursorException from Error with scim_type expiredCursor."""
+    error = Error(status=400, scim_type="expiredCursor", detail="Cursor expired")
+    exc = SCIMException.from_error(error)
+    assert isinstance(exc, ExpiredCursorException)
+    assert exc.detail == "Cursor expired"
+
+
+def test_from_error_invalid_count():
+    """from_error() creates InvalidCountException from Error with scim_type invalidCount."""
+    error = Error(status=400, scim_type="invalidCount", detail="Bad count")
+    exc = SCIMException.from_error(error)
+    assert isinstance(exc, InvalidCountException)
+    assert exc.detail == "Bad count"
 
 
 def test_from_error_unknown_scim_type():
