@@ -399,7 +399,16 @@ class Resource(ScimObject, Generic[AnyExtension]):
         return obj
 
     @model_validator(mode="after")
-    def validate_resource_requirements(self) -> Self:
+    def validate_resource_requirements(self, info: ValidationInfo) -> Self:
+        """Check the identifier constraints a service provider must meet.
+
+        The ``id`` attribute is issued by the service provider and is read-only,
+        so these constraints only make sense on the payloads it emits.
+        """
+        scim_ctx = info.context.get("scim") if info.context else None
+        if scim_ctx is None or not Context.is_response(scim_ctx):
+            return self
+
         # RFC 7643 Section 3.1: "The string "bulkId" is a reserved keyword and
         # MUST NOT be used within any unique identifier value."
         if self.id and "bulkId" in self.id:
