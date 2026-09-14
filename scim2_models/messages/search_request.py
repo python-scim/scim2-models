@@ -40,7 +40,7 @@ class SearchRequest(Message, ResponseParameters[ResourceT], Generic[ResourceT]):
     ...     count=100,
     ... )
     >>> request.model_dump(scim_ctx=Context.SEARCH_REQUEST)
-    {'schemas': ['urn:ietf:params:scim:api:messages:2.0:SearchRequest'], 'filter': 'userName eq "bjensen"', 'sortBy': 'userName', 'count': 100}
+    {'schemas': ['urn:ietf:params:scim:api:messages:2.0:SearchRequest'], 'filter': 'userName eq "bjensen"', 'sortBy': 'userName', 'startIndex': 1, 'count': 100}
     """
 
     __schema__ = URN("urn:ietf:params:scim:api:messages:2.0:SearchRequest")
