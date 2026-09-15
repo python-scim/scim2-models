@@ -1,6 +1,7 @@
 from enum import Enum
 from typing import Annotated
 from typing import Any
+from typing import ClassVar
 from typing import Generic
 from typing import TypeVar
 from typing import Union
@@ -10,6 +11,8 @@ from typing import get_origin
 from pydantic import Field
 from pydantic import PlainSerializer
 from pydantic import ValidationInfo
+from pydantic import ValidatorFunctionWrapHandler
+from pydantic import field_validator
 from pydantic import model_validator
 from typing_extensions import Self
 
@@ -36,6 +39,13 @@ class BulkOperation(ComplexAttribute, Generic[ResourceT]):
         patch = "PATCH"
         delete = "DELETE"
 
+    _DATA_CONTEXTS: ClassVar[dict[Method, Context]] = {
+        Method.post: Context.RESOURCE_CREATION_REQUEST,
+        Method.put: Context.RESOURCE_REPLACEMENT_REQUEST,
+        Method.patch: Context.RESOURCE_PATCH_REQUEST,
+    }
+    """The single operation each method makes its data the payload of."""
+
     method: Annotated[Method | None, Required.true] = None
     """The HTTP method of the current operation."""
 
@@ -61,6 +71,40 @@ class BulkOperation(ComplexAttribute, Generic[ResourceT]):
 
     status: Annotated[int | None, PlainSerializer(_int_to_str)] = None
     """The HTTP response status code for the requested operation."""
+
+    @field_validator("data", mode="wrap")
+    @classmethod
+    def _validate_data_as_a_single_operation(
+        cls,
+        value: Any,
+        handler: ValidatorFunctionWrapHandler,
+        info: ValidationInfo,
+    ) -> Any:
+        """Validate data in the context of the operation it is the payload of.
+
+        RFC 7644 §3.7: "data  The resource data as it would appear for a single
+        SCIM POST, PUT, or PATCH operation." A payload answers to the rules of
+        the request it would be sent alone in, not to those of the bulk envelope
+        carrying it. The envelope keeps BULK_REQUEST, and a flag carries what
+        stays specific to a bulk job, such as a reference to a resource another
+        operation is still creating.
+        """
+        context = info.context
+        if not context or context.get("scim") != Context.BULK_REQUEST:
+            return handler(value)
+
+        method = info.data.get("method")
+        derived = cls._DATA_CONTEXTS.get(method) if method else None
+        if derived is None:
+            return handler(value)
+
+        context["scim"] = derived
+        context["scim_bulk"] = True
+        try:
+            return handler(value)
+        finally:
+            context["scim"] = Context.BULK_REQUEST
+            del context["scim_bulk"]
 
     def __class_getitem__(cls, item: Any) -> Any:
         """Turn ``BulkOperation[User | Group]`` into ``BulkOperation[User] | BulkOperation[Group]``.

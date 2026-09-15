@@ -174,6 +174,14 @@ class Context(Enum):
     Should be used for clients building a payload for a bulk request,
     and servers validating bulk request payloads.
 
+    This context applies to the bulk envelope: the request and the operations it
+    carries. Each operation's :attr:`~scim2_models.BulkOperation.data` is validated
+    in the context of the single request it is the payload of, as
+    :rfc:`RFC7644 §3.7 <7644#section-3.7>` defines it, so a POST data answers to
+    :attr:`RESOURCE_CREATION_REQUEST`, a PUT data to
+    :attr:`RESOURCE_REPLACEMENT_REQUEST` and a PATCH data to
+    :attr:`RESOURCE_PATCH_REQUEST`.
+
     - When used for serialization, it will not dump attributes annotated with :attr:`~scim2_models.Mutability.read_only`.
     - When used for validation, it will raise a :class:`~pydantic_core.ValidationError`:
         - when finding attributes annotated with :attr:`~scim2_models.Mutability.read_only`,

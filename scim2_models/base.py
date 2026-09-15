@@ -437,6 +437,7 @@ class BaseModel(PydanticBaseModel):
             Context.RESOURCE_REPLACEMENT_REQUEST,
             Context.BULK_REQUEST,
         )
+        in_bulk = bool(info.context.get("scim_bulk")) if info.context else False
         fields_set = self.model_fields_set
 
         for field_name in self.__class__.model_fields:
@@ -446,7 +447,7 @@ class BaseModel(PydanticBaseModel):
                 if field_name in fields_set:
                     self._check_mutability(field_name, scim_context)
                 if is_create_or_replace and not self._is_unresolved_bulk_reference(
-                    field_name, scim_context
+                    field_name, in_bulk
                 ):
                     self._check_necessity(field_name, value)
             else:
@@ -458,9 +459,7 @@ class BaseModel(PydanticBaseModel):
 
         return self
 
-    def _is_unresolved_bulk_reference(
-        self, field_name: str, scim_context: Context
-    ) -> bool:
+    def _is_unresolved_bulk_reference(self, field_name: str, in_bulk: bool) -> bool:
         """Whether a required Reference field targets a resource still being created.
 
         :rfc:`RFC7644 §3.7.2 <7644#section-3.7.2>` lets one bulk operation
@@ -470,8 +469,12 @@ class BaseModel(PydanticBaseModel):
         can only be resolved once the target exists, so a required Reference
         sub-attribute (e.g. ``manager.$ref``) isn't checked for necessity in
         this one documented case.
+
+        A bulk operation's data carries the context of the single request it
+        stands for, so the bulk job it belongs to is known from the flag
+        BulkOperation sets while validating it.
         """
-        if scim_context != Context.BULK_REQUEST:
+        if not in_bulk:
             return False
 
         root_type = self.__class__.get_field_root_type(field_name)

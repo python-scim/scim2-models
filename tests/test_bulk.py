@@ -8,6 +8,7 @@ from scim2_models.messages.bulk import BulkRequest
 from scim2_models.messages.bulk import BulkResponse
 from scim2_models.messages.patch_op import PatchOp
 from scim2_models.messages.patch_op import PatchOperation
+from scim2_models.resources.enterprise_user import EnterpriseUser
 from scim2_models.resources.group import Group
 from scim2_models.resources.group import GroupMember
 from scim2_models.resources.user import User
@@ -351,3 +352,152 @@ def test_bulk_response_with_multiple_resource_types():
     assert response.operations[0].response.user_name == "bjensen"
     assert isinstance(response.operations[1].response, Group)
     assert response.operations[1].response.display_name == "Tour Guides"
+
+
+def test_patch_operation_data_answers_to_the_patch_request_rules():
+    """A bulk job must not be a way to send the patches a PATCH endpoint refuses."""
+
+    def patch(operations):
+        return {
+            "method": BulkOperation.Method.patch,
+            "bulkId": "qwerty",
+            "path": "/Users/2819c223-7f76-453a-919d-413861904646",
+            "data": {
+                "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+                "Operations": operations,
+            },
+        }
+
+    with pytest.raises(ValidationError, match="value is required for add operations"):
+        BulkOperation[User].model_validate(
+            patch([{"op": "add", "path": "displayName"}]),
+            scim_ctx=Context.BULK_REQUEST,
+        )
+
+    with pytest.raises(ValidationError, match="Remove operation requires a path"):
+        BulkOperation[User].model_validate(
+            patch([{"op": "remove"}]), scim_ctx=Context.BULK_REQUEST
+        )
+
+    with pytest.raises(ValidationError, match="a remove operation carries no value"):
+        BulkOperation[User].model_validate(
+            patch([{"op": "remove", "path": "displayName", "value": "x"}]),
+            scim_ctx=Context.BULK_REQUEST,
+        )
+
+    operation = BulkOperation[User].model_validate(
+        patch([{"op": "add", "path": "displayName", "value": "Jane"}]),
+        scim_ctx=Context.BULK_REQUEST,
+    )
+    assert isinstance(operation.data, PatchOp)
+
+
+def test_patch_operation_data_reports_missing_operations_as_a_patch_would():
+    """PatchOp reports a clearer error than the generic check the bulk envelope would apply."""
+    with pytest.raises(ValidationError, match="operations attribute is required"):
+        BulkOperation[User].model_validate(
+            {
+                "method": BulkOperation.Method.patch,
+                "bulkId": "qwerty",
+                "path": "/Users/2819c223-7f76-453a-919d-413861904646",
+                "data": {"schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"]},
+            },
+            scim_ctx=Context.BULK_REQUEST,
+        )
+
+
+def test_post_operation_data_answers_to_the_creation_request_rules():
+    """A POST data is the payload of a single creation request, so it needs what a creation needs."""
+    with pytest.raises(ValidationError):
+        BulkOperation[User].model_validate(
+            {
+                "method": BulkOperation.Method.post,
+                "bulkId": "qwerty",
+                "path": "/Users",
+                "data": {"schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"]},
+            },
+            scim_ctx=Context.BULK_REQUEST,
+        )
+
+    operation = BulkOperation[User].model_validate(
+        {
+            "method": BulkOperation.Method.post,
+            "bulkId": "qwerty",
+            "path": "/Users",
+            "data": {
+                "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+                "userName": "bjensen",
+            },
+        },
+        scim_ctx=Context.BULK_REQUEST,
+    )
+    assert operation.data.user_name == "bjensen"
+
+
+def test_operation_data_keeps_the_bulk_context_when_no_single_request_matches():
+    """Neither a DELETE nor an unreadable method names a single request to borrow the rules from."""
+    operation = BulkOperation[User].model_validate(
+        {
+            "method": BulkOperation.Method.delete,
+            "path": "/Users/2819c223-7f76-453a-919d-413861904646",
+            "data": {
+                "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+                "userName": "bjensen",
+            },
+        },
+        scim_ctx=Context.BULK_REQUEST,
+    )
+    assert operation.data.user_name == "bjensen"
+
+
+def test_operation_envelope_keeps_the_bulk_context_after_its_data():
+    """The data switches the context, and the envelope still needs the bulk rules afterwards."""
+    with pytest.raises(ValidationError, match="Field 'method' is required"):
+        BulkOperation[User].model_validate(
+            {
+                "bulkId": "qwerty",
+                "path": "/Users",
+                "data": {
+                    "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+                    "userName": "bjensen",
+                },
+            },
+            scim_ctx=Context.BULK_REQUEST,
+        )
+
+
+def test_reference_to_a_resource_being_created_stays_tolerated_in_operation_data():
+    """A creation request requires a resolved reference, but RFC7644 §3.7.2 allows a placeholder inside a bulk job."""
+
+    def operation(manager):
+        return {
+            "method": BulkOperation.Method.post,
+            "bulkId": "qwerty",
+            "path": "/Users",
+            "data": {
+                "schemas": [
+                    "urn:ietf:params:scim:schemas:core:2.0:User",
+                    "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User",
+                ],
+                "userName": "bjensen",
+                "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User": {
+                    "manager": manager
+                },
+            },
+        }
+
+    BulkOperation[User[EnterpriseUser]].model_validate(
+        operation({"value": "bulkId:ytrewq"}), scim_ctx=Context.BULK_REQUEST
+    )
+
+    with pytest.raises(ValidationError):
+        BulkOperation[User[EnterpriseUser]].model_validate(
+            operation({"value": "2819c223-7f76-453a-919d-413861904646"}),
+            scim_ctx=Context.BULK_REQUEST,
+        )
+
+    with pytest.raises(ValidationError):
+        BulkOperation[User[EnterpriseUser]].model_validate(
+            operation({"value": "bulkId:ytrewq"}),
+            scim_ctx=Context.RESOURCE_CREATION_REQUEST,
+        )
