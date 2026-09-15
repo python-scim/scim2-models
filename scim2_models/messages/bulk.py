@@ -54,6 +54,14 @@ def _require_type_parameter(cls: type, name: str) -> None:
 
 
 class BulkOperation(ComplexAttribute, Generic[ResourceT]):
+    """One operation of a bulk job, as defined in :rfc:`RFC7644 §3.7 <7644#section-3.7>`.
+
+    ``data`` is validated in the context of the single request the operation
+    stands for, as :attr:`~scim2_models.Context.BULK_REQUEST` describes.
+    Parameterize the operation with the resource type it targets, e.g.
+    ``BulkOperation[User]``.
+    """
+
     class Method(str, Enum):
         post = "POST"
         put = "PUT"

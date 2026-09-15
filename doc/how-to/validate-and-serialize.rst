@@ -36,6 +36,9 @@ in a request context, responses are validated and serialized in the matching res
    * - ``POST /Users/.search``
      - :attr:`~scim2_models.Context.SEARCH_REQUEST`
      - :attr:`~scim2_models.Context.SEARCH_RESPONSE`
+   * - ``POST /Bulk``
+     - :attr:`~scim2_models.Context.BULK_REQUEST`
+     - :attr:`~scim2_models.Context.BULK_RESPONSE`
 
 :attr:`~scim2_models.Context.DEFAULT` applies neither set of rules, and suits a resource held in
 application state rather than exchanged over HTTP.
