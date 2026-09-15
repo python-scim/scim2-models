@@ -98,7 +98,7 @@ def test_remove_operation_multiple_attribute_all():
 def test_remove_operation_bypass_validation_no_path():
     """Test remove operation with no path raises noTarget error per RFC7644 §3.5.2.2."""
     with pytest.raises(ValidationError, match="Remove operation requires a path"):
-        PatchOp.model_validate(
+        PatchOp[User].model_validate(
             {
                 "operations": [
                     {"op": "remove", "value": "test"},

@@ -71,19 +71,23 @@ def test_patch_op_without_type_parameter():
         PatchOp(operations=[{"op": "replace", "path": "userName", "value": "test"}])
 
 
-def test_patch_op_with_resource_type():
-    """Test that PatchOp[Resource] is rejected."""
+def test_patch_op_parameterized_with_resource_is_refused_when_used():
+    """Resource declares no attribute, so it can annotate a patch but not read one."""
+    assert PatchOp[Resource] is not None
+
     with pytest.raises(
         TypeError,
-        match="PatchOp requires a concrete Resource subclass, not Resource itself",
+        match=r"PatchOp\[Resource\] declares no attribute a payload could be read as",
     ):
-        PatchOp[Resource]
+        PatchOp[Resource](
+            operations=[{"op": "replace", "path": "userName", "value": "test"}]
+        )
 
 
 def test_patch_op_with_invalid_type():
     """Test that PatchOp with invalid types like str is rejected."""
     with pytest.raises(
-        TypeError, match="PatchOp type parameter must be a concrete Resource subclass"
+        TypeError, match="PatchOp type parameter must name resource types"
     ):
         PatchOp[str]
 
@@ -91,7 +95,7 @@ def test_patch_op_with_invalid_type():
 def test_patch_op_union_types_not_supported():
     """Test that PatchOp with Union types are rejected."""
     with pytest.raises(
-        TypeError, match="PatchOp type parameter must be a concrete Resource subclass"
+        TypeError, match="PatchOp type parameter must name one resource type"
     ):
         PatchOp[User | Group]
 
@@ -510,7 +514,7 @@ def test_patch_op_with_unbound_typevar():
     """Test that PatchOp rejects unbound TypeVar."""
     with pytest.raises(
         TypeError,
-        match="PatchOp TypeVar must be bound to Resource or its subclass, got ~UnboundT",
+        match="PatchOp type parameter must name resource types, got ~UnboundT",
     ):
         PatchOp[UnboundT]
 
@@ -520,7 +524,7 @@ def test_patch_op_with_typevar_bound_to_non_resource():
     NonResourceT = TypeVar("NonResourceT", bound=str)
     with pytest.raises(
         TypeError,
-        match="PatchOp TypeVar must be bound to Resource or its subclass, got ~NonResourceT",
+        match="PatchOp type parameter must name resource types, got ~NonResourceT",
     ):
         PatchOp[NonResourceT]
 

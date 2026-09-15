@@ -28,32 +28,13 @@ from ..utils import UNION_TYPES
 from ..utils import _int_to_str
 from .error import Error
 from .message import Message
+from .message import _ResourceParameterized
 from .patch_op import PatchOp
 
 ResourceT = TypeVar("ResourceT", bound=Resource[Any])
 
 
-def _require_type_parameter(cls: type, name: str) -> None:
-    """Refuse a bulk model used without the resource type its payloads carry.
-
-    Parameterizing builds another class, carrying __origin__ and __args__, so
-    the bare name reaching this check means no parameter was given. Left alone,
-    the type variable falls back on its bound, and a valid payload fails deep
-    inside on an attribute that bound does not declare, blaming an attribute
-    for a missing parameter.
-    """
-    if (
-        cls.__name__ == name
-        and not hasattr(cls, "__origin__")
-        and not hasattr(cls, "__args__")
-    ):
-        raise TypeError(
-            f"{name} requires a type parameter. "
-            f"Use {name}[User] or {name}[User | Group] instead of {name}."
-        )
-
-
-class BulkOperation(ComplexAttribute, Generic[ResourceT]):
+class BulkOperation(_ResourceParameterized, ComplexAttribute, Generic[ResourceT]):
     """One operation of a bulk job, as defined in :rfc:`RFC7644 §3.7 <7644#section-3.7>`.
 
     ``data`` is validated in the context of the single request the operation
@@ -100,10 +81,6 @@ class BulkOperation(ComplexAttribute, Generic[ResourceT]):
 
     status: Annotated[int | None, PlainSerializer(_int_to_str)] = None
     """The HTTP response status code for the requested operation."""
-
-    def __new__(cls, *args: Any, **kwargs: Any) -> Self:
-        _require_type_parameter(cls, "BulkOperation")
-        return super().__new__(cls)
 
     @field_validator("data", mode="wrap")
     @classmethod
@@ -215,7 +192,7 @@ class BulkOperation(ComplexAttribute, Generic[ResourceT]):
         return self
 
 
-class BulkRequest(Message, Generic[ResourceT]):
+class BulkRequest(_ResourceParameterized, Message, Generic[ResourceT]):
     """Bulk request as defined in :rfc:`RFC7644 §3.7 <7644#section-3.7>`.
 
     The request groups independent SCIM operations. Its ``Operations`` field
@@ -253,12 +230,8 @@ class BulkRequest(Message, Generic[ResourceT]):
     )
     """Defines operations within a bulk job."""
 
-    def __new__(cls, *args: Any, **kwargs: Any) -> Self:
-        _require_type_parameter(cls, "BulkRequest")
-        return super().__new__(cls)
 
-
-class BulkResponse(Message, Generic[ResourceT]):
+class BulkResponse(_ResourceParameterized, Message, Generic[ResourceT]):
     """Bulk response as defined in :rfc:`RFC7644 §3.7 <7644#section-3.7>`.
 
     scim2-models validates and serializes the message. Building it from the
@@ -273,10 +246,6 @@ class BulkResponse(Message, Generic[ResourceT]):
         None, serialization_alias="Operations"
     )
     """Defines operations within a bulk job."""
-
-    def __new__(cls, *args: Any, **kwargs: Any) -> Self:
-        _require_type_parameter(cls, "BulkResponse")
-        return super().__new__(cls)
 
     @model_validator(mode="after")
     def check_operations(self, info: ValidationInfo) -> Self:

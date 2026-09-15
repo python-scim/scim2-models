@@ -196,7 +196,7 @@ def test_urn_parsing_errors():
 def test_generic_patchop_rejects_union():
     """Test that PatchOp rejects Union types."""
     with pytest.raises(
-        TypeError, match="PatchOp type parameter must be a concrete Resource subclass"
+        TypeError, match="PatchOp type parameter must name one resource type"
     ):
         PatchOp[User | Group]
 

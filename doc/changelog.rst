@@ -59,6 +59,17 @@ Changed
 - The bulk models take the resource type their operations carry, as in ``BulkRequest[User]`` or
   ``BulkRequest[User | Group]``, and raise a :class:`TypeError` when used bare. A payload the type
   parameter does not cover is now refused, and a bulk response no longer dumps ``path``.
+- :class:`~scim2_models.ListResponse` raises a :class:`TypeError` when used without the resource
+  type its entries carry, as :class:`~scim2_models.PatchOp` and the bulk models do. A bare
+  ``ListResponse`` used to answer a pydantic error naming ``Resource``, and whether it did depended
+  on what the calling module had imported.
+- A message type parameter must name resource types. ``ListResponse[str]`` used to build a class
+  that read anything as its entries.
+- ``ListResponse[Resource]``, ``PatchOp[Resource]`` and their bulk counterparts stay writable where
+  a type is expected, which is what an annotation covering any resource type needs, and raise a
+  :class:`TypeError` when they read or build a payload. ``Resource`` declares no attribute, so a
+  payload read against it fails on the first one it carries. ``PatchOp[Resource]`` used to be
+  refused as a type, and ``ListResponse[Resource]`` used to read payloads.
 - :attr:`SearchRequest.filter <scim2_models.SearchRequest.filter>` is a
   :class:`~scim2_models.ScimFilter` instead of a :class:`str`, so a malformed filter is rejected
   at validation time.
@@ -104,6 +115,12 @@ Deprecated
 
 Fixed
 ^^^^^
+- A bulk model indexed with something other than a resource type names itself in the error. The
+  rules of the :class:`~scim2_models.PatchOp` its operations carry used to answer for it, so
+  ``BulkRequest[str]`` told the caller to write ``PatchOp[User]``.
+- A subclass of a parameterized message, such as ``class Users(ListResponse[User])``, reads its
+  payloads with the type parameter it inherits. It used to raise an :exc:`IndexError`, a subclass
+  carrying no parameter of its own.
 - A PATCH operation targeting an attribute of an extension answers for the constraints that
   extension declares, where it used to look them up on the resource and find none. A refused
   operation no longer leaves the extension instantiated on the resource.

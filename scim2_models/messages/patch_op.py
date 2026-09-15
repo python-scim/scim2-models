@@ -6,6 +6,7 @@ from typing import Any
 from typing import Generic
 from typing import TypeVar
 from typing import cast
+from typing import get_origin
 
 from pydantic import BaseModel as PydanticBaseModel
 from pydantic import Field
@@ -31,9 +32,11 @@ from ..policy import _effective_policy
 from ..policy import _policy
 from ..resources.resource import Resource
 from ..urn import URN
+from ..utils import UNION_TYPES
 from ..utils import _find_field_name
 from .message import Message
 from .message import _get_resource_class
+from .message import _ResourceParameterized
 
 ResourceT = TypeVar("ResourceT", bound=Resource[Any])
 
@@ -362,17 +365,14 @@ class PatchOperation(ComplexAttribute, Generic[ResourceT]):
         return v
 
 
-class PatchOp(Message, Generic[ResourceT]):
+class PatchOp(_ResourceParameterized, Message, Generic[ResourceT]):
     """Patch Operation as defined in :rfc:`RFC7644 §3.5.2 <7644#section-3.5.2>`.
 
-    Type parameter ResourceT is required and must be a concrete Resource subclass.
-    Usage: PatchOp[User], PatchOp[Group], etc.
-
-    .. note::
-        - Always use with a specific type parameter, e.g., PatchOp[User]
-        - PatchOp[Resource] is not allowed - use a concrete subclass instead
-        - Union types are not supported - use a specific resource type
-        - Using PatchOp without a type parameter raises TypeError
+    Parameterise the message with the resource type the patched resource has,
+    as in ``PatchOp[User]``. The parameter is what resolves the paths the
+    operations carry, so a patch cannot be validated or applied without it. A
+    union names several types where one resource is patched, so it is refused:
+    a PATCH targets the one resource its endpoint designates.
 
     >>> from scim2_models import PatchOp, User
     >>> user = User(user_name="bjensen")
@@ -385,67 +385,18 @@ class PatchOp(Message, Generic[ResourceT]):
     (True, 'Barbara Jensen')
     """
 
-    def __new__(cls, *args: Any, **kwargs: Any) -> Self:
-        """Create new PatchOp instance with type parameter validation.
+    def __class_getitem__(cls, item: Any) -> Any:
+        """Refuse a union: a PATCH targets one resource type."""
+        parameter = item[0] if isinstance(item, tuple) and len(item) == 1 else item
 
-        Only handles the case of direct instantiation without type parameter (PatchOp()).
-        All type parameter validation is handled by __class_getitem__.
-        """
-        if (
-            cls.__name__ == "PatchOp"
-            and not hasattr(cls, "__origin__")
-            and not hasattr(cls, "__args__")
-        ):
+        if get_origin(parameter) in UNION_TYPES:
             raise TypeError(
-                "PatchOp requires a type parameter. "
-                "Use PatchOp[YourResourceType] instead of PatchOp. "
-                "Example: PatchOp[User], PatchOp[Group], etc."
+                f"{cls.__name__} type parameter must name one resource type, "
+                f"got {parameter}. A PATCH targets the resource its endpoint "
+                f"designates, so use {cls.__name__}[User]."
             )
 
-        return super().__new__(cls)
-
-    def __class_getitem__(
-        cls, typevar_values: type[Resource[Any]] | tuple[type[Resource[Any]], ...]
-    ) -> Any:
-        """Validate type parameter when creating parameterized type.
-
-        Ensures the type parameter is a concrete Resource subclass (not Resource itself)
-        or a TypeVar bound to Resource. Rejects invalid types (str, int, etc.) and Union types.
-        """
-        if isinstance(typevar_values, TypeVar):
-            # Check if TypeVar is bound to Resource or its subclass
-            if typevar_values.__bound__ is not None and (
-                typevar_values.__bound__ is Resource
-                or (
-                    isclass(typevar_values.__bound__)
-                    and issubclass(typevar_values.__bound__, Resource)
-                )
-            ):
-                return super().__class_getitem__(typevar_values)
-            else:
-                raise TypeError(
-                    f"PatchOp TypeVar must be bound to Resource or its subclass, got {typevar_values}. "
-                    "Example: T = TypeVar('T', bound=Resource)"
-                )
-
-        # Check if type parameter is a concrete Resource subclass (not Resource itself)
-        if typevar_values is Resource:
-            raise TypeError(
-                "PatchOp requires a concrete Resource subclass, not Resource itself. "
-                "Use PatchOp[User], PatchOp[Group], etc. instead of PatchOp[Resource]."
-            )
-
-        if not (
-            isclass(typevar_values)
-            and issubclass(typevar_values, Resource)
-            and typevar_values is not Resource
-        ):
-            raise TypeError(
-                f"PatchOp type parameter must be a concrete Resource subclass or TypeVar, got {typevar_values}. "
-                "Use PatchOp[User], PatchOp[Group], etc."
-            )
-
-        return super().__class_getitem__(typevar_values)
+        return super().__class_getitem__(item)
 
     __schema__ = URN("urn:ietf:params:scim:api:messages:2.0:PatchOp")
 
