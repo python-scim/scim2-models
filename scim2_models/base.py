@@ -477,12 +477,11 @@ class BaseModel(PydanticBaseModel):
         if not in_bulk:
             return False
 
-        root_type = self.__class__.get_field_root_type(field_name)
-        if not (isclass(root_type) and issubclass(root_type, Reference)):
+        sibling_value = getattr(self, "value", None)
+        if not (isinstance(sibling_value, str) and sibling_value.startswith("bulkId:")):
             return False
 
-        sibling_value = getattr(self, "value", None)
-        return isinstance(sibling_value, str) and sibling_value.startswith("bulkId:")
+        return _holds_reference(self.__class__, field_name)
 
     def _raise_field_error(
         self, field_name: str, error: PydanticCustomError

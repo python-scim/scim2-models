@@ -28,6 +28,7 @@ def test_bulk_operation_delete():
 
 
 def test_operations_required_for_bulk_request():
+    """A bulk request without operations describes no work at all."""
     with pytest.raises(ValidationError):
         BulkRequest[User].model_validate(
             {"operations": None}, context={"scim": Context.BULK_REQUEST}
@@ -232,6 +233,7 @@ def test_method_required_for_bulk_operations():
 
 
 def test_error_response_required_in_response():
+    """An operation that failed must say why, or the caller only learns that something went wrong."""
     BulkOperation[User].model_validate(
         {
             "method": BulkOperation.Method.post,
@@ -255,6 +257,7 @@ def test_error_response_required_in_response():
 
 
 def test_bulk_operation_with_group():
+    """A bulk job carries any resource type, so an operation must not be tied to User."""
     group = Group(
         display_name="Group 1",
         members=[GroupMember(value="123", display="Test User")],
@@ -271,6 +274,7 @@ def test_bulk_operation_with_group():
 
 
 def test_bulk_operation_with_patch_operation():
+    """A PATCH operation carries a patch rather than a resource, which the data union must accept."""
     patch = PatchOp[User](
         operations=[
             PatchOperation[User](

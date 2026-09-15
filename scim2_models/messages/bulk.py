@@ -231,10 +231,6 @@ class BulkRequest(Message, Generic[ResourceT]):
 
     scim2-models validates and serializes the message. Applying the operations it
     carries is left to the application.
-
-    .. todo::
-
-        The models for Bulk operations are defined, but their behavior is not implemented nor tested yet.
     """
 
     __schema__ = URN("urn:ietf:params:scim:api:messages:2.0:BulkRequest")
@@ -261,10 +257,6 @@ class BulkResponse(Message, Generic[ResourceT]):
     outcome of the operations is left to the application. Parameterize it
     with the resource type(s) the operations carry, e.g. ``BulkResponse[User
     | Group]``.
-
-    .. todo::
-
-        The models for Bulk operations are defined, but their behavior is not implemented nor tested yet.
     """
 
     __schema__ = URN("urn:ietf:params:scim:api:messages:2.0:BulkResponse")

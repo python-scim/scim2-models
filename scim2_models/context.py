@@ -183,9 +183,7 @@ class Context(Enum):
     :attr:`RESOURCE_PATCH_REQUEST`.
 
     - When used for serialization, it will not dump attributes annotated with :attr:`~scim2_models.Mutability.read_only`.
-    - When used for validation, it will raise a :class:`~pydantic_core.ValidationError`:
-        - when finding attributes annotated with :attr:`~scim2_models.Mutability.read_only`,
-        - when attributes annotated with :attr:`Required.true <scim2_models.Required.true>` are missing or null.
+    - When used for validation, it will ignore attributes annotated with :attr:`~scim2_models.Mutability.read_only` and raise a :class:`~pydantic_core.ValidationError` when attributes annotated with :attr:`Required.true <scim2_models.Required.true>` are missing or null.
     """
 
     BULK_RESPONSE = auto()
