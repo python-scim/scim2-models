@@ -14,6 +14,7 @@ from pydantic import ValidationInfo
 from pydantic import ValidatorFunctionWrapHandler
 from pydantic import field_validator
 from pydantic import model_validator
+from pydantic_core import PydanticCustomError
 from typing_extensions import Self
 
 from ..annotations import Required
@@ -154,10 +155,10 @@ class BulkOperation(ComplexAttribute, Generic[ResourceT]):
         """Validate operation requirements according to RFC 7644."""
         scim_ctx = info.context.get("scim") if info.context else None
 
-        if not scim_ctx or scim_ctx == Context.DEFAULT:
+        if scim_ctx not in (Context.BULK_REQUEST, Context.BULK_RESPONSE):
             return self
 
-        if Context.is_request(scim_ctx):
+        if scim_ctx == Context.BULK_REQUEST:
             # RFC 7644 Section 3.7: "path [...] REQUIRED in a request."
             if self.path is None:
                 raise InvalidValueException(
@@ -276,3 +277,24 @@ class BulkResponse(Message, Generic[ResourceT]):
     def __new__(cls, *args: Any, **kwargs: Any) -> Self:
         _require_type_parameter(cls, "BulkResponse")
         return super().__new__(cls)
+
+    @model_validator(mode="after")
+    def check_operations(self, info: ValidationInfo) -> Self:
+        """Validate that a bulk response carries its operations.
+
+        :rfc:`RFC7644 §3.7 <7644#section-3.7>` makes ``Operations`` required in
+        a bulk response as it is in a bulk request. A response context checks
+        what a peer returns rather than what it must send, so the necessity of
+        the attribute is stated here.
+        """
+        scim_ctx = info.context.get("scim") if info.context else None
+        if scim_ctx != Context.BULK_RESPONSE:
+            return self
+
+        if self.operations is None:
+            raise PydanticCustomError(
+                "required_error",
+                "Field 'operations' is required but value is missing or null",
+            )
+
+        return self

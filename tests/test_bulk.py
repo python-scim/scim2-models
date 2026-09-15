@@ -15,12 +15,16 @@ from scim2_models.resources.user import User
 
 
 def test_bulk_operation_delete():
-    BulkOperation[User].model_validate(
+    """A DELETE names its target with a path and carries no payload."""
+    operation = BulkOperation[User].model_validate(
         {
             "method": BulkOperation.Method.delete,
             "path": "/Users/2819c223-7f76-453a-919d-413861904646",
-        }
+        },
+        scim_ctx=Context.BULK_REQUEST,
     )
+    assert operation.method == BulkOperation.Method.delete
+    assert operation.data is None
 
 
 def test_operations_required_for_bulk_request():
@@ -31,9 +35,10 @@ def test_operations_required_for_bulk_request():
 
 
 def test_operations_required_for_bulk_response():
+    """Required.true is not consulted in a response context, so a validator of its own states it."""
     with pytest.raises(ValidationError):
         BulkResponse[User].model_validate(
-            {"operations": None}, context={"scim": Context.BULK_REQUEST}
+            {"operations": None}, scim_ctx=Context.BULK_RESPONSE
         )
 
 
@@ -49,7 +54,7 @@ def test_bulkId_required_for_post_bulk_operations():
             "path": "/Users",
             "data": User(user_name="John Doe"),
         },
-        context={"scim": Context.RESOURCE_CREATION_REQUEST},
+        context={"scim": Context.BULK_REQUEST},
     )
     with pytest.raises(ValidationError):
         BulkOperation[User].model_validate(
@@ -59,7 +64,7 @@ def test_bulkId_required_for_post_bulk_operations():
                 "path": "/Users",
                 "data": User(user_name="John Doe"),
             },
-            context={"scim": Context.RESOURCE_CREATION_REQUEST},
+            context={"scim": Context.BULK_REQUEST},
         )
 
 
@@ -75,7 +80,7 @@ def test_path_required_for_request_bulk_operations():
             "path": "/Users",
             "data": User(user_name="John Doe"),
         },
-        context={"scim": Context.RESOURCE_CREATION_REQUEST},
+        context={"scim": Context.BULK_REQUEST},
     )
     with pytest.raises(ValidationError):
         BulkOperation[User].model_validate(
@@ -85,7 +90,7 @@ def test_path_required_for_request_bulk_operations():
                 "path": None,
                 "data": User(user_name="John Doe"),
             },
-            context={"scim": Context.RESOURCE_CREATION_REQUEST},
+            context={"scim": Context.BULK_REQUEST},
         )
     BulkOperation[User].model_validate(
         {
@@ -95,7 +100,7 @@ def test_path_required_for_request_bulk_operations():
             "location": "https://example.com/users/2819c223-7f76-453a-919d-413861904646",
             "status": 201,
         },
-        context={"scim": Context.RESOURCE_CREATION_RESPONSE},
+        context={"scim": Context.BULK_RESPONSE},
     )
 
 
@@ -112,7 +117,7 @@ def test_data_required_for_post_put_patch_request_bulk_operations():
             "path": "/Users",
             "data": User(user_name="John Doe"),
         },
-        context={"scim": Context.RESOURCE_CREATION_REQUEST},
+        context={"scim": Context.BULK_REQUEST},
     )
     BulkOperation[User].model_validate(
         {
@@ -121,7 +126,7 @@ def test_data_required_for_post_put_patch_request_bulk_operations():
             "path": "/Users/2819c223-7f76-453a-919d-413861904646",
             "data": User(user_name="John Doe"),
         },
-        context={"scim": Context.RESOURCE_PATCH_REQUEST},
+        context={"scim": Context.BULK_REQUEST},
     )
     BulkOperation[User].model_validate(
         {
@@ -130,7 +135,7 @@ def test_data_required_for_post_put_patch_request_bulk_operations():
             "path": "/Users/2819c223-7f76-453a-919d-413861904646",
             "data": User(user_name="John Doe"),
         },
-        context={"scim": Context.RESOURCE_REPLACEMENT_REQUEST},
+        context={"scim": Context.BULK_REQUEST},
     )
     with pytest.raises(ValidationError):
         BulkOperation[User].model_validate(
@@ -140,7 +145,7 @@ def test_data_required_for_post_put_patch_request_bulk_operations():
                 "path": "/Users",
                 "data": None,
             },
-            context={"scim": Context.RESOURCE_CREATION_REQUEST},
+            context={"scim": Context.BULK_REQUEST},
         )
     with pytest.raises(ValidationError):
         BulkOperation[User].model_validate(
@@ -150,7 +155,7 @@ def test_data_required_for_post_put_patch_request_bulk_operations():
                 "path": "/Users/2819c223-7f76-453a-919d-413861904646",
                 "data": None,
             },
-            context={"scim": Context.RESOURCE_PATCH_REQUEST},
+            context={"scim": Context.BULK_REQUEST},
         )
     with pytest.raises(ValidationError):
         BulkOperation[User].model_validate(
@@ -160,7 +165,7 @@ def test_data_required_for_post_put_patch_request_bulk_operations():
                 "path": "/Users/2819c223-7f76-453a-919d-413861904646",
                 "data": None,
             },
-            context={"scim": Context.RESOURCE_REPLACEMENT_REQUEST},
+            context={"scim": Context.BULK_REQUEST},
         )
 
 
@@ -177,7 +182,7 @@ def test_location_required_for_response_bulk_operations_except_post_errors():
             "location": "https://example.com/users/2819c223-7f76-453a-919d-413861904646",
             "status": 201,
         },
-        context={"scim": Context.RESOURCE_CREATION_RESPONSE},
+        context={"scim": Context.BULK_RESPONSE},
     )
     BulkOperation[User].model_validate(
         {
@@ -189,7 +194,7 @@ def test_location_required_for_response_bulk_operations_except_post_errors():
                 status=400,
             ),
         },
-        context={"scim": Context.RESOURCE_CREATION_RESPONSE},
+        context={"scim": Context.BULK_RESPONSE},
     )
     with pytest.raises(ValidationError):
         BulkOperation[User].model_validate(
@@ -199,7 +204,7 @@ def test_location_required_for_response_bulk_operations_except_post_errors():
                 "location": None,
                 "status": 201,
             },
-            context={"scim": Context.RESOURCE_CREATION_RESPONSE},
+            context={"scim": Context.BULK_RESPONSE},
         )
     with pytest.raises(ValidationError):
         BulkOperation[User].model_validate(
@@ -209,7 +214,7 @@ def test_location_required_for_response_bulk_operations_except_post_errors():
                 "location": None,
                 "status": 400,
             },
-            context={"scim": Context.RESOURCE_PATCH_RESPONSE},
+            context={"scim": Context.BULK_RESPONSE},
         )
 
 
@@ -222,7 +227,7 @@ def test_method_required_for_bulk_operations():
                 "path": "/Users",
                 "data": User(user_name="John Doe"),
             },
-            context={"scim": Context.RESOURCE_CREATION_REQUEST},
+            context={"scim": Context.BULK_REQUEST},
         )
 
 
@@ -236,7 +241,7 @@ def test_error_response_required_in_response():
                 status=400,
             ),
         },
-        context={"scim": Context.RESOURCE_CREATION_RESPONSE},
+        context={"scim": Context.BULK_RESPONSE},
     )
     with pytest.raises(ValidationError):
         BulkOperation[User].model_validate(
@@ -245,7 +250,7 @@ def test_error_response_required_in_response():
                 "bulkId": "qwerty",
                 "status": 400,
             },
-            context={"scim": Context.RESOURCE_CREATION_RESPONSE},
+            context={"scim": Context.BULK_RESPONSE},
         )
 
 
@@ -261,7 +266,7 @@ def test_bulk_operation_with_group():
             "path": "/Groups",
             "data": group,
         },
-        context={"scim": Context.RESOURCE_CREATION_REQUEST},
+        context={"scim": Context.BULK_REQUEST},
     )
 
 
@@ -280,7 +285,7 @@ def test_bulk_operation_with_patch_operation():
             "path": "/Users",
             "data": patch,
         },
-        context={"scim": Context.RESOURCE_PATCH_REQUEST},
+        context={"scim": Context.BULK_REQUEST},
     )
 
 
@@ -508,3 +513,16 @@ def test_bulk_models_require_a_type_parameter():
     for model in (BulkRequest, BulkResponse, BulkOperation):
         with pytest.raises(TypeError, match="requires a type parameter"):
             model()
+
+
+def test_bulk_rules_do_not_apply_outside_a_bulk_context():
+    """A payload validated under another context is not part of a bulk job, and the bulk rules would reject it wrongly."""
+    operation = BulkOperation[User].model_validate(
+        {
+            "method": BulkOperation.Method.put,
+            "location": "https://example.com/v2/Users/2819c223",
+            "status": "200",
+        },
+        scim_ctx=Context.SEARCH_REQUEST,
+    )
+    assert operation.path is None
