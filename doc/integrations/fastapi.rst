@@ -201,6 +201,23 @@ serialize the created resource with :attr:`~scim2_models.Context.RESOURCE_CREATI
    :start-after: # -- create-user-start --
    :end-before: # -- create-user-end --
 
+POST /Bulk
+^^^^^^^^^^
+
+The job is validated through :class:`~scim2_models.BulkRequestContext`, which applies
+:attr:`~scim2_models.Context.BULK_REQUEST` to the annotated model, and the outcome is serialized
+with :attr:`~scim2_models.Context.BULK_RESPONSE`. The route closes over its request to build each
+location.
+
+A job that exceeds ``maxOperations`` raises :class:`~scim2_models.SCIMException`, which the
+handler registered for it turns into a ``413``. See :ref:`helpers-bulk` for what
+the executor does with each operation.
+
+.. literalinclude:: _examples/fastapi_example.py
+   :language: python
+   :start-after: # -- bulk-start --
+   :end-before: # -- bulk-end --
+
 Resource versioning (ETags)
 ---------------------------
 

@@ -48,11 +48,17 @@ Added
   another. Only the attributes the wanted state names take part in the comparison, so what a peer
   maintains and the caller does not model survives the modification — which is what a PATCH
   offers over a PUT. See :doc:`how-to/build-a-patch`. :issue:`104`
-- Support for Bulk operations. :pr:`149`
+- Bulk messages are validated, in the new :attr:`~scim2_models.Context.BULK_REQUEST` and
+  :attr:`~scim2_models.Context.BULK_RESPONSE` contexts. Each operation's
+  :attr:`~scim2_models.BulkOperation.data` is checked as the single request it stands for: a
+  creation for a POST, a patch for a PATCH. See :ref:`helpers-bulk`. :pr:`149`
 - lark is a new dependency.
 
 Changed
 ^^^^^^^
+- The bulk models take the resource type their operations carry, as in ``BulkRequest[User]`` or
+  ``BulkRequest[User | Group]``, and raise a :class:`TypeError` when used bare. A payload the type
+  parameter does not cover is now refused, and a bulk response no longer dumps ``path``.
 - :attr:`SearchRequest.filter <scim2_models.SearchRequest.filter>` is a
   :class:`~scim2_models.ScimFilter` instead of a :class:`str`, so a malformed filter is rejected
   at validation time.

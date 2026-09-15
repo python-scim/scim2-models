@@ -12,6 +12,10 @@ from datetime import timezone  # noqa: E402
 
 from pydantic import ValidationError  # noqa: E402
 
+from doc.integrations._examples.integrations import (  # noqa: E402
+    PayloadTooLargeException,
+)
+from doc.integrations._examples.integrations import execute_bulk  # noqa: E402
 from doc.integrations._examples.integrations import sort_resources  # noqa: E402
 from doc.integrations._examples.integrations import sort_value  # noqa: E402
 from doc.integrations._examples.sqlalchemy_example import EmailRecord  # noqa: E402
@@ -22,6 +26,8 @@ from doc.integrations._examples.sqlalchemy_example import (  # noqa: E402
 )
 from doc.integrations._examples.sqlalchemy_example import query_users  # noqa: E402
 from doc.integrations._examples.sqlalchemy_example import to_scim_user  # noqa: E402
+from scim2_models import BulkRequest  # noqa: E402
+from scim2_models import Context  # noqa: E402
 from scim2_models import EnterpriseUser  # noqa: E402
 from scim2_models import InvalidPathException  # noqa: E402
 from scim2_models import ScimFilter  # noqa: E402
@@ -351,8 +357,12 @@ def test_sorting_a_request_that_named_no_resource_type():
         sort_resources(resources, SearchRequest(sort_by="userName").sort_by)
 
 
-def test_django_example_smoke():
+def configure_django():
+    """Configure Django once, whichever test of its example runs first."""
     from django.conf import settings
+
+    if settings.configured:
+        return
 
     settings.configure(
         DEBUG=True,
@@ -362,6 +372,10 @@ def test_django_example_smoke():
         MIDDLEWARE=[],
     )
     django.setup()
+
+
+def test_django_example_smoke():
+    configure_django()
 
     from django.test import Client
     from django.test import override_settings
@@ -932,3 +946,378 @@ def test_sqlalchemy_rejects_a_request_that_named_no_resource_type(sqlalchemy_ses
     """The query orders by a resolved attribute, which an unparameterised request has none of."""
     with pytest.raises(InvalidPathException):
         query_users(sqlalchemy_session, SearchRequest(sort_by="userName"))
+
+
+USER_SCHEMA = "urn:ietf:params:scim:schemas:core:2.0:User"
+BULK_REQUEST_SCHEMA = "urn:ietf:params:scim:api:messages:2.0:BulkRequest"
+PATCH_OP_SCHEMA = "urn:ietf:params:scim:api:messages:2.0:PatchOp"
+
+
+def bulk_location(record):
+    """Build the canonical URL of a record, as a framework route would."""
+    return f"https://example.com/v2/Users/{record['id']}"
+
+
+def stored_user(user_name):
+    """Store a user record and return it."""
+    from doc.integrations._examples import integrations
+
+    record = integrations.from_scim_user(User(user_name=user_name))
+    integrations.save_record(record)
+    return record
+
+
+def bulk_request(*operations):
+    """Validate a bulk request made of the given operations."""
+    return BulkRequest[User].model_validate(
+        {"schemas": [BULK_REQUEST_SCHEMA], "Operations": list(operations)},
+        scim_ctx=Context.BULK_REQUEST,
+    )
+
+
+def test_bulk_answers_each_method_with_the_status_it_succeeds_with():
+    """A client reads the outcome of an operation from its status alone."""
+    from doc.integrations._examples import integrations
+
+    integrations.records.clear()
+    replaced = stored_user("replaced@example.com")
+    patched = stored_user("patched@example.com")
+    deleted = stored_user("deleted@example.com")
+
+    request = bulk_request(
+        {
+            "method": "POST",
+            "bulkId": "created",
+            "path": "/Users",
+            "data": {"schemas": [USER_SCHEMA], "userName": "created@example.com"},
+        },
+        {
+            "method": "PUT",
+            "path": f"/Users/{replaced['id']}",
+            "data": {"schemas": [USER_SCHEMA], "userName": "renamed@example.com"},
+        },
+        {
+            "method": "PATCH",
+            "path": f"/Users/{patched['id']}",
+            "data": {
+                "schemas": [PATCH_OP_SCHEMA],
+                "Operations": [
+                    {"op": "replace", "path": "displayName", "value": "Babs"}
+                ],
+            },
+        },
+        {"method": "DELETE", "path": f"/Users/{deleted['id']}"},
+    )
+
+    response = execute_bulk(request, bulk_location)
+
+    assert [operation.status for operation in response.operations] == [
+        201,
+        200,
+        200,
+        204,
+    ]
+
+
+def test_bulk_reports_a_failed_operation_and_carries_on():
+    """A job performs as many changes as possible and disregards partial failures."""
+    from doc.integrations._examples import integrations
+
+    integrations.records.clear()
+    stored_user("taken@example.com")
+
+    request = bulk_request(
+        {
+            "method": "POST",
+            "bulkId": "duplicate",
+            "path": "/Users",
+            "data": {"schemas": [USER_SCHEMA], "userName": "taken@example.com"},
+        },
+        {
+            "method": "POST",
+            "bulkId": "accepted",
+            "path": "/Users",
+            "data": {"schemas": [USER_SCHEMA], "userName": "free@example.com"},
+        },
+    )
+
+    duplicate, accepted = execute_bulk(request, bulk_location).operations
+
+    assert duplicate.status == 409
+    assert duplicate.response.scim_type == "uniqueness"
+    assert duplicate.location is None
+    assert accepted.status == 201
+
+
+def test_bulk_answers_404_for_an_operation_on_an_unknown_resource():
+    """An operation naming a resource the store does not hold fails on its own."""
+    from doc.integrations._examples import integrations
+
+    integrations.records.clear()
+
+    request = bulk_request({"method": "DELETE", "path": "/Users/does-not-exist"})
+
+    (missing,) = execute_bulk(request, bulk_location).operations
+
+    assert missing.status == 404
+    assert missing.response.detail == "Resource does not exist."
+
+
+def test_bulk_stops_once_the_error_limit_the_client_set_is_reached():
+    """A client caps the failures it accepts, and the operations past that cap stay undone."""
+    from doc.integrations._examples import integrations
+
+    integrations.records.clear()
+    stored_user("taken@example.com")
+
+    request = BulkRequest[User].model_validate(
+        {
+            "schemas": [BULK_REQUEST_SCHEMA],
+            "failOnErrors": 1,
+            "Operations": [
+                {
+                    "method": "POST",
+                    "bulkId": "duplicate",
+                    "path": "/Users",
+                    "data": {"schemas": [USER_SCHEMA], "userName": "taken@example.com"},
+                },
+                {
+                    "method": "POST",
+                    "bulkId": "never-reached",
+                    "path": "/Users",
+                    "data": {"schemas": [USER_SCHEMA], "userName": "free@example.com"},
+                },
+            ],
+        },
+        scim_ctx=Context.BULK_REQUEST,
+    )
+
+    response = execute_bulk(request, bulk_location)
+
+    assert [operation.bulk_id for operation in response.operations] == ["duplicate"]
+    assert not [
+        record
+        for record in integrations.list_records()
+        if record["user_name"] == "free@example.com"
+    ]
+
+
+def test_bulk_refuses_a_job_larger_than_the_service_provider_accepts():
+    """A job beyond the announced maxOperations is refused whole, naming the limit."""
+    from doc.integrations._examples import integrations
+
+    integrations.records.clear()
+    limit = integrations.provider.config.bulk.max_operations
+
+    request = bulk_request(
+        *(
+            {
+                "method": "POST",
+                "bulkId": f"user-{index}",
+                "path": "/Users",
+                "data": {"schemas": [USER_SCHEMA], "userName": f"user{index}@e.com"},
+            }
+            for index in range(limit + 1)
+        )
+    )
+
+    with pytest.raises(PayloadTooLargeException) as raised:
+        execute_bulk(request, bulk_location)
+
+    assert raised.value.status == 413
+    assert str(limit) in raised.value.detail
+    assert integrations.list_records() == []
+
+
+def test_flask_serves_a_bulk_job():
+    """The Flask bulk endpoint answers one result per operation, located and versioned."""
+    from doc.integrations._examples import integrations
+
+    integrations.records.clear()
+    client = create_flask_app().test_client()
+
+    response = client.post(
+        "/scim/v2/Bulk",
+        json={
+            "schemas": [BULK_REQUEST_SCHEMA],
+            "Operations": [
+                {
+                    "method": "POST",
+                    "bulkId": "created",
+                    "path": "/Users",
+                    "data": {
+                        "schemas": [USER_SCHEMA],
+                        "userName": "bjensen@example.com",
+                    },
+                }
+            ],
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.headers["Content-Type"] == "application/scim+json"
+    (created,) = response.get_json()["Operations"]
+    assert created["status"] == "201"
+    assert created["bulkId"] == "created"
+    assert created["location"].startswith("http://localhost/scim/v2/Users/")
+    assert "data" not in created
+
+
+def test_django_serves_a_bulk_job():
+    """The Django bulk endpoint answers one result per operation, located and versioned."""
+    configure_django()
+
+    from django.test import Client
+    from django.test import override_settings
+
+    from doc.integrations._examples import integrations
+
+    integrations.records.clear()
+
+    with override_settings(ROOT_URLCONF="doc.integrations._examples.django_example"):
+        response = Client().post(
+            "/scim/v2/Bulk",
+            data=json.dumps(
+                {
+                    "schemas": [BULK_REQUEST_SCHEMA],
+                    "Operations": [
+                        {
+                            "method": "POST",
+                            "bulkId": "created",
+                            "path": "/Users",
+                            "data": {
+                                "schemas": [USER_SCHEMA],
+                                "userName": "bjensen@example.com",
+                            },
+                        }
+                    ],
+                }
+            ),
+            content_type="application/scim+json",
+        )
+
+    assert response.status_code == 200
+    (created,) = json.loads(response.content)["Operations"]
+    assert created["status"] == "201"
+    assert created["bulkId"] == "created"
+    assert created["location"].startswith("http://testserver/scim/v2/Users/")
+
+
+def test_fastapi_serves_a_bulk_job():
+    """The FastAPI bulk endpoint answers one result per operation, located and versioned."""
+    from starlette.testclient import TestClient
+
+    from doc.integrations._examples import integrations
+    from doc.integrations._examples.fastapi_example import app
+
+    integrations.records.clear()
+
+    response = TestClient(app).post(
+        "/scim/v2/Bulk",
+        json={
+            "schemas": [BULK_REQUEST_SCHEMA],
+            "Operations": [
+                {
+                    "method": "POST",
+                    "bulkId": "created",
+                    "path": "/Users",
+                    "data": {
+                        "schemas": [USER_SCHEMA],
+                        "userName": "bjensen@example.com",
+                    },
+                }
+            ],
+        },
+    )
+
+    assert response.status_code == 200
+    (created,) = response.json()["Operations"]
+    assert created["status"] == "201"
+    assert created["bulkId"] == "created"
+    assert created["location"].startswith("http://testserver/scim/v2/Users/")
+
+
+def test_flask_answers_413_to_an_oversized_bulk_job():
+    """The limit the service provider announces is the one its bulk endpoint applies."""
+    from doc.integrations._examples import integrations
+
+    integrations.records.clear()
+    limit = integrations.provider.config.bulk.max_operations
+    client = create_flask_app().test_client()
+
+    response = client.post(
+        "/scim/v2/Bulk",
+        json={
+            "schemas": [BULK_REQUEST_SCHEMA],
+            "Operations": [
+                {
+                    "method": "POST",
+                    "bulkId": f"user-{index}",
+                    "path": "/Users",
+                    "data": {
+                        "schemas": [USER_SCHEMA],
+                        "userName": f"user{index}@example.com",
+                    },
+                }
+                for index in range(limit + 1)
+            ],
+        },
+    )
+
+    assert response.status_code == 413
+    assert response.get_json()["status"] == "413"
+    assert integrations.list_records() == []
+
+
+def test_bulk_keeps_the_location_of_a_failed_operation_that_is_not_a_creation():
+    """Only a failed creation may omit the location a bulk response requires."""
+    from doc.integrations._examples import integrations
+
+    integrations.records.clear()
+    stored_user("taken@example.com")
+    replaced = stored_user("replaced@example.com")
+
+    request = bulk_request(
+        {
+            "method": "PUT",
+            "path": f"/Users/{replaced['id']}",
+            "data": {"schemas": [USER_SCHEMA], "userName": "taken@example.com"},
+        }
+    )
+
+    (failed,) = execute_bulk(request, bulk_location).operations
+
+    assert failed.status == 409
+    assert failed.location == bulk_location(replaced)
+
+
+def test_bulk_write_operations_reach_the_store():
+    """A job is only useful if the changes it describes outlive the response."""
+    from doc.integrations._examples import integrations
+
+    integrations.records.clear()
+    replaced = stored_user("replaced@example.com")
+    patched = stored_user("patched@example.com")
+
+    request = bulk_request(
+        {
+            "method": "PUT",
+            "path": f"/Users/{replaced['id']}",
+            "data": {"schemas": [USER_SCHEMA], "userName": "renamed@example.com"},
+        },
+        {
+            "method": "PATCH",
+            "path": f"/Users/{patched['id']}",
+            "data": {
+                "schemas": [PATCH_OP_SCHEMA],
+                "Operations": [
+                    {"op": "replace", "path": "displayName", "value": "Babs"}
+                ],
+            },
+        },
+    )
+
+    execute_bulk(request, bulk_location)
+
+    assert integrations.get_record(replaced["id"])["user_name"] == "renamed@example.com"
+    assert integrations.get_record(patched["id"])["display_name"] == "Babs"

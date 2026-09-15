@@ -13,6 +13,8 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError
 
+from scim2_models import BulkRequest
+from scim2_models import BulkRequestContext
 from scim2_models import Context
 from scim2_models import CreationRequestContext
 from scim2_models import Error
@@ -32,6 +34,7 @@ from scim2_models import SearchRequestContext
 from scim2_models import User
 
 from .integrations import delete_record
+from .integrations import execute_bulk
 from .integrations import from_scim_user
 from .integrations import get_record
 from .integrations import get_resource_type
@@ -325,6 +328,19 @@ async def create_user(
     )
 # -- create-user-end --
 # -- collection-end --
+
+
+# -- bulk-start --
+@router.post("/Bulk")
+async def bulk(
+    request: Request, bulk_request: BulkRequestContext[BulkRequest[User]]
+):
+    """Apply a bulk job and answer one result per operation."""
+    bulk_response = execute_bulk(
+        bulk_request, lambda record: resource_location(request, record)
+    )
+    return SCIMResponse(bulk_response.model_dump(scim_ctx=Context.BULK_RESPONSE))
+# -- bulk-end --
 
 
 # -- discovery-start --

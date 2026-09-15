@@ -3,8 +3,8 @@ Shared helpers for a SCIM server
 
 Every framework guide of this section serves the same resources over the same rules, and differs
 only in the HTTP layer. This page holds what they share: a storage layer, the conversion between
-the application model and SCIM resources, the filtering, ordering and paging of a collection, and
-the three discovery endpoints. Read it before a framework guide, which assumes these helpers.
+the application model and SCIM resources, the filtering, ordering and paging of a collection, the
+three discovery endpoints, and the execution of a bulk job. Read it before a framework guide, which assumes these helpers.
 
 The code shown here favours brevity over completeness: it keeps resources in a dictionary and
 walks them in Python. :doc:`sqlalchemy` replaces both with a database.
@@ -127,3 +127,40 @@ apart. The two helpers below only pick one object out of a collection, which is 
    :caption: Server discovery helpers
    :start-after: # -- discovery-start --
    :end-before: # -- discovery-end --
+
+.. _helpers-bulk:
+
+Bulk jobs
+---------
+
+A client groups independent operations in a single ``POST /Bulk`` request (:rfc:`RFC7644 §3.7
+<7644#section-3.7>`). Each operation names a method and a path, and a creation or an update adds
+the payload a single request would carry.
+
+scim2-models validates that payload in the context of the request the operation stands for. A
+POST or a PUT therefore hands ``apply_operation`` a :class:`~scim2_models.User`, and a PATCH a
+:class:`~scim2_models.PatchOp`, both already validated. The dispatch reuses the storage and
+mapping helpers of the resource endpoints, and validates nothing again.
+
+Three rules of §3.7 shape ``execute_bulk``:
+
+- A job performs as many changes as possible and disregards partial failures. ``failOnErrors``
+  caps the failures a client accepts, and the operations past that cap stay undone.
+- Every result carries the location of the resource its operation acted on, except a creation
+  that failed. ``run_operation`` resolves the target before it applies the operation, so a failure
+  still knows that location.
+- A job holding more operations than ``maxOperations`` is refused whole with a ``413``. The limit
+  read is the one the :class:`~scim2_models.ServiceProviderConfig` announces, which keeps the
+  bound a client reads and the bound the server applies the same.
+
+.. literalinclude:: _examples/integrations.py
+   :language: python
+   :caption: Applying a bulk job
+   :start-after: # -- bulk-start --
+   :end-before: # -- bulk-end --
+
+Two parts of §3.7 stay out of these helpers. Resolving a ``bulkId:`` reference, which lets one
+operation point at a resource another operation of the same job creates, is left to the
+application. And a payload that no model accepts fails the whole request with a ``400``, where
+§3.7.3 reports such an operation with its own ``400`` inside a job that answers ``200``:
+scim2-models validates the request in one pass.

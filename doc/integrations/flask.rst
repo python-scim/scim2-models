@@ -193,6 +193,22 @@ convert to native and persist, then serialize the created resource with
    :start-after: # -- create-user-start --
    :end-before: # -- create-user-end --
 
+POST /Bulk
+^^^^^^^^^^
+
+Validate the job with :attr:`~scim2_models.Context.BULK_REQUEST`, apply it with ``execute_bulk``
+and serialize the outcome with :attr:`~scim2_models.Context.BULK_RESPONSE`. The view hands the
+executor its own ``resource_location``, the only part of a result a framework has to spell.
+
+A job that exceeds ``maxOperations`` raises :class:`~scim2_models.SCIMException`, which the error
+handler of the `Error handlers`_ section already turns into a ``413``. See :ref:`helpers-bulk`
+for what the executor does with each operation.
+
+.. literalinclude:: _examples/flask_example.py
+   :language: python
+   :start-after: # -- bulk-start --
+   :end-before: # -- bulk-end --
+
 Resource versioning (ETags)
 ---------------------------
 
