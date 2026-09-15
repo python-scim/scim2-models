@@ -1,9 +1,16 @@
+import re
 from enum import Enum
 from typing import Any
 from typing import Generic
 
+from pydantic import ValidationInfo
+from pydantic import ValidatorFunctionWrapHandler
 from pydantic import field_validator
+from pydantic import model_validator
+from pydantic_core import PydanticCustomError
+from typing_extensions import Self
 
+from ..exceptions import InvalidCursorException
 from ..exceptions import InvalidFilterException
 from ..exceptions import InvalidPathException
 from ..path import Path
@@ -33,7 +40,7 @@ class SearchRequest(Message, ResponseParameters[ResourceT], Generic[ResourceT]):
     ...     count=100,
     ... )
     >>> request.model_dump(scim_ctx=Context.SEARCH_REQUEST)
-    {'schemas': ['urn:ietf:params:scim:api:messages:2.0:SearchRequest'], 'filter': 'userName eq "bjensen"', 'sortBy': 'userName', 'count': 100}
+    {'schemas': ['urn:ietf:params:scim:api:messages:2.0:SearchRequest'], 'filter': 'userName eq "bjensen"', 'sortBy': 'userName', 'startIndex': 1, 'count': 100}
     """
 
     __schema__ = URN("urn:ietf:params:scim:api:messages:2.0:SearchRequest")
@@ -127,6 +134,21 @@ class SearchRequest(Message, ResponseParameters[ResourceT], Generic[ResourceT]):
         """
         return None if value is None else max(1, value)
 
+    cursor: str | None = None
+    """A string value that can be used to retrieve the next page of results.
+    The cursor value is defined in :rfc:`RFC9865 §2 <9865#section-2>`."""
+
+    @field_validator("cursor")
+    @classmethod
+    def validate_cursor_chars(cls, value: str | None) -> str | None:
+        """According to :rfc:`RFC9865 §2 <9865#section-2>`, cursor values may only contain unreserved characters as defined in :rfc:`RFC3986 §2.3 <3986#section-2.3>`.
+
+        unreserved = ALPHA / DIGIT / "-" / "." / "_" / "~"
+        """
+        if value is not None and not re.fullmatch(r"[A-Za-z0-9\-._~]*", value):
+            raise InvalidCursorException().as_pydantic_error()
+        return value
+
     count: int | None = None
     """An integer indicating the desired maximum number of query results per
     page."""
@@ -153,3 +175,26 @@ class SearchRequest(Message, ResponseParameters[ResourceT], Generic[ResourceT]):
             if self.start_index_0 is not None and self.count is not None
             else None
         )
+
+    @model_validator(mode="wrap")
+    @classmethod
+    def default_start_index(
+        cls, value: Any, handler: ValidatorFunctionWrapHandler, info: ValidationInfo
+    ) -> Self:
+        """Default to start_index 1 if no start_index or cursor is provided."""
+        obj = handler(value)
+        assert isinstance(obj, cls)
+
+        if obj.cursor is None and obj.start_index is None:
+            obj.start_index = 1
+
+        return obj
+
+    @model_validator(mode="after")
+    def check_cursor_and_index(self, info: ValidationInfo) -> Self:
+        if self.cursor is not None and self.start_index is not None:
+            raise PydanticCustomError(
+                "index_and_cursor_error",
+                "'cursor' and 'start_index' are mutually exclusive",
+            )
+        return self

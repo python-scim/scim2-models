@@ -52,6 +52,26 @@ class ETag(ComplexAttribute):
     """A Boolean value specifying whether or not the operation is supported."""
 
 
+class Pagination(ComplexAttribute):
+    cursor: Annotated[bool | None, Mutability.read_only, Required.true] = None
+    """A Boolean value specifying whether or not the operation is supported."""
+
+    index: Annotated[bool | None, Mutability.read_only, Required.true] = None
+    """A Boolean value specifying whether or not the operation is supported."""
+
+    default_pagination_method: Annotated[str | None, Mutability.read_only] = None
+    """A string value specifying the default pagination method."""
+
+    default_page_size: Annotated[int | None, Mutability.read_only] = None
+    """An integer value specifying the default page size."""
+
+    max_page_size: Annotated[int | None, Mutability.read_only] = None
+    """An integer value specifying the maximum page size."""
+
+    cursor_timeout: Annotated[int | None, Mutability.read_only] = None
+    """An integer value specifying the cursor timeout in seconds."""
+
+
 class AuthenticationScheme(ComplexAttribute):
     class Type(ExtensibleStringEnum):
         oauth = "oauth"
@@ -130,3 +150,6 @@ class ServiceProviderConfig(Resource[Any]):
     ] = None
     """A complex type that specifies supported authentication scheme
     properties."""
+
+    pagination: Annotated[Pagination | None, Mutability.read_only] = None
+    """A complex type that specifies pagination configuration options."""

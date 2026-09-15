@@ -20,6 +20,9 @@ from .attributes import ExtensibleStringEnum
 from .attributes import MultiValuedComplexAttribute
 from .base import BaseModel
 from .context import Context
+from .exceptions import ExpiredCursorException
+from .exceptions import InvalidCountException
+from .exceptions import InvalidCursorException
 from .exceptions import InvalidFilterException
 from .exceptions import InvalidPathException
 from .exceptions import InvalidSyntaxException
@@ -72,6 +75,7 @@ from .resources.service_provider_config import Bulk
 from .resources.service_provider_config import ChangePassword
 from .resources.service_provider_config import ETag
 from .resources.service_provider_config import Filter
+from .resources.service_provider_config import Pagination
 from .resources.service_provider_config import Patch
 from .resources.service_provider_config import ServiceProviderConfig
 from .resources.service_provider_config import Sort
@@ -116,6 +120,7 @@ __all__ = [
     "Entitlement",
     "Error",
     "ExtensibleStringEnum",
+    "ExpiredCursorException",
     "Extension",
     "External",
     "Filter",
@@ -123,6 +128,8 @@ __all__ = [
     "GroupMember",
     "GroupMembership",
     "Im",
+    "InvalidCountException",
+    "InvalidCursorException",
     "InvalidFilterException",
     "InvalidPathException",
     "InvalidSyntaxException",
@@ -137,6 +144,7 @@ __all__ = [
     "MultiValuedComplexAttribute",
     "Name",
     "NoTargetException",
+    "Pagination",
     "Patch",
     "PatchOp",
     "PatchOperation",
