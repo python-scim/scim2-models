@@ -22,6 +22,7 @@ from ..context import Context
 from ..exceptions import InvalidValueException
 from ..exceptions import MutabilityException
 from ..exceptions import NoTargetException
+from ..exceptions import PathNotFoundException
 from ..path import Path
 from ..path import ScimFilter
 from ..path import attribute_host
@@ -500,6 +501,11 @@ class PatchOp(Message, Generic[ResourceT]):
             # targets, as a constraint on a complex attribute governs everything
             # written under it: "meta" is read-only where "meta.version" is not.
             if (resolved := operation.path.resolve()) is None:
+                if operation.path.model is None:
+                    raise PathNotFoundException(
+                        path=str(operation.path),
+                        detail=f"path '{operation.path}' is not declared by the resource schema",
+                    ).as_pydantic_error()
                 continue
             operation._validate_mutability(resolved.model, resolved.field_name)
             operation._validate_required_attribute(

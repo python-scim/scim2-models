@@ -46,13 +46,13 @@ stand in for one.
 What a policy leaves alone
 --------------------------
 
-**PATCH paths stay strict.** An operation whose ``path`` names an attribute no model declares
-raises :class:`~scim2_models.PathNotFoundException`, whatever the policy says. Path resolution and
-unknown attributes are two separate mechanisms, and making them uniform would take a third. The
-default that would come out of it is the wrong one: a server would answer 200 to a modification it
-never applied, where :rfc:`RFC7644 §3.5.2 <7644#section-3.5.2>` asks for an error. Inside the body
-of a resource the trade is different, since dropping one unknown attribute still lands everything
-the peer and the model both knew.
+**PATCH paths stay strict.** An operation whose ``path`` names an attribute no model declares is
+refused with ``invalidPath``, whatever the policy says. Path resolution and unknown attributes are
+two separate mechanisms, and making them uniform would take a third. The default that would come
+out of it is the wrong one: a server would answer 200 to a modification it never applied, where
+:rfc:`RFC7644 §3.5.2 <7644#section-3.5.2>` asks for an error. Inside the body of a resource the
+trade is different, since dropping one unknown attribute still lands everything the peer and the
+model both knew.
 
 **Building a model in Python stays strict.** ``User(bogus=1)`` and ``user.bogus = 1`` raise under
 every policy. Pydantic only offers a hook for extra keys during validation, so a keyword argument

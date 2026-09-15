@@ -73,6 +73,9 @@ Changed
   when applied. It used to remove the entries equal to that ``value``, and to report no change
   when the ``value`` was a list or described an entry only in part. Set
   :attr:`~scim2_models.ScimPolicy.remove_value_as_filter` to keep reading it.
+- A PATCH reaching an extension attribute takes the extended resource type, as in
+  ``PatchOp[User[EnterpriseUser]]``. ``PatchOp[User]`` used to carry such an operation to the
+  endpoint, and now refuses a path its type parameter leaves out.
 
 Removed
 ^^^^^^^
@@ -107,6 +110,9 @@ Fixed
 - A PATCH operation carrying no ``path`` accepts a resource as its ``value``, and checks the
   attributes it names against the model. They used to go through unexamined, so a client naming
   an attribute it had misspelled was answered success.
+- A PATCH operation whose ``path`` names an attribute the resource schema does not declare is
+  refused with ``invalidPath``. It used to pass, so a client that misspelled an attribute was
+  answered success without anything being written. :issue:`164`
 - A refused PATCH ``add`` on a multi-valued attribute leaves the attribute as it was. The entry
   used to be appended before being validated, and outlived the failure.
 - A PATCH operation carrying no ``path`` marks the attributes it assigns as set, so

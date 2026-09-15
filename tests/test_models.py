@@ -82,7 +82,18 @@ SAMPLE_CONTEXTS = {
 }
 
 
+SAMPLE_MODEL_OVERRIDES = {
+    "rfc7644-3.5.2.1-patch_op-add_members.json": PatchOp[Group],
+    "rfc7644-3.5.2.2-patch_op-remove_all_members.json": PatchOp[Group],
+    "rfc7644-3.5.2.2-patch_op-remove_and_add_one_member.json": PatchOp[Group],
+    "rfc7644-3.5.2.2-patch_op-remove_one_member.json": PatchOp[Group],
+    "rfc7644-3.5.2.3-patch_op-replace_all_members.json": PatchOp[Group],
+}
+
+
 def sample_model(sample: str) -> type:
+    if sample in SAMPLE_MODEL_OVERRIDES:
+        return SAMPLE_MODEL_OVERRIDES[sample]
     return SAMPLE_MODELS[sample.removesuffix(".json").split("-")[2]]
 
 
