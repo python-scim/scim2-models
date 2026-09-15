@@ -48,6 +48,7 @@ Added
   another. Only the attributes the wanted state names take part in the comparison, so what a peer
   maintains and the caller does not model survives the modification — which is what a PATCH
   offers over a PUT. See :doc:`how-to/build-a-patch`. :issue:`104`
+- Support for Bulk operations. :pr:`149`
 - lark is a new dependency.
 
 Changed

@@ -41,6 +41,92 @@ class ReqResource(Resource):
     optional: Annotated[str | None, Required.false] = None
 
 
+def test_validate_bulkId_not_in_resource_id():
+    """Test that a response carrying the reserved keyword "bulkId" in a resource id is rejected.
+
+    A client reading such an id cannot tell it apart from the transient
+    placeholder a bulk request uses to reference a resource being created.
+
+    :rfc:`RFC7643` §3.1 <7643#section-3.1>: "The string 'bulkId' is a reserved keyword
+    and MUST NOT be used within any unique identifier value."
+    """
+    with pytest.raises(
+        ValidationError, match="'bulkId' is reserved for bulk operations"
+    ):
+        Resource.model_validate(
+            {
+                "schemas": ["org:example:Resource"],
+                "id": "bulkId:foo",
+            },
+            scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
+        )
+
+
+def test_validate_bulkId_anywhere_in_resource_id():
+    """Test that the reserved keyword is rejected wherever it appears in a resource id.
+
+    :rfc:`RFC7643` §3.1 <7643#section-3.1> forbids the keyword "within" an
+    identifier, not only as a prefix, so an opaque value cannot carry it either.
+    """
+    with pytest.raises(
+        ValidationError, match="'bulkId' is reserved for bulk operations"
+    ):
+        Resource.model_validate(
+            {
+                "schemas": ["org:example:Resource"],
+                "id": "0e3f-bulkId-9a1c",
+            },
+            scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
+        )
+
+
+def test_validate_bulkId_in_resource_id_is_case_sensitive():
+    """Test that a resource id differing from the reserved keyword by its case is accepted.
+
+    :rfc:`RFC7643` §3.1 <7643#section-3.1>: the id attribute characteristics are
+    "caseExact" as "true", so "bulkid" is another string than the reserved keyword.
+    """
+    resource = Resource.model_validate(
+        {
+            "schemas": ["org:example:Resource"],
+            "id": "bulkid:foo",
+        },
+        scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
+    )
+    assert resource.id == "bulkid:foo"
+
+
+def test_validate_bulkId_in_resource_id_accepted_without_context():
+    """Test that a resource validated without any context keeps a reserved id.
+
+    Validation outside of any context accepts every field, and the constraint
+    describes what a service provider may emit, not what a user builds in memory.
+    """
+    resource = Resource.model_validate(
+        {
+            "schemas": ["org:example:Resource"],
+            "id": "bulkId:foo",
+        },
+    )
+    assert resource.id == "bulkId:foo"
+
+
+def test_validate_bulkId_in_resource_id_accepted_in_requests():
+    """Test that a request payload carrying a reserved id is not rejected.
+
+    The id attribute is read-only, so a request context discards it before the
+    constraint applies: the client is never allowed to send that value anyway.
+    """
+    resource = Resource.model_validate(
+        {
+            "schemas": ["org:example:Resource"],
+            "id": "bulkId:foo",
+        },
+        scim_ctx=Context.RESOURCE_CREATION_REQUEST,
+    )
+    assert resource.id is None
+
+
 def test_validate_default_mutability():
     """Test query validation for resource creation request."""
     assert MutResource.model_validate(
@@ -606,6 +692,7 @@ def test_validate_default_response_returnability():
         Context.RESOURCE_QUERY_RESPONSE,
         Context.RESOURCE_REPLACEMENT_RESPONSE,
         Context.SEARCH_RESPONSE,
+        Context.BULK_RESPONSE,
     ],
 )
 def test_validate_response_returnability(context):

@@ -11,15 +11,15 @@ from scim2_models import ChangePassword
 from scim2_models import ComplexAttribute
 from scim2_models import ETag
 from scim2_models import Filter
-from scim2_models import InvalidPathException
 from scim2_models import Group
+from scim2_models import InvalidPathException
 from scim2_models import Meta
-from scim2_models import Path
 from scim2_models import Patch
+from scim2_models import Path
 from scim2_models import ResourceType
 from scim2_models import ScimProvider
-from scim2_models import ServiceProviderConfig
 from scim2_models import SearchRequest
+from scim2_models import ServiceProviderConfig
 from scim2_models import Sort
 from scim2_models import UniquenessException
 from scim2_models import User
@@ -233,7 +233,7 @@ provider = ScimProvider(
     models=[User],
     config=ServiceProviderConfig(
         patch=Patch(supported=True),
-        bulk=Bulk(supported=False, max_operations=0, max_payload_size=0),
+        bulk=Bulk(supported=True, max_operations=100, max_payload_size=1048576),
         filter=Filter(supported=True, max_results=MAX_RESULTS),
         change_password=ChangePassword(supported=False),
         sort=Sort(supported=True),
