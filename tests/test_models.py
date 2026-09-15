@@ -238,8 +238,8 @@ def test_everything_is_optional():
         ServiceProviderConfig,
         ListResponse[User],
         PatchOp[User],
-        BulkRequest,
-        BulkResponse,
+        BulkRequest[User],
+        BulkResponse[User],
         SearchRequest,
         Error,
     ]
@@ -259,8 +259,8 @@ def test_json_schema_generation():
         ServiceProviderConfig,
         ListResponse[User],
         PatchOp[User],
-        BulkRequest,
-        BulkResponse,
+        BulkRequest[User],
+        BulkResponse[User],
         SearchRequest,
         Error,
     ]

@@ -25,14 +25,14 @@ def test_bulk_operation_delete():
 
 def test_operations_required_for_bulk_request():
     with pytest.raises(ValidationError):
-        BulkRequest.model_validate(
+        BulkRequest[User].model_validate(
             {"operations": None}, context={"scim": Context.BULK_REQUEST}
         )
 
 
 def test_operations_required_for_bulk_response():
     with pytest.raises(ValidationError):
-        BulkResponse.model_validate(
+        BulkResponse[User].model_validate(
             {"operations": None}, context={"scim": Context.BULK_REQUEST}
         )
 
@@ -501,3 +501,10 @@ def test_reference_to_a_resource_being_created_stays_tolerated_in_operation_data
             operation({"value": "bulkId:ytrewq"}),
             scim_ctx=Context.RESOURCE_CREATION_REQUEST,
         )
+
+
+def test_bulk_models_require_a_type_parameter():
+    """A bare model falls back on the type variable bound and blames a valid attribute for the missing parameter."""
+    for model in (BulkRequest, BulkResponse, BulkOperation):
+        with pytest.raises(TypeError, match="requires a type parameter"):
+            model()
