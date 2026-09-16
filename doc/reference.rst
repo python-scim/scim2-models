@@ -200,6 +200,12 @@ operation accepts or returns.
 .. autoclass:: scim2_models.PatchResponseContext
    :members:
 
+.. autoclass:: scim2_models.BulkRequestContext
+   :members:
+
+.. autoclass:: scim2_models.BulkResponseContext
+   :members:
+
 .. autoclass:: scim2_models.CaseExact
    :members:
 

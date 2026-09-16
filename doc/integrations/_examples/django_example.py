@@ -11,6 +11,7 @@ from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 from pydantic import ValidationError
 
+from scim2_models import BulkRequest
 from scim2_models import Context
 from scim2_models import Error
 from scim2_models import ListResponse
@@ -24,6 +25,7 @@ from scim2_models import SearchRequest
 from scim2_models import User
 
 from .integrations import delete_record
+from .integrations import execute_bulk
 from .integrations import from_scim_user
 from .integrations import get_record
 from .integrations import get_resource_type
@@ -397,6 +399,31 @@ class RootSearchView(SCIMView):
 # -- search-root-end --
 
 
+# -- bulk-start --
+class BulkView(SCIMView):
+    """Apply a bulk job and answer one result per operation."""
+
+    def post(self, request):
+        try:
+            bulk_request = BulkRequest[User].model_validate_json(
+                request.body, scim_ctx=Context.BULK_REQUEST
+            )
+        except ValidationError as error:
+            return scim_validation_error(error)
+
+        try:
+            bulk_response = execute_bulk(
+                bulk_request, lambda record: resource_location(request, record)
+            )
+        except SCIMException as error:
+            return scim_exception_error(error)
+
+        return SCIMJsonResponse(bulk_response.model_dump(scim_ctx=Context.BULK_RESPONSE))
+
+
+# -- bulk-end --
+
+
 # -- urls-start --
 # ``/Users/.search`` comes first: the ``user`` converter would otherwise read
 # ``.search`` as a resource id.
@@ -404,6 +431,7 @@ urlpatterns = [
     path("scim/v2/Users", UsersView.as_view(), name="scim_users"),
     path("scim/v2/Users/.search", UsersSearchView.as_view(), name="scim_users_search"),
     path("scim/v2/.search", RootSearchView.as_view(), name="scim_root_search"),
+    path("scim/v2/Bulk", BulkView.as_view(), name="scim_bulk"),
     path("scim/v2/Users/<user:app_record>", UserView.as_view(), name="scim_user"),
 ]
 # -- urls-end --

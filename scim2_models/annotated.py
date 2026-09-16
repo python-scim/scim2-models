@@ -159,6 +159,16 @@ if TYPE_CHECKING:
         Annotated[T, SCIMSerializer(Context.RESOURCE_PATCH_RESPONSE)],
         type_params=(T,),
     )
+    BulkRequestContext = TypeAliasType(
+        "BulkRequestContext",
+        Annotated[T, SCIMValidator(Context.BULK_REQUEST)],
+        type_params=(T,),
+    )
+    BulkResponseContext = TypeAliasType(
+        "BulkResponseContext",
+        Annotated[T, SCIMSerializer(Context.BULK_RESPONSE)],
+        type_params=(T,),
+    )
 else:
 
     class _RequestContextAlias:
@@ -226,3 +236,13 @@ else:
         """Shortcut for ``Annotated[T, SCIMSerializer(Context.RESOURCE_PATCH_RESPONSE)]``."""
 
         _ctx = Context.RESOURCE_PATCH_RESPONSE
+
+    class BulkRequestContext(_RequestContextAlias):
+        """Shortcut for ``Annotated[T, SCIMValidator(Context.BULK_REQUEST)]``."""
+
+        _ctx = Context.BULK_REQUEST
+
+    class BulkResponseContext(_ResponseContextAlias):
+        """Shortcut for ``Annotated[T, SCIMSerializer(Context.BULK_RESPONSE)]``."""
+
+        _ctx = Context.BULK_RESPONSE

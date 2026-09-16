@@ -34,8 +34,8 @@ SAMPLE_MODELS = {
     "service_provider_configuration": ServiceProviderConfig,
     "list_response": ListResponse[User | Group | Schema | ResourceType],
     "patch_op": PatchOp[User],
-    "bulk_request": BulkRequest,
-    "bulk_response": BulkResponse,
+    "bulk_request": BulkRequest[User | User[EnterpriseUser] | Group],
+    "bulk_response": BulkResponse[User | User[EnterpriseUser] | Group],
     "search_request": SearchRequest,
     "error": Error,
 }
@@ -69,8 +69,8 @@ MESSAGE_CONTEXTS = {
     # An error answers any request.
     "error": Context.RESOURCE_QUERY_RESPONSE,
     # A bulk exchange is a POST on /Bulk.
-    "bulk_request": Context.RESOURCE_CREATION_REQUEST,
-    "bulk_response": Context.RESOURCE_CREATION_RESPONSE,
+    "bulk_request": Context.BULK_REQUEST,
+    "bulk_response": Context.BULK_RESPONSE,
 }
 
 # RFC7643 §8.2 and §8.3 illustrate every attribute at once. They carry a
@@ -82,7 +82,18 @@ SAMPLE_CONTEXTS = {
 }
 
 
+SAMPLE_MODEL_OVERRIDES = {
+    "rfc7644-3.5.2.1-patch_op-add_members.json": PatchOp[Group],
+    "rfc7644-3.5.2.2-patch_op-remove_all_members.json": PatchOp[Group],
+    "rfc7644-3.5.2.2-patch_op-remove_and_add_one_member.json": PatchOp[Group],
+    "rfc7644-3.5.2.2-patch_op-remove_one_member.json": PatchOp[Group],
+    "rfc7644-3.5.2.3-patch_op-replace_all_members.json": PatchOp[Group],
+}
+
+
 def sample_model(sample: str) -> type:
+    if sample in SAMPLE_MODEL_OVERRIDES:
+        return SAMPLE_MODEL_OVERRIDES[sample]
     return SAMPLE_MODELS[sample.removesuffix(".json").split("-")[2]]
 
 
@@ -238,8 +249,8 @@ def test_everything_is_optional():
         ServiceProviderConfig,
         ListResponse[User],
         PatchOp[User],
-        BulkRequest,
-        BulkResponse,
+        BulkRequest[User],
+        BulkResponse[User],
         SearchRequest,
         Error,
     ]
@@ -259,8 +270,8 @@ def test_json_schema_generation():
         ServiceProviderConfig,
         ListResponse[User],
         PatchOp[User],
-        BulkRequest,
-        BulkResponse,
+        BulkRequest[User],
+        BulkResponse[User],
         SearchRequest,
         Error,
     ]

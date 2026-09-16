@@ -72,6 +72,42 @@ within which bounds (:rfc:`RFC7644 §4 <7644#section-4>`). Pass it alongside the
    >>> provider.config.filter.max_results
    200
 
+Read the description during a validation
+----------------------------------------
+
+A rule the specification makes conditional on a capability needs what the service declares, not
+only the payload. Name the provider at the call, and every validator the pass reaches sees it,
+down to a nested attribute:
+
+.. doctest::
+
+   >>> payload = {"schemas": [str(User.__schema__)], "userName": "bjensen"}
+   >>> user = User.model_validate(payload, scim_provider=provider)
+   >>> user.user_name
+   'bjensen'
+
+A server states it once per request instead, by opening a block on the provider. The block lends
+its policy the same way:
+
+.. doctest::
+
+   >>> with provider:
+   ...     user = User.model_validate(payload)
+
+A client holds the configuration of a peer as soon as it has queried ``/ServiceProviderConfig``,
+before it builds any provider. Pass it alone:
+
+.. doctest::
+
+   >>> user = User.model_validate(payload, scim_spc=config)
+
+``scim_spc`` also wins over the configuration a provider carries, so one provider answers peers
+that declare different capabilities. Both parameters are taken by
+:meth:`~scim2_models.BaseModel.model_validate`,
+:meth:`~scim2_models.BaseModel.model_validate_json`,
+:meth:`~scim2_models.BaseModel.model_dump` and
+:meth:`~scim2_models.BaseModel.model_dump_json`.
+
 Serve two variants of one resource
 ----------------------------------
 

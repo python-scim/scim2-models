@@ -1,9 +1,12 @@
+from collections.abc import Iterator
 from enum import Enum
 from inspect import isclass
 from typing import Annotated
 from typing import Any
 from typing import Generic
 from typing import TypeVar
+from typing import cast
+from typing import get_origin
 
 from pydantic import BaseModel as PydanticBaseModel
 from pydantic import Field
@@ -20,6 +23,7 @@ from ..context import Context
 from ..exceptions import InvalidValueException
 from ..exceptions import MutabilityException
 from ..exceptions import NoTargetException
+from ..exceptions import PathNotFoundException
 from ..path import Path
 from ..path import ScimFilter
 from ..path import attribute_host
@@ -28,11 +32,26 @@ from ..policy import _effective_policy
 from ..policy import _policy
 from ..resources.resource import Resource
 from ..urn import URN
+from ..utils import UNION_TYPES
 from ..utils import _find_field_name
 from .message import Message
 from .message import _get_resource_class
+from .message import _ResourceParameterized
 
 ResourceT = TypeVar("ResourceT", bound=Resource[Any])
+
+
+def _commit(resource: Any, working: Any) -> None:
+    """Write a patched copy back onto the resource the caller holds.
+
+    Assignment is bypassed on purpose: ``working`` was built by the very passes
+    ``validate_assignment`` would run again.
+    """
+    resource.__dict__.clear()
+    resource.__dict__.update(working.__dict__)
+    resource.__pydantic_fields_set__.clear()
+    resource.__pydantic_fields_set__.update(working.__pydantic_fields_set__)
+    resource.__pydantic_private__ = working.__pydantic_private__
 
 
 def _targeted_attributes(value: Any) -> dict[str, Any]:
@@ -77,6 +96,137 @@ def _resolved_field(resource_class: type[BaseModel], attr_name: str) -> str | No
     resolve the name instead of matching it against ``model_fields``.
     """
     return _find_field_name(resource_class, attr_name)
+
+
+_ENVELOPE_FIELDS = frozenset({"schemas"})
+"""Fields that carry the payload rather than the state it describes."""
+
+
+def _attribute_name(model: type[BaseModel], field_name: str) -> str:
+    """Return the SCIM spelling of a field, as a path segment."""
+    return model.model_fields[field_name].serialization_alias or field_name
+
+
+def _asserted_sub_attributes(entries: Any) -> set[str]:
+    """Return the sub-attributes the entries of a wanted state name."""
+    asserted: set[str] = set()
+    for entry in entries or []:
+        if isinstance(entry, BaseModel):
+            asserted |= entry.model_fields_set
+    return asserted
+
+
+def _projection(entries: Any, asserted: set[str]) -> list[Any]:
+    """Reduce the entries of a multi-valued attribute to what is worth comparing.
+
+    :rfc:`RFC7643 §2.4 <7643#section-2.4>` gives no significance to the order of
+    a multi-valued attribute, so the projections are sorted before comparison.
+    """
+    projected = [
+        tuple(sorted((name, getattr(entry, name, None)) for name in asserted))
+        if isinstance(entry, BaseModel)
+        else entry
+        for entry in entries or []
+    ]
+    return sorted(projected, key=repr)
+
+
+def _operation(
+    path: str, old: Any, new: Any, mutability: Mutability | None
+) -> tuple["PatchOperation.Op", str, Any]:
+    """Return the operation writing *new* where the current state holds *old*.
+
+    Called once a difference is established. :rfc:`RFC7644 §3.5.2.3
+    <7644#section-3.5.2.3>` has a service provider treat a ``replace`` on an
+    unset target as an ``add``, so a single operation covers both. An immutable
+    attribute is the exception: :rfc:`RFC7644 §3.5.2 <7644#section-3.5.2>` lets
+    a client add a value to one that had none, and nothing else.
+    """
+    if mutability == Mutability.immutable:
+        if old is not None:
+            raise MutabilityException(
+                attribute=path, mutability="immutable", operation="replace"
+            )
+        return PatchOperation.Op.add, path, new
+
+    if new is None or new == []:
+        return PatchOperation.Op.remove, path, None
+
+    return PatchOperation.Op.replace_, path, new
+
+
+def _diff_multi_valued(
+    path: str, old: Any, new: Any, mutability: Mutability | None
+) -> Iterator[tuple["PatchOperation.Op", str, Any]]:
+    """Diff a multi-valued attribute, which is replaced as a whole.
+
+    Only the sub-attributes the wanted entries name take part in the
+    comparison, so the sub-attributes the peer alone maintains do not read as a
+    difference. When the collection does change it is replaced entirely:
+    :rfc:`RFC7643 §2.4 <7643#section-2.4>` gives the entries no identity, so an
+    entry that changed cannot be told from a removed one and an added one.
+    """
+    asserted = _asserted_sub_attributes(new)
+    if _projection(old, asserted) == _projection(new, asserted):
+        return
+
+    yield _operation(path, old, new, mutability)
+
+
+def _diff_sub_object(
+    prefix: str,
+    path: str,
+    old: Any,
+    new: Any,
+    mutability: Mutability | None,
+) -> Iterator[tuple["PatchOperation.Op", str, Any]]:
+    """Diff a complex attribute or an extension, one sub-attribute at a time."""
+    if new is not None:
+        yield from _diff(old, new, prefix)
+        return
+
+    if old is not None:
+        yield _operation(path, old, None, mutability)
+
+
+def _diff(
+    before: Any, after: Any, prefix: str = ""
+) -> Iterator[tuple["PatchOperation.Op", str, Any]]:
+    """Yield the operations turning *before* into *after*.
+
+    Only the attributes *after* names are candidates: what a wanted state never
+    mentions is left to the peer. Attributes are visited in declaration order,
+    so a diff is reproducible.
+    """
+    model = type(after)
+    info = model.__scim_info__
+    for field_name in model.model_fields:
+        if field_name not in after.model_fields_set:
+            continue
+
+        if field_name in _ENVELOPE_FIELDS:
+            continue
+
+        mutability = model.get_field_annotation(field_name, Mutability)
+        if mutability == Mutability.read_only:
+            continue
+
+        old = getattr(before, field_name, None) if before is not None else None
+        new = getattr(after, field_name, None)
+        path = f"{prefix}{_attribute_name(model, field_name)}"
+
+        if model.get_field_multiplicity(field_name):
+            yield from _diff_multi_valued(path, old, new, mutability)
+
+        elif field_name in info.extensions:
+            urn = info.attribute_urns[field_name]
+            yield from _diff_sub_object(f"{urn}:", urn, old, new, mutability)
+
+        elif field_name in info.complex_fields:
+            yield from _diff_sub_object(f"{path}.", path, old, new, mutability)
+
+        elif old != new:
+            yield _operation(path, old, new, mutability)
 
 
 class PatchOperation(ComplexAttribute, Generic[ResourceT]):
@@ -215,17 +365,14 @@ class PatchOperation(ComplexAttribute, Generic[ResourceT]):
         return v
 
 
-class PatchOp(Message, Generic[ResourceT]):
+class PatchOp(_ResourceParameterized, Message, Generic[ResourceT]):
     """Patch Operation as defined in :rfc:`RFC7644 §3.5.2 <7644#section-3.5.2>`.
 
-    Type parameter ResourceT is required and must be a concrete Resource subclass.
-    Usage: PatchOp[User], PatchOp[Group], etc.
-
-    .. note::
-        - Always use with a specific type parameter, e.g., PatchOp[User]
-        - PatchOp[Resource] is not allowed - use a concrete subclass instead
-        - Union types are not supported - use a specific resource type
-        - Using PatchOp without a type parameter raises TypeError
+    Parameterise the message with the resource type the patched resource has,
+    as in ``PatchOp[User]``. The parameter is what resolves the paths the
+    operations carry, so a patch cannot be validated or applied without it. A
+    union names several types where one resource is patched, so it is refused:
+    a PATCH targets the one resource its endpoint designates.
 
     >>> from scim2_models import PatchOp, User
     >>> user = User(user_name="bjensen")
@@ -238,67 +385,18 @@ class PatchOp(Message, Generic[ResourceT]):
     (True, 'Barbara Jensen')
     """
 
-    def __new__(cls, *args: Any, **kwargs: Any) -> Self:
-        """Create new PatchOp instance with type parameter validation.
+    def __class_getitem__(cls, item: Any) -> Any:
+        """Refuse a union: a PATCH targets one resource type."""
+        parameter = item[0] if isinstance(item, tuple) and len(item) == 1 else item
 
-        Only handles the case of direct instantiation without type parameter (PatchOp()).
-        All type parameter validation is handled by __class_getitem__.
-        """
-        if (
-            cls.__name__ == "PatchOp"
-            and not hasattr(cls, "__origin__")
-            and not hasattr(cls, "__args__")
-        ):
+        if get_origin(parameter) in UNION_TYPES:
             raise TypeError(
-                "PatchOp requires a type parameter. "
-                "Use PatchOp[YourResourceType] instead of PatchOp. "
-                "Example: PatchOp[User], PatchOp[Group], etc."
+                f"{cls.__name__} type parameter must name one resource type, "
+                f"got {parameter}. A PATCH targets the resource its endpoint "
+                f"designates, so use {cls.__name__}[User]."
             )
 
-        return super().__new__(cls)
-
-    def __class_getitem__(
-        cls, typevar_values: type[Resource[Any]] | tuple[type[Resource[Any]], ...]
-    ) -> Any:
-        """Validate type parameter when creating parameterized type.
-
-        Ensures the type parameter is a concrete Resource subclass (not Resource itself)
-        or a TypeVar bound to Resource. Rejects invalid types (str, int, etc.) and Union types.
-        """
-        if isinstance(typevar_values, TypeVar):
-            # Check if TypeVar is bound to Resource or its subclass
-            if typevar_values.__bound__ is not None and (
-                typevar_values.__bound__ is Resource
-                or (
-                    isclass(typevar_values.__bound__)
-                    and issubclass(typevar_values.__bound__, Resource)
-                )
-            ):
-                return super().__class_getitem__(typevar_values)
-            else:
-                raise TypeError(
-                    f"PatchOp TypeVar must be bound to Resource or its subclass, got {typevar_values}. "
-                    "Example: T = TypeVar('T', bound=Resource)"
-                )
-
-        # Check if type parameter is a concrete Resource subclass (not Resource itself)
-        if typevar_values is Resource:
-            raise TypeError(
-                "PatchOp requires a concrete Resource subclass, not Resource itself. "
-                "Use PatchOp[User], PatchOp[Group], etc. instead of PatchOp[Resource]."
-            )
-
-        if not (
-            isclass(typevar_values)
-            and issubclass(typevar_values, Resource)
-            and typevar_values is not Resource
-        ):
-            raise TypeError(
-                f"PatchOp type parameter must be a concrete Resource subclass or TypeVar, got {typevar_values}. "
-                "Use PatchOp[User], PatchOp[Group], etc."
-            )
-
-        return super().__class_getitem__(typevar_values)
+        return super().__class_getitem__(item)
 
     __schema__ = URN("urn:ietf:params:scim:api:messages:2.0:PatchOp")
 
@@ -354,6 +452,11 @@ class PatchOp(Message, Generic[ResourceT]):
             # targets, as a constraint on a complex attribute governs everything
             # written under it: "meta" is read-only where "meta.version" is not.
             if (resolved := operation.path.resolve()) is None:
+                if operation.path.model is None:
+                    raise PathNotFoundException(
+                        path=str(operation.path),
+                        detail=f"path '{operation.path}' is not declared by the resource schema",
+                    ).as_pydantic_error()
                 continue
             operation._validate_mutability(resolved.model, resolved.field_name)
             operation._validate_required_attribute(
@@ -361,6 +464,56 @@ class PatchOp(Message, Generic[ResourceT]):
             )
 
         return self
+
+    @classmethod
+    def build_from(
+        cls, before: ResourceT, after: ResourceT
+    ) -> "PatchOp[ResourceT] | None":
+        """Build the patch turning a resource state into another one.
+
+        Only the attributes *after* names take part in the comparison: what a
+        wanted state never mentions is left to the peer, which is what
+        distinguishes a patch from the :meth:`~scim2_models.Resource.replace`
+        it stands for. An attribute named with no value is removed, as
+        ``title=None`` reads as "clear the title" where an unnamed ``title``
+        reads as "leave it alone".
+
+        A multi-valued attribute is replaced as a whole, and only the
+        sub-attributes the wanted entries name decide whether it changed.
+        Read-only attributes never appear in the patch.
+
+        >>> from scim2_models import PatchOp, User
+        >>> patch = PatchOp.build_from(User(nick_name="Barb"), User(nick_name="Babs"))
+        >>> patch.model_dump()["Operations"]
+        [{'op': 'replace', 'path': 'nickName', 'value': 'Babs'}]
+
+        :param before: The state the peer is believed to hold.
+        :param after: The state the peer should hold.
+        :return: The patch to send, or :data:`None` when the two states agree.
+        :raises MutabilityException: If an immutable attribute already holding a
+            value would be modified.
+        :raises TypeError: If the two states are not of the same resource type.
+        """
+        if type(before) is not type(after):
+            raise TypeError(
+                "Cannot compare two states of different types: "
+                f"{type(before).__name__} and {type(after).__name__}"
+            )
+
+        # Subscripted through the call the syntax stands for: mypy reads the
+        # index of a generic as a type, not as a value.
+        model = type(after)
+        operation_class: Any = PatchOperation.__class_getitem__(model)
+        path_class = Path.__class_getitem__(model)
+        operations = [
+            operation_class(op=op, path=path_class(path), value=value)
+            for op, path, value in _diff(before, after)
+        ]
+        if not operations:
+            return None
+
+        patch_class = PatchOp.__class_getitem__(model)
+        return cast("PatchOp[ResourceT]", patch_class(operations=operations))
 
     def patch(self, resource: ResourceT, scim_policy: ScimPolicy | None = None) -> bool:
         """Apply all PATCH operations to the given SCIM resource in sequence.
@@ -376,6 +529,11 @@ class PatchOp(Message, Generic[ResourceT]):
         ``primary`` sub-attribute to ``True``, any other values in the same multi-valued
         attribute will have their ``primary`` set to ``False`` automatically.
 
+        The operations are applied as a whole: when one fails, the resource is
+        left as it was. The resource object itself is kept, but the values it
+        holds are replaced, so a reference taken on one of them beforehand no
+        longer reflects the resource.
+
         :param resource: The SCIM resource to patch. This object is modified in-place.
         :param scim_policy: The :class:`~scim2_models.ScimPolicy` the patch is
             applied under. Defaults to the strict reading of the specification.
@@ -387,14 +545,20 @@ class PatchOp(Message, Generic[ResourceT]):
             return False
 
         modified = False
+        # §3.5.2 has a failing operation leave the resource as it was, and an
+        # operation only fails once tried: a filter selecting nothing is known
+        # from the state, not from the payload.
+        working = resource.model_copy(deep=True)
+
         # The policy is made ambient for the whole application: the passes it
         # governs below are revalidations that start from no call of ours.
         with _effective_policy(scim_policy):
             # RFC 7644 Section 3.5.2: "Apply each operation in sequence"
             for operation in self.operations:
-                if self._apply_operation(resource, operation):
+                if self._apply_operation(working, operation):
                     modified = True
 
+        _commit(resource, working)
         return modified
 
     def _apply_operation(

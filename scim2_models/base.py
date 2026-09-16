@@ -43,6 +43,8 @@ from scim2_models.utils import _to_camel
 if TYPE_CHECKING:
     from scim2_models.messages.response_parameters import ResponseParameters
     from scim2_models.path import Path
+    from scim2_models.provider import ScimProvider
+    from scim2_models.resources.service_provider_config import ServiceProviderConfig
 
 
 def _short_attr_path(urn: str) -> str:
@@ -435,7 +437,9 @@ class BaseModel(PydanticBaseModel):
         is_create_or_replace = scim_context in (
             Context.RESOURCE_CREATION_REQUEST,
             Context.RESOURCE_REPLACEMENT_REQUEST,
+            Context.BULK_REQUEST,
         )
+        in_bulk = bool(info.context.get("scim_bulk")) if info.context else False
         fields_set = self.model_fields_set
 
         for field_name in self.__class__.model_fields:
@@ -444,7 +448,9 @@ class BaseModel(PydanticBaseModel):
             if Context.is_request(scim_context):
                 if field_name in fields_set:
                     self._check_mutability(field_name, scim_context)
-                if is_create_or_replace:
+                if is_create_or_replace and not self._is_unresolved_bulk_reference(
+                    field_name, in_bulk
+                ):
                     self._check_necessity(field_name, value)
             else:
                 # Must be response
@@ -454,6 +460,30 @@ class BaseModel(PydanticBaseModel):
                 self._check_primary_uniqueness(field_name, value)
 
         return self
+
+    def _is_unresolved_bulk_reference(self, field_name: str, in_bulk: bool) -> bool:
+        """Whether a required Reference field targets a resource still being created.
+
+        :rfc:`RFC7644 §3.7.2 <7644#section-3.7.2>` lets one bulk operation
+        reference a resource another operation in the same request is still
+        creating, via a ``"bulkId:"``-prefixed placeholder in the sibling
+        ``value`` attribute (e.g. ``manager.value``). That reference's URI
+        can only be resolved once the target exists, so a required Reference
+        sub-attribute (e.g. ``manager.$ref``) isn't checked for necessity in
+        this one documented case.
+
+        A bulk operation's data carries the context of the single request it
+        stands for, so the bulk job it belongs to is known from the flag
+        BulkOperation sets while validating it.
+        """
+        if not in_bulk:
+            return False
+
+        sibling_value = getattr(self, "value", None)
+        if not (isinstance(sibling_value, str) and sibling_value.startswith("bulkId:")):
+            return False
+
+        return _holds_reference(self.__class__, field_name)
 
     def _raise_field_error(
         self, field_name: str, error: PydanticCustomError
@@ -498,7 +528,11 @@ class BaseModel(PydanticBaseModel):
 
         elif (
             scim_context
-            in (Context.RESOURCE_CREATION_REQUEST, Context.RESOURCE_REPLACEMENT_REQUEST)
+            in (
+                Context.RESOURCE_CREATION_REQUEST,
+                Context.RESOURCE_REPLACEMENT_REQUEST,
+                Context.BULK_REQUEST,
+            )
             and mutability == Mutability.read_only
         ):
             # Avoid re-triggering this validation by using __dict__
@@ -726,6 +760,7 @@ class BaseModel(PydanticBaseModel):
                     Context.RESOURCE_CREATION_REQUEST,
                     Context.RESOURCE_REPLACEMENT_REQUEST,
                     Context.RESOURCE_PATCH_REQUEST,
+                    Context.BULK_REQUEST,
                 )
                 and mutability == Mutability.read_only
             ):
@@ -777,11 +812,15 @@ class BaseModel(PydanticBaseModel):
         cls,
         scim_ctx: Context | None = Context.DEFAULT,
         scim_policy: ScimPolicy | None = None,
+        scim_provider: "ScimProvider | None" = None,
+        scim_spc: "ServiceProviderConfig | None" = None,
         **kwargs: Any,
     ) -> dict[str, Any]:
         context = kwargs.setdefault("context", {})
         context.setdefault("scim", scim_ctx)
         context.setdefault("scim_policy", scim_policy)
+        context.setdefault("scim_provider", scim_provider)
+        context.setdefault("scim_spc", scim_spc)
         return kwargs
 
     @classmethod
@@ -790,6 +829,8 @@ class BaseModel(PydanticBaseModel):
         *args: Any,
         scim_ctx: Context | None = Context.DEFAULT,
         scim_policy: ScimPolicy | None = None,
+        scim_provider: "ScimProvider | None" = None,
+        scim_spc: "ServiceProviderConfig | None" = None,
         **kwargs: Any,
     ) -> Self:
         """Validate SCIM payloads and generate model representation by using Pydantic :meth:`~pydantic.BaseModel.model_validate`.
@@ -797,8 +838,20 @@ class BaseModel(PydanticBaseModel):
         :param scim_ctx: The SCIM :class:`~scim2_models.Context` in which the validation happens.
         :param scim_policy: The :class:`~scim2_models.ScimPolicy` the validation
             runs under. Defaults to the strict reading of the specification.
+        :param scim_provider: The :class:`~scim2_models.ScimProvider` describing
+            the service the payload belongs to. Defaults to the provider of the
+            innermost open block, if any.
+        :param scim_spc: The
+            :class:`~scim2_models.ServiceProviderConfig` the peer publishes,
+            which overrides the one *scim_provider* carries.
         """
-        validate_kwargs = cls._prepare_model_validate(scim_ctx, scim_policy, **kwargs)
+        validate_kwargs = cls._prepare_model_validate(
+            scim_ctx,
+            scim_policy,
+            scim_provider=scim_provider,
+            scim_spc=scim_spc,
+            **kwargs,
+        )
         return super().model_validate(*args, **validate_kwargs)
 
     @classmethod
@@ -807,6 +860,8 @@ class BaseModel(PydanticBaseModel):
         *args: Any,
         scim_ctx: Context | None = Context.DEFAULT,
         scim_policy: ScimPolicy | None = None,
+        scim_provider: "ScimProvider | None" = None,
+        scim_spc: "ServiceProviderConfig | None" = None,
         **kwargs: Any,
     ) -> Self:
         """Validate SCIM JSON payloads and generate model representation by using Pydantic :meth:`~pydantic.BaseModel.model_validate_json`.
@@ -817,9 +872,19 @@ class BaseModel(PydanticBaseModel):
         :param scim_ctx: The SCIM :class:`~scim2_models.Context` in which the validation happens.
         :param scim_policy: The :class:`~scim2_models.ScimPolicy` the validation
             runs under. Defaults to the strict reading of the specification.
+        :param scim_provider: The :class:`~scim2_models.ScimProvider` describing
+            the service the payload belongs to. Defaults to the provider of the
+            innermost open block, if any.
+        :param scim_spc: The
+            :class:`~scim2_models.ServiceProviderConfig` the peer publishes,
+            which overrides the one *scim_provider* carries.
         """
         validate_kwargs = cls._prepare_model_validate(
-            scim_ctx, scim_policy=scim_policy, **kwargs
+            scim_ctx,
+            scim_policy=scim_policy,
+            scim_provider=scim_provider,
+            scim_spc=scim_spc,
+            **kwargs,
         )
         return super().model_validate_json(*args, **validate_kwargs)
 
@@ -829,11 +894,15 @@ class BaseModel(PydanticBaseModel):
         attributes: list["str | Path[Any]"] | None = None,
         excluded_attributes: list["str | Path[Any]"] | None = None,
         scim_policy: ScimPolicy | None = None,
+        scim_provider: "ScimProvider | None" = None,
+        scim_spc: "ServiceProviderConfig | None" = None,
         **kwargs: Any,
     ) -> dict[str, Any]:
         context = kwargs.setdefault("context", {})
         context.setdefault("scim", scim_ctx)
         context.setdefault("scim_policy", scim_policy)
+        context.setdefault("scim_provider", scim_provider)
+        context.setdefault("scim_spc", scim_spc)
 
         if scim_ctx:
             kwargs.setdefault("exclude_none", True)
@@ -892,6 +961,8 @@ class BaseModel(PydanticBaseModel):
         attributes: list["str | Path[Any]"] | None = None,
         excluded_attributes: list["str | Path[Any]"] | None = None,
         scim_policy: ScimPolicy | None = None,
+        scim_provider: "ScimProvider | None" = None,
+        scim_spc: "ServiceProviderConfig | None" = None,
         **kwargs: Any,
     ) -> dict[str, Any]:
         """Create a model representation that can be included in SCIM messages by using Pydantic :code:`BaseModel.model_dump`.
@@ -920,6 +991,12 @@ class BaseModel(PydanticBaseModel):
         :param scim_policy: The :class:`~scim2_models.ScimPolicy` the
             serialization runs under. Defaults to the strict reading of the
             specification.
+        :param scim_provider: The :class:`~scim2_models.ScimProvider` describing
+            the service the payload belongs to. Defaults to the provider of the
+            innermost open block, if any.
+        :param scim_spc: The
+            :class:`~scim2_models.ServiceProviderConfig` the peer publishes,
+            which overrides the one *scim_provider* carries.
         """
         attributes, excluded_attributes = self._attribute_selection(
             response_parameters, attributes, excluded_attributes
@@ -929,6 +1006,8 @@ class BaseModel(PydanticBaseModel):
             attributes=attributes,
             excluded_attributes=excluded_attributes,
             scim_policy=scim_policy,
+            scim_provider=scim_provider,
+            scim_spc=scim_spc,
             **kwargs,
         )
         if scim_ctx:
@@ -943,6 +1022,8 @@ class BaseModel(PydanticBaseModel):
         attributes: list["str | Path[Any]"] | None = None,
         excluded_attributes: list["str | Path[Any]"] | None = None,
         scim_policy: ScimPolicy | None = None,
+        scim_provider: "ScimProvider | None" = None,
+        scim_spc: "ServiceProviderConfig | None" = None,
         **kwargs: Any,
     ) -> str:
         """Create a JSON model representation that can be included in SCIM messages by using Pydantic :code:`BaseModel.model_dump_json`.
@@ -971,6 +1052,12 @@ class BaseModel(PydanticBaseModel):
         :param scim_policy: The :class:`~scim2_models.ScimPolicy` the
             serialization runs under. Defaults to the strict reading of the
             specification.
+        :param scim_provider: The :class:`~scim2_models.ScimProvider` describing
+            the service the payload belongs to. Defaults to the provider of the
+            innermost open block, if any.
+        :param scim_spc: The
+            :class:`~scim2_models.ServiceProviderConfig` the peer publishes,
+            which overrides the one *scim_provider* carries.
         """
         attributes, excluded_attributes = self._attribute_selection(
             response_parameters, attributes, excluded_attributes
@@ -980,6 +1067,8 @@ class BaseModel(PydanticBaseModel):
             attributes=attributes,
             excluded_attributes=excluded_attributes,
             scim_policy=scim_policy,
+            scim_provider=scim_provider,
+            scim_spc=scim_spc,
             **kwargs,
         )
         return super().model_dump_json(*args, **dump_kwargs)

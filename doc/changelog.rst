@@ -44,11 +44,42 @@ Added
   :class:`~scim2_models.ResponseParameters` a client sent, instead of its ``attributes`` and
   ``excludedAttributes`` spelled out one by one. A :class:`~scim2_models.SearchRequest` is one,
   so a server answering ``POST /.search`` passes the request it received. :issue:`141`
+- :meth:`~scim2_models.BaseModel.model_validate`,
+  :meth:`~scim2_models.BaseModel.model_validate_json`,
+  :meth:`~scim2_models.BaseModel.model_dump` and
+  :meth:`~scim2_models.BaseModel.model_dump_json` take a ``scim_provider`` and a ``scim_spc``: the
+  :class:`~scim2_models.ScimProvider` describing the service a payload belongs to, and the
+  :class:`~scim2_models.ServiceProviderConfig` its peer publishes. A ``with`` block opened on a
+  provider lends both, as it already lends its policy, and ``scim_spc`` wins over the
+  configuration the provider carries. Rules the specification makes conditional on a declared
+  capability read them. See :doc:`how-to/describe-a-scim-service`.
+- :meth:`~scim2_models.PatchOp.build_from` builds the patch turning one resource state into
+  another. Only the attributes the wanted state names take part in the comparison, so what a peer
+  maintains and the caller does not model survives the modification — which is what a PATCH
+  offers over a PUT. See :doc:`how-to/build-a-patch`. :issue:`104`
+- Bulk messages are validated, in the new :attr:`~scim2_models.Context.BULK_REQUEST` and
+  :attr:`~scim2_models.Context.BULK_RESPONSE` contexts. Each operation's
+  :attr:`~scim2_models.BulkOperation.data` is checked as the single request it stands for: a
+  creation for a POST, a patch for a PATCH. See :ref:`helpers-bulk`. :pr:`149`
 - lark is a new dependency.
 - Support for :rfc:`RFC9865 <9865>`
 
 Changed
 ^^^^^^^
+- The bulk models take the resource type their operations carry, as in ``BulkRequest[User]`` or
+  ``BulkRequest[User | Group]``, and raise a :class:`TypeError` when used bare. A payload the type
+  parameter does not cover is now refused, and a bulk response no longer dumps ``path``.
+- :class:`~scim2_models.ListResponse` raises a :class:`TypeError` when used without the resource
+  type its entries carry, as :class:`~scim2_models.PatchOp` and the bulk models do. A bare
+  ``ListResponse`` used to answer a pydantic error naming ``Resource``, and whether it did depended
+  on what the calling module had imported.
+- A message type parameter must name resource types. ``ListResponse[str]`` used to build a class
+  that read anything as its entries.
+- ``ListResponse[Resource]``, ``PatchOp[Resource]`` and their bulk counterparts stay writable where
+  a type is expected, which is what an annotation covering any resource type needs, and raise a
+  :class:`TypeError` when they read or build a payload. ``Resource`` declares no attribute, so a
+  payload read against it fails on the first one it carries. ``PatchOp[Resource]`` used to be
+  refused as a type, and ``ListResponse[Resource]`` used to read payloads.
 - :attr:`SearchRequest.filter <scim2_models.SearchRequest.filter>` is a
   :class:`~scim2_models.ScimFilter` instead of a :class:`str`, so a malformed filter is rejected
   at validation time.
@@ -63,6 +94,9 @@ Changed
   when applied. It used to remove the entries equal to that ``value``, and to report no change
   when the ``value`` was a list or described an entry only in part. Set
   :attr:`~scim2_models.ScimPolicy.remove_value_as_filter` to keep reading it.
+- A PATCH reaching an extension attribute takes the extended resource type, as in
+  ``PatchOp[User[EnterpriseUser]]``. ``PatchOp[User]`` used to carry such an operation to the
+  endpoint, and now refuses a path its type parameter leaves out.
 - :meth:`SCIMException.from_error <scim2_models.SCIMException.from_error>` reconstructs
   :class:`~scim2_models.InvalidCursorException`, :class:`~scim2_models.ExpiredCursorException` and
   :class:`~scim2_models.InvalidCountException` from an :class:`~scim2_models.Error` carrying the
@@ -96,12 +130,21 @@ Deprecated
 
 Fixed
 ^^^^^
+- A bulk model indexed with something other than a resource type names itself in the error. The
+  rules of the :class:`~scim2_models.PatchOp` its operations carry used to answer for it, so
+  ``BulkRequest[str]`` told the caller to write ``PatchOp[User]``.
+- A subclass of a parameterized message, such as ``class Users(ListResponse[User])``, reads its
+  payloads with the type parameter it inherits. It used to raise an :exc:`IndexError`, a subclass
+  carrying no parameter of its own.
 - A PATCH operation targeting an attribute of an extension answers for the constraints that
   extension declares, where it used to look them up on the resource and find none. A refused
   operation no longer leaves the extension instantiated on the resource.
 - A PATCH operation carrying no ``path`` accepts a resource as its ``value``, and checks the
   attributes it names against the model. They used to go through unexamined, so a client naming
   an attribute it had misspelled was answered success.
+- A PATCH operation whose ``path`` names an attribute the resource schema does not declare is
+  refused with ``invalidPath``. It used to pass, so a client that misspelled an attribute was
+  answered success without anything being written. :issue:`164`
 - A refused PATCH ``add`` on a multi-valued attribute leaves the attribute as it was. The entry
   used to be appended before being validated, and outlived the failure.
 - A PATCH operation carrying no ``path`` marks the attributes it assigns as set, so

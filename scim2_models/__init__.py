@@ -1,3 +1,5 @@
+from .annotated import BulkRequestContext
+from .annotated import BulkResponseContext
 from .annotated import CreationRequestContext
 from .annotated import CreationResponseContext
 from .annotated import PatchRequestContext
@@ -106,7 +108,9 @@ __all__ = [
     "Bulk",
     "BulkOperation",
     "BulkRequest",
+    "BulkRequestContext",
     "BulkResponse",
+    "BulkResponseContext",
     "CaseExact",
     "ChangePassword",
     "ComplexAttribute",

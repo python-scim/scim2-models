@@ -168,5 +168,17 @@ model does not declare. Table 9 lists ``invalidFilter`` as applying to a "PATCH 
 so it answers what goes wrong between the brackets. That covers an unknown sub-attribute, a
 comparison the attribute cannot take, and a selection over an attribute holding a single value.
 
+Building a patch rather than applying one
+-----------------------------------------
+
+An application holding both the state a peer has and the state it should have does not have to
+spell the operations out. :meth:`~scim2_models.PatchOp.build_from` compares the two states and
+builds them, restricted to the attributes the wanted state names, so what the peer maintains and
+the application does not model is left alone.
+
+What that builder can express follows from this page. A multi-valued attribute is replaced as a
+whole, since :rfc:`RFC7643 §2.4 <7643#section-2.4>` gives its entries no identity to match one
+state against the other. See :doc:`../how-to/build-a-patch`.
+
 To inspect or change a resource directly with the same path syntax, outside a PATCH request, use
 :doc:`../how-to/access-resource-values`.

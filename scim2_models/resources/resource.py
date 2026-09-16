@@ -32,6 +32,7 @@ from ..attributes import _is_complex_attribute
 from ..base import BaseModel
 from ..context import Context
 from ..exceptions import InvalidPathException
+from ..exceptions import InvalidValueException
 from ..path import Path
 from ..policy import ScimPolicy
 from ..policy import _policy
@@ -396,6 +397,26 @@ class Resource(ScimObject, Generic[AnyExtension]):
             )
 
         return obj
+
+    @model_validator(mode="after")
+    def validate_resource_requirements(self, info: ValidationInfo) -> Self:
+        """Check the identifier constraints a service provider must meet.
+
+        The ``id`` attribute is issued by the service provider and is read-only,
+        so these constraints only make sense on the payloads it emits.
+        """
+        scim_ctx = info.context.get("scim") if info.context else None
+        if scim_ctx is None or not Context.is_response(scim_ctx):
+            return self
+
+        # RFC 7643 Section 3.1: "The string "bulkId" is a reserved keyword and
+        # MUST NOT be used within any unique identifier value."
+        if self.id and "bulkId" in self.id:
+            raise InvalidValueException(
+                detail="'bulkId' is reserved for bulk operations"
+            ).as_pydantic_error()
+
+        return self
 
     @classmethod
     def to_schema(cls) -> "Schema":

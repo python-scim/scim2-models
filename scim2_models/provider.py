@@ -2,6 +2,7 @@
 
 import operator
 from collections.abc import Iterable
+from contextvars import ContextVar
 from functools import cached_property
 from functools import reduce
 from types import TracebackType
@@ -9,6 +10,9 @@ from typing import Annotated
 from typing import Any
 from typing import TypeVar
 from typing import cast
+
+from pydantic import SerializationInfo
+from pydantic import ValidationInfo
 
 from .annotations import Required
 from .policy import ScimPolicy
@@ -58,6 +62,12 @@ _DISCOVERY_BY_SCHEMA = {
 _DISCOVERY_BY_ENDPOINT = {
     _endpoint_key(endpoint): model for model, endpoint in _DISCOVERY_ENDPOINTS.items()
 }
+
+
+_AMBIENT_PROVIDERS: ContextVar[tuple["ScimProvider", ...]] = ContextVar(
+    "scim2_models_providers", default=()
+)
+"""The providers of the blocks a call is running inside, innermost last."""
 
 
 class ScimProviderError(ValueError):
@@ -224,7 +234,8 @@ class ScimProvider:
         return self._policy
 
     def __enter__(self) -> "ScimProvider":
-        """Make the policy of this provider the one the block runs under."""
+        """Make this provider, its configuration and its policy the ones the block runs under."""
+        _AMBIENT_PROVIDERS.set(_AMBIENT_PROVIDERS.get() + (self,))
         self._policy.__enter__()
         return self
 
@@ -234,8 +245,9 @@ class ScimProvider:
         exc_value: BaseException | None,
         traceback: TracebackType | None,
     ) -> None:
-        """Restore the policy the block interrupted."""
+        """Restore the provider and the policy the block interrupted."""
         self._policy.__exit__(exc_type, exc_value, traceback)
+        _AMBIENT_PROVIDERS.set(_AMBIENT_PROVIDERS.get()[:-1])
 
     @cached_property
     def schemas(self) -> tuple[Schema, ...]:
@@ -343,3 +355,35 @@ class ScimProvider:
             config=config,
             policy=policy,
         )
+
+
+def _ambient_provider() -> "ScimProvider | None":
+    """Return the provider of the innermost open block, if any."""
+    providers = _AMBIENT_PROVIDERS.get()
+    return providers[-1] if providers else None
+
+
+def _provider(info: ValidationInfo | SerializationInfo) -> "ScimProvider | None":
+    """Return the provider a validation or a serialization runs under.
+
+    Passes that no call of ours started carry no context and fall back on the
+    provider of the innermost open block.
+    """
+    context = getattr(info, "context", None) or {}
+    return context.get("scim_provider") or _ambient_provider()
+
+
+def _spc(info: ValidationInfo | SerializationInfo) -> ServiceProviderConfig | None:
+    """Return the configuration the peer of a pass publishes, if it is known.
+
+    A configuration named at the call site wins over the one the provider
+    carries, so a single provider serves peers that declare different
+    capabilities.
+    """
+    context = getattr(info, "context", None) or {}
+    spc: ServiceProviderConfig | None = context.get("scim_spc")
+    if spc:
+        return spc
+
+    provider = _provider(info)
+    return provider.config if provider else None

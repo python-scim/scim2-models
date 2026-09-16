@@ -8,7 +8,6 @@ from scim2_models import Group
 from scim2_models import InvalidPathException
 from scim2_models import PatchOp
 from scim2_models import PatchOperation
-from scim2_models import PathNotFoundException
 from scim2_models import User
 from scim2_models.resources.enterprise_user import EnterpriseUser
 from scim2_models.resources.resource import Resource
@@ -26,9 +25,9 @@ def test_patch_operation_extension_simple_attribute():
         }
     )
 
-    patch1 = PatchOp[User](
+    patch1 = PatchOp[User[EnterpriseUser]](
         operations=[
-            PatchOperation[User](
+            PatchOperation[User[EnterpriseUser]](
                 op=PatchOperation.Op.replace_,
                 path="urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:employeeNumber",
                 value="54321",
@@ -39,9 +38,9 @@ def test_patch_operation_extension_simple_attribute():
     assert result is True
     assert user[EnterpriseUser].employee_number == "54321"
 
-    patch2 = PatchOp[User](
+    patch2 = PatchOp[User[EnterpriseUser]](
         operations=[
-            PatchOperation[User](
+            PatchOperation[User[EnterpriseUser]](
                 op=PatchOperation.Op.add,
                 path="urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:organization",
                 value="ACME Corp",
@@ -52,9 +51,9 @@ def test_patch_operation_extension_simple_attribute():
     assert result is True
     assert user[EnterpriseUser].organization == "ACME Corp"
 
-    patch3 = PatchOp[User](
+    patch3 = PatchOp[User[EnterpriseUser]](
         operations=[
-            PatchOperation[User](
+            PatchOperation[User[EnterpriseUser]](
                 op=PatchOperation.Op.remove,
                 path="urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:costCenter",
             )
@@ -77,9 +76,9 @@ def test_patch_operation_extension_complex_attribute():
         }
     )
 
-    patch1 = PatchOp[User](
+    patch1 = PatchOp[User[EnterpriseUser]](
         operations=[
-            PatchOperation[User](
+            PatchOperation[User[EnterpriseUser]](
                 op=PatchOperation.Op.replace_,
                 path="urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:manager.value",
                 value="new-manager-456",
@@ -91,9 +90,9 @@ def test_patch_operation_extension_complex_attribute():
     assert user[EnterpriseUser].manager.value == "new-manager-456"
     assert user[EnterpriseUser].manager.display_name == "John Smith"
 
-    patch2 = PatchOp[User](
+    patch2 = PatchOp[User[EnterpriseUser]](
         operations=[
-            PatchOperation[User](
+            PatchOperation[User[EnterpriseUser]](
                 op=PatchOperation.Op.replace_,
                 path="urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:manager",
                 value={
@@ -109,9 +108,9 @@ def test_patch_operation_extension_complex_attribute():
     assert user[EnterpriseUser].manager.value == "super-manager-789"
     assert user[EnterpriseUser].manager.display_name == "Alice Johnson"
 
-    patch3 = PatchOp[User](
+    patch3 = PatchOp[User[EnterpriseUser]](
         operations=[
-            PatchOperation[User](
+            PatchOperation[User[EnterpriseUser]](
                 op=PatchOperation.Op.remove,
                 path="urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:manager",
             )
@@ -139,9 +138,9 @@ def test_patch_operation_extension_mutability_handled_by_model():
 
     # This operation would fail during model validation for mutability,
     # but patch method assumes operations are already validated
-    patch = PatchOp[User](
+    patch = PatchOp[User[EnterpriseUser]](
         operations=[
-            PatchOperation[User](
+            PatchOperation[User[EnterpriseUser]](
                 op=PatchOperation.Op.replace_,
                 path="urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:employeeNumber",
                 value="12345",
@@ -154,38 +153,30 @@ def test_patch_operation_extension_mutability_handled_by_model():
 
 
 def test_patch_operation_extension_invalid_path_error():
-    """Test invalidPath error for non-existent extension attributes.
+    """An attribute the extension does not declare is refused, and so is its sub-attribute."""
+    with pytest.raises(ValidationError) as raised:
+        PatchOp[User[EnterpriseUser]](
+            operations=[
+                PatchOperation[User[EnterpriseUser]](
+                    op=PatchOperation.Op.add,
+                    path="urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:invalidAttribute",
+                    value="test",
+                )
+            ]
+        )
+    assert raised.value.errors()[0]["type"] == "scim_invalidPath"
 
-    :rfc:`RFC7644 §3.5.2 <7644#section-3.5.2>`: invalidPath errors occur when
-    the path references an attribute that doesn't exist in the schema.
-    """
-    user = User[EnterpriseUser].model_validate({"userName": "test.user"})
-
-    patch1 = PatchOp[User](
-        operations=[
-            PatchOperation[User](
-                op=PatchOperation.Op.add,
-                path="urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:invalidAttribute",
-                value="test",
-            )
-        ]
-    )
-    with pytest.raises(InvalidPathException):
-        patch1.patch(user)
-    assert user[EnterpriseUser] is None
-
-    patch2 = PatchOp[User](
-        operations=[
-            PatchOperation[User](
-                op=PatchOperation.Op.add,
-                path="urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:manager.invalidField",
-                value="test",
-            )
-        ]
-    )
-    with pytest.raises(InvalidPathException):
-        patch2.patch(user)
-    assert user[EnterpriseUser] is None
+    with pytest.raises(ValidationError) as raised:
+        PatchOp[User[EnterpriseUser]](
+            operations=[
+                PatchOperation[User[EnterpriseUser]](
+                    op=PatchOperation.Op.add,
+                    path="urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:manager.invalidField",
+                    value="test",
+                )
+            ]
+        )
+    assert raised.value.errors()[0]["type"] == "scim_invalidPath"
 
 
 def test_urn_parsing_errors():
@@ -205,7 +196,7 @@ def test_urn_parsing_errors():
 def test_generic_patchop_rejects_union():
     """Test that PatchOp rejects Union types."""
     with pytest.raises(
-        TypeError, match="PatchOp type parameter must be a concrete Resource subclass"
+        TypeError, match="PatchOp type parameter must name one resource type"
     ):
         PatchOp[User | Group]
 
@@ -230,17 +221,16 @@ def test_patch_a_subattribute_of_an_unresolved_generic_attribute():
 
         typevar_field: T = None
 
-    user = TestResourceTypeVar()
-    patch = PatchOp[TestResourceTypeVar](
-        operations=[
-            PatchOperation[TestResourceTypeVar](
-                op=PatchOperation.Op.add, path="typevarField.subfield", value="test"
-            )
-        ]
-    )
+    with pytest.raises(ValidationError) as raised:
+        PatchOp[TestResourceTypeVar](
+            operations=[
+                PatchOperation[TestResourceTypeVar](
+                    op=PatchOperation.Op.add, path="typevarField.subfield", value="test"
+                )
+            ]
+        )
 
-    with pytest.raises(PathNotFoundException):
-        patch.patch(user)
+    assert raised.value.errors()[0]["type"] == "scim_invalidPath"
 
 
 def test_add_creates_the_parent_of_a_complex_attribute():
@@ -270,9 +260,9 @@ def test_patch_extension_schema_path_without_attribute():
     )
     user[EnterpriseUser] = EnterpriseUser()
 
-    patch = PatchOp[User](
+    patch = PatchOp[User[EnterpriseUser]](
         operations=[
-            PatchOperation[User](
+            PatchOperation[User[EnterpriseUser]](
                 op=PatchOperation.Op.add,
                 path="urn:ietf:params:scim:schemas:extension:enterprise:2.0:User",
                 value={
@@ -350,9 +340,9 @@ def test_patch_delete_extension_root():
     assert user[EnterpriseUser].employee_number == "12345"
     assert user[EnterpriseUser].cost_center == "Engineering"
 
-    patch = PatchOp[User](
+    patch = PatchOp[User[EnterpriseUser]](
         operations=[
-            PatchOperation[User](
+            PatchOperation[User[EnterpriseUser]](
                 op=PatchOperation.Op.remove,
                 path="urn:ietf:params:scim:schemas:extension:enterprise:2.0:User",
             )

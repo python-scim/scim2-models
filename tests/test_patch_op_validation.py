@@ -33,62 +33,36 @@ class ConstrainedExtension(Extension):
     plain_attr: str | None = None
 
 
-def test_patch_op_add_invalid_extension_path():
-    user = User(user_name="john")
-    patch_op = PatchOp[User](
-        operations=[
-            PatchOperation[User](
-                op="add",
-                path="urn:ietf:params:scim:schemas:extension:enterprise:2.0:User",
-                value={"key": "value"},
-            )
-        ]
-    )
-    with pytest.raises(InvalidPathException):
-        patch_op.patch(user)
+def test_a_path_naming_an_extension_the_resource_does_not_carry_is_refused():
+    """A schema URN the type parameter leaves out designates no target."""
+    with pytest.raises(ValidationError) as raised:
+        PatchOp[User](
+            operations=[
+                PatchOperation[User](
+                    op="add",
+                    path="urn:ietf:params:scim:schemas:extension:enterprise:2.0:User",
+                    value={"employeeNumber": "12345"},
+                )
+            ]
+        )
+
+    assert raised.value.errors()[0]["type"] == "scim_invalidPath"
 
 
-def test_patch_op_replace_invalid_extension_path():
-    user = User(user_name="john")
-    patch_op = PatchOp[User](
-        operations=[
-            PatchOperation[User](
-                op="replace",
-                path="urn:ietf:params:scim:schemas:extension:enterprise:2.0:User.attr",
-                value="test",
-            )
-        ]
-    )
-    with pytest.raises(InvalidPathException):
-        patch_op.patch(user)
+def test_a_schema_urn_separated_from_its_attribute_by_a_dot_is_refused():
+    """A URN carries its attribute behind a colon, and a dot names a sub-attribute of it."""
+    with pytest.raises(ValidationError) as raised:
+        PatchOp[User[ConstrainedExtension]](
+            operations=[
+                PatchOperation[User[ConstrainedExtension]](
+                    op="replace",
+                    path="urn:example:2.0:Constrained.plainAttr",
+                    value="test",
+                )
+            ]
+        )
 
-
-def test_patch_op_remove_invalid_extension_path():
-    user = User(user_name="john")
-    patch_op = PatchOp[User](
-        operations=[
-            PatchOperation[User](
-                op="remove",
-                path="urn:ietf:params:scim:schemas:extension:enterprise:2.0:User.attr",
-            )
-        ]
-    )
-    with pytest.raises(InvalidPathException):
-        patch_op.patch(user)
-
-
-def test_patch_op_remove_unknown_extension_attribute():
-    user = User(user_name="john")
-    patch_op = PatchOp[User](
-        operations=[
-            PatchOperation[User](
-                op="remove",
-                path="urn:ietf:params:scim:schemas:extension:enterprise:2.0:User.attr",
-            )
-        ]
-    )
-    with pytest.raises(InvalidPathException):
-        patch_op.patch(user)
+    assert raised.value.errors()[0]["type"] == "scim_invalidPath"
 
 
 def test_patch_op_without_type_parameter():
@@ -97,19 +71,23 @@ def test_patch_op_without_type_parameter():
         PatchOp(operations=[{"op": "replace", "path": "userName", "value": "test"}])
 
 
-def test_patch_op_with_resource_type():
-    """Test that PatchOp[Resource] is rejected."""
+def test_patch_op_parameterized_with_resource_is_refused_when_used():
+    """Resource declares no attribute, so it can annotate a patch but not read one."""
+    assert PatchOp[Resource] is not None
+
     with pytest.raises(
         TypeError,
-        match="PatchOp requires a concrete Resource subclass, not Resource itself",
+        match=r"PatchOp\[Resource\] declares no attribute a payload could be read as",
     ):
-        PatchOp[Resource]
+        PatchOp[Resource](
+            operations=[{"op": "replace", "path": "userName", "value": "test"}]
+        )
 
 
 def test_patch_op_with_invalid_type():
     """Test that PatchOp with invalid types like str is rejected."""
     with pytest.raises(
-        TypeError, match="PatchOp type parameter must be a concrete Resource subclass"
+        TypeError, match="PatchOp type parameter must name resource types"
     ):
         PatchOp[str]
 
@@ -117,7 +95,7 @@ def test_patch_op_with_invalid_type():
 def test_patch_op_union_types_not_supported():
     """Test that PatchOp with Union types are rejected."""
     with pytest.raises(
-        TypeError, match="PatchOp type parameter must be a concrete Resource subclass"
+        TypeError, match="PatchOp type parameter must name one resource type"
     ):
         PatchOp[User | Group]
 
@@ -212,7 +190,7 @@ def test_value_required_for_add_operations():
         {
             "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
             "operations": [
-                {"op": "replace", "path": "foobar"},
+                {"op": "replace", "path": "nickName"},
             ],
         },
         context={"scim": Context.RESOURCE_PATCH_REQUEST},
@@ -222,7 +200,7 @@ def test_value_required_for_add_operations():
             {
                 "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
                 "operations": [
-                    {"op": "add", "path": "foobar"},
+                    {"op": "add", "path": "nickName"},
                 ],
             },
             context={"scim": Context.RESOURCE_PATCH_REQUEST},
@@ -232,7 +210,7 @@ def test_value_required_for_add_operations():
         {
             "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
             "operations": [
-                {"op": "remove", "path": "foobar"},
+                {"op": "remove", "path": "nickName"},
             ],
         },
         context={"scim": Context.RESOURCE_PATCH_REQUEST},
@@ -399,21 +377,6 @@ def test_patch_remove_on_readonly_field_is_rejected():
         )
 
 
-def test_patch_validation_allows_unknown_fields():
-    """Patch operations on unknown fields pass without mutability checks."""
-    patch_op = PatchOp[User].model_validate(
-        {
-            "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
-            "operations": [
-                {"op": "add", "path": "unknownField", "value": "some-value"},
-            ],
-        },
-        context={"scim": Context.RESOURCE_PATCH_REQUEST},
-    )
-    assert len(patch_op.operations) == 1
-    assert patch_op.operations[0].path == "unknownField"
-
-
 def test_patch_operations_on_readwrite_fields_allowed():
     """All patch operations are allowed on readWrite fields."""
     patch_op = PatchOp[User].model_validate(
@@ -427,21 +390,6 @@ def test_patch_operations_on_readwrite_fields_allowed():
         context={"scim": Context.RESOURCE_PATCH_REQUEST},
     )
     assert len(patch_op.operations) == 2
-
-
-def test_remove_operation_on_unknown_field_validates():
-    """Test remove operation on unknown field validates successfully."""
-    patch_op = PatchOp[User].model_validate(
-        {
-            "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
-            "operations": [
-                {"op": "remove", "path": "unknownField"},
-            ],
-        },
-        context={"scim": Context.RESOURCE_PATCH_REQUEST},
-    )
-    assert len(patch_op.operations) == 1
-    assert patch_op.operations[0].path == "unknownField"
 
 
 def test_remove_operation_on_non_required_field_allowed():
@@ -566,7 +514,7 @@ def test_patch_op_with_unbound_typevar():
     """Test that PatchOp rejects unbound TypeVar."""
     with pytest.raises(
         TypeError,
-        match="PatchOp TypeVar must be bound to Resource or its subclass, got ~UnboundT",
+        match="PatchOp type parameter must name resource types, got ~UnboundT",
     ):
         PatchOp[UnboundT]
 
@@ -576,29 +524,9 @@ def test_patch_op_with_typevar_bound_to_non_resource():
     NonResourceT = TypeVar("NonResourceT", bound=str)
     with pytest.raises(
         TypeError,
-        match="PatchOp TypeVar must be bound to Resource or its subclass, got ~NonResourceT",
+        match="PatchOp type parameter must name resource types, got ~NonResourceT",
     ):
         PatchOp[NonResourceT]
-
-
-def test_create_parent_object_return_none():
-    """Test _create_parent_object returns None when type resolution fails."""
-    user = User()
-
-    # Create a patch that will trigger _create_parent_object with complex path
-    patch = PatchOp[User](
-        operations=[
-            PatchOperation[User](
-                op=PatchOperation.Op.add,
-                path="complexField.subField",  # Non-existent complex field
-                value="test",
-            )
-        ]
-    )
-
-    # Non-existent field returns invalidPath error
-    with pytest.raises(InvalidPathException):
-        patch.patch(user)
 
 
 def test_validate_required_field_removal():
@@ -632,41 +560,33 @@ def test_patch_error_handling_invalid_operation():
         patch.patch(user)
 
 
-def test_remove_value_at_path_invalid_field():
-    """Test removing value at path with invalid parent field name."""
-    user = User(name={"familyName": "Test"})
+def test_a_path_whose_parent_attribute_no_model_declares_is_refused():
+    """A sub-attribute is looked up on the attribute holding it, which must exist first."""
+    with pytest.raises(ValidationError) as raised:
+        PatchOp[User](
+            operations=[
+                PatchOperation[User](
+                    op=PatchOperation.Op.remove, path="invalidParent.subField"
+                )
+            ]
+        )
 
-    # Create patch that attempts to remove from invalid parent field
-    patch = PatchOp[User](
-        operations=[
-            PatchOperation[User](
-                op=PatchOperation.Op.remove, path="invalidParent.subField"
-            )
-        ]
-    )
-
-    # Non-existent field returns invalidPath error
-    with pytest.raises(InvalidPathException):
-        patch.patch(user)
+    assert raised.value.errors()[0]["type"] == "scim_invalidPath"
 
 
 def test_remove_an_attribute_no_model_declares():
-    """Test removing specific value from invalid field name."""
-    user = User()
+    """A remove names its target in its path, and one outside the schema is refused."""
+    with pytest.raises(ValidationError) as raised:
+        PatchOp[User](
+            operations=[
+                PatchOperation[User](
+                    op=PatchOperation.Op.remove,
+                    path="invalidField",
+                )
+            ]
+        )
 
-    # Create patch that attempts to remove specific value from invalid field
-    patch = PatchOp[User](
-        operations=[
-            PatchOperation[User](
-                op=PatchOperation.Op.remove,
-                path="invalidField",
-            )
-        ]
-    )
-
-    # Non-existent field returns invalidPath error
-    with pytest.raises(InvalidPathException):
-        patch.patch(user)
+    assert raised.value.errors()[0]["type"] == "scim_invalidPath"
 
 
 def test_patch_op_operations_attribute_required_in_patch_context():
@@ -1010,20 +930,18 @@ def test_a_urn_that_merely_starts_like_a_schema_reaches_no_attribute():
     ``…:2.0:User`` and writes a :attr:`~scim2_models.Mutability.read_only`
     attribute that every other spelling of it is refused.
     """
-    user = User(user_name="bjensen", id="2819c223")
-    patch_op = PatchOp[User](
-        operations=[
-            PatchOperation[User](
-                op=PatchOperation.Op.replace_,
-                path="urn:ietf:params:scim:schemas:core:2.0:UserId",
-                value="forged",
-            )
-        ]
-    )
+    with pytest.raises(ValidationError) as raised:
+        PatchOp[User](
+            operations=[
+                PatchOperation[User](
+                    op=PatchOperation.Op.replace_,
+                    path="urn:ietf:params:scim:schemas:core:2.0:UserId",
+                    value="forged",
+                )
+            ]
+        )
 
-    with pytest.raises(InvalidPathException):
-        patch_op.patch(user)
-    assert user.id == "2819c223"
+    assert raised.value.errors()[0]["type"] == "scim_invalidPath"
 
 
 def test_a_patch_path_naming_a_subattribute_of_a_scalar_answers_invalid_path():
@@ -1032,19 +950,16 @@ def test_a_patch_path_naming_a_subattribute_of_a_scalar_answers_invalid_path():
     :rfc:`RFC7644 §3.12 <7644#section-3.12>` gives ``invalidPath`` for a path
     that is unknown, which a client may write without meaning to.
     """
-    user = User(user_name="bjensen")
-    patch_op = PatchOp[User](
-        operations=[
-            PatchOperation[User](
-                op=PatchOperation.Op.replace_, path="userName.foo", value="forged"
-            )
-        ]
-    )
+    with pytest.raises(ValidationError) as raised:
+        PatchOp[User](
+            operations=[
+                PatchOperation[User](
+                    op=PatchOperation.Op.replace_, path="userName.foo", value="forged"
+                )
+            ]
+        )
 
-    with pytest.raises(InvalidPathException) as raised:
-        patch_op.patch(user)
-    assert raised.value.to_error().scim_type == "invalidPath"
-    assert user.user_name == "bjensen"
+    assert raised.value.errors()[0]["type"] == "scim_invalidPath"
 
 
 def _constrained_user():
@@ -1149,3 +1064,48 @@ def test_patch_selection_naming_an_unknown_attribute_fails_the_operation():
 
     with pytest.raises(InvalidFilterException, match="nonexistent"):
         patch.patch(user)
+
+
+def test_a_path_naming_an_attribute_no_model_declares_is_refused():
+    """A path outside the resource schema is refused, as the same mistake without a path is."""
+    with pytest.raises(ValidationError) as raised:
+        PatchOp[User].model_validate(
+            {
+                "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+                "Operations": [{"op": "add", "path": "nonexistent", "value": "x"}],
+            },
+            scim_ctx=Context.RESOURCE_PATCH_REQUEST,
+        )
+
+    assert raised.value.errors()[0]["type"] == "scim_invalidPath"
+
+
+def test_a_path_naming_a_subattribute_no_model_declares_is_refused():
+    """A sub-attribute outside the schema of the attribute holding it is refused too."""
+    with pytest.raises(ValidationError) as raised:
+        PatchOp[User].model_validate(
+            {
+                "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+                "Operations": [
+                    {"op": "replace", "path": "name.nonexistent", "value": "x"}
+                ],
+            },
+            scim_ctx=Context.RESOURCE_PATCH_REQUEST,
+        )
+
+    assert raised.value.errors()[0]["type"] == "scim_invalidPath"
+
+
+def test_a_path_designating_the_resource_itself_is_accepted():
+    """The resource root names no attribute, and answers to the value as a pathless operation."""
+    patch = PatchOp[User].model_validate(
+        {
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+            "Operations": [{"op": "add", "path": "", "value": {"nickName": "Babs"}}],
+        },
+        scim_ctx=Context.RESOURCE_PATCH_REQUEST,
+    )
+
+    user = User(user_name="bjensen")
+    patch.patch(user)
+    assert user.nick_name == "Babs"

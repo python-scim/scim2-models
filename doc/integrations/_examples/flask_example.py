@@ -9,6 +9,7 @@ from werkzeug.exceptions import PreconditionFailed
 from werkzeug.routing import BaseConverter
 from werkzeug.routing import ValidationError as RoutingValidationError
 
+from scim2_models import BulkRequest
 from scim2_models import Context
 from scim2_models import Error
 from scim2_models import Group
@@ -22,6 +23,7 @@ from scim2_models import SearchRequest
 from scim2_models import User
 
 from .integrations import delete_record
+from .integrations import execute_bulk
 from .integrations import from_scim_user
 from .integrations import get_record
 from .integrations import get_resource_type
@@ -309,6 +311,19 @@ def create_user():
     )
 # -- create-user-end --
 # -- collection-end --
+
+
+# -- bulk-start --
+@bp.post("/Bulk")
+def bulk():
+    """Apply a bulk job and answer one result per operation."""
+    bulk_request = BulkRequest[User].model_validate_json(
+        request.data,
+        scim_ctx=Context.BULK_REQUEST,
+    )
+    bulk_response = execute_bulk(bulk_request, resource_location)
+    return bulk_response.model_dump(scim_ctx=Context.BULK_RESPONSE)
+# -- bulk-end --
 
 
 # -- discovery-start --
