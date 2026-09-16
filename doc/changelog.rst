@@ -44,6 +44,15 @@ Added
   :class:`~scim2_models.ResponseParameters` a client sent, instead of its ``attributes`` and
   ``excludedAttributes`` spelled out one by one. A :class:`~scim2_models.SearchRequest` is one,
   so a server answering ``POST /.search`` passes the request it received. :issue:`141`
+- :meth:`~scim2_models.BaseModel.model_validate`,
+  :meth:`~scim2_models.BaseModel.model_validate_json`,
+  :meth:`~scim2_models.BaseModel.model_dump` and
+  :meth:`~scim2_models.BaseModel.model_dump_json` take a ``scim_provider`` and a ``scim_spc``: the
+  :class:`~scim2_models.ScimProvider` describing the service a payload belongs to, and the
+  :class:`~scim2_models.ServiceProviderConfig` its peer publishes. A ``with`` block opened on a
+  provider lends both, as it already lends its policy, and ``scim_spc`` wins over the
+  configuration the provider carries. Rules the specification makes conditional on a declared
+  capability read them. See :doc:`how-to/describe-a-scim-service`.
 - :meth:`~scim2_models.PatchOp.build_from` builds the patch turning one resource state into
   another. Only the attributes the wanted state names take part in the comparison, so what a peer
   maintains and the caller does not model survives the modification — which is what a PATCH
