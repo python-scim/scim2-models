@@ -45,7 +45,7 @@ Added
   ``excludedAttributes`` spelled out one by one. A :class:`~scim2_models.SearchRequest` is one,
   so a server answering ``POST /.search`` passes the request it received. :issue:`141`
 - lark is a new dependency.
-- Support for `RFC9865 <7644>`
+- Support for :rfc:`RFC9865 <9865>`
 
 Changed
 ^^^^^^^
