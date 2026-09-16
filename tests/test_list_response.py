@@ -403,7 +403,7 @@ def test_cursor_pagination():
         "itemsPerPage": 1,
         "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
         "nextCursor": "cursor-abc",
-        "prevCursor": "cursor-xyz",
+        "previousCursor": "cursor-xyz",
         "Resources": [
             {
                 "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
@@ -414,10 +414,10 @@ def test_cursor_pagination():
     }
     response = ListResponse[User].model_validate(payload)
     assert response.next_cursor == "cursor-abc"
-    assert response.prev_cursor == "cursor-xyz"
+    assert response.previous_cursor == "cursor-xyz"
     dumped = response.model_dump(scim_ctx=Context.RESOURCE_QUERY_RESPONSE)
     assert dumped["nextCursor"] == "cursor-abc"
-    assert dumped["prevCursor"] == "cursor-xyz"
+    assert dumped["previousCursor"] == "cursor-xyz"
 
 
 def test_cursor_pagination_first_page():
@@ -435,10 +435,10 @@ def test_cursor_pagination_first_page():
     }
     response = ListResponse[User].model_validate(payload)
     assert response.next_cursor == "cursor-abc"
-    assert response.prev_cursor is None
+    assert response.previous_cursor is None
     dumped = response.model_dump(scim_ctx=Context.RESOURCE_QUERY_RESPONSE)
     assert "nextCursor" in dumped
-    assert "prevCursor" not in dumped
+    assert "previousCursor" not in dumped
 
 
 def test_invalid_cursor_exception():
@@ -470,10 +470,10 @@ def test_cursor_absent_when_none():
         resources=[User(id="user-1", user_name="bjensen")],
     )
     assert response.next_cursor is None
-    assert response.prev_cursor is None
+    assert response.previous_cursor is None
     dumped = response.model_dump(scim_ctx=Context.RESOURCE_QUERY_RESPONSE)
     assert "nextCursor" not in dumped
-    assert "prevCursor" not in dumped
+    assert "previousCursor" not in dumped
 
 
 def test_total_results_required():
