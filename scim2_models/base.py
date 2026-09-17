@@ -330,6 +330,11 @@ class BaseModel(PydanticBaseModel):
         return isinstance(origin, type) and issubclass(origin, list)
 
     @classmethod
+    def _scim_name(cls, field_name: str) -> str:
+        """Return the name a field is serialized under, ``$ref`` included."""
+        return cls.model_fields[field_name].serialization_alias or _to_camel(field_name)
+
+    @classmethod
     def __pydantic_on_complete__(cls) -> None:
         """Build the per-class SCIM metadata table on ``cls.__scim_info__``.
 

@@ -539,7 +539,7 @@ def _model_attribute_to_scim_attribute(
     )
 
     kwargs: dict[str, Any] = {
-        "name": field_info.serialization_alias or attribute_name,
+        "name": model._scim_name(attribute_name),
         "type": Attribute.Type(attribute_type),
         "multi_valued": model.get_field_multiplicity(attribute_name),
         "description": field_info.description,

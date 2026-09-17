@@ -10,7 +10,6 @@ from typing import TypeVar
 
 from ..base import BaseModel
 from ..urn import URN
-from ..utils import _to_camel
 from .access import _delete_value
 from .access import _get_value
 from .access import _set_value
@@ -49,11 +48,6 @@ def _node_attr_path(node: PathNode) -> AttrPath:
     if isinstance(node, AttrPath):
         return node
     return node.attr_path
-
-
-def _scim_name(model: type[BaseModel], field_name: str) -> str:
-    """Return the name a field is serialized under, ``$ref`` included."""
-    return model.model_fields[field_name].serialization_alias or _to_camel(field_name)
 
 
 class Path(_BoundToModels, _Expression, Generic[ResourceT]):
@@ -506,7 +500,7 @@ class Path(_BoundToModels, _Expression, Generic[ResourceT]):
                 elif isclass(target_model) and issubclass(target_model, Extension):
                     urn = target_model()._get_attribute_urn(field_name)
                 else:
-                    urn = _scim_name(target_model, field_name)
+                    urn = target_model._scim_name(field_name)
 
                 yield cls(urn)
 
@@ -519,7 +513,7 @@ class Path(_BoundToModels, _Expression, Generic[ResourceT]):
                     for sub_field_name in field_type.model_fields:  # type: ignore[union-attr]
                         if not matches_filters(field_type, sub_field_name):  # type: ignore[arg-type]
                             continue
-                        sub_urn = f"{urn}.{_scim_name(field_type, sub_field_name)}"  # type: ignore[arg-type]
+                        sub_urn = f"{urn}.{field_type._scim_name(sub_field_name)}"  # type: ignore[union-attr]
                         yield cls(sub_urn)
 
         yield from iter_model_paths(model)  # type: ignore[arg-type]

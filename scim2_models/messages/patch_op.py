@@ -102,11 +102,6 @@ _ENVELOPE_FIELDS = frozenset({"schemas"})
 """Fields that carry the payload rather than the state it describes."""
 
 
-def _attribute_name(model: type[BaseModel], field_name: str) -> str:
-    """Return the SCIM spelling of a field, as a path segment."""
-    return model.model_fields[field_name].serialization_alias or field_name
-
-
 def _asserted_sub_attributes(entries: Any) -> set[str]:
     """Return the sub-attributes the entries of a wanted state name."""
     asserted: set[str] = set()
@@ -212,7 +207,7 @@ def _diff(
 
         old = getattr(before, field_name, None) if before is not None else None
         new = getattr(after, field_name, None)
-        path = f"{prefix}{_attribute_name(model, field_name)}"
+        path = f"{prefix}{model._scim_name(field_name)}"
 
         if model.get_field_multiplicity(field_name):
             yield from _diff_multi_valued(path, old, new, mutability)
