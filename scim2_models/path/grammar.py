@@ -89,14 +89,14 @@ SUB_ATTR: /{_ATTR_NAME}/
 
 // Trailing word boundaries are mandatory: without them an attribute named
 // "never" lexes as the "ne" operator followed by "ver".
-COMPARE_OP.2: /(?:eq|ne|co|sw|ew|gt|lt|ge|le)(?![A-Za-z0-9_-])/i
-PR.2: /pr(?![A-Za-z0-9_-])/i
-TRUE.2: /true(?![A-Za-z0-9_-])/i
-FALSE.2: /false(?![A-Za-z0-9_-])/i
-NULL.2: /null(?![A-Za-z0-9_-])/i
-_AND.3: /and(?![A-Za-z0-9_-])/i
-_OR.3: /or(?![A-Za-z0-9_-])/i
-_NOT.3: /not(?![A-Za-z0-9_-])/i
+COMPARE_OP.2: /(?:eq|ne|co|sw|ew|gt|lt|ge|le)(?![A-Za-z0-9$_-])/i
+PR.2: /pr(?![A-Za-z0-9$_-])/i
+TRUE.2: /true(?![A-Za-z0-9$_-])/i
+FALSE.2: /false(?![A-Za-z0-9$_-])/i
+NULL.2: /null(?![A-Za-z0-9$_-])/i
+_AND.3: /and(?![A-Za-z0-9$_-])/i
+_OR.3: /or(?![A-Za-z0-9$_-])/i
+_NOT.3: /not(?![A-Za-z0-9$_-])/i
 
 // Both literals follow the JSON rules the ABNF refers to, escapes included, so
 // that an invalid one is a syntax error located by the lexer rather than a

@@ -135,6 +135,8 @@ Deprecated
 
 Fixed
 ^^^^^
+- A filter or a path accepts a ``$`` anywhere in an attribute name, as ``nameChar`` allows. Only
+  a leading one went through. :issue:`166`
 - A schema declaring several attributes that yield one Python name builds a field for each of
   them: the attribute already spelled as that name keeps it, and the others are held under their
   SCIM name. ``employee_id`` and ``employeeId`` used to share one field, so a dump reported one
