@@ -65,6 +65,11 @@ Added
 
 Changed
 ^^^^^^^
+- :meth:`Resource.from_schema <scim2_models.Resource.from_schema>` and
+  :meth:`Extension.from_schema <scim2_models.Extension.from_schema>` refuse a schema declaring
+  two attributes whose names only differ by case, and report both.
+  :rfc:`RFC7643 §2.1 <7643#section-2.1>` makes them one attribute, so such a schema describes
+  it twice. :issue:`166`
 - Attribute names are matched case-insensitively, and nothing else. The ``nameChar`` rule of
   :rfc:`RFC7643 §2.1 <7643#section-2.1>` makes ``$``, ``-`` and ``_`` part of a name, so
   ``{"user-name": "x"}``, which 0.7 read as ``userName``, is now an unknown attribute that
@@ -130,6 +135,12 @@ Deprecated
 
 Fixed
 ^^^^^
+- A schema declaring several attributes that yield one Python name builds a field for each of
+  them: the attribute already spelled as that name keeps it, and the others are held under their
+  SCIM name. ``employee_id`` and ``employeeId`` used to share one field, so a dump reported one
+  value twice and lost the other. An attribute is read under the name SCIM gives it, as in
+  ``resource["employeeId"]``, so a field name that is no Python identifier costs nothing.
+  :issue:`166`
 - A pydantic error spells the attribute as SCIM does, ``userName`` and ``$ref`` where it used to
   report ``username`` and ``ref``, and so does the JSON schema a model publishes, which FastAPI
   reads to document a request body. :issue:`166`

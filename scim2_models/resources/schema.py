@@ -1,4 +1,5 @@
 import re
+from collections import Counter
 from datetime import datetime
 from enum import Enum
 from typing import Annotated
@@ -46,32 +47,78 @@ def _make_python_identifier(identifier: str) -> str:
     return sanitized
 
 
+def _field_names(attributes: "list[Attribute]") -> list[str]:
+    """Return the Python name each attribute is held under.
+
+    Two SCIM names may yield one Python name, as ``employee_id`` and
+    ``employeeId`` both yield ``employee_id``. The one already spelled as that
+    name keeps it and the others are held under their SCIM name, so that no
+    attribute is dropped and the order the schema declares them in changes
+    nothing. Such a name is no Python identifier when it carries a dash, which
+    costs nothing: an attribute is read under the name SCIM gives it, as in
+    ``resource["employee-Id"]``.
+    """
+    natural = [
+        to_snake(_make_python_identifier(attr.name or "")) for attr in attributes
+    ]
+    shared = Counter(natural)
+    return [
+        name if shared[name] == 1 or name == attr.name else attr.name or ""
+        for attr, name in zip(attributes, natural, strict=True)
+    ]
+
+
+def _python_attributes(
+    attributes: "list[Attribute] | None", declared_by: str
+) -> dict[str, Any]:
+    """Return the fields a schema or a complex attribute declares.
+
+    ``declared_by`` is what declares them, quoted by the error. Two
+    attributes whose names only differ by case are refused: RFC7643 §2.1 makes
+    them one attribute, so a schema declaring both describes it twice.
+    """
+    declared = []
+    named: dict[str, str] = {}
+    for attr in attributes or []:
+        if not attr.name:
+            continue
+
+        claimed = named.get(attr.name.lower())
+        if claimed is not None:
+            raise ValueError(
+                f"{declared_by} declares {claimed!r} and {attr.name!r}, "
+                f"which name the same attribute"
+            )
+        named[attr.name.lower()] = attr.name
+        declared.append(attr)
+
+    return {
+        field_name: attr._to_python()
+        for field_name, attr in zip(_field_names(declared), declared, strict=True)
+    }
+
+
 def _make_python_model(
     obj: Union["Schema", "Attribute"],
     base: type[T],
 ) -> type[T]:
     """Build a Python model from a Schema or an Attribute object."""
-    if isinstance(obj, Attribute):
-        pydantic_attributes = {
-            to_snake(_make_python_identifier(attr.name)): attr._to_python()
-            for attr in (obj.sub_attributes or [])
-            if attr.name
-        }
-
-    else:
-        pydantic_attributes = {
-            to_snake(_make_python_identifier(attr.name)): attr._to_python()
-            for attr in (obj.attributes or [])
-            if attr.name
-        }
-
     if not obj.name:
         raise ValueError("Schema or Attribute 'name' must be defined")
+
+    if isinstance(obj, Attribute):
+        pydantic_attributes = _python_attributes(
+            obj.sub_attributes, f"the attribute {obj.name!r}"
+        )
+    else:
+        pydantic_attributes = _python_attributes(
+            obj.attributes, f"the schema {obj.id or obj.name}"
+        )
 
     model_name = to_pascal(to_snake(obj.name))
     model = cast(
         type[T],
-        create_model(model_name, __base__=base, **pydantic_attributes),  # type: ignore[call-overload]
+        create_model(model_name, __base__=base, **pydantic_attributes),
     )
 
     if isinstance(obj, Schema) and obj.id:
