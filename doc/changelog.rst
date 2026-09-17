@@ -65,6 +65,12 @@ Added
 
 Changed
 ^^^^^^^
+- Attribute names are matched case-insensitively, and nothing else. The ``nameChar`` rule of
+  :rfc:`RFC7643 §2.1 <7643#section-2.1>` makes ``$``, ``-`` and ``_`` part of a name, so
+  ``{"user-name": "x"}``, which 0.7 read as ``userName``, is now an unknown attribute that
+  :attr:`~scim2_models.ScimPolicy.unknown` governs. Paths, filters and ``sortBy`` resolve the
+  same way. A model whose fields answer to one attribute name raises a :class:`TypeError` where
+  it is defined. :issue:`166`
 - The bulk models take the resource type their operations carry, as in ``BulkRequest[User]`` or
   ``BulkRequest[User | Group]``, and raise a :class:`TypeError` when used bare. A payload the type
   parameter does not cover is now refused, and a bulk response no longer dumps ``path``.
@@ -124,6 +130,16 @@ Deprecated
 
 Fixed
 ^^^^^
+- A pydantic error spells the attribute as SCIM does, ``userName`` and ``$ref`` where it used to
+  report ``username`` and ``ref``, and so does the JSON schema a model publishes, which FastAPI
+  reads to document a request body. :issue:`166`
+- A field declaring its own ``alias`` is read under it, and an unknown attribute is refused under
+  the spelling the peer used. ``Field(alias="string_field")`` used to answer ``extra_forbidden``
+  quoting a spelling nobody had sent. :issue:`166`
+- An extension is read under its class name as well as under its URN, so
+  ``User[EnterpriseUser](EnterpriseUser=extension)`` is accepted and a resource carrying an
+  extension survives a dump without aliases read back. Both used to answer ``extra_forbidden``.
+  :issue:`166`
 - A bulk model indexed with something other than a resource type names itself in the error. The
   rules of the :class:`~scim2_models.PatchOp` its operations carry used to answer for it, so
   ``BulkRequest[str]`` told the caller to write ``PatchOp[User]``.

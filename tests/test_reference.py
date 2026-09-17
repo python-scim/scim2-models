@@ -171,7 +171,7 @@ def test_reference_json_schema_generation():
     """Test that models with Reference fields can generate JSON Schema."""
     schema = ReferenceTestModel.model_json_schema()
     assert schema["type"] == "object"
-    assert "uriref" in schema["properties"]
-    assert "extref" in schema["properties"]
-    assert "resourceref" in schema["properties"]
-    assert "multiref" in schema["properties"]
+    assert "uriRef" in schema["properties"]
+    assert "extRef" in schema["properties"]
+    assert "resourceRef" in schema["properties"]
+    assert "multiRef" in schema["properties"]

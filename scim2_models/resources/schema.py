@@ -30,7 +30,6 @@ from ..reference import URI
 from ..reference import External
 from ..reference import Reference
 from ..urn import URN
-from ..utils import _normalize_attribute_name
 from .resource import Resource
 
 T = TypeVar("T", bound=BaseModel)
@@ -236,7 +235,7 @@ class Attribute(ComplexAttribute):
             description=self.description,
             examples=self.canonical_values,
             serialization_alias=self.name,
-            validation_alias=_normalize_attribute_name(self.name),
+            validation_alias=self.name,
             default=None,
         )
 

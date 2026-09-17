@@ -1,5 +1,4 @@
 import re
-from functools import lru_cache
 from inspect import isclass
 from typing import TYPE_CHECKING
 from typing import Any
@@ -42,7 +41,6 @@ def _model_union(annotation: Any) -> "tuple[type[BaseModel], ...] | None":
 
 
 _UNDERSCORE_ALPHANUMERIC = re.compile(r"_+([0-9A-Za-z]+)")
-_NON_WORD_UNDERSCORE = re.compile(r"[\W_]+")
 
 
 def _int_to_str(status: int | None) -> str | None:
@@ -62,28 +60,22 @@ def _to_camel(string: str) -> str:
     return camel
 
 
-@lru_cache(maxsize=256)
 def _normalize_attribute_name(attribute_name: str) -> str:
-    """Remove all non-alphabetical characters and lowerise a string.
+    """Fold the case of an attribute name.
 
-    This method is used for attribute name validation.
+    RFC7643 §2.1 makes attribute names case-insensitive, and its ``nameChar``
+    rule makes ``$``, ``-`` and ``_`` part of a name, so the case is all there
+    is to fold.
     """
-    is_extension_attribute = ":" in attribute_name
-    if not is_extension_attribute:
-        attribute_name = _NON_WORD_UNDERSCORE.sub("", attribute_name)
-
     return attribute_name.lower()
 
 
 def _find_field_name(model_class: type["BaseModel"], attr_name: str) -> str | None:
     """Return the field a SCIM attribute name designates, or None.
 
-    ``nickName`` designates the ``nick_name`` field.
+    ``nickName`` designates the ``nick_name`` field, and ``$ref`` the ``ref``
+    one.
     """
-    normalized_attr_name = _normalize_attribute_name(attr_name)
-
-    for field_key in model_class.model_fields:
-        if _normalize_attribute_name(field_key) == normalized_attr_name:
-            return field_key
-
-    return None
+    return model_class.__scim_info__.field_by_name.get(
+        _normalize_attribute_name(attr_name)
+    )

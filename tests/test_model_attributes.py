@@ -1,9 +1,12 @@
 import uuid
 from typing import Annotated
 
+import pytest
 from pydantic import AliasChoices
+from pydantic import AliasPath
 from pydantic import Base64Bytes
 from pydantic import Field
+from pydantic import ValidationError
 
 from scim2_models import URN
 from scim2_models import ResponseParameters
@@ -457,7 +460,7 @@ def test_extension_excluded_by_full_urn():
 
 
 def test_field_with_custom_validation_aliases():
-    """A field may bring its own validation aliases, which are not indexed as names."""
+    """A field is read under every name it declares for itself."""
 
     class AliasedResource(Resource):
         __schema__ = URN("urn:example:2.0:AliasedResource")
@@ -466,9 +469,7 @@ def test_field_with_custom_validation_aliases():
             None, validation_alias=AliasChoices("value", "legacyvalue")
         )
 
-    assert all(
-        isinstance(alias, str) for alias in AliasedResource.__scim_info__.alias_to_field
-    )
+    assert AliasedResource.__scim_info__.field_by_name["legacyvalue"] == "value"
 
     obj = AliasedResource.model_validate({"legacyValue": "x"})
 
@@ -485,3 +486,135 @@ def test_short_attr_path_with_plain_name():
 
     assert _short_attr_path("userName") == "userName"
     assert _short_attr_path("name.familyName") == "name.familyName"
+
+
+@pytest.mark.parametrize(
+    "spelling", ["userName", "username", "USERNAME", "UserName", "user_name"]
+)
+def test_an_attribute_name_is_read_whatever_its_case(spelling):
+    """RFC7643 §2.1 makes attribute names case-insensitive."""
+    user = User.model_validate({"schemas": [str(User.__schema__)], spelling: "bjensen"})
+
+    assert user.user_name == "bjensen"
+
+
+@pytest.mark.parametrize(
+    "spelling", ["user-name", "u.s.e.r.n.a.m.e", "user$name", "username "]
+)
+def test_a_name_differing_by_punctuation_is_another_attribute(spelling):
+    """The nameChar rule of RFC7643 §2.1 makes $, - and _ part of a name, so dropping them would merge two attributes into one."""
+    with pytest.raises(ValidationError) as exc_info:
+        User.model_validate({"schemas": [str(User.__schema__)], spelling: "bjensen"})
+
+    assert exc_info.value.errors()[0]["loc"] == (spelling,)
+
+
+def test_an_unknown_attribute_is_named_as_the_peer_spelled_it():
+    """A refusal quotes what was sent, so that the peer can find it in its own payload."""
+    with pytest.raises(ValidationError) as exc_info:
+        User.model_validate({"schemas": [str(User.__schema__)], "usr_Name": "bjensen"})
+
+    assert exc_info.value.errors()[0]["loc"] == ("usr_Name",)
+
+
+def test_a_field_is_read_under_the_alias_it_declares():
+    """An alias naming an attribute the camel-cased field name would not spell is honoured."""
+
+    class Aliased(Resource):
+        __schema__ = URN("urn:example:2.0:Aliased")
+
+        string_field: str | None = Field(None, alias="string_field")
+
+    obj = Aliased.model_validate({"string_field": "x"})
+
+    assert obj.string_field == "x"
+
+
+def test_an_alias_wins_over_the_python_name_of_another_field():
+    """The name an attribute is serialized under is the one SCIM names it by, where a Python field name is only the spelling pydantic offers."""
+
+    class Aliased(Resource):
+        __schema__ = URN("urn:example:2.0:Aliased")
+
+        user_name: str | None = None
+        legacy: str | None = Field(None, serialization_alias="user_name")
+
+    obj = Aliased.model_validate(
+        {"schemas": [str(Aliased.__schema__)], "userName": "a", "user_name": "b"}
+    )
+
+    assert obj.user_name == "a"
+    assert obj.legacy == "b"
+
+
+def test_a_constructor_keyword_reaches_the_field_the_attribute_name_designates():
+    """A keyword is resolved as a payload key is, so an alias covering it takes it."""
+
+    class Aliased(Resource):
+        __schema__ = URN("urn:example:2.0:Aliased")
+
+        user_name: str | None = None
+        legacy: str | None = Field(None, serialization_alias="user_name")
+
+    obj = Aliased(user_name="x")
+
+    assert obj.legacy == "x"
+    assert obj.user_name is None
+
+
+def test_two_fields_cannot_answer_to_one_attribute_name():
+    """A model whose fields share an attribute name is refused where it is written, no payload key being able to reach both."""
+    with pytest.raises(TypeError, match="two fields answering"):
+
+        class Ambiguous(Resource):
+            __schema__ = URN("urn:example:2.0:Ambiguous")
+
+            display_name: str | None = None
+            legacy: str | None = Field(None, serialization_alias="displayName")
+
+
+def test_an_extension_is_named_by_its_field_as_well_as_by_its_urn():
+    """An extension answers to its class name, which is what a dump without aliases carries."""
+    extended = User[EnterpriseUser](
+        user_name="bjensen", EnterpriseUser=EnterpriseUser(department="Sales")
+    )
+
+    assert extended[EnterpriseUser].department == "Sales"
+
+    revalidated = User[EnterpriseUser].model_validate(
+        extended.model_dump(scim_ctx=None)
+    )
+
+    assert revalidated[EnterpriseUser].department == "Sales"
+
+
+def test_a_payload_naming_one_attribute_twice_keeps_the_last_spelling():
+    """RFC7643 §2.1 makes two cases of one name the same attribute, so the payload assigns it twice."""
+    user = User.model_validate(
+        {"schemas": [str(User.__schema__)], "userName": "first", "USERNAME": "last"}
+    )
+
+    assert user.user_name == "last"
+
+
+def test_the_name_a_field_is_serialized_under_falls_back_on_its_camel_case():
+    """Every model carries an alias generator, so the fallback answers for a field defined without one."""
+
+    class Bare(BaseModel):
+        model_config = {}
+
+        user_name: str | None = None
+
+    assert Bare._scim_name("user_name") == "userName"
+
+
+def test_an_alias_naming_a_place_in_the_payload_names_no_attribute():
+    """An AliasPath reaches into a payload rather than naming an attribute, so it adds no name a peer may use."""
+
+    class Nested(Resource):
+        __schema__ = URN("urn:example:2.0:Nested")
+
+        value: str | None = Field(None, validation_alias=AliasPath("outer", "inner"))
+
+    assert "outer" not in Nested.__scim_info__.field_by_name
+    assert Nested.__scim_info__.validation_names["value"] == "value"
