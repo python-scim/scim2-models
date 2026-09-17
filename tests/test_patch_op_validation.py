@@ -417,7 +417,7 @@ def test_patch_operations_with_none_path_skipped():
         ]
     )
 
-    # The validate_operations method should skip operations with None path
+    # The _validate_operations method should skip operations with None path
     # This should not raise an error
     user = User(user_name="test")
     result = patch_op.patch(user)

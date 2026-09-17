@@ -106,7 +106,7 @@ class Reference(str, Generic[ReferenceTypes]):
         return {"type": "string", "format": "uri"}
 
     @classmethod
-    def get_scim_reference_types(cls) -> list[str]:
+    def _get_scim_reference_types(cls) -> list[str]:
         """Return referenceTypes for SCIM schema generation."""
         return list(cls.__reference_types__)
 

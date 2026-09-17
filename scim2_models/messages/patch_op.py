@@ -57,10 +57,10 @@ def _commit(resource: Any, working: Any) -> None:
 def _targeted_attributes(value: Any) -> dict[str, Any]:
     """Return the attributes an operation without a path writes.
 
-    :rfc:`RFC7644 §3.5.2.3 <7644#section-3.5.2.3>` has the ``value`` name them
-    when the path is omitted. A client building its payload in Python passes a
-    resource, where a server parses a mapping, and both name the same
-    attributes. Anything else names none.
+    RFC7644 §3.5.2.3 has the ``value`` name them when the path is omitted. A
+    client building its payload in Python passes a resource, where a server
+    parses a mapping, and both name the same attributes. Anything else names
+    none.
     """
     if isinstance(value, BaseModel):
         # Dumped out of context on purpose: a payload dumped in the PATCH
@@ -91,9 +91,9 @@ def _names_a_declared_target(
 def _resolved_field(resource_class: type[BaseModel], attr_name: str) -> str | None:
     """Return the Python field a SCIM attribute name designates.
 
-    Attribute names are case-insensitive per :rfc:`RFC7643 §2.1 <7643#section-2.1>`
-    and differ from the field names of the model, so the constraint checks
-    resolve the name instead of matching it against ``model_fields``.
+    Attribute names are case-insensitive per RFC7643 §2.1 and differ from the
+    field names of the model, so the constraint checks resolve the name instead
+    of matching it against ``model_fields``.
     """
     return _find_field_name(resource_class, attr_name)
 
@@ -119,8 +119,8 @@ def _asserted_sub_attributes(entries: Any) -> set[str]:
 def _projection(entries: Any, asserted: set[str]) -> list[Any]:
     """Reduce the entries of a multi-valued attribute to what is worth comparing.
 
-    :rfc:`RFC7643 §2.4 <7643#section-2.4>` gives no significance to the order of
-    a multi-valued attribute, so the projections are sorted before comparison.
+    RFC7643 §2.4 gives no significance to the order of a multi-valued
+    attribute, so the projections are sorted before comparison.
     """
     projected = [
         tuple(sorted((name, getattr(entry, name, None)) for name in asserted))
@@ -136,11 +136,10 @@ def _operation(
 ) -> tuple["PatchOperation.Op", str, Any]:
     """Return the operation writing *new* where the current state holds *old*.
 
-    Called once a difference is established. :rfc:`RFC7644 §3.5.2.3
-    <7644#section-3.5.2.3>` has a service provider treat a ``replace`` on an
-    unset target as an ``add``, so a single operation covers both. An immutable
-    attribute is the exception: :rfc:`RFC7644 §3.5.2 <7644#section-3.5.2>` lets
-    a client add a value to one that had none, and nothing else.
+    Called once a difference is established. RFC7644 §3.5.2.3 has a service
+    provider treat a ``replace`` on an unset target as an ``add``, so a single
+    operation covers both. An immutable attribute is the exception: RFC7644
+    §3.5.2 lets a client add a value to one that had none, and nothing else.
     """
     if mutability == Mutability.immutable:
         if old is not None:
@@ -163,8 +162,8 @@ def _diff_multi_valued(
     Only the sub-attributes the wanted entries name take part in the
     comparison, so the sub-attributes the peer alone maintains do not read as a
     difference. When the collection does change it is replaced entirely:
-    :rfc:`RFC7643 §2.4 <7643#section-2.4>` gives the entries no identity, so an
-    entry that changed cannot be told from a removed one and an added one.
+    RFC7643 §2.4 gives the entries no identity, so an entry that changed cannot
+    be told from a removed one and an added one.
     """
     asserted = _asserted_sub_attributes(new)
     if _projection(old, asserted) == _projection(new, asserted):
@@ -255,10 +254,10 @@ class PatchOperation(ComplexAttribute, Generic[ResourceT]):
     ) -> None:
         """Validate mutability constraints at parse-time.
 
-        Only :attr:`~scim2_models.Mutability.read_only` is validated here.
-        :attr:`~scim2_models.Mutability.immutable` validation requires access
-        to the resource instance and is enforced at runtime in
-        :meth:`PatchOp._check_immutable`.
+        Only scim2_models.Mutability.read_only is validated here.
+        scim2_models.Mutability.immutable validation requires access to the
+        resource instance and is enforced at runtime in
+        PatchOp._check_immutable.
         """
         if (field := _resolved_field(resource_class, field_name)) is None:
             return
@@ -278,8 +277,8 @@ class PatchOperation(ComplexAttribute, Generic[ResourceT]):
     ) -> None:
         """Refuse an operation that would leave a required attribute unassigned.
 
-        :param written: The value the operation writes to that attribute, which
-            an operation without a path takes from its ``value``.
+        ``written`` is the value the operation writes to that attribute, which
+        an operation without a path takes from its ``value``.
         """
         # RFC7643 §2.5 makes a null value, an empty array and an unassigned
         # attribute equivalent in state, so writing one of those unassigns the
@@ -309,7 +308,7 @@ class PatchOperation(ComplexAttribute, Generic[ResourceT]):
             ).as_pydantic_error()
 
     @model_validator(mode="after")
-    def validate_operation_requirements(self, info: ValidationInfo) -> Self:
+    def _validate_operation_requirements(self, info: ValidationInfo) -> Self:
         """Validate operation requirements according to RFC 7644."""
         # Only validate in PATCH request context
         scim_ctx = info.context.get("scim") if info.context else None
@@ -350,14 +349,14 @@ class PatchOperation(ComplexAttribute, Generic[ResourceT]):
 
     @field_validator("op", mode="before")
     @classmethod
-    def normalize_op(cls, v: Any) -> Any:
+    def _normalize_op(cls, v: Any) -> Any:
         """Ignore case for op.
 
         This brings
         `compatibility with Microsoft Entra <https://learn.microsoft.com/en-us/entra/identity/app-provisioning/use-scim-to-provision-users-and-groups#general>`_:
 
-        Don't require a case-sensitive match on structural elements in SCIM,
-        in particular PATCH op operation values, as defined in section 3.5.2.
+        Don't require a case-sensitive match on structural elements in SCIM, in
+        particular PATCH op operation values, as defined in section 3.5.2.
         Microsoft Entra ID emits the values of op as Add, Replace, and Remove.
         """
         if isinstance(v, str):
@@ -407,11 +406,12 @@ class PatchOp(_ResourceParameterized, Message, Generic[ResourceT]):
     "Operations", whose value is an array of one or more PATCH operations."""
 
     @model_validator(mode="after")
-    def validate_operations(self, info: ValidationInfo) -> Self:
+    def _validate_operations(self, info: ValidationInfo) -> Self:
         """Validate operations against resource type metadata if available.
 
-        When PatchOp is used with a specific resource type (e.g., PatchOp[User]),
-        this validator will automatically check mutability and required constraints.
+        When PatchOp is used with a specific resource type (e.g.,
+        PatchOp[User]), this validator will automatically check mutability and
+        required constraints.
         """
         # RFC 7644: The body of an HTTP PATCH request MUST contain the attribute "Operations"
         scim_ctx = info.context.get("scim") if info.context else None
@@ -564,11 +564,10 @@ class PatchOp(_ResourceParameterized, Message, Generic[ResourceT]):
     def _apply_operation(
         self, resource: Resource[Any], operation: PatchOperation[ResourceT]
     ) -> bool:
-        """Apply a single patch operation to a resource.
+        """Apply a single patch operation, and say whether the resource changed.
 
-        :return: :data:`True` if the resource was modified, else :data:`False`.
-        :raises MutabilityException: If the operation would modify an
-            immutable attribute.
+        An operation modifying an immutable attribute raises
+        MutabilityException.
         """
         if operation.path is not None:
             self._check_immutable(resource, operation)
@@ -585,16 +584,16 @@ class PatchOp(_ResourceParameterized, Message, Generic[ResourceT]):
     ) -> None:
         """Validate immutable constraints at runtime.
 
-        :rfc:`RFC 7644 §3.5.2 <7644#section-3.5.2>`:
+        RFC 7644 §3.5.2:
 
             *"A client MUST NOT modify an attribute that has mutability
             "readOnly" or "immutable".  However, a client MAY "add" a value
             to an "immutable" attribute if the attribute had no previous
             value."*
 
-        An operation is considered a no-op (and thus allowed) when it would
-        not effectively change the resource state: ``remove`` on an unset
-        field, or ``replace`` with the current value.
+        An operation is considered a no-op (and thus allowed) when it would not
+        effectively change the resource state: ``remove`` on an unset field, or
+        ``replace`` with the current value.
         """
         assert operation.path is not None
         if (resolved := operation.path.resolve()) is None:
@@ -685,9 +684,9 @@ class PatchOp(_ResourceParameterized, Message, Generic[ResourceT]):
     ) -> None:
         """Normalize primary attributes after a patch operation.
 
-        Per :rfc:`RFC 7644 §3.5.2 <7644#section-3.5.2>`: a PATCH operation that
-        sets a value's "primary" sub-attribute to "true" SHALL cause the server
-        to automatically set "primary" to "false" for any other values.
+        Per RFC 7644 §3.5.2: a PATCH operation that sets a value's "primary"
+        sub-attribute to "true" SHALL cause the server to automatically set
+        "primary" to "false" for any other values.
         """
         for field_name in type(resource).model_fields:
             if not resource.get_field_multiplicity(field_name):
@@ -761,10 +760,9 @@ class PatchOp(_ResourceParameterized, Message, Generic[ResourceT]):
     ) -> bool:
         """Remove the entries the value of a remove operation selects.
 
-        Microsoft Entra puts the selection in ``value`` where
-        :rfc:`RFC7644 §3.5.2.2 <7644#section-3.5.2.2>` puts it in ``path``.
-        Each entry becomes a filter on the sub-attributes it names, which is
-        the path the operation should have carried.
+        Microsoft Entra puts the selection in ``value`` where RFC7644 §3.5.2.2
+        puts it in ``path``. Each entry becomes a filter on the sub-attributes
+        it names, which is the path the operation should have carried.
         """
         if path.value_filter is not None:
             raise InvalidValueException(

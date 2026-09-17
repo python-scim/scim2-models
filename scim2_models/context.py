@@ -202,6 +202,17 @@ class Context(Enum):
 
     @classmethod
     def is_request(cls, ctx: "Context") -> bool:
+        """Whether a context describes a payload a client sends to a server.
+
+        :param ctx: The context to test.
+        :returns: :data:`True` for the request contexts.
+
+        >>> from scim2_models import Context
+        >>> Context.is_request(Context.RESOURCE_CREATION_REQUEST)
+        True
+        >>> Context.is_request(Context.RESOURCE_CREATION_RESPONSE)
+        False
+        """
         return ctx in (
             cls.RESOURCE_CREATION_REQUEST,
             cls.RESOURCE_QUERY_REQUEST,
@@ -213,6 +224,17 @@ class Context(Enum):
 
     @classmethod
     def is_response(cls, ctx: "Context") -> bool:
+        """Whether a context describes a payload a server sends to a client.
+
+        :param ctx: The context to test.
+        :returns: :data:`True` for the response contexts.
+
+        >>> from scim2_models import Context
+        >>> Context.is_response(Context.RESOURCE_QUERY_RESPONSE)
+        True
+        >>> Context.is_response(Context.SEARCH_REQUEST)
+        False
+        """
         return ctx in (
             cls.RESOURCE_CREATION_RESPONSE,
             cls.RESOURCE_QUERY_RESPONSE,

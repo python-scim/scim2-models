@@ -16,8 +16,8 @@ from scim2_models.path import LogicalOperator
 from scim2_models.path import Not
 from scim2_models.path import Present
 from scim2_models.path import ValuePath
-from scim2_models.path import parse_filter
-from scim2_models.path import parse_path
+from scim2_models.path.grammar import _parse_filter
+from scim2_models.path.grammar import _parse_path
 
 
 @pytest.mark.parametrize(
@@ -44,7 +44,7 @@ from scim2_models.path import parse_path
 )
 def test_the_examples_of_the_rfc_are_parsed(expression):
     """Every filter of Figure 2 of §3.4.2.2 has to be accepted."""
-    assert parse_filter(expression) is not None
+    assert _parse_filter(expression) is not None
 
 
 @pytest.mark.parametrize(
@@ -72,7 +72,7 @@ def test_attribute_names_starting_like_a_keyword(attr_name):
     ``ATTRNAME = ALPHA *(nameChar)`` accepts them all, so the lexer has to
     require a word boundary after every keyword.
     """
-    node = parse_filter(f'{attr_name} eq "x"')
+    node = _parse_filter(f'{attr_name} eq "x"')
     assert node == Comparison(AttrPath(attr_name), CompareOperator.eq, "x")
 
 
@@ -99,7 +99,7 @@ def test_attribute_names_starting_like_a_keyword(attr_name):
 )
 def test_urn_is_split_on_its_last_colon(expression, expected):
     """A qualified attribute path separates its URN from the attribute name."""
-    assert parse_filter(expression) == Present(expected)
+    assert _parse_filter(expression) == Present(expected)
 
 
 def test_dollar_prefixed_attribute_name():
@@ -107,7 +107,7 @@ def test_dollar_prefixed_attribute_name():
 
     Errata 8924 of RFC 7643 corrects ``ATTRNAME`` to allow a leading ``$``.
     """
-    assert parse_filter("groups.$ref pr") == Present(AttrPath("groups", "$ref"))
+    assert _parse_filter("groups.$ref pr") == Present(AttrPath("groups", "$ref"))
 
 
 @pytest.mark.parametrize("expression", ["not (title pr)", "not(title pr)"])
@@ -117,7 +117,7 @@ def test_negation_with_and_without_space(expression):
     The published ABNF forbids it while the examples of the RFC use it, which
     errata 7319 corrects.
     """
-    assert parse_filter(expression) == Not(Present(AttrPath("title")))
+    assert _parse_filter(expression) == Not(Present(AttrPath("title")))
 
 
 @pytest.mark.parametrize(
@@ -129,7 +129,7 @@ def test_negation_with_and_without_space(expression):
 )
 def test_and_binds_tighter_than_or(expression, expected_ops):
     """Conjunction binds tighter than disjunction, so ``or`` sits at the root."""
-    node = parse_filter(expression)
+    node = _parse_filter(expression)
     assert node.op == LogicalOperator(expected_ops[0])
     nested = [term for term in node.terms if isinstance(term, LogicalExpr)]
     assert [term.op.value for term in nested] == expected_ops[1:]
@@ -137,7 +137,7 @@ def test_and_binds_tighter_than_or(expression, expected_ops):
 
 def test_comparison_binds_tighter_than_logical_operators():
     """Attribute operators are applied before logical ones, per errata 4670."""
-    node = parse_filter('title sw "M" and userType eq "Employee"')
+    node = _parse_filter('title sw "M" and userType eq "Employee"')
     assert node == LogicalExpr(
         op=LogicalOperator.and_,
         terms=(
@@ -149,14 +149,14 @@ def test_comparison_binds_tighter_than_logical_operators():
 
 def test_chained_conjunction_is_flattened():
     """Repeating the same operator yields a single node holding every term."""
-    node = parse_filter("a eq 1 and b eq 2 and c eq 3")
+    node = _parse_filter("a eq 1 and b eq 2 and c eq 3")
     assert node.op == LogicalOperator.and_
     assert len(node.terms) == 3
 
 
 def test_grouping_overrides_precedence():
     """Parentheses make a disjunction the operand of a conjunction."""
-    node = parse_filter("(a eq 1 or b eq 2) and c eq 3")
+    node = _parse_filter("(a eq 1 or b eq 2) and c eq 3")
     assert node.op == LogicalOperator.and_
     assert node.terms[0].op == LogicalOperator.or_
 
@@ -167,14 +167,14 @@ def test_value_path_accepts_a_full_boolean_expression():
     The published ABNF restricts ``valFilter`` in a way errata 4690 and 7322
     correct, the latter allowing nested logical expressions.
     """
-    node = parse_filter('emails[type eq "work" or (type eq "home" and primary pr)]')
+    node = _parse_filter('emails[type eq "work" or (type eq "home" and primary pr)]')
     assert isinstance(node, ValuePath)
     assert node.attr_path == AttrPath("emails")
     assert node.val_filter.op == LogicalOperator.or_
 
 
 def test_value_path_accepts_a_negation():
-    node = parse_filter('emails[not (type eq "work")]')
+    node = _parse_filter('emails[not (type eq "work")]')
     assert node.val_filter == Not(
         Comparison(AttrPath("type"), CompareOperator.eq, "work")
     )
@@ -194,7 +194,7 @@ def test_nested_value_path_is_rejected(expression):
     identifies as unintended.
     """
     with pytest.raises(InvalidFilterException):
-        parse_filter(expression)
+        _parse_filter(expression)
 
 
 @pytest.mark.parametrize(
@@ -204,7 +204,7 @@ def test_nested_value_path_is_rejected(expression):
 def test_sub_attribute_after_value_path_is_rejected_in_a_filter(expression):
     """Only a PATCH path may follow a value selection with a sub-attribute."""
     with pytest.raises(InvalidFilterException):
-        parse_filter(expression)
+        _parse_filter(expression)
 
 
 @pytest.mark.parametrize(
@@ -225,13 +225,13 @@ def test_sub_attribute_before_value_path_is_rejected(expression):
     with pytest.raises(
         InvalidFilterException, match="cannot apply to the sub-attribute"
     ):
-        parse_filter(expression)
+        _parse_filter(expression)
 
 
 def test_sub_attribute_before_value_path_is_rejected_in_a_patch_path():
     """A selection applies to an attribute, in a path as much as in a filter."""
     with pytest.raises(InvalidPathException, match="cannot apply to the sub-attribute"):
-        parse_path('emails.type[type eq "work"].value')
+        _parse_path('emails.type[type eq "work"].value')
 
 
 @pytest.mark.parametrize(
@@ -253,7 +253,7 @@ def test_sub_attribute_before_value_path_is_rejected_in_a_patch_path():
 )
 def test_comparison_values_follow_json_syntax(expression, expected):
     """``compValue`` is built on the JSON rules for values."""
-    assert parse_filter(expression).value == expected
+    assert _parse_filter(expression).value == expected
 
 
 @pytest.mark.parametrize(
@@ -261,7 +261,7 @@ def test_comparison_values_follow_json_syntax(expression, expected):
     ["eq", "ne", "co", "sw", "ew", "gt", "lt", "ge", "le"],
 )
 def test_every_comparison_operator_is_parsed(operator):
-    node = parse_filter(f'x {operator} "v"')
+    node = _parse_filter(f'x {operator} "v"')
     assert node.op == CompareOperator(operator)
 
 
@@ -278,7 +278,7 @@ def test_every_comparison_operator_is_parsed(operator):
 )
 def test_keywords_are_case_insensitive(expression):
     """Operators and keywords ignore case, as required by §3.4.2.2."""
-    assert parse_filter(expression) is not None
+    assert _parse_filter(expression) is not None
 
 
 @pytest.mark.parametrize(
@@ -292,7 +292,7 @@ def test_keywords_are_case_insensitive(expression):
 )
 def test_surrounding_whitespace_is_tolerated(expression):
     """Servers receive filters with irregular spacing, which stays acceptable."""
-    assert parse_filter(expression) is not None
+    assert _parse_filter(expression) is not None
 
 
 @pytest.mark.parametrize(
@@ -317,7 +317,7 @@ def test_surrounding_whitespace_is_tolerated(expression):
 )
 def test_malformed_filters_are_rejected(expression):
     with pytest.raises(InvalidFilterException):
-        parse_filter(expression)
+        _parse_filter(expression)
 
 
 def test_a_string_with_an_invalid_escape_is_rejected():
@@ -327,26 +327,26 @@ def test_a_string_with_an_invalid_escape_is_rejected():
     failure raised later while decoding the string.
     """
     with pytest.raises(InvalidFilterException) as exc_info:
-        parse_filter(r'userName eq "a\q"')
+        _parse_filter(r'userName eq "a\q"')
     assert exc_info.value.detail == "invalid syntax at column 13"
 
 
 def test_a_path_string_with_an_invalid_escape_is_rejected():
     with pytest.raises(InvalidPathException) as exc_info:
-        parse_path(r'emails[type eq "a\q"]')
+        _parse_path(r'emails[type eq "a\q"]')
     assert exc_info.value.detail == "invalid syntax at column 16"
 
 
 def test_rejection_reports_the_offending_column():
     """A parse failure says where it happened, so a server can explain itself."""
     with pytest.raises(InvalidFilterException) as exc_info:
-        parse_filter('userName eq "x" and')
+        _parse_filter('userName eq "x" and')
     assert "column" in exc_info.value.detail
 
 
 def test_rejection_carries_the_offending_filter():
     with pytest.raises(InvalidFilterException) as exc_info:
-        parse_filter("nonsense @")
+        _parse_filter("nonsense @")
     assert exc_info.value.filter == "nonsense @"
 
 
@@ -365,12 +365,12 @@ def test_rejection_carries_the_offending_filter():
     ],
 )
 def test_attribute_paths_are_valid_patch_paths(path, expected):
-    assert parse_path(path) == expected
+    assert _parse_path(path) == expected
 
 
 def test_value_path_carries_its_sub_attribute_in_a_patch_path():
     """``PATH = attrPath / valuePath [subAttr] / attrExp``."""
-    node = parse_path('members[value eq "2819c223"].displayName')
+    node = _parse_path('members[value eq "2819c223"].displayName')
     assert node == ValuePath(
         attr_path=AttrPath("members"),
         val_filter=Comparison(AttrPath("value"), CompareOperator.eq, "2819c223"),
@@ -379,14 +379,14 @@ def test_value_path_carries_its_sub_attribute_in_a_patch_path():
 
 
 def test_value_path_without_sub_attribute_is_a_valid_patch_path():
-    node = parse_path('addresses[type eq "work"]')
+    node = _parse_path('addresses[type eq "work"]')
     assert isinstance(node, ValuePath)
     assert node.sub_attr is None
 
 
 def test_bare_comparison_is_a_valid_patch_path():
     """Errata 7122 adds ``attrExp``, the only way to target a scalar list value."""
-    node = parse_path('schemas eq "urn:ietf:params:scim:schemas:core:2.0:User"')
+    node = _parse_path('schemas eq "urn:ietf:params:scim:schemas:core:2.0:User"')
     assert node == Comparison(
         AttrPath("schemas"),
         CompareOperator.eq,
@@ -395,7 +395,7 @@ def test_bare_comparison_is_a_valid_patch_path():
 
 
 def test_bare_presence_is_a_valid_patch_path():
-    assert parse_path("title pr") == Present(AttrPath("title"))
+    assert _parse_path("title pr") == Present(AttrPath("title"))
 
 
 @pytest.mark.parametrize(
@@ -414,12 +414,12 @@ def test_bare_presence_is_a_valid_patch_path():
 def test_malformed_patch_paths_are_rejected(path):
     """A PATCH path holds no boolean expression at its root."""
     with pytest.raises(InvalidPathException):
-        parse_path(path)
+        _parse_path(path)
 
 
 def test_path_rejection_carries_the_offending_path():
     with pytest.raises(InvalidPathException) as exc_info:
-        parse_path("name..familyName")
+        _parse_path("name..familyName")
     assert exc_info.value.path == "name..familyName"
 
 
@@ -442,8 +442,8 @@ def test_path_rejection_carries_the_offending_path():
 )
 def test_rendering_a_filter_yields_an_equivalent_filter(expression):
     """Rendering then reparsing a filter gives back the same tree."""
-    tree = parse_filter(expression)
-    assert parse_filter(str(tree)) == tree
+    tree = _parse_filter(expression)
+    assert _parse_filter(str(tree)) == tree
 
 
 @pytest.mark.parametrize(
@@ -457,14 +457,14 @@ def test_rendering_a_filter_yields_an_equivalent_filter(expression):
     ],
 )
 def test_rendering_a_path_yields_an_equivalent_path(path):
-    tree = parse_path(path)
-    assert parse_path(str(tree)) == tree
+    tree = _parse_path(path)
+    assert _parse_path(str(tree)) == tree
 
 
 def test_nodes_are_hashable():
     """Immutability lets a node be cached or used as a dictionary key."""
-    node = parse_filter('userName eq "x"')
-    assert {node: "value"}[parse_filter('userName eq "x"')] == "value"
+    node = _parse_filter('userName eq "x"')
+    assert {node: "value"}[_parse_filter('userName eq "x"')] == "value"
 
 
 def test_visiting_an_unknown_node_type_is_rejected():
@@ -475,9 +475,9 @@ def test_visiting_an_unknown_node_type_is_rejected():
 def test_a_number_out_of_range_is_rejected():
     """``1e400`` reads as an infinity, which the ABNF has no syntax for."""
     with pytest.raises(InvalidFilterException, match="number out of range"):
-        parse_filter("userName eq 1e400")
+        _parse_filter("userName eq 1e400")
 
-    assert parse_filter("userName eq 1e300").value == 1e300
+    assert _parse_filter("userName eq 1e300").value == 1e300
 
 
 def test_rendering_a_value_json_cannot_express_is_rejected():
@@ -517,7 +517,7 @@ def test_rendering_a_datetime_yields_the_string_form_of_a_datetime():
 )
 def test_quoting_a_value_yields_a_literal_the_grammar_reads_back(value, literal):
     assert ScimFilter.quote(value) == literal
-    assert parse_filter(f"userName eq {literal}").value == value
+    assert _parse_filter(f"userName eq {literal}").value == value
 
 
 @pytest.mark.parametrize(
@@ -543,4 +543,4 @@ def test_an_attribute_path_refuses_a_uri_that_is_not_a_urn():
 def test_an_attribute_path_accepts_a_urn_in_any_case():
     """A URN namespace identifier is case-insensitive, per RFC 8141 §2."""
     attr_path = AttrPath("userName", uri="URN:IETF:params:scim:schemas:core:2.0:User")
-    assert parse_filter(f"{attr_path} pr") == Present(attr_path)
+    assert _parse_filter(f"{attr_path} pr") == Present(attr_path)

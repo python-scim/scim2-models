@@ -168,13 +168,13 @@ def test_extension_schema_validation_rejects_unknown_with_valid():
 
 
 def test_get_attribute_urn_without_schema():
-    """get_attribute_urn returns field name when model has no __schema__."""
+    """_get_attribute_urn returns field name when model has no __schema__."""
 
     class ModelWithoutSchema(BaseModel):
         foo: str | None = None
 
     model = ModelWithoutSchema(foo="bar")
-    assert model.get_attribute_urn("foo") == "foo"
+    assert model._get_attribute_urn("foo") == "foo"
 
 
 def test_from_resource_without_schema():

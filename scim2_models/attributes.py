@@ -43,8 +43,8 @@ class ExtensibleStringEnum(str, Enum):
     def _missing_(cls, value: Any) -> Self:
         """Match canonical values regardless of their case, and keep unknown ones as-is.
 
-        Attributes bearing ``canonicalValues`` are case-insensitive unless stated
-        otherwise by :rfc:`RFC7643 §2.2 <7643#section-2.2>`.
+        Attributes bearing ``canonicalValues`` are case-insensitive unless
+        stated otherwise by RFC7643 §2.2.
         """
         if not isinstance(value, str):
             raise ValueError(f"{value} is not a valid string value for {cls.__name__}")
@@ -66,10 +66,10 @@ class ComplexAttribute(BaseModel):
 
     _attribute_urn: str | None = None
 
-    def get_attribute_urn(self, field_name: str) -> str:
+    def _get_attribute_urn(self, field_name: str) -> str:
         """Build the full URN of the attribute.
 
-        See :rfc:`RFC7644 §3.10 <7644#section-3.10>`.
+        See RFC7644 §3.10.
         """
         alias = (
             self.__class__.model_fields[field_name].serialization_alias or field_name

@@ -8,7 +8,7 @@ class URN(str):
     """URN string type with validation."""
 
     def __new__(cls, urn: str) -> "URN":
-        cls.check_syntax(urn)
+        cls._check_syntax(urn)
         return super().__new__(cls, urn)
 
     @classmethod
@@ -26,12 +26,8 @@ class URN(str):
         )
 
     @classmethod
-    def check_syntax(cls, path: str) -> None:
-        """Validate URN-based path format.
-
-        :param path: The URN path to validate
-        :raises ValueError: If the URN format is invalid
-        """
+    def _check_syntax(cls, path: str) -> None:
+        """Check that a string is a URN, and raise ValueError otherwise."""
         if not path.startswith("urn:"):
             raise ValueError("The URN does not start with urn:")
 

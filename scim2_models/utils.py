@@ -23,7 +23,7 @@ except ImportError:
 
 
 def _model_union(annotation: Any) -> "tuple[type[BaseModel], ...] | None":
-    """Return the models an annotation designates, or :data:`None` for anything else.
+    """Return the models an annotation designates, or None for anything else.
 
     A single model, a ``Union[User, Group]`` and a ``User | Group`` all name
     resource types to resolve against, which is what an endpoint covering
@@ -52,10 +52,10 @@ def _int_to_str(status: int | None) -> str | None:
 def _to_camel(string: str) -> str:
     """Transform strings to camelCase.
 
-    This method is used for attribute name serialization. This is more
-    or less the pydantic implementation, but it does not add uppercase
-    on alphanumerical characters after specials characters. For instance
-    '$ref' stays '$ref'.
+    This method is used for attribute name serialization. This is more or less
+    the pydantic implementation, but it does not add uppercase on
+    alphanumerical characters after specials characters. For instance '$ref'
+    stays '$ref'.
     """
     snake = to_snake(string)
     camel = _UNDERSCORE_ALPHANUMERIC.sub(lambda m: m.group(1).title(), snake)
@@ -76,11 +76,9 @@ def _normalize_attribute_name(attribute_name: str) -> str:
 
 
 def _find_field_name(model_class: type["BaseModel"], attr_name: str) -> str | None:
-    """Find the actual field name in a resource class from an attribute name.
+    """Return the field a SCIM attribute name designates, or None.
 
-    :param resource_class: The resource class to search in
-    :param attr_name: The attribute name to find (e.g., "nickName")
-    :returns: The actual field name if found (e.g., "nick_name"), None otherwise
+    ``nickName`` designates the ``nick_name`` field.
     """
     normalized_attr_name = _normalize_attribute_name(attr_name)
 

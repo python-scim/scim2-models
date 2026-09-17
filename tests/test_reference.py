@@ -101,27 +101,27 @@ def test_reference_union_types():
 
 
 def test_reference_get_scim_reference_types_external():
-    """Test get_scim_reference_types returns 'external'."""
+    """Test _get_scim_reference_types returns 'external'."""
     ref_type = Reference[External]
-    assert ref_type.get_scim_reference_types() == ["external"]
+    assert ref_type._get_scim_reference_types() == ["external"]
 
 
 def test_reference_get_scim_reference_types_uri():
-    """Test get_scim_reference_types returns 'uri'."""
+    """Test _get_scim_reference_types returns 'uri'."""
     ref_type = Reference[URI]
-    assert ref_type.get_scim_reference_types() == ["uri"]
+    assert ref_type._get_scim_reference_types() == ["uri"]
 
 
 def test_reference_get_scim_reference_types_resource():
-    """Test get_scim_reference_types returns resource name."""
+    """Test _get_scim_reference_types returns resource name."""
     ref_type = Reference["User"]
-    assert ref_type.get_scim_reference_types() == ["User"]
+    assert ref_type._get_scim_reference_types() == ["User"]
 
 
 def test_reference_get_scim_reference_types_union():
-    """Test get_scim_reference_types returns multiple types."""
+    """Test _get_scim_reference_types returns multiple types."""
     ref_type = Reference[Union["User", "Group"]]
-    assert ref_type.get_scim_reference_types() == ["User", "Group"]
+    assert ref_type._get_scim_reference_types() == ["User", "Group"]
 
 
 def test_reference_uri_validation_valid():
@@ -158,7 +158,7 @@ def test_reference_class_name():
 def test_reference_any_type():
     """Test that Reference[Any] is treated as URI reference."""
     ref_type = Reference[Any]
-    assert ref_type.get_scim_reference_types() == ["uri"]
+    assert ref_type._get_scim_reference_types() == ["uri"]
 
 
 def test_reference_invalid_type_raises_error():

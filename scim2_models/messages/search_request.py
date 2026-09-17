@@ -84,12 +84,12 @@ class SearchRequest(Message, ResponseParameters[ResourceT], Generic[ResourceT]):
     def _sort_by_names_an_attribute(cls, value: Any) -> Any:
         """Refuse an order over the values an attribute holds.
 
-        :rfc:`RFC7644 §3.4.2.3 <7644#section-3.4.2.3>` requires ``sortBy`` in
-        the attribute notation of §3.10.
+        RFC7644 §3.4.2.3 requires ``sortBy`` in the attribute notation of
+        §3.10.
         """
         if value is not None:
             try:
-                value.check_attribute_notation()
+                value._check_attribute_notation()
             except InvalidPathException as exc:
                 raise exc.as_pydantic_error() from exc
         return value
@@ -120,8 +120,8 @@ class SearchRequest(Message, ResponseParameters[ResourceT], Generic[ResourceT]):
 
     @field_validator("start_index")
     @classmethod
-    def start_index_floor(cls, value: int | None) -> int | None:
-        """According to :rfc:`RFC7644 §3.4.2 <7644#section-3.4.2.4>`, start_index values less than 1 are interpreted as 1.
+    def _start_index_floor(cls, value: int | None) -> int | None:
+        """According to RFC7644 §3.4.2, start_index values less than 1 are interpreted as 1.
 
         A value less than 1 SHALL be interpreted as 1.
         """
@@ -133,8 +133,8 @@ class SearchRequest(Message, ResponseParameters[ResourceT], Generic[ResourceT]):
 
     @field_validator("count")
     @classmethod
-    def count_floor(cls, value: int | None) -> int | None:
-        """According to :rfc:`RFC7644 §3.4.2 <7644#section-3.4.2.4>`, count values less than 0 are interpreted as 0.
+    def _count_floor(cls, value: int | None) -> int | None:
+        """According to RFC7644 §3.4.2, count values less than 0 are interpreted as 0.
 
         A negative value SHALL be interpreted as 0.
         """

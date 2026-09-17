@@ -16,11 +16,11 @@ from .expressions import Not
 from .expressions import Present
 from .expressions import ValuePath
 from .resolution import AttributeBinding
+from .resolution import _resolve_filter_path
+from .resolution import _validate_operator
+from .resolution import _validate_value_selection
 from .resolution import attribute_host
 from .resolution import coerce_value
-from .resolution import resolve_filter_path
-from .resolution import validate_operator
-from .resolution import validate_value_selection
 
 T = TypeVar("T")
 
@@ -79,13 +79,13 @@ class FilterVisitor(Generic[T]):
         raise NotImplementedError
 
 
-def is_present(value: Any) -> bool:
+def _is_present(value: Any) -> bool:
     """Whether a value satisfies the ``pr`` operator.
 
-    :rfc:`RFC7644 §3.4.2.2 <7644#section-3.4.2.2>` defines a match as a
-    "non-empty or non-null value, or ... a non-empty node for complex
-    attributes". ``False`` and ``0`` are values, and are thus present, while a
-    complex attribute whose sub-attributes are all unassigned is not.
+    RFC7644 §3.4.2.2 defines a match as a "non-empty or non-null value, or ...
+    a non-empty node for complex attributes". ``False`` and ``0`` are values,
+    and are thus present, while a complex attribute whose sub-attributes are
+    all unassigned is not.
     """
     if value is None:
         return False
@@ -93,12 +93,12 @@ def is_present(value: Any) -> bool:
         return len(value) > 0
     if isinstance(value, BaseModel):
         return any(
-            is_present(getattr(value, name, None)) for name in type(value).model_fields
+            _is_present(getattr(value, name, None)) for name in type(value).model_fields
         )
     if isinstance(value, dict):
-        return any(is_present(item) for item in value.values())
+        return any(_is_present(item) for item in value.values())
     if isinstance(value, list | tuple | set):
-        return any(is_present(item) for item in value)
+        return any(_is_present(item) for item in value)
     return True
 
 
@@ -116,18 +116,15 @@ def _comparable(value: Any, case_exact: bool) -> Any:
     return normalize("NFC", normalized.casefold())
 
 
-def compare(
+def _compare(
     actual: Any, expected: Any, op: CompareOperator, *, case_exact: bool = False
 ) -> bool:
     """Apply a comparison operator to a single pair of values.
 
     Values of incomparable types never match, rather than raising, so that a
-    filter over a heterogeneous collection stays usable.
-
-    :param actual: The value read from the resource.
-    :param expected: The value the filter compares against.
-    :param op: The comparison operator.
-    :param case_exact: Whether string comparison is case-sensitive.
+    filter over a heterogeneous collection stays usable. ``actual`` is read
+    from the resource, ``expected`` is what the filter compares it against, and
+    ``case_exact`` says whether strings compare case-sensitively.
     """
     if actual is None or expected is None:
         if op == CompareOperator.eq:
@@ -164,18 +161,17 @@ def compare(
         return False
 
 
-class Evaluator(FilterVisitor[bool]):
+class _Evaluator(FilterVisitor[bool]):
     """Evaluate a filter against a Python object.
 
-    This is the reference implementation of :class:`FilterVisitor`, used by
-    :meth:`ScimFilter.match <scim2_models.ScimFilter.match>`. It doubles as the proof that the
-    visitor API is enough to build a complete backend.
+    This is the reference implementation of FilterVisitor, used by
+    ScimFilter.match. It doubles as the proof that the visitor API is enough to
+    build a complete backend.
 
-    :param model: The model the filter attributes are resolved against.
-    :param obj: The object being tested.
-    :param strict: Whether unknown attributes raise instead of not matching.
-    :param urn_prefix: The URN of the enclosing attribute, when evaluating the
-        inner filter of a value selection, so that errors name the whole path.
+    Attributes are resolved against ``model`` and read from ``obj``, and an
+    unknown one raises instead of not matching under ``strict``. Evaluating the
+    inner filter of a value selection passes the URN of the enclosing attribute
+    as ``urn_prefix``, so that errors name the whole path.
     """
 
     def __init__(
@@ -194,12 +190,12 @@ class Evaluator(FilterVisitor[bool]):
     def _resolve(
         self, attr_path: AttrPath, *, for_comparison: bool = False
     ) -> AttributeBinding | None:
-        resolved = resolve_filter_path(
+        resolved = _resolve_filter_path(
             self.model, attr_path, strict=self.strict, for_comparison=for_comparison
         )
         if resolved is None or not self.urn_prefix:
             return resolved
-        return resolved.nested_in(self.urn_prefix)
+        return resolved._nested_in(self.urn_prefix)
 
     def _read(self, resolved: AttributeBinding) -> Any:
         """Read the compared value off the object, flattening multi-valued attributes."""
@@ -229,24 +225,24 @@ class Evaluator(FilterVisitor[bool]):
         if resolved is None:
             return False
 
-        validate_operator(resolved, node.op)
+        _validate_operator(resolved, node.op)
         expected = coerce_value(resolved, node.value, node.op)
         actual = self._read(resolved)
 
         if not isinstance(actual, list):
-            return compare(actual, expected, node.op, case_exact=resolved.case_exact)
+            return _compare(actual, expected, node.op, case_exact=resolved.case_exact)
 
         # A filter on a multi-valued attribute matches if any of its values
         # matches. The RFC does not say what that means for "ne", so the
         # universal reading is used: no value equals the operand.
         if node.op == CompareOperator.ne:
             return all(
-                compare(item, expected, node.op, case_exact=resolved.case_exact)
+                _compare(item, expected, node.op, case_exact=resolved.case_exact)
                 for item in actual
             )
 
         return any(
-            compare(item, expected, node.op, case_exact=resolved.case_exact)
+            _compare(item, expected, node.op, case_exact=resolved.case_exact)
             for item in actual
         )
 
@@ -257,8 +253,8 @@ class Evaluator(FilterVisitor[bool]):
 
         actual = self._read(resolved)
         if isinstance(actual, list) and resolved.sub_field_name is not None:
-            return any(is_present(item) for item in actual)
-        return is_present(actual)
+            return any(_is_present(item) for item in actual)
+        return _is_present(actual)
 
     def visit_not(self, node: Not) -> bool:
         return not self.visit(node.expr)
@@ -275,16 +271,13 @@ class Evaluator(FilterVisitor[bool]):
         """Return the values of a multi-valued attribute matching a value selection.
 
         This is what a PATCH operation needs in order to know which entries of
-        a list it has to modify.
-
-        :param node: The value selection to apply.
-        :returns: The matching values, in their original order.
+        a list it has to modify. The matching values keep their original order.
         """
         resolved = self._resolve(node.attr_path)
         if resolved is None:
             return []
 
-        validate_value_selection(resolved)
+        _validate_value_selection(resolved)
 
         host = attribute_host(self.obj, resolved)
         values = getattr(host, resolved.field_name, None) if host is not None else None
@@ -303,7 +296,7 @@ class Evaluator(FilterVisitor[bool]):
     ) -> bool:
         """Evaluate a value filter against one entry of a multi-valued attribute."""
         if isinstance(item, BaseModel):
-            return Evaluator(
+            return _Evaluator(
                 type(item), item, strict=self.strict, urn_prefix=resolved.urn
             ).visit(val_filter)
 
@@ -315,9 +308,9 @@ class _ScalarEvaluator(FilterVisitor[bool]):
 
     A multi-valued attribute that is not complex, such as ``schemas``, holds
     plain values with no sub-attribute to compare. Implementations
-    conventionally address those with ``value``, as in
-    ``schemas[value eq "urn:…"]``, so ``value`` is understood here as the entry
-    itself. Any other attribute name cannot match.
+    conventionally address those with ``value``, as in ``schemas[value eq
+    "urn:…"]``, so ``value`` is understood here as the entry itself. Any other
+    attribute name cannot match.
     """
 
     def __init__(self, value: Any, *, case_exact: bool = False):
@@ -330,10 +323,10 @@ class _ScalarEvaluator(FilterVisitor[bool]):
     def visit_comparison(self, node: Comparison) -> bool:
         if not self._targets_self(node):
             return False
-        return compare(self.value, node.value, node.op, case_exact=self.case_exact)
+        return _compare(self.value, node.value, node.op, case_exact=self.case_exact)
 
     def visit_present(self, node: Present) -> bool:
-        return self._targets_self(node) and is_present(self.value)
+        return self._targets_self(node) and _is_present(self.value)
 
     def visit_not(self, node: Not) -> bool:
         return not self.visit(node.expr)

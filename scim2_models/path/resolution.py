@@ -28,10 +28,10 @@ _RESOLVED_ATTRS = "__scim_resolved_attrs__"
 
 
 def _unwrap_annotated(type_: Any) -> type | None:
-    """Strip the metadata of an :data:`~typing.Annotated` type.
+    """Strip the metadata of an typing.Annotated type.
 
     A ``binary`` attribute is declared as ``Base64Bytes``, which is an
-    annotated :class:`bytes` rather than a class of its own.
+    annotated bytes rather than a class of its own.
     """
     metadata = getattr(type_, "__metadata__", None)
     unwrapped = get_args(type_)[0] if metadata else type_
@@ -124,7 +124,7 @@ class AttributeBinding:
             return None
         return model.get_field_annotation(self.target_field_name, annotation_type)
 
-    def nested_in(self, urn: str) -> "AttributeBinding":
+    def _nested_in(self, urn: str) -> "AttributeBinding":
         """Return the same attribute, qualified by the URN it was resolved under.
 
         An attribute resolved inside a value selection is resolved against a
@@ -164,19 +164,15 @@ def _extension_models(model: type[BaseModel]) -> dict[str, type[BaseModel]]:
     return dict(model.get_extension_models())
 
 
-def designated_model(model: type[BaseModel], path: str) -> type[BaseModel] | None:
+def _designated_model(model: type[BaseModel], path: str) -> type[BaseModel] | None:
     """Return the model a path designates when it is a bare schema URN.
 
     Nothing tells a schema URN from a qualified path syntactically:
     ``urn:ietf:params:scim:schemas:core:2.0:User`` reads as the attribute
     ``User`` of the schema ``urn:ietf:params:scim:schemas:core:2.0``. So the
-    whole path is compared to the schemas the model knows, its own and those
-    of its extensions.
-
-    :param model: The resource or extension model to compare against.
-    :param path: The whole path, as written.
-    :returns: The model the path is the schema of, or :data:`None` when it is
-        not one.
+    whole path is compared to the schemas the model knows, its own and those of
+    its extensions. It answers the model the path is the schema of, or None
+    when it is not one.
     """
     from ..resources.resource import Extension
     from ..resources.resource import Resource
@@ -201,9 +197,8 @@ def _target_model(
 
     A path without a URN applies to the resource itself. A qualified path
     applies either to the resource or to one of its extensions, and a URN
-    designating neither is refused when ``strict``.
-
-    :raises PathNotFoundException: If ``strict`` and the URN designates no model.
+    designating neither is refused when ``strict``, with a
+    PathNotFoundException.
     """
     from ..resources.resource import Extension
     from ..resources.resource import Resource
@@ -239,19 +234,14 @@ def _target_model(
     raise PathNotFoundException(path=str(attr_path), field=attr_path.attr)
 
 
-def resolve_attr_path(
+def _resolve_attr_path(
     model: type[BaseModel], attr_path: AttrPath, *, strict: bool = True
 ) -> AttributeBinding | None:
     """Bind an attribute path to the field it designates on a model.
 
-    :param model: The resource or extension model to resolve against.
-    :param attr_path: The attribute path to resolve.
-    :param strict: Whether an unknown attribute raises instead of returning
-        :data:`None`.
-    :returns: The resolved attribute, or :data:`None` when it cannot be
-        resolved and ``strict`` is false. Results are cached and shared, which
-        is safe since :class:`AttributeBinding` is immutable.
-    :raises PathNotFoundException: If ``strict`` and the attribute is unknown.
+    An attribute the model does not declare raises PathNotFoundException under
+    ``strict``, and answers None otherwise. Results are cached and shared,
+    which is safe since AttributeBinding is immutable.
     """
     # The cache is held by the model rather than by this module, so that it
     # cannot outlive the model it describes: a resolved attribute names the
@@ -265,11 +255,11 @@ def resolve_attr_path(
 
     key = (attr_path, strict)
     if key not in cache:
-        cache[key] = _resolve_attr_path(model, attr_path, strict=strict)
+        cache[key] = _resolve_attr_path_uncached(model, attr_path, strict=strict)
     return cache[key]
 
 
-def _resolve_attr_path(
+def _resolve_attr_path_uncached(
     model: type[BaseModel], attr_path: AttrPath, *, strict: bool
 ) -> AttributeBinding | None:
     """Bind an attribute path, without going through the cache of the model."""
@@ -340,43 +330,38 @@ def _addresses_entry_values(resolved: AttributeBinding) -> bool:
     )
 
 
-def resolve_comparison_path(
+def _resolve_comparison_path(
     model: type[BaseModel], attr_path: AttrPath, *, strict: bool = True
 ) -> AttributeBinding | None:
     """Bind the attribute a comparison applies to.
 
-    :rfc:`RFC7644 §3.4.2.2 <7644#section-3.4.2.2>` uses ``emails co
-    "example.com"`` and ``emails.value co "example.org"`` in the same
-    expression, so a comparison against a multi-valued complex attribute
-    applies to the ``value`` sub-attribute its entries carry
-    (:rfc:`RFC7643 §2.4 <7643#section-2.4>`). Presence tests and value
-    selections keep addressing the attribute itself, since ``pr`` is defined on
-    "a non-empty node for complex attributes".
+    RFC7644 §3.4.2.2 uses ``emails co "example.com"`` and ``emails.value co
+    "example.org"`` in the same expression, so a comparison against a multi-
+    valued complex attribute applies to the ``value`` sub-attribute its entries
+    carry (RFC7643 §2.4). Presence tests and value selections keep addressing
+    the attribute itself, since ``pr`` is defined on "a non-empty node for
+    complex attributes".
 
-    :param model: The resource or extension model to resolve against.
-    :param attr_path: The attribute path to resolve.
-    :param strict: Whether an unknown attribute raises instead of returning
-        :data:`None`.
-    :returns: The resolved attribute, or :data:`None` when it cannot be
-        resolved and ``strict`` is false.
-    :raises PathNotFoundException: If ``strict`` and the attribute is unknown.
+    An attribute the model does not declare raises PathNotFoundException under
+    ``strict``, and answers None otherwise.
 
     >>> from scim2_models import User
-    >>> from scim2_models.path import AttrPath, resolve_comparison_path
+    >>> from scim2_models.path import AttrPath
+    >>> from scim2_models.path.resolution import _resolve_comparison_path
 
-    >>> resolve_comparison_path(User, AttrPath("emails")).sub_field_name
+    >>> _resolve_comparison_path(User, AttrPath("emails")).sub_field_name
     'value'
     """
-    resolved = resolve_attr_path(model, attr_path, strict=strict)
+    resolved = _resolve_attr_path(model, attr_path, strict=strict)
     if resolved is None or not _addresses_entry_values(resolved):
         return resolved
 
-    return resolve_attr_path(
+    return _resolve_attr_path(
         model, AttrPath(attr_path.attr, "value", attr_path.uri), strict=strict
     )
 
 
-def resolve_filter_path(
+def _resolve_filter_path(
     model: type[BaseModel],
     attr_path: AttrPath,
     *,
@@ -386,21 +371,16 @@ def resolve_filter_path(
     """Bind an attribute path taken from a filter.
 
     An attribute a model does not declare makes the *filter* invalid rather
-    than the path, since :rfc:`RFC7644 §3.12 <7644#section-3.12>` defines
-    ``invalidPath`` for the ``path`` of a PATCH operation, and ``invalidFilter``
-    for "the specified attribute and filter comparison combination".
+    than the path, since RFC7644 §3.12 defines ``invalidPath`` for the ``path``
+    of a PATCH operation, and ``invalidFilter`` for "the specified attribute
+    and filter comparison combination".
 
-    :param model: The resource or extension model to resolve against.
-    :param attr_path: The attribute path to resolve.
-    :param strict: Whether an unknown attribute raises instead of returning
-        :data:`None`.
-    :param for_comparison: Whether the path is the one of a comparison, which
-        follows the ``value`` convention of :func:`resolve_comparison_path`.
-    :returns: The resolved attribute, or :data:`None` when it cannot be
-        resolved and ``strict`` is false.
-    :raises InvalidFilterException: If ``strict`` and the attribute is unknown.
+    With ``for_comparison``, the path is the one of a comparison, and follows
+    the ``value`` convention of ``_resolve_comparison_path``. An attribute the
+    model does not declare raises InvalidFilterException under ``strict``, and
+    answers None otherwise.
     """
-    resolve = resolve_comparison_path if for_comparison else resolve_attr_path
+    resolve = _resolve_comparison_path if for_comparison else _resolve_attr_path
     try:
         return resolve(model, attr_path, strict=strict)
     except PathNotFoundException as exc:
@@ -463,16 +443,13 @@ def coerce_value(
         ) from exc
 
 
-def validate_operator(resolved: AttributeBinding, op: CompareOperator) -> None:
+def _validate_operator(resolved: AttributeBinding, op: CompareOperator) -> None:
     """Check that an operator may be applied to an attribute.
 
-    :rfc:`RFC7644 §3.4.2.2 <7644#section-3.4.2.2>` requires boolean and binary
-    attributes to be rejected for the ordering operators. The same is done for
-    the substring operators, which have no meaning on those types either.
-
-    :param resolved: The attribute the operator is applied to.
-    :param op: The operator to check.
-    :raises InvalidFilterException: If the combination is not supported.
+    RFC7644 §3.4.2.2 requires boolean and binary attributes to be rejected for
+    the ordering operators. The same is done for the substring operators, which
+    have no meaning on those types either. A combination that is not supported
+    raises InvalidFilterException.
     """
     target_type = resolved.target_type
     if not isclass(target_type) or not issubclass(target_type, _UNORDERABLE_TYPES):
@@ -487,15 +464,12 @@ def validate_operator(resolved: AttributeBinding, op: CompareOperator) -> None:
     )
 
 
-def validate_value_selection(resolved: AttributeBinding) -> None:
+def _validate_value_selection(resolved: AttributeBinding) -> None:
     """Check that a value selection applies to a multi-valued attribute.
 
-    :rfc:`RFC7644 §3.5.2 <7644#section-3.5.2>` defines the ``valuePath`` rule
-    as selecting "specific values of a complex multi-valued attribute", so an
-    attribute holding a single value has nothing to select from.
-
-    :param resolved: The attribute the selection applies to.
-    :raises InvalidFilterException: If the attribute is not multi-valued.
+    RFC7644 §3.5.2 defines the ``valuePath`` rule as selecting "specific values
+    of a complex multi-valued attribute", so an attribute holding a single
+    value has nothing to select from, and raises InvalidFilterException.
     """
     if resolved.is_multivalued:
         return

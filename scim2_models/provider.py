@@ -43,8 +43,8 @@ them apart from the registry.
 def _endpoint_key(endpoint: Any) -> str:
     """Return the key an endpoint is matched under.
 
-    :rfc:`RFC7643 §6 <7643#section-6>` only says an endpoint is relative to the
-    base URL, so a service may publish it with or without a leading slash.
+    RFC7643 §6 only says an endpoint is relative to the base URL, so a service
+    may publish it with or without a leading slash.
     """
     return str(endpoint).casefold().lstrip("/")
 

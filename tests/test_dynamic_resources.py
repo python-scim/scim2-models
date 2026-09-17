@@ -2842,7 +2842,7 @@ def test_models_built_from_a_schema_know_their_attribute_urns():
     )
     obj = Model(attr="value")
 
-    assert obj.get_attribute_urn("attr") == "urn:example:2.0:Single:attr"
+    assert obj._get_attribute_urn("attr") == "urn:example:2.0:Single:attr"
     assert obj.model_dump(
         scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
         response_parameters=ResponseParameters(
@@ -2867,7 +2867,7 @@ def test_extensions_built_from_a_schema_know_their_attribute_urns():
     obj = Model()
     obj[ExtModel] = ExtModel(attr="value")
 
-    assert obj[ExtModel].get_attribute_urn("attr") == "urn:example:2.0:Ext:attr"
+    assert obj[ExtModel]._get_attribute_urn("attr") == "urn:example:2.0:Ext:attr"
     assert obj.model_dump(
         scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
         response_parameters=ResponseParameters(attributes=["urn:example:2.0:Ext:attr"]),

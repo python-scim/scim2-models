@@ -55,7 +55,6 @@ dev = [
     "tox-uv>=1.16.0",
 ]
 doc = [
-    "autodoc-pydantic>=2.2.0",
     "shibuya>=2024.5.15",
     "sphinx-paramlinks>=0.6.0",
     "sphinx-reredirects>=0.1.6",  # 1.x requires Python 3.11

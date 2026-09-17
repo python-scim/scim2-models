@@ -31,12 +31,12 @@ from scim2_models.path import Not
 from scim2_models.path import Present
 from scim2_models.path import ValuePath
 from scim2_models.path import coerce_value
-from scim2_models.path import compare
-from scim2_models.path import is_present
-from scim2_models.path import parse_filter
-from scim2_models.path import resolve_attr_path
-from scim2_models.path import resolve_comparison_path
 from scim2_models.path.grammar import _error_detail
+from scim2_models.path.grammar import _parse_filter
+from scim2_models.path.resolution import _resolve_attr_path
+from scim2_models.path.resolution import _resolve_comparison_path
+from scim2_models.path.visitor import _compare
+from scim2_models.path.visitor import _is_present
 from scim2_models.resources.user import Email
 
 COMPOSED = "Jos\N{LATIN SMALL LETTER E WITH ACUTE}"
@@ -69,7 +69,7 @@ def user():
 
 def test_resolution_exposes_what_a_transpiler_needs():
     """A resolved attribute says which field, which type and which casing."""
-    resolved = resolve_attr_path(User, AttrPath("emails", "type"))
+    resolved = _resolve_attr_path(User, AttrPath("emails", "type"))
     assert resolved.model is User
     assert resolved.field_name == "emails"
     assert resolved.sub_field_name == "type"
@@ -78,7 +78,7 @@ def test_resolution_exposes_what_a_transpiler_needs():
 
 
 def test_resolution_of_a_simple_attribute():
-    resolved = resolve_attr_path(User, AttrPath("userName"))
+    resolved = _resolve_attr_path(User, AttrPath("userName"))
     assert resolved.field_name == "user_name"
     assert resolved.field_type is str
     assert resolved.is_multivalued is False
@@ -88,7 +88,7 @@ def test_resolution_of_a_simple_attribute():
 
 
 def test_resolution_targets_the_sub_attribute_when_there_is_one():
-    resolved = resolve_attr_path(User, AttrPath("name", "familyName"))
+    resolved = _resolve_attr_path(User, AttrPath("name", "familyName"))
     assert resolved.target_field_name == "family_name"
     assert resolved.target_type is str
     assert resolved.target_model is not User
@@ -96,18 +96,18 @@ def test_resolution_targets_the_sub_attribute_when_there_is_one():
 
 def test_resolution_matches_attribute_names_case_insensitively():
     """§3.4.2.2 makes attribute names case-insensitive."""
-    assert resolve_attr_path(User, AttrPath("USERNAME")).field_name == "user_name"
+    assert _resolve_attr_path(User, AttrPath("USERNAME")).field_name == "user_name"
 
 
 def test_resolution_of_an_attribute_qualified_by_the_resource_schema():
-    resolved = resolve_attr_path(
+    resolved = _resolve_attr_path(
         User, AttrPath("userName", uri="urn:ietf:params:scim:schemas:core:2.0:User")
     )
     assert resolved.field_name == "user_name"
 
 
 def test_resolution_of_an_extension_attribute():
-    resolved = resolve_attr_path(
+    resolved = _resolve_attr_path(
         UserWithExtension,
         AttrPath(
             "employeeNumber",
@@ -120,52 +120,52 @@ def test_resolution_of_an_extension_attribute():
 
 def test_resolution_reads_case_exactness_from_the_annotations():
     """A reference attribute is case-exact, per §2.3.7 and errata 6001."""
-    assert resolve_attr_path(User, AttrPath("profileUrl")).case_exact is True
-    assert resolve_attr_path(User, AttrPath("userName")).case_exact is False
+    assert _resolve_attr_path(User, AttrPath("profileUrl")).case_exact is True
+    assert _resolve_attr_path(User, AttrPath("userName")).case_exact is False
 
 
 def test_resolution_reads_case_exactness_of_a_sub_attribute():
-    assert resolve_attr_path(Group, AttrPath("members", "value")).case_exact is True
-    assert resolve_attr_path(Group, AttrPath("members", "display")).case_exact is False
+    assert _resolve_attr_path(Group, AttrPath("members", "value")).case_exact is True
+    assert _resolve_attr_path(Group, AttrPath("members", "display")).case_exact is False
 
 
 def test_resolution_of_an_unknown_attribute_raises():
     with pytest.raises(PathNotFoundException):
-        resolve_attr_path(User, AttrPath("nonexistent"))
+        _resolve_attr_path(User, AttrPath("nonexistent"))
 
 
 def test_resolution_of_an_unknown_attribute_is_silent_when_tolerant():
     """§3.4.2.1 has an unparameterised request evaluate an unknown attribute to false."""
-    assert resolve_attr_path(User, AttrPath("nonexistent"), strict=False) is None
+    assert _resolve_attr_path(User, AttrPath("nonexistent"), strict=False) is None
 
 
 def test_resolution_of_an_unknown_sub_attribute_raises():
     with pytest.raises(PathNotFoundException):
-        resolve_attr_path(User, AttrPath("name", "nonexistent"))
+        _resolve_attr_path(User, AttrPath("name", "nonexistent"))
 
 
 def test_resolution_of_an_unknown_sub_attribute_is_silent_when_tolerant():
-    assert resolve_attr_path(User, AttrPath("name", "nope"), strict=False) is None
+    assert _resolve_attr_path(User, AttrPath("name", "nope"), strict=False) is None
 
 
 def test_resolution_of_a_sub_attribute_on_a_simple_attribute_raises():
     """``userName`` holds a string, which has no sub-attribute."""
     with pytest.raises(PathNotFoundException):
-        resolve_attr_path(User, AttrPath("userName", "sub"))
+        _resolve_attr_path(User, AttrPath("userName", "sub"))
 
 
 def test_resolution_of_a_sub_attribute_on_a_simple_attribute_is_silent_when_tolerant():
-    assert resolve_attr_path(User, AttrPath("userName", "sub"), strict=False) is None
+    assert _resolve_attr_path(User, AttrPath("userName", "sub"), strict=False) is None
 
 
 def test_resolution_of_an_unknown_schema_raises():
     with pytest.raises(PathNotFoundException):
-        resolve_attr_path(User, AttrPath("attr", uri="urn:unknown:schema"))
+        _resolve_attr_path(User, AttrPath("attr", uri="urn:unknown:schema"))
 
 
 def test_resolution_of_an_unknown_schema_is_silent_when_tolerant():
     assert (
-        resolve_attr_path(User, AttrPath("attr", uri="urn:x:y"), strict=False) is None
+        _resolve_attr_path(User, AttrPath("attr", uri="urn:x:y"), strict=False) is None
     )
 
 
@@ -177,13 +177,13 @@ def test_resolution_of_a_qualified_path_against_a_complex_attribute_raises():
     it, so a URN designates no model here.
     """
     with pytest.raises(PathNotFoundException, match="cannot qualify"):
-        resolve_attr_path(Email, AttrPath("type", uri="urn:x:y"))
+        _resolve_attr_path(Email, AttrPath("type", uri="urn:x:y"))
 
 
 def test_resolution_of_a_qualified_path_against_a_complex_attribute_is_silent_when_tolerant():
     """An unparameterised filter resolves this way, and matches nothing instead."""
     assert (
-        resolve_attr_path(Email, AttrPath("type", uri="urn:x:y"), strict=False) is None
+        _resolve_attr_path(Email, AttrPath("type", uri="urn:x:y"), strict=False) is None
     )
 
 
@@ -196,7 +196,7 @@ def test_a_comparison_without_a_sub_attribute_resolves_to_the_entry_values():
     A comparison against a multi-valued complex attribute applies to the
     ``value`` sub-attribute its entries carry.
     """
-    resolved = resolve_comparison_path(User, AttrPath("emails"))
+    resolved = _resolve_comparison_path(User, AttrPath("emails"))
     assert resolved.field_name == "emails"
     assert resolved.sub_field_name == "value"
     assert resolved.urn == "urn:ietf:params:scim:schemas:core:2.0:User:emails.value"
@@ -204,7 +204,7 @@ def test_a_comparison_without_a_sub_attribute_resolves_to_the_entry_values():
 
 def test_the_value_convention_carries_the_case_exactness_of_the_sub_attribute():
     """``members.value`` is case-exact where ``members`` is not."""
-    assert resolve_comparison_path(Group, AttrPath("members")).case_exact is True
+    assert _resolve_comparison_path(Group, AttrPath("members")).case_exact is True
 
 
 @pytest.mark.parametrize(
@@ -217,13 +217,13 @@ def test_the_value_convention_carries_the_case_exactness_of_the_sub_attribute():
     ],
 )
 def test_the_value_convention_leaves_other_attributes_alone(model, attr_path):
-    assert resolve_comparison_path(model, attr_path) == resolve_attr_path(
+    assert _resolve_comparison_path(model, attr_path) == _resolve_attr_path(
         model, attr_path
     )
 
 
 def test_the_value_convention_tolerates_an_unknown_attribute():
-    assert resolve_comparison_path(User, AttrPath("nope"), strict=False) is None
+    assert _resolve_comparison_path(User, AttrPath("nope"), strict=False) is None
 
 
 def test_comparing_a_multi_valued_complex_attribute_matches_its_entry_values():
@@ -266,7 +266,7 @@ def test_a_date_time_operand_is_coerced():
 
 def test_an_integer_operand_is_coerced_from_a_string():
     """Comparing against the wrong JSON type still works when convertible."""
-    resolved = resolve_attr_path(User, AttrPath("userName"))
+    resolved = _resolve_attr_path(User, AttrPath("userName"))
 
     assert coerce_value(resolved, "already a string") == "already a string"
 
@@ -328,7 +328,7 @@ def test_a_substring_operand_is_not_coerced():
 
 def test_a_null_operand_is_left_alone():
 
-    resolved = resolve_attr_path(User, AttrPath("userName"))
+    resolved = _resolve_attr_path(User, AttrPath("userName"))
     assert coerce_value(resolved, None) is None
 
 
@@ -419,8 +419,8 @@ def test_comparison_matches_a_canonically_equivalent_operand():
 
 def test_a_case_exact_comparison_matches_a_canonically_equivalent_operand():
     """Case exactness constrains the casing, not the normalization form."""
-    assert compare(COMPOSED, DECOMPOSED, CompareOperator.eq, case_exact=True)
-    assert not compare(
+    assert _compare(COMPOSED, DECOMPOSED, CompareOperator.eq, case_exact=True)
+    assert not _compare(
         COMPOSED.upper(), DECOMPOSED, CompareOperator.eq, case_exact=True
     )
 
@@ -806,7 +806,7 @@ def test_a_composed_filter_can_be_evaluated():
 )
 def test_presence_of_a_value(value, expected):
     """``False`` and ``0`` are values, and are therefore present."""
-    assert is_present(value) is expected
+    assert _is_present(value) is expected
 
 
 @pytest.mark.parametrize(
@@ -829,7 +829,7 @@ def test_presence_of_a_value(value, expected):
 )
 def test_comparing_two_values(actual, expected_value, operator, expected):
     """Incomparable values never match rather than raising."""
-    assert compare(actual, expected_value, CompareOperator(operator)) is expected
+    assert _compare(actual, expected_value, CompareOperator(operator)) is expected
 
 
 def test_a_visitor_must_implement_every_node_type():
@@ -845,7 +845,7 @@ def test_a_visitor_must_implement_every_node_type():
         'a[b eq "x"]',
     ]:
         with pytest.raises(NotImplementedError):
-            Incomplete().visit(parse_filter(expression))
+            Incomplete().visit(_parse_filter(expression))
 
 
 def test_a_visitor_can_transpile_a_filter():
@@ -869,17 +869,17 @@ def test_a_visitor_can_transpile_a_filter():
             return f"EXISTS (SELECT 1 FROM {node.attr_path.attr})"
 
     assert (
-        SqlVisitor().visit(parse_filter('userName eq "x" and title pr'))
+        SqlVisitor().visit(_parse_filter('userName eq "x" and title pr'))
         == "userName = 'x' AND title IS NOT NULL"
     )
-    assert SqlVisitor().visit(parse_filter('not (a eq "x")')) == "NOT (a = 'x')"
+    assert SqlVisitor().visit(_parse_filter('not (a eq "x")')) == "NOT (a = 'x')"
     assert (
-        SqlVisitor().visit(parse_filter('emails[type eq "work"]'))
+        SqlVisitor().visit(_parse_filter('emails[type eq "work"]'))
         == "EXISTS (SELECT 1 FROM emails)"
     )
-    assert isinstance(parse_filter("a pr or b pr"), LogicalExpr)
-    assert isinstance(parse_filter("not (a pr)"), Not)
-    assert isinstance(parse_filter("a[b pr]"), ValuePath)
+    assert isinstance(_parse_filter("a pr or b pr"), LogicalExpr)
+    assert isinstance(_parse_filter("not (a pr)"), Not)
+    assert isinstance(_parse_filter("a[b pr]"), ValuePath)
 
 
 # --- Remaining corners ---
@@ -994,13 +994,13 @@ def test_an_extension_attribute_read_from_the_extension_itself():
 
 def test_a_binary_operand_is_left_alone():
     """A ``binary`` attribute is compared against its base64 form."""
-    resolved = resolve_attr_path(User, AttrPath("x509Certificates", "value"))
+    resolved = _resolve_attr_path(User, AttrPath("x509Certificates", "value"))
     assert coerce_value(resolved, "aGVsbG8=") == b"hello"
 
 
 def test_a_complex_attribute_operand_is_left_alone():
     """There is nothing to coerce a whole complex attribute into."""
-    resolved = resolve_attr_path(User, AttrPath("name"))
+    resolved = _resolve_attr_path(User, AttrPath("name"))
     assert coerce_value(resolved, "anything") == "anything"
 
 
@@ -1034,7 +1034,7 @@ def test_resolution_skips_extensions_that_do_not_match_the_urn():
         superpower: Annotated[str | None, Required.false] = None
 
     model = User[EnterpriseUser | SuperHero]
-    resolved = resolve_attr_path(
+    resolved = _resolve_attr_path(
         model, AttrPath("superpower", uri="urn:example:extensions:SuperHero")
     )
     assert resolved.model is SuperHero

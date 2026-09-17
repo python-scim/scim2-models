@@ -245,10 +245,8 @@ class Attribute(ComplexAttribute):
     def _implicit_case_exact(self) -> CaseExact:
         """Return the case sensitivity the built field must be annotated with.
 
-        Binary and reference values are case exact per
-        :rfc:`RFC7643 §2.3.6 <7643#section-2.3.6>` and
-        :rfc:`§2.3.7 <7643#section-2.3.7>`, unless the schema explicitly states
-        otherwise.
+        Binary and reference values are case exact per RFC7643 §2.3.6 and
+        §2.3.7, unless the schema explicitly states otherwise.
         """
         if "case_exact" in self.model_fields_set:
             return self.case_exact
@@ -294,7 +292,7 @@ class Schema(Resource[Any]):
 
     @field_validator("id")
     @classmethod
-    def urn_id(cls, value: str) -> str:
+    def _urn_id(cls, value: str) -> str:
         """Ensure that schema ids are URI, as defined in RFC7643 §7."""
         return str(Url(value))
 

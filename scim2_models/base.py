@@ -50,9 +50,9 @@ if TYPE_CHECKING:
 def _short_attr_path(urn: str) -> str:
     """Extract the short attribute path from a full URN.
 
-    For URNs like ``urn:...:User:userName``, returns ``userName``.
-    For URNs like ``urn:...:User:name.familyName``, returns ``name.familyName``.
-    For short names like ``userName``, returns ``userName`` as-is.
+    For URNs like ``urn:...:User:userName``, returns ``userName``. For URNs
+    like ``urn:...:User:name.familyName``, returns ``name.familyName``. For
+    short names like ``userName``, returns ``userName`` as-is.
     """
     if ":" in urn:
         return urn.rsplit(":", 1)[1]
@@ -88,7 +88,7 @@ def _attr_matches(requested: str, current_urn: str) -> bool:
 def _exact_attr_match(attrs: list[str], current_urn: str) -> bool:
     """Check if current_urn exactly matches any entry in attrs (case-insensitive).
 
-    Used for ``excludedAttributes`` matching and :attr:`Returned.request` checking,
+    Used for ``excludedAttributes`` matching and Returned.request checking,
     where parent/child relationship should not apply.
     """
     current_short = _short_attr_path(current_urn).lower()
@@ -143,8 +143,8 @@ class _SCIMClassInfo(NamedTuple):
 def _holds_reference(model: type["BaseModel"], field_name: str) -> bool:
     """Say whether a field holds a reference URI, which is compared apart.
 
-    :rfc:`RFC7643 §2.4 <7643#section-2.4>` makes two spellings of one reference
-    equivalent, ``.../Users/2819c223`` and ``.../v2/Users/2819c223`` among them.
+    RFC7643 §2.4 makes two spellings of one reference equivalent,
+    ``.../Users/2819c223`` and ``.../v2/Users/2819c223`` among them.
     scim2-models implements no such equivalence, so an immutable reference is
     preserved rather than compared.
     """
@@ -155,9 +155,9 @@ def _holds_reference(model: type["BaseModel"], field_name: str) -> bool:
 def _entries_by_value(entries: list[Any]) -> dict[Any, list[Any]]:
     """Group the entries of a multi-valued attribute by their ``value``.
 
-    :rfc:`RFC7643 §2.4 <7643#section-2.4>` holds the significant value of an
-    entry there, but it is no key: one value may appear twice under different
-    ``type`` sub-attributes, and only the whole pair is unique.
+    RFC7643 §2.4 holds the significant value of an entry there, but it is no
+    key: one value may appear twice under different ``type`` sub-attributes,
+    and only the whole pair is unique.
     """
     grouped: dict[Any, list[Any]] = {}
     for entry in entries:
@@ -246,10 +246,8 @@ class BaseModel(PydanticBaseModel):
     def _default_case_exact(cls, field_name: str) -> CaseExact:
         """Return the implicit case sensitivity of a field, based on its type.
 
-        :rfc:`RFC7643 §2.3.6 <7643#section-2.3.6>` and
-        :rfc:`§2.3.7 <7643#section-2.3.7>` state that binary and reference
-        values are case exact, whatever the schema representations of
-        :rfc:`§8.7 <7643#section-8.7>` say.
+        RFC7643 §2.3.6 and §2.3.7 state that binary and reference values are
+        case exact, whatever the schema representations of §8.7 say.
         """
         root_type = cls.get_field_root_type(field_name)
         if root_type == Base64Bytes:
@@ -395,14 +393,14 @@ class BaseModel(PydanticBaseModel):
 
     @model_validator(mode="wrap")
     @classmethod
-    def normalize_attribute_names(
+    def _normalize_attribute_names(
         cls, value: Any, handler: ValidatorFunctionWrapHandler, info: ValidationInfo
     ) -> Self:
         """Normalize payload attribute names, and set aside the ones no field declares.
 
-        :rfc:`RFC7643 §2.1 <7643#section-2.1>` indicate that attribute
-        names should be case-insensitive. Any attribute name is
-        transformed in lowercase so any case is handled the same way.
+        RFC7643 §2.1 indicate that attribute names should be case-insensitive.
+        Any attribute name is transformed in lowercase so any case is handled
+        the same way.
 
         Unless the policy forbids them, unknown keys are taken out of the
         payload with the spelling the peer used. Pydantic never sees them, so
@@ -429,7 +427,7 @@ class BaseModel(PydanticBaseModel):
         return obj
 
     @model_validator(mode="after")
-    def enforce_scim_context(self, info: ValidationInfo) -> Self:
+    def _enforce_scim_context(self, info: ValidationInfo) -> Self:
         scim_context = info.context.get("scim") if info.context else None
         if not scim_context or scim_context == Context.DEFAULT:
             return self
@@ -464,13 +462,13 @@ class BaseModel(PydanticBaseModel):
     def _is_unresolved_bulk_reference(self, field_name: str, in_bulk: bool) -> bool:
         """Whether a required Reference field targets a resource still being created.
 
-        :rfc:`RFC7644 §3.7.2 <7644#section-3.7.2>` lets one bulk operation
-        reference a resource another operation in the same request is still
-        creating, via a ``"bulkId:"``-prefixed placeholder in the sibling
-        ``value`` attribute (e.g. ``manager.value``). That reference's URI
-        can only be resolved once the target exists, so a required Reference
-        sub-attribute (e.g. ``manager.$ref``) isn't checked for necessity in
-        this one documented case.
+        RFC7644 §3.7.2 lets one bulk operation reference a resource another
+        operation in the same request is still creating, via a
+        ``"bulkId:"``-prefixed placeholder in the sibling ``value`` attribute
+        (e.g. ``manager.value``). That reference's URI can only be resolved
+        once the target exists, so a required Reference sub-attribute (e.g.
+        ``manager.$ref``) isn't checked for necessity in this one documented
+        case.
 
         A bulk operation's data carries the context of the single request it
         stands for, so the bulk job it belongs to is known from the flag
@@ -506,7 +504,7 @@ class BaseModel(PydanticBaseModel):
         )
 
     def _check_mutability(self, field_name: str, scim_context: Context) -> None:
-        """Check and fix that the field mutability is expected according to the requests validation context, as defined in :rfc:`RFC7643 §7 <7643#section-7>`."""
+        """Check and fix that the field mutability is expected according to the requests validation context, as defined in RFC7643 §7."""
         mutability = self.__class__.get_field_annotation(field_name, Mutability)
 
         if (
@@ -552,7 +550,7 @@ class BaseModel(PydanticBaseModel):
             )
 
     def _check_returnability(self, field_name: str, value: Any) -> None:
-        """Check that the fields returnability is expected according to the responses validation context, as defined in :rfc:`RFC7643 §7 <7643#section-7>`."""
+        """Check that the fields returnability is expected according to the responses validation context, as defined in RFC7643 §7."""
         returnability = self.__class__.get_field_annotation(field_name, Returned)
 
         if returnability == Returned.always and value is None:
@@ -574,7 +572,7 @@ class BaseModel(PydanticBaseModel):
             )
 
     def _check_primary_uniqueness(self, field_name: str, value: Any) -> None:
-        """Validate that only one attribute can be marked as primary in multi-valued lists, per :rfc:`RFC7643 §2.4 <7643#section-2.4>`."""
+        """Validate that only one attribute can be marked as primary in multi-valued lists, per RFC7643 §2.4."""
         element_type = self.get_field_root_type(field_name)
         if (
             element_type is None
@@ -603,14 +601,12 @@ class BaseModel(PydanticBaseModel):
 
         - ``readOnly`` fields are copied from *original* unconditionally.
         - ``immutable`` fields are copied from *original* when absent from
-          ``self``; a :class:`~scim2_models.MutabilityException` is raised
-          when the value differs.
+          ``self``; a MutabilityException is raised when the value differs.
 
         Recursively applies to nested complex attributes, and to the entries of
         a multi-valued one whose ``value`` designates a single entry on both
         sides. An immutable reference is preserved rather than compared, since
-        two spellings of one URI are equivalent per :rfc:`RFC7643 §2.4
-        <7643#section-2.4>`.
+        two spellings of one URI are equivalent per RFC7643 §2.4.
         """
         for field_name in type(self).model_fields:
             mutability = type(self).get_field_annotation(field_name, Mutability)
@@ -659,26 +655,26 @@ class BaseModel(PydanticBaseModel):
                 if len(entries) == 1 and len(candidates) == 1:
                     entries[0]._apply_replace_constraints(candidates[0])
 
-    def get_attribute_urn(self, field_name: str) -> str:
+    def _get_attribute_urn(self, field_name: str) -> str:
         """Build the full URN of the attribute.
 
-        See :rfc:`RFC7644 §3.10 <7644#section-3.10>`.
+        See RFC7644 §3.10.
         """
         return self.__scim_info__.attribute_urns[field_name]
 
     def _set_complex_attribute_urns(self) -> None:
         """Mark each ``ComplexAttribute`` child with its ``_attribute_urn``.
 
-        ``_attribute_urn`` is later read by :meth:`get_attribute_urn`.
+        ``_attribute_urn`` is later read by _get_attribute_urn.
         """
         for field_name in self.__class__.__scim_info__.complex_fields:
             attr_value = getattr(self, field_name)
             if not attr_value:
                 continue
 
-            # ComplexAttribute overrides get_attribute_urn to prefix the URN
+            # ComplexAttribute overrides _get_attribute_urn to prefix the URN
             # with the one of its parent, which is unknown at class creation.
-            schema = self.get_attribute_urn(field_name)
+            schema = self._get_attribute_urn(field_name)
 
             if isinstance(attr_value, list):
                 for item in attr_value:
@@ -687,7 +683,7 @@ class BaseModel(PydanticBaseModel):
                 attr_value._attribute_urn = schema
 
     @model_serializer(mode="wrap")
-    def scim_serializer(
+    def _scim_serializer(
         self, handler: SerializerFunctionWrapHandler, info: SerializationInfo
     ) -> dict[str, Any]:
         """Serialize the fields according to mutability indications passed in the serialization context."""
@@ -739,8 +735,8 @@ class BaseModel(PydanticBaseModel):
         """Put back the attributes no field declares, as the peer spelled them.
 
         This runs after the context filters, which map every key back to the
-        field that carries it: an unknown key has none, and
-        :meth:`get_attribute_urn` would raise on it.
+        field that carries it: an unknown key has none, and _get_attribute_urn
+        would raise on it.
         """
         if _policy(info).unknown == ScimPolicy.Unknown.keep:
             serialized.update(self._unknown_attributes)
@@ -790,7 +786,7 @@ class BaseModel(PydanticBaseModel):
 
             field_name = self.__scim_info__.alias_to_field.get(alias, alias)
             returnability = self.get_field_annotation(field_name, Returned)
-            attribute_urn = self.get_attribute_urn(field_name)
+            attribute_urn = self._get_attribute_urn(field_name)
 
             if returnability == Returned.never:
                 del serialized[alias]

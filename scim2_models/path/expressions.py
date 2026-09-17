@@ -103,12 +103,11 @@ def _json_default(value: Any) -> str:
 def _quote(value: Any) -> str:
     """Render a comparison value using the JSON syntax mandated by the ABNF.
 
-    A :class:`~datetime.datetime` renders as the string
-    :rfc:`RFC7643 §2.3.5 <7643#section-2.3.5>` gives a dateTime.
+    A datetime.datetime renders as the string RFC7643 §2.3.5 gives a dateTime.
 
-    :raises ValueError: If the value is a float that JSON cannot express, such
-        as an infinity, which would render as a literal no parser accepts.
-    :raises TypeError: If the value is of a type no filter can carry.
+    A float JSON cannot express, such as an infinity, would render as a literal
+    no parser accepts, and raises ValueError. A type no filter can carry raises
+    TypeError.
     """
     return json.dumps(value, allow_nan=False, default=_json_default)
 
@@ -123,9 +122,9 @@ def _render_template(template: "Template") -> str:
     and what it yields is a string. A value interpolated as it stands keeps its
     type, so ``{True}`` renders as ``true`` and ``{18}`` as ``18``.
 
-    An :class:`_Expression`, a filter or a path, is syntax rather than a value
-    and is inserted unquoted. A conversion or a format specification turns it
-    into a value like any other.
+    An _Expression, a filter or a path, is syntax rather than a value and is
+    inserted unquoted. A conversion or a format specification turns it into a
+    value like any other.
     """
     parts: list[str] = []
     for part in template:
@@ -313,8 +312,7 @@ def _needs_parentheses(parent: LogicalExpr, child: FilterNode) -> bool:
     """Whether a child expression must be parenthesised inside its parent.
 
     Only a disjunction nested in a conjunction needs them, since ``and`` binds
-    tighter than ``or`` in the operator precedence of :rfc:`RFC7644 §3.4.2.2
-    <7644#section-3.4.2.2>`.
+    tighter than ``or`` in the operator precedence of RFC7644 §3.4.2.2.
     """
     return (
         isinstance(child, LogicalExpr)

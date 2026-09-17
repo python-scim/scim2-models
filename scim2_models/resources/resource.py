@@ -128,8 +128,8 @@ def _extension_serializer(
 ) -> Any:
     """Exclude the Resource attributes from the extension dump.
 
-    For instance, attributes 'meta', 'id' or 'schemas' should not be
-    dumped when the model is used as an extension for another model.
+    For instance, attributes 'meta', 'id' or 'schemas' should not be dumped
+    when the model is used as an extension for another model.
     """
     if value is None:
         return None
@@ -152,8 +152,8 @@ def _qualified_extension(parameter: Any) -> tuple[Any, tuple[Any, ...]]:
     """Split an extension parameter from what qualifies it.
 
     ``User[Annotated[EnterpriseUser, Required.true]]`` names the extension and
-    says a resource of that type must carry it, which
-    :rfc:`RFC7643 §6 <7643#section-6>` lets a resource type declare.
+    says a resource of that type must carry it, which RFC7643 §6 lets a
+    resource type declare.
     """
     if get_origin(parameter) is Annotated:
         extension, *qualifiers = get_args(parameter)
@@ -399,11 +399,11 @@ class Resource(ScimObject, Generic[AnyExtension]):
         return obj
 
     @model_validator(mode="after")
-    def validate_resource_requirements(self, info: ValidationInfo) -> Self:
+    def _validate_resource_requirements(self, info: ValidationInfo) -> Self:
         """Check the identifier constraints a service provider must meet.
 
-        The ``id`` attribute is issued by the service provider and is read-only,
-        so these constraints only make sense on the payloads it emits.
+        The ``id`` attribute is issued by the service provider and is read-
+        only, so these constraints only make sense on the payloads it emits.
         """
         scim_ctx = info.context.get("scim") if info.context else None
         if scim_ctx is None or not Context.is_response(scim_ctx):
@@ -461,9 +461,9 @@ def _dedicated_attributes(
 def _described_model(model: type[BaseModel]) -> type[BaseModel]:
     """Return the model a parameterized class describes.
 
-    ``User[EnterpriseUser]`` is a class :meth:`Resource.__class_getitem__` built
-    to carry extension fields, and :func:`type` leaves it without a docstring.
-    The resource it describes stays ``User``.
+    ``User[EnterpriseUser]`` is a class Resource.__class_getitem__ built to
+    carry extension fields, and type leaves it without a docstring. The
+    resource it describes stays ``User``.
     """
     if "__scim_extension_metadata__" in model.__dict__:
         return model.__bases__[0]
@@ -500,10 +500,10 @@ def _model_to_schema(model: type[BaseModel]) -> "Schema":
 def _enumerated_canonical_values(root_type: Any) -> list[str] | None:
     """Return the values a string enumeration declares, as canonical values.
 
-    :rfc:`RFC7643 §7 <7643#section-7>` gives ``canonicalValues`` to string
-    attributes, so an enumeration holding anything else declares none. A value
-    an :class:`~scim2_models.ExtensibleStringEnum` accepted beyond its members
-    never joins them, and thus never reaches a published schema.
+    RFC7643 §7 gives ``canonicalValues`` to string attributes, so an
+    enumeration holding anything else declares none. A value an
+    scim2_models.ExtensibleStringEnum accepted beyond its members never joins
+    them, and thus never reaches a published schema.
     """
     if not (isinstance(root_type, type) and issubclass(root_type, Enum)):
         return None
@@ -554,6 +554,6 @@ def _model_attribute_to_scim_attribute(
     if attribute_type != Attribute.Type.complex:
         kwargs["uniqueness"] = model.get_field_annotation(attribute_name, Uniqueness)
     if attribute_type == Attribute.Type.reference:
-        kwargs["reference_types"] = root_type.get_scim_reference_types()  # type: ignore[attr-defined]
+        kwargs["reference_types"] = root_type._get_scim_reference_types()  # type: ignore[attr-defined]
 
     return Attribute(**kwargs)

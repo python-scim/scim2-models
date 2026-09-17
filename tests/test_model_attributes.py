@@ -424,10 +424,10 @@ def test_nested_complex_attribute_urn_is_prefixed_by_its_parents():
     attribute = resource.attributes[0]
     sub_attribute = attribute.sub_attributes[0]
 
-    assert attribute.get_attribute_urn("name") == (
+    assert attribute._get_attribute_urn("name") == (
         "urn:example:2.0:DeepResource:attributes.name"
     )
-    assert sub_attribute.get_attribute_urn("name") == (
+    assert sub_attribute._get_attribute_urn("name") == (
         "urn:example:2.0:DeepResource:attributes.subAttributes.name"
     )
 

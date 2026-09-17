@@ -36,10 +36,10 @@ from .expressions import Template
 from .expressions import ValuePath
 from .expressions import _Expression
 from .expressions import _text
-from .grammar import parse_path
+from .grammar import _parse_path
 from .resolution import AttributeBinding
-from .resolution import designated_model
-from .resolution import resolve_attr_path
+from .resolution import _designated_model
+from .resolution import _resolve_attr_path
 
 ResourceT = TypeVar("ResourceT", bound="Resource[Any]")
 
@@ -103,32 +103,30 @@ class Path(_BoundToModels, _Expression, Generic[ResourceT]):
             return self.__scim_models__[0]
 
         for model in self.__scim_models__:
-            if resolve_attr_path(model, designated, strict=False) is not None:
+            if _resolve_attr_path(model, designated, strict=False) is not None:
                 return model
         return self.__scim_models__[0]
 
     def __new__(cls, path: "str | Path[Any] | Template") -> "Path[Any]":
         text = _text(path)
-        cls.check_syntax(text)
+        cls._check_syntax(text)
         return super().__new__(cls, text)
 
     @classmethod
-    def check_syntax(cls, path: str) -> None:
-        """Check that a path conforms to the ``PATH`` rule of :rfc:`RFC7644 §3.5.2 <7644#section-3.5.2>`.
+    def _check_syntax(cls, path: str) -> None:
+        """Check that a path conforms to the ``PATH`` rule of RFC7644 §3.5.2.
 
         The grammar is the published ABNF as corrected by
         `errata 7122 <https://errata.rfc-editor.org/eid7122/>`_, so a path
         is either an attribute path, a value selection optionally followed by a
         sub-attribute, or a bare comparison. An empty string is valid and
-        represents the resource root.
-
-        :param path: The path to validate
-        :raises InvalidPathException: If the path syntax is invalid
+        represents the resource root. An invalid syntax raises
+        InvalidPathException.
         """
         if not path:
             return
 
-        node = parse_path(path)
+        node = _parse_path(path)
 
         uri = _node_attr_path(node).uri
         if uri is None:
@@ -152,19 +150,18 @@ class Path(_BoundToModels, _Expression, Generic[ResourceT]):
         if not self:
             return None
         if self._ast is None:
-            self._ast = parse_path(str(self))
+            self._ast = _parse_path(str(self))
         return self._ast
 
-    def check_attribute_notation(self) -> None:
+    def _check_attribute_notation(self) -> None:
         """Check that the path names an attribute instead of selecting values.
 
-        The attribute notation of :rfc:`RFC7644 §3.10 <7644#section-3.10>` is a
-        schema URN, an attribute and at most one of its sub-attributes. A value
-        selection or a comparison designates the values an attribute holds
-        rather than the attribute itself, so it has no place where a single
-        attribute is asked for.
-
-        :raises InvalidPathException: If the path is not in attribute notation.
+        The attribute notation of RFC7644 §3.10 is a schema URN, an attribute
+        and at most one of its sub-attributes. A value selection or a
+        comparison designates the values an attribute holds rather than the
+        attribute itself, so it has no place where a single attribute is asked
+        for. A path that is not in attribute notation raises
+        InvalidPathException.
         """
         if not isinstance(self.ast, AttrPath):
             raise InvalidPathException(
@@ -287,7 +284,7 @@ class Path(_BoundToModels, _Expression, Generic[ResourceT]):
             return self.__scim_models__[0]
 
         for model in self.__scim_models__:
-            if (designated := designated_model(model, str(self))) is not None:
+            if (designated := _designated_model(model, str(self))) is not None:
                 return designated
         return None
 
@@ -307,7 +304,7 @@ class Path(_BoundToModels, _Expression, Generic[ResourceT]):
         designated = self._designated_attr_path()
         assert designated is not None
 
-        return resolve_attr_path(model, designated, strict=False)
+        return _resolve_attr_path(model, designated, strict=False)
 
     @property
     def models(self) -> tuple[type[BaseModel], ...]:
@@ -322,9 +319,9 @@ class Path(_BoundToModels, _Expression, Generic[ResourceT]):
     def _as_value_path(self) -> ValuePath | None:
         """Normalise a value-selecting path into a single representation.
 
-        :rfc:`RFC7644 §3.5.2 <7644#section-3.5.2>` as corrected by errata 7122
-        offers three ways to select values of a multi-valued attribute, which
-        all mean the same thing here::
+        RFC7644 §3.5.2 as corrected by errata 7122 offers three ways to select
+        values of a multi-valued attribute, which all mean the same thing
+        here::
 
             emails[type eq "work"]   a value selection
             emails.type eq "work"    a bare comparison
@@ -507,7 +504,7 @@ class Path(_BoundToModels, _Expression, Generic[ResourceT]):
                         continue
                     urn = field_type.__schema__ or ""
                 elif isclass(target_model) and issubclass(target_model, Extension):
-                    urn = target_model().get_attribute_urn(field_name)
+                    urn = target_model()._get_attribute_urn(field_name)
                 else:
                     urn = _scim_name(target_model, field_name)
 

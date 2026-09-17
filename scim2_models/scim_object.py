@@ -41,8 +41,8 @@ class ScimObject(BaseModel):
     def _serialize_schemas(self, schemas: list[str]) -> list[str]:
         """Build the 'schemas' attribute from the model definition.
 
-        Unknown schemas a peer sent are kept, as :rfc:`RFC7643 §3
-        <7643#section-3>` does not restrict the array to known schemas.
+        Unknown schemas a peer sent are kept, as RFC7643 §3 does not restrict
+        the array to known schemas.
         """
         serialized = self._model_schemas()
         for schema in schemas:
@@ -55,9 +55,8 @@ class ScimObject(BaseModel):
     def _populate_schemas_default(cls, data: Any, info: ValidationInfo) -> Any:
         """Fill the schemas of objects built by the caller.
 
-        The model they are built from asserts their type. Payloads validated
-        in a SCIM context come from a peer, so what they omitted stays
-        omitted.
+        The model they are built from asserts their type. Payloads validated in
+        a SCIM context come from a peer, so what they omitted stays omitted.
         """
         if not isinstance(data, dict) or "schemas" in data:
             return data

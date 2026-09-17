@@ -30,11 +30,10 @@ class ResponseParameters(BaseModel, Generic[ResourceT]):
 
     @field_validator("attributes", "excluded_attributes", mode="before")
     @classmethod
-    def split_comma_separated(cls, value: Any) -> Any:
+    def _split_comma_separated(cls, value: Any) -> Any:
         """Split comma-separated strings into lists.
 
-        :rfc:`RFC7644 §3.9 <7644#section-3.9>` defines these as
-        comma-separated query parameter values.
+        RFC7644 §3.9 defines these as comma-separated query parameter values.
         """
         if isinstance(value, str):
             return [v.strip() for v in value.split(",") if v.strip()]
@@ -47,18 +46,17 @@ class ResponseParameters(BaseModel, Generic[ResourceT]):
     def _entries_name_an_attribute(cls, value: Any) -> Any:
         """Refuse an entry naming the values an attribute holds.
 
-        :rfc:`RFC7644 §3.9 <7644#section-3.9>` requires these in the attribute
-        notation of §3.10.
+        RFC7644 §3.9 requires these in the attribute notation of §3.10.
         """
         for path in value or ():
             try:
-                path.check_attribute_notation()
+                path._check_attribute_notation()
             except InvalidPathException as exc:
                 raise exc.as_pydantic_error() from exc
         return value
 
     @model_validator(mode="after")
-    def attributes_validator(self) -> "ResponseParameters[ResourceT]":
+    def _attributes_validator(self) -> "ResponseParameters[ResourceT]":
         if self.attributes and self.excluded_attributes:
             raise ValueError(
                 "'attributes' and 'excluded_attributes' are mutually exclusive"

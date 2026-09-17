@@ -30,13 +30,13 @@ as long as the process runs."""
 class _BoundToModels:
     """A string whose attribute names are resolved against resource types.
 
-    :class:`~scim2_models.Path` and :class:`~scim2_models.ScimFilter` both name
-    attributes that only mean something against a model, and both are
-    subscripted with the resource types an endpoint serves. Subscription, the
-    cache of classes it fills and the pydantic plumbing are the same for either.
+    scim2_models.Path and scim2_models.ScimFilter both name attributes that
+    only mean something against a model, and both are subscripted with the
+    resource types an endpoint serves. Subscription, the cache of classes it
+    fills and the pydantic plumbing are the same for either.
 
-    The :attr:`~scim2_models.Path.models` each of them answers stays declared
-    where it is documented, since autodoc leaves an inherited member out.
+    The scim2_models.Path.models each of them answers stays declared where it
+    is documented, since autodoc leaves an inherited member out.
     """
 
     __scim_models__: "tuple[type[BaseModel], ...]" = ()
@@ -50,9 +50,8 @@ class _BoundToModels:
         """Create a class bound to a resource type, or to a union of them.
 
         A union is what an endpoint covering several resource types binds, such
-        as the server root of :rfc:`RFC7644 §3.4.2.1 <7644#section-3.4.2.1>`.
-        Anything that is not a resource type, a type variable in particular, is
-        left to the generic machinery.
+        as the server root of RFC7644 §3.4.2.1. Anything that is not a resource
+        type, a type variable in particular, is left to the generic machinery.
         """
         models = _model_union(model)
         if models is None:

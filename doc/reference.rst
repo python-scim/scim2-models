@@ -322,27 +322,29 @@ resources. The following constants and syntax-tree types support filter parsing 
    :rfc:`RFC7644 §3.5.2 <7644#section-3.5.2>` as corrected by errata 7122:
    ``PATH = attrPath / valuePath [subAttr] / attrExp``.
 
+.. currentmodule:: scim2_models
+
 Type aliases
 ------------
 
 Aliases used where an API accepts more than one SCIM object or resource type.
 
-.. data:: scim2_models.DescribedModel
+.. data:: DescribedModel
 
    A model a schema describes: a resource, or an extension of one. This is what
    :class:`~scim2_models.ScimProvider` holds in its catalogue.
 
-.. data:: scim2_models.AnyResource
+.. data:: AnyResource
    :type: typing.TypeVar
 
    Type bound to any subclass of :class:`~scim2_models.Resource`.
 
-.. data:: scim2_models.AnyExtension
+.. data:: AnyExtension
    :type: typing.TypeVar
 
    Type bound to any subclass of :class:`~scim2_models.Extension`.
 
-.. data:: scim2_models.AnyScimObject
+.. data:: AnyScimObject
    :type: typing.TypeVar
 
    Type bound to any subclass of :class:`~scim2_models.ScimObject`.

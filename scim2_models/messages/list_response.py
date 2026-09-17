@@ -59,12 +59,12 @@ class ListResponse(
 
     @model_validator(mode="wrap")
     @classmethod
-    def check_results_number(
+    def _check_results_number(
         cls, value: Any, handler: ValidatorFunctionWrapHandler, info: ValidationInfo
     ) -> Self:
         """Validate result numbers.
 
-        :rfc:`RFC7644 §3.4.2 <7644#section-3.4.2.4>` indicates that:
+        RFC7644 §3.4.2 indicates that:
 
         - 'totalResults' is required
         - 'resources' must be set if 'totalResults' is non-zero.

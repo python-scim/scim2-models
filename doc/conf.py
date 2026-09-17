@@ -14,7 +14,6 @@ extensions = [
     "sphinx.ext.intersphinx",
     "sphinx.ext.todo",
     "sphinx.ext.viewcode",
-    "sphinxcontrib.autodoc_pydantic",
     "sphinx_issues",
     "sphinx_paramlinks",
     "sphinx_reredirects",
@@ -130,17 +129,6 @@ html_context = {
     "source_version": "main",
     "source_docs_path": "/doc/",
 }
-
-# -- Options for autodoc_pydantic_settings -------------------------------------------
-
-autodoc_pydantic_model_show_config_summary = False
-autodoc_pydantic_model_show_field_summary = False
-autodoc_pydantic_model_show_json = False
-autodoc_pydantic_model_show_validator_summary = False
-autodoc_pydantic_model_show_validator_members = False
-autodoc_pydantic_field_show_constraints = False
-autodoc_pydantic_field_list_validators = False
-autodoc_pydantic_field_doc_policy = "docstring"
 
 # -- Options for doctest -------------------------------------------
 
