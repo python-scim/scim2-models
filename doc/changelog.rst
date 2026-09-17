@@ -135,6 +135,10 @@ Deprecated
 
 Fixed
 ^^^^^
+- A PATCH operation carrying no ``path`` that unassigns an extension declared
+  :attr:`Required.true <scim2_models.Required.true>` is refused. The extension was named by its
+  URN, which the constraint checks did not resolve, so they found no constraint to answer for.
+  :issue:`166`
 - A filter or a path accepts a ``$`` anywhere in an attribute name, as ``nameChar`` allows. Only
   a leading one went through. :issue:`166`
 - A schema declaring several attributes that yield one Python name builds a field for each of

@@ -70,24 +70,6 @@ def _targeted_attributes(value: Any) -> dict[str, Any]:
     return value if isinstance(value, dict) else {}
 
 
-def _names_a_declared_target(
-    resource_class: type[Resource[Any]], attr_name: str
-) -> bool:
-    """Whether a pathless operation names something the model declares.
-
-    The ``value`` of a pathless operation names attributes of the resource, and
-    an extension by its schema URN, under which it names the attributes of that
-    extension.
-    """
-    if _resolved_field(resource_class, attr_name) is not None:
-        return True
-
-    lowered = attr_name.lower()
-    return any(
-        schema.lower() == lowered for schema in resource_class.get_extension_models()
-    )
-
-
 def _resolved_field(resource_class: type[BaseModel], attr_name: str) -> str | None:
     """Return the Python field a SCIM attribute name designates.
 
@@ -254,10 +236,7 @@ class PatchOperation(ComplexAttribute, Generic[ResourceT]):
         resource instance and is enforced at runtime in
         PatchOp._check_immutable.
         """
-        if (field := _resolved_field(resource_class, field_name)) is None:
-            return
-
-        mutability = resource_class.get_field_annotation(field, Mutability)
+        mutability = resource_class.get_field_annotation(field_name, Mutability)
 
         if mutability == Mutability.read_only:
             raise MutabilityException(
@@ -288,12 +267,7 @@ class PatchOperation(ComplexAttribute, Generic[ResourceT]):
         else:
             return
 
-        # An extension is named by its schema URN, which is no field of the
-        # resource and carries no annotation of its own to check.
-        if (field := _resolved_field(resource_class, field_name)) is None:
-            return
-
-        required = resource_class.get_field_annotation(field, Required)
+        required = resource_class.get_field_annotation(field_name, Required)
 
         # RFC7644 §3.5.2.2 has a server answer "mutability" when a required
         # attribute is removed or becomes unassigned.
@@ -426,7 +400,8 @@ class PatchOp(_ResourceParameterized, Message, Generic[ResourceT]):
                 # the attributes to write. Each of them is a target of its own,
                 # and answers to §3.5.2 as a named path does.
                 for attr_name, written in _targeted_attributes(operation.value).items():
-                    if not _names_a_declared_target(resource_class, attr_name):
+                    field_name = _resolved_field(resource_class, attr_name)
+                    if field_name is None:
                         # §3.5.2 has an operation that is not compatible with an
                         # attribute's schema return an error, and §3.12 defines
                         # invalidValue for a value "not compatible with [...] the
@@ -434,9 +409,9 @@ class PatchOp(_ResourceParameterized, Message, Generic[ResourceT]):
                         raise InvalidValueException(
                             detail=f"attribute '{attr_name}' is not declared by the resource schema"
                         ).as_pydantic_error()
-                    operation._validate_mutability(resource_class, attr_name)
+                    operation._validate_mutability(resource_class, field_name)
                     operation._validate_required_attribute(
-                        resource_class, attr_name, written
+                        resource_class, field_name, written
                     )
                 continue
 
