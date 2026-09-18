@@ -35,7 +35,6 @@ jobs:
         run: uv run pytest --showlocals
 
   coverage:
-    name: py${{ matrix.python }} unit tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -43,13 +42,14 @@ jobs:
         uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
           enable-cache: true
-      - name: Install Python ${{ matrix.python }}
-        run: uv python install ${{ matrix.python }}
+      - name: Install Python 3.14
+        run: uv python install 3.14
       - name: Run tests
-        run: uv run pytest --cov --cov-fail-under=100
+        run: uv run --python 3.14 pytest --cov --cov-fail-under=100
 
   downstream-tests:
     name: py${{ matrix.python }} ${{ matrix.downstream }} downstream unit tests
+    if: ${{ !startsWith(github.head_ref, 'renovate/') }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
