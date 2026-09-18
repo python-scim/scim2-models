@@ -62,6 +62,7 @@ Added
   :attr:`~scim2_models.BulkOperation.data` is checked as the single request it stands for: a
   creation for a POST, a patch for a PATCH. See :ref:`helpers-bulk`. :pr:`149`
 - lark is a new dependency.
+- Support for :rfc:`RFC9865 <9865>`
 
 Changed
 ^^^^^^^
@@ -96,6 +97,11 @@ Changed
 - A PATCH reaching an extension attribute takes the extended resource type, as in
   ``PatchOp[User[EnterpriseUser]]``. ``PatchOp[User]`` used to carry such an operation to the
   endpoint, and now refuses a path its type parameter leaves out.
+- :meth:`SCIMException.from_error <scim2_models.SCIMException.from_error>` reconstructs
+  :class:`~scim2_models.InvalidCursorException`, :class:`~scim2_models.ExpiredCursorException` and
+  :class:`~scim2_models.InvalidCountException` from an :class:`~scim2_models.Error` carrying the
+  matching ``scimType``, as :rfc:`RFC9865 §2.1 <9865#section-2.1>` defines them. They used to fall
+  back to the base :class:`~scim2_models.SCIMException`.
 
 Removed
 ^^^^^^^
