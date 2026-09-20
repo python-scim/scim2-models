@@ -11,56 +11,43 @@ Added
   :issue:`17`
 - PATCH paths take a value selection, such as ``emails[type eq "work"].value``.
 - :class:`~scim2_models.SearchRequest` and :class:`~scim2_models.ResponseParameters` take the
-  resource type an endpoint serves, as in ``SearchRequest[User]``, or ``SearchRequest[User |
-  Group]`` for an endpoint serving several. Their :attr:`~scim2_models.SearchRequest.filter`,
-  :attr:`~scim2_models.SearchRequest.sort_by`, :attr:`~scim2_models.ResponseParameters.attributes`
-  and :attr:`~scim2_models.ResponseParameters.excluded_attributes` resolve against those models,
-  so a misspelled attribute is caught at validation time.
+  resource type an endpoint serves, as in ``SearchRequest[User]`` or ``SearchRequest[User |
+  Group]``. Their ``filter``, ``sortBy``, ``attributes`` and ``excludedAttributes`` resolve
+  against those models, so a misspelled attribute is caught at validation time.
 - :meth:`Path.resolve <scim2_models.Path.resolve>` answers the
-  :class:`~scim2_models.AttributeBinding` a path designates: the model holding the attribute, its
-  type, its URN and its annotations.
+  :class:`~scim2_models.AttributeBinding` a path designates.
 - :meth:`ScimFilter.quote <scim2_models.ScimFilter.quote>` renders a value as a filter literal.
   On Python 3.14, :class:`~scim2_models.ScimFilter` and :class:`~scim2_models.Path` take a
-  t-string and quote what is interpolated, so a value cannot be read as syntax.
+  t-string and quote what is interpolated. See :doc:`how-to/build-filters`.
 - :class:`~scim2_models.ScimProvider` describes a SCIM service: the models it serves, and the
-  :class:`~scim2_models.Schema`, :class:`~scim2_models.ResourceType` and
-  :class:`~scim2_models.ServiceProviderConfig` objects its discovery endpoints answer.
-  :meth:`~scim2_models.ScimProvider.from_discovery` builds one from what a service publishes, and
-  a service that cannot be described is refused with
-  :class:`~scim2_models.ScimProviderError`. See :doc:`how-to/describe-a-scim-service`. :issue:`108`
-- An extension may be declared required, as in
-  ``User[Annotated[EnterpriseUser, Required.true]]``. A creation or a replacement request that
-  leaves it out is refused. See :doc:`how-to/define-custom-models`. :issue:`105`
+  objects its discovery endpoints answer. :meth:`~scim2_models.ScimProvider.from_discovery`
+  builds one from what a service publishes, and a service that cannot be described is refused
+  with :class:`~scim2_models.ScimProviderError`. See :doc:`how-to/describe-a-scim-service`.
+  :issue:`108`
+- An extension may be declared required, as in ``User[Annotated[EnterpriseUser, Required.true]]``.
+  A creation or a replacement request that leaves it out is refused.
+  See :doc:`how-to/define-custom-models`. :issue:`105`
 - :class:`~scim2_models.ScimPolicy` states how much a payload may depart from the specification
-  and still be read. :attr:`~scim2_models.ScimPolicy.unknown` accepts the attributes no model
-  declares, and :attr:`~scim2_models.ScimPolicy.remove_value_as_filter` accepts the PATCH
-  ``remove`` `Microsoft Entra ID
-  <https://learn.microsoft.com/en-us/entra/identity/app-provisioning/application-provisioning-config-problem-scim-compatibility>`_
-  sends. Name a policy at the call, or open a ``with`` block on it
-  or on a provider carrying one. Every setting defaults to the strict reading, so nothing changes
-  until one is chosen. See :doc:`how-to/tolerate-a-nonconformant-peer`. :issue:`85` :issue:`108`
+  and still be read. Name a policy at the call, or open a ``with`` block on it or on a provider
+  carrying one. Every setting defaults to the strict reading, so nothing changes until one is
+  chosen. See :doc:`how-to/tolerate-a-nonconformant-peer`. :issue:`85` :issue:`108`
 - :meth:`~scim2_models.BaseModel.model_dump` and
-  :meth:`~scim2_models.BaseModel.model_dump_json` take a ``response_parameters``: the
-  :class:`~scim2_models.ResponseParameters` a client sent, instead of its ``attributes`` and
-  ``excludedAttributes`` spelled out one by one. A :class:`~scim2_models.SearchRequest` is one,
-  so a server answering ``POST /.search`` passes the request it received. :issue:`141`
+  :meth:`~scim2_models.BaseModel.model_dump_json` take a ``response_parameters``, the
+  :class:`~scim2_models.ResponseParameters` a client sent. A :class:`~scim2_models.SearchRequest`
+  is one, so a server answering ``POST /.search`` passes the request it received. :issue:`141`
 - :meth:`~scim2_models.BaseModel.model_validate`,
   :meth:`~scim2_models.BaseModel.model_validate_json`,
   :meth:`~scim2_models.BaseModel.model_dump` and
-  :meth:`~scim2_models.BaseModel.model_dump_json` take a ``scim_provider`` and a ``scim_spc``: the
-  :class:`~scim2_models.ScimProvider` describing the service a payload belongs to, and the
-  :class:`~scim2_models.ServiceProviderConfig` its peer publishes. A ``with`` block opened on a
-  provider lends both, as it already lends its policy, and ``scim_spc`` wins over the
-  configuration the provider carries. Rules the specification makes conditional on a declared
-  capability read them. See :doc:`how-to/describe-a-scim-service`.
+  :meth:`~scim2_models.BaseModel.model_dump_json` take a ``scim_provider`` and a ``scim_spc``, so
+  that the rules the specification makes conditional on a declared capability are read. A ``with``
+  block opened on a provider lends both. See :doc:`how-to/describe-a-scim-service`.
 - :meth:`~scim2_models.PatchOp.build_from` builds the patch turning one resource state into
-  another. Only the attributes the wanted state names take part in the comparison, so what a peer
-  maintains and the caller does not model survives the modification — which is what a PATCH
-  offers over a PUT. See :doc:`how-to/build-a-patch`. :issue:`104`
+  another. Only the attributes the wanted state names take part in the comparison.
+  See :doc:`how-to/build-a-patch`. :issue:`104`
 - Bulk messages are validated, in the new :attr:`~scim2_models.Context.BULK_REQUEST` and
   :attr:`~scim2_models.Context.BULK_RESPONSE` contexts. Each operation's
-  :attr:`~scim2_models.BulkOperation.data` is checked as the single request it stands for: a
-  creation for a POST, a patch for a PATCH. See :ref:`helpers-bulk`. :pr:`149`
+  :attr:`~scim2_models.BulkOperation.data` is checked as the single request it stands for.
+  See :ref:`helpers-bulk`. :pr:`149`
 - lark is a new dependency.
 
 Changed
@@ -68,28 +55,24 @@ Changed
 - :meth:`Resource.from_schema <scim2_models.Resource.from_schema>` and
   :meth:`Extension.from_schema <scim2_models.Extension.from_schema>` refuse a schema declaring
   two attributes whose names only differ by case, and report both.
-  :rfc:`RFC7643 §2.1 <7643#section-2.1>` makes them one attribute, so such a schema describes
-  it twice. :issue:`166`
-- Attribute names are matched case-insensitively, and nothing else. The ``nameChar`` rule of
-  :rfc:`RFC7643 §2.1 <7643#section-2.1>` makes ``$``, ``-`` and ``_`` part of a name, so
-  ``{"user-name": "x"}``, which 0.7 read as ``userName``, is now an unknown attribute that
-  :attr:`~scim2_models.ScimPolicy.unknown` governs. Paths, filters and ``sortBy`` resolve the
-  same way. A model whose fields answer to one attribute name raises a :class:`TypeError` where
-  it is defined. :issue:`166`
+  :rfc:`RFC7643 §2.1 <7643#section-2.1>` :issue:`166`
+- Attribute names are matched case-insensitively, and nothing else: ``{"user-name": "x"}``, which
+  0.7 read as ``userName``, is now an unknown attribute that
+  :attr:`~scim2_models.ScimPolicy.unknown` governs. Paths, filters and ``sortBy`` resolve the same
+  way, and a model whose fields answer to one attribute name raises a :class:`TypeError` where it
+  is defined. :rfc:`RFC7643 §2.1 <7643#section-2.1>` :issue:`166`
 - The bulk models take the resource type their operations carry, as in ``BulkRequest[User]`` or
   ``BulkRequest[User | Group]``, and raise a :class:`TypeError` when used bare. A payload the type
   parameter does not cover is now refused, and a bulk response no longer dumps ``path``.
 - :class:`~scim2_models.ListResponse` raises a :class:`TypeError` when used without the resource
   type its entries carry, as :class:`~scim2_models.PatchOp` and the bulk models do. A bare
-  ``ListResponse`` used to answer a pydantic error naming ``Resource``, and whether it did depended
-  on what the calling module had imported.
+  ``ListResponse`` used to answer a pydantic error naming ``Resource``.
 - A message type parameter must name resource types. ``ListResponse[str]`` used to build a class
   that read anything as its entries.
 - ``ListResponse[Resource]``, ``PatchOp[Resource]`` and their bulk counterparts stay writable where
-  a type is expected, which is what an annotation covering any resource type needs, and raise a
-  :class:`TypeError` when they read or build a payload. ``Resource`` declares no attribute, so a
-  payload read against it fails on the first one it carries. ``PatchOp[Resource]`` used to be
-  refused as a type, and ``ListResponse[Resource]`` used to read payloads.
+  a type is expected, and raise a :class:`TypeError` when they read or build a payload.
+  ``PatchOp[Resource]`` used to be refused as a type, and ``ListResponse[Resource]`` used to read
+  payloads.
 - :attr:`SearchRequest.filter <scim2_models.SearchRequest.filter>` is a
   :class:`~scim2_models.ScimFilter` instead of a :class:`str`, so a malformed filter is rejected
   at validation time.
@@ -101,8 +84,7 @@ Changed
 - :attr:`SearchRequest.sort_by <scim2_models.SearchRequest.sort_by>` naming an attribute no
   resource type declares answers ``invalidPath``, where it used to be carried to the endpoint.
 - A PATCH ``remove`` carrying a ``value`` is refused with ``invalidValue``, at validation and
-  when applied. It used to remove the entries equal to that ``value``, and to report no change
-  when the ``value`` was a list or described an entry only in part. Set
+  when applied. It used to remove the entries equal to that ``value``. Set
   :attr:`~scim2_models.ScimPolicy.remove_value_as_filter` to keep reading it.
 - A PATCH reaching an extension attribute takes the extended resource type, as in
   ``PatchOp[User[EnterpriseUser]]``. ``PatchOp[User]`` used to carry such an operation to the
@@ -115,8 +97,7 @@ Removed
   ``resource_types`` parameter is named ``models``.
 - The ``original`` parameter of :meth:`~scim2_models.BaseModel.model_validate`, deprecated in
   0.6.7. Validate the payload, then call :meth:`~scim2_models.Resource.replace` on the result to
-  compare it against the stored resource. A replacement request is no longer checked against an
-  original at validation time, so an immutable attribute that changed raises
+  compare it against the stored resource: an immutable attribute that changed raises
   :exc:`~scim2_models.MutabilityException` from ``replace`` instead of a
   :exc:`~pydantic.ValidationError` from ``model_validate``.
 - ``Path.field_name``, ``Path.field_type``, ``Path.is_multivalued``, ``Path.get_annotation`` and
@@ -136,42 +117,31 @@ Deprecated
 Fixed
 ^^^^^
 - A PATCH operation carrying no ``path`` that unassigns an extension declared
-  :attr:`Required.true <scim2_models.Required.true>` is refused. The extension was named by its
-  URN, which the constraint checks did not resolve, so they found no constraint to answer for.
+  :attr:`Required.true <scim2_models.Required.true>` is refused. :issue:`166`
+- A filter or a path accepts a ``$`` anywhere in an attribute name, as ``nameChar`` allows.
   :issue:`166`
-- A filter or a path accepts a ``$`` anywhere in an attribute name, as ``nameChar`` allows. Only
-  a leading one went through. :issue:`166`
 - A schema declaring several attributes that yield one Python name builds a field for each of
   them: the attribute already spelled as that name keeps it, and the others are held under their
-  SCIM name. ``employee_id`` and ``employeeId`` used to share one field, so a dump reported one
-  value twice and lost the other. An attribute is read under the name SCIM gives it, as in
-  ``resource["employeeId"]``, so a field name that is no Python identifier costs nothing.
+  SCIM name. An attribute is read under the name SCIM gives it, as in ``resource["employeeId"]``.
   :issue:`166`
-- A pydantic error spells the attribute as SCIM does, ``userName`` and ``$ref`` where it used to
-  report ``username`` and ``ref``, and so does the JSON schema a model publishes, which FastAPI
-  reads to document a request body. :issue:`166`
+- A pydantic error spells the attribute as SCIM does, ``userName`` and ``$ref``, and so does the
+  JSON schema a model publishes. :issue:`166`
 - A field declaring its own ``alias`` is read under it, and an unknown attribute is refused under
-  the spelling the peer used. ``Field(alias="string_field")`` used to answer ``extra_forbidden``
-  quoting a spelling nobody had sent. :issue:`166`
+  the spelling the peer used. :issue:`166`
 - An extension is read under its class name as well as under its URN, so
   ``User[EnterpriseUser](EnterpriseUser=extension)`` is accepted and a resource carrying an
-  extension survives a dump without aliases read back. Both used to answer ``extra_forbidden``.
-  :issue:`166`
-- A bulk model indexed with something other than a resource type names itself in the error. The
-  rules of the :class:`~scim2_models.PatchOp` its operations carry used to answer for it, so
-  ``BulkRequest[str]`` told the caller to write ``PatchOp[User]``.
+  extension survives a dump without aliases read back. :issue:`166`
+- A bulk model indexed with something other than a resource type names itself in the error, where
+  ``BulkRequest[str]`` used to tell the caller to write ``PatchOp[User]``.
 - A subclass of a parameterized message, such as ``class Users(ListResponse[User])``, reads its
-  payloads with the type parameter it inherits. It used to raise an :exc:`IndexError`, a subclass
-  carrying no parameter of its own.
+  payloads with the type parameter it inherits. It used to raise an :exc:`IndexError`.
 - A PATCH operation targeting an attribute of an extension answers for the constraints that
   extension declares, where it used to look them up on the resource and find none. A refused
   operation no longer leaves the extension instantiated on the resource.
 - A PATCH operation carrying no ``path`` accepts a resource as its ``value``, and checks the
-  attributes it names against the model. They used to go through unexamined, so a client naming
-  an attribute it had misspelled was answered success.
+  attributes it names against the model. They used to go through unexamined.
 - A PATCH operation whose ``path`` names an attribute the resource schema does not declare is
-  refused with ``invalidPath``. It used to pass, so a client that misspelled an attribute was
-  answered success without anything being written. :issue:`164`
+  refused with ``invalidPath``. :issue:`164`
 - A refused PATCH ``add`` on a multi-valued attribute leaves the attribute as it was. The entry
   used to be appended before being validated, and outlived the failure.
 - A PATCH operation carrying no ``path`` marks the attributes it assigns as set, so
@@ -186,8 +156,7 @@ Fixed
   so ``name.unknown`` is refused on a resource carrying no ``name``, and ``userName.foo`` answers
   ``invalidPath`` instead of raising an :exc:`AttributeError`.
 - A path crossing a multi-valued attribute, such as ``emails.value``, reads, writes and removes
-  the sub-attribute of every entry. It used to raise an :exc:`AttributeError` on a read or a
-  removal, and do nothing at all on a write.
+  the sub-attribute of every entry, where it used to raise an :exc:`AttributeError` or do nothing.
 - A path names a ``$ref`` sub-attribute under that spelling, as in ``members.$ref``, both when it
   is parsed and in :meth:`~scim2_models.Path.iter_paths`.
 - A schema URN carries its attribute behind a colon, so
