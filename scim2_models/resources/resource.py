@@ -38,7 +38,6 @@ from ..policy import ScimPolicy
 from ..policy import _policy
 from ..scim_object import ScimObject
 from ..utils import UNION_TYPES
-from ..utils import _normalize_attribute_name
 
 if TYPE_CHECKING:
     from .schema import Attribute
@@ -248,7 +247,7 @@ class Resource(ScimObject, Generic[AnyExtension]):
             class_attrs[extension.__name__] = Field(
                 default=None,  # type: ignore[arg-type]
                 serialization_alias=schema,
-                validation_alias=_normalize_attribute_name(schema),
+                validation_alias=schema,
             )
 
         new_annotations = {
@@ -539,7 +538,7 @@ def _model_attribute_to_scim_attribute(
     )
 
     kwargs: dict[str, Any] = {
-        "name": field_info.serialization_alias or attribute_name,
+        "name": model._scim_name(attribute_name),
         "type": Attribute.Type(attribute_type),
         "multi_valued": model.get_field_multiplicity(attribute_name),
         "description": field_info.description,

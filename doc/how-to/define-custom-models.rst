@@ -41,6 +41,47 @@ as optional because SCIM can omit an attribute in a valid request or response.
    >>> pet.model_dump()["details"]
    {'color': 'ginger', 'weightKg': 4.2}
 
+Name an attribute
+-----------------
+
+A field named in Python takes the camel-case spelling of its name as its SCIM attribute name:
+``weight_kg`` becomes ``weightKg``. Reading a payload goes the other way, and
+:rfc:`RFC7643 §2.1 <7643#section-2.1>` makes attribute names case-insensitive, so ``weightKg``,
+``weightkg`` and ``WEIGHTKG`` all reach ``weight_kg``. Nothing else is folded: the ABNF of that
+section makes ``$``, ``-`` and ``_`` part of a name, so ``weight-kg`` is another attribute
+altogether, refused as an unknown one. See :doc:`tolerate-a-nonconformant-peer` to accept what a peer
+spells its own way.
+
+When the attribute name is not what camel-casing a Python name yields, declare it with a
+``serialization_alias``:
+
+.. doctest::
+
+   >>> from pydantic import Field
+   >>> class Pet(Resource):
+   ...     __schema__ = URN("urn:example:schemas:Pet")
+   ...     vet_ref: str | None = Field(None, serialization_alias="$vetRef")
+   ...
+   >>> Pet.model_validate({"$vetRef": "https://example.com/Vets/1"}).vet_ref
+   'https://example.com/Vets/1'
+
+An alias applies to reading as well as to writing, and it wins over the Python name of any other
+field. A field whose alias is the Python name of its neighbour therefore takes the
+keyword that spells it, in a payload and in the constructor alike:
+
+.. doctest::
+
+   >>> class Pet(Resource):
+   ...     __schema__ = URN("urn:example:schemas:Pet")
+   ...     pet_name: str | None = None
+   ...     legacy: str | None = Field(None, serialization_alias="pet_name")
+   ...
+   >>> Pet(pet_name="Mochi").legacy
+   'Mochi'
+
+Two fields cannot answer to one attribute name. Such a model raises a :class:`TypeError` where it
+is defined, no payload key being able to reach both.
+
 Apply SCIM attribute metadata
 -----------------------------
 

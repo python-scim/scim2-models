@@ -3,6 +3,7 @@ import gc
 import weakref
 from typing import Union
 
+import pytest
 from pydantic import Base64Bytes
 
 from scim2_models.annotations import CaseExact
@@ -2904,3 +2905,213 @@ def test_a_model_built_at_runtime_is_collected_once_it_is_dropped():
     gc.collect()
 
     assert reference() is None
+
+
+def test_a_schema_declaring_two_attributes_that_differ_by_case_is_refused():
+    """RFC7643 §2.1 makes two cases of one name the same attribute, so a schema declaring both describes one attribute twice."""
+    schema = Schema.model_validate(
+        {
+            "id": "urn:example:2.0:Ambiguous",
+            "name": "Ambiguous",
+            "attributes": [
+                {"name": "userName", "type": "string", "multiValued": False},
+                {"name": "username", "type": "string", "multiValued": False},
+            ],
+        }
+    )
+
+    with pytest.raises(ValueError, match="name the same attribute"):
+        Resource.from_schema(schema)
+
+
+@pytest.mark.parametrize(
+    "declared", [["employee_id", "employeeId"], ["employeeId", "employee_id"]]
+)
+def test_two_attributes_yielding_one_python_name_each_get_a_field(declared):
+    """The attribute already spelled as that name keeps it, whichever order the schema declares them in, and the other is held under its SCIM name."""
+    schema = Schema.model_validate(
+        {
+            "id": "urn:example:2.0:Ambiguous",
+            "name": "Ambiguous",
+            "attributes": [
+                {"name": name, "type": "string", "multiValued": False}
+                for name in declared
+            ],
+        }
+    )
+    Model = Resource.from_schema(schema)
+
+    obj = Model.model_validate(
+        {
+            "schemas": ["urn:example:2.0:Ambiguous"],
+            "employee_id": "snake",
+            "employeeId": "camel",
+        }
+    )
+
+    assert obj["employee_id"] == "snake"
+    assert obj["employeeId"] == "camel"
+    assert obj.model_dump() == {
+        "schemas": ["urn:example:2.0:Ambiguous"],
+        "employee_id": "snake",
+        "employeeId": "camel",
+    }
+
+
+def test_attributes_none_of_which_is_spelled_as_its_python_name_keep_their_scim_name():
+    """A SCIM name carrying a dash is no Python identifier, which costs nothing since an attribute is read under the name SCIM gives it."""
+    schema = Schema.model_validate(
+        {
+            "id": "urn:example:2.0:Ambiguous",
+            "name": "Ambiguous",
+            "attributes": [
+                {"name": "employeeId", "type": "string", "multiValued": False},
+                {"name": "employee-Id", "type": "string", "multiValued": False},
+            ],
+        }
+    )
+    Model = Resource.from_schema(schema)
+
+    obj = Model.model_validate(
+        {
+            "schemas": ["urn:example:2.0:Ambiguous"],
+            "employeeId": "camel",
+            "employee-Id": "dashed",
+        }
+    )
+
+    assert obj["employeeId"] == "camel"
+    assert obj["employee-Id"] == "dashed"
+
+
+def test_a_complex_attribute_declaring_two_sub_attributes_that_differ_by_case_is_refused():
+    """A sub-attribute answers for the same rules as an attribute of the schema itself."""
+    schema = Schema.model_validate(
+        {
+            "id": "urn:example:2.0:Ambiguous",
+            "name": "Ambiguous",
+            "attributes": [
+                {
+                    "name": "address",
+                    "type": "complex",
+                    "multiValued": False,
+                    "subAttributes": [
+                        {"name": "postalCode", "type": "string"},
+                        {"name": "postalcode", "type": "string"},
+                    ],
+                }
+            ],
+        }
+    )
+
+    with pytest.raises(ValueError, match="the attribute 'address' declares"):
+        Resource.from_schema(schema)
+
+
+def test_two_sub_attributes_yielding_one_python_name_each_get_a_field():
+    """A sub-attribute is held under its SCIM name where an attribute would be."""
+    schema = Schema.model_validate(
+        {
+            "id": "urn:example:2.0:Ambiguous",
+            "name": "Ambiguous",
+            "attributes": [
+                {
+                    "name": "address",
+                    "type": "complex",
+                    "multiValued": False,
+                    "subAttributes": [
+                        {"name": "postal_code", "type": "string"},
+                        {"name": "postalCode", "type": "string"},
+                    ],
+                }
+            ],
+        }
+    )
+    Model = Resource.from_schema(schema)
+
+    obj = Model.model_validate(
+        {
+            "schemas": ["urn:example:2.0:Ambiguous"],
+            "address": {"postal_code": "snake", "postalCode": "camel"},
+        }
+    )
+
+    assert obj["address.postal_code"] == "snake"
+    assert obj["address.postalCode"] == "camel"
+
+
+def test_attribute_names_keep_the_punctuation_they_carry():
+    """The nameChar rule of RFC7643 §2.1 makes - and $ part of a name, so two names that differ by one are two attributes."""
+    schema = Schema.model_validate(
+        {
+            "id": "urn:example:2.0:Punctuated",
+            "name": "Punctuated",
+            "attributes": [
+                {"name": "employee-id", "type": "string", "multiValued": False},
+                {"name": "employeeId", "type": "string", "multiValued": False},
+            ],
+        }
+    )
+    Model = Resource.from_schema(schema)
+
+    obj = Model.model_validate(
+        {
+            "schemas": ["urn:example:2.0:Punctuated"],
+            "employee-id": "dashed",
+            "employeeId": "camel",
+        }
+    )
+
+    assert obj.model_dump() == {
+        "schemas": ["urn:example:2.0:Punctuated"],
+        "employee-id": "dashed",
+        "employeeId": "camel",
+    }
+
+
+def test_an_attribute_without_a_name_builds_no_field():
+    """RFC7643 §7 makes the name mandatory, and nothing can be built from an attribute missing it."""
+    schema = Schema.model_validate(
+        {
+            "id": "urn:example:2.0:Nameless",
+            "name": "Nameless",
+            "attributes": [{"type": "string", "multiValued": False}],
+        }
+    )
+    Model = Resource.from_schema(schema)
+
+    assert set(Model.model_fields) == set(Resource.model_fields)
+
+
+def test_the_three_spellings_of_one_python_name_each_get_a_field():
+    """A schema may declare names that a dash, an underscore and a capital tell apart, and each of them keeps its value."""
+    schema = Schema.model_validate(
+        {
+            "id": "urn:example:2.0:Ambiguous",
+            "name": "Ambiguous",
+            "attributes": [
+                {"name": name, "type": "string", "multiValued": False}
+                for name in ("employee-id", "employee_id", "employeeId")
+            ],
+        }
+    )
+    Model = Resource.from_schema(schema)
+
+    obj = Model.model_validate(
+        {
+            "schemas": ["urn:example:2.0:Ambiguous"],
+            "employee-id": "dashed",
+            "employee_id": "snake",
+            "employeeId": "camel",
+        }
+    )
+
+    assert obj.model_dump() == {
+        "schemas": ["urn:example:2.0:Ambiguous"],
+        "employee-id": "dashed",
+        "employee_id": "snake",
+        "employeeId": "camel",
+    }
+    # The Python name of the dashed attribute is no attribute name, so the
+    # spelling that only differs from employeeId by its case reaches that one.
+    assert obj["EMPLOYEEID"] == "camel"

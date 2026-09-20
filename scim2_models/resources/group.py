@@ -25,7 +25,7 @@ class GroupMember(ComplexAttribute):
     ref: Annotated[  # type: ignore[type-arg]
         Reference[Union["User", "Group"]] | None,
         Mutability.immutable,
-    ] = Field(None, serialization_alias="$ref")
+    ] = Field(None, serialization_alias="$ref", validation_alias="$ref")
     """The reference URI of a target resource, if the attribute is a
     reference."""
 

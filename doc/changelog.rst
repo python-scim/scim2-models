@@ -65,6 +65,17 @@ Added
 
 Changed
 ^^^^^^^
+- :meth:`Resource.from_schema <scim2_models.Resource.from_schema>` and
+  :meth:`Extension.from_schema <scim2_models.Extension.from_schema>` refuse a schema declaring
+  two attributes whose names only differ by case, and report both.
+  :rfc:`RFC7643 §2.1 <7643#section-2.1>` makes them one attribute, so such a schema describes
+  it twice. :issue:`166`
+- Attribute names are matched case-insensitively, and nothing else. The ``nameChar`` rule of
+  :rfc:`RFC7643 §2.1 <7643#section-2.1>` makes ``$``, ``-`` and ``_`` part of a name, so
+  ``{"user-name": "x"}``, which 0.7 read as ``userName``, is now an unknown attribute that
+  :attr:`~scim2_models.ScimPolicy.unknown` governs. Paths, filters and ``sortBy`` resolve the
+  same way. A model whose fields answer to one attribute name raises a :class:`TypeError` where
+  it is defined. :issue:`166`
 - The bulk models take the resource type their operations carry, as in ``BulkRequest[User]`` or
   ``BulkRequest[User | Group]``, and raise a :class:`TypeError` when used bare. A payload the type
   parameter does not cover is now refused, and a bulk response no longer dumps ``path``.
@@ -124,6 +135,28 @@ Deprecated
 
 Fixed
 ^^^^^
+- A PATCH operation carrying no ``path`` that unassigns an extension declared
+  :attr:`Required.true <scim2_models.Required.true>` is refused. The extension was named by its
+  URN, which the constraint checks did not resolve, so they found no constraint to answer for.
+  :issue:`166`
+- A filter or a path accepts a ``$`` anywhere in an attribute name, as ``nameChar`` allows. Only
+  a leading one went through. :issue:`166`
+- A schema declaring several attributes that yield one Python name builds a field for each of
+  them: the attribute already spelled as that name keeps it, and the others are held under their
+  SCIM name. ``employee_id`` and ``employeeId`` used to share one field, so a dump reported one
+  value twice and lost the other. An attribute is read under the name SCIM gives it, as in
+  ``resource["employeeId"]``, so a field name that is no Python identifier costs nothing.
+  :issue:`166`
+- A pydantic error spells the attribute as SCIM does, ``userName`` and ``$ref`` where it used to
+  report ``username`` and ``ref``, and so does the JSON schema a model publishes, which FastAPI
+  reads to document a request body. :issue:`166`
+- A field declaring its own ``alias`` is read under it, and an unknown attribute is refused under
+  the spelling the peer used. ``Field(alias="string_field")`` used to answer ``extra_forbidden``
+  quoting a spelling nobody had sent. :issue:`166`
+- An extension is read under its class name as well as under its URN, so
+  ``User[EnterpriseUser](EnterpriseUser=extension)`` is accepted and a resource carrying an
+  extension survives a dump without aliases read back. Both used to answer ``extra_forbidden``.
+  :issue:`166`
 - A bulk model indexed with something other than a resource type names itself in the error. The
   rules of the :class:`~scim2_models.PatchOp` its operations carry used to answer for it, so
   ``BulkRequest[str]`` told the caller to write ``PatchOp[User]``.

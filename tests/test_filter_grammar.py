@@ -522,12 +522,18 @@ def test_quoting_a_value_yields_a_literal_the_grammar_reads_back(value, literal)
 
 @pytest.mark.parametrize(
     "name",
-    ['userName eq "admin" or userName', "", "1abc", "name.given", 'a"b', "foo$bar"],
+    ['userName eq "admin" or userName', "", "1abc", "name.given", 'a"b', "foo bar"],
 )
 def test_an_attribute_path_refuses_what_is_not_a_name(name):
     """A node built by hand carries a name the grammar reads as one, or nothing."""
     with pytest.raises(ValueError, match="is not an attribute name"):
         AttrPath(name)
+
+
+@pytest.mark.parametrize("name", ["$ref", "foo$bar", "foo-bar", "foo_bar", "a$"])
+def test_an_attribute_path_takes_every_name_char(name):
+    """The nameChar rule of RFC7643 §2.1 makes $, - and _ part of a name."""
+    assert AttrPath(name).attr == name
 
 
 def test_an_attribute_path_refuses_a_sub_attribute_that_is_not_a_name():

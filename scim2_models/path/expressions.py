@@ -16,8 +16,8 @@ if sys.version_info >= (3, 14):
 else:  # pragma: no cover
     Template = None
 
-_ATTR_NAME = r"\$?[A-Za-z][A-Za-z0-9_-]*"
-"""The ``ATTRNAME`` rule, with the leading ``$`` of ``$ref`` that errata 8924 adds."""
+_ATTR_NAME = r"\$?[A-Za-z][A-Za-z0-9$_-]*"
+"""The ``ATTRNAME`` rule, ``nameChar`` and the leading ``$`` of ``$ref`` that errata 8924 adds."""
 
 _URN = r"urn:[A-Za-z0-9][A-Za-z0-9._-]*(?::[A-Za-z0-9][A-Za-z0-9._-]*)*"
 """A schema URN, the only ``URI`` an attribute path accepts."""

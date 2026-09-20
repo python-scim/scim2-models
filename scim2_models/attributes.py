@@ -71,10 +71,7 @@ class ComplexAttribute(BaseModel):
 
         See RFC7644 §3.10.
         """
-        alias = (
-            self.__class__.model_fields[field_name].serialization_alias or field_name
-        )
-        return f"{self._attribute_urn}.{alias}"
+        return f"{self._attribute_urn}.{self._scim_name(field_name)}"
 
 
 class MultiValuedComplexAttribute(ComplexAttribute):
@@ -95,7 +92,9 @@ class MultiValuedComplexAttribute(ComplexAttribute):
     value: Any | None = None
     """The value of an entitlement."""
 
-    ref: Reference[Any] | None = Field(None, serialization_alias="$ref")
+    ref: Reference[Any] | None = Field(
+        None, serialization_alias="$ref", validation_alias="$ref"
+    )
     """The reference URI of a target resource, if the attribute is a
     reference."""
 
