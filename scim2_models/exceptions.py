@@ -39,6 +39,7 @@ class SCIMException(Exception):
         self.context = context
         self._detail = detail
         self.scim_ctx = scim_ctx
+        self._error: Error | None = None
         super().__init__(detail or self._default_detail)
 
     @property
@@ -47,8 +48,15 @@ class SCIMException(Exception):
         return self._detail or self._default_detail
 
     def to_error(self) -> "Error":
-        """Convert this exception to a SCIM Error response object."""
+        """Convert this exception to a SCIM Error response object.
+
+        Exceptions built by :meth:`~scim2_models.SCIMException.from_error` return
+        the very object they were built from.
+        """
         from .messages.error import Error
+
+        if self._error is not None:
+            return self._error
 
         return Error(
             status=self.status,
@@ -70,6 +78,11 @@ class SCIMException(Exception):
     ) -> "SCIMException":
         """Create an exception from a SCIM Error object.
 
+        The error object is kept as-is, and
+        :meth:`~scim2_models.SCIMException.to_error` gives it back. This matters for
+        the values no exception class describes, such as a ``429`` status or a
+        vendor specific scimType.
+
         :param error: The SCIM Error object to convert.
         :param scim_ctx: The SCIM context in which the exception occurred.
         :return: The appropriate SCIMException subclass instance.
@@ -80,7 +93,13 @@ class SCIMException(Exception):
             raise TypeError(f"Expected Error, got {type(error).__name__}")
 
         exception_class = _SCIM_TYPE_TO_EXCEPTION.get(error.scim_type or "", cls)
-        return exception_class(detail=error.detail, scim_ctx=scim_ctx)
+        exc = exception_class(detail=error.detail, scim_ctx=scim_ctx)
+        exc._error = error
+        if error.status is not None:
+            exc.status = error.status
+        if error.scim_type:
+            exc.scim_type = error.scim_type
+        return exc
 
 
 class InvalidFilterException(SCIMException):
