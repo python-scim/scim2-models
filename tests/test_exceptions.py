@@ -471,3 +471,25 @@ def test_from_error_without_scim_ctx():
     exc = SCIMException.from_error(error)
     assert isinstance(exc, InvalidFilterException)
     assert exc.scim_ctx is None
+
+
+def test_from_error_keeps_the_error_object():
+    """to_error() gives back the very object from_error() was built from."""
+    error = Error(status=404, detail="Resource unknown not found")
+    exc = SCIMException.from_error(error)
+    assert exc.to_error() is error
+
+
+def test_from_error_keeps_what_no_exception_class_describes():
+    """from_error() keeps a status and a scimType that match no exception class."""
+    error = Error(status=429, scim_type="tooManyRequests", detail="Slow down")
+    exc = SCIMException.from_error(error)
+    assert exc.status == 429
+    assert exc.scim_type == "tooManyRequests"
+
+
+def test_from_error_without_status():
+    """from_error() keeps the class status when the Error object carries none."""
+    error = Error(scim_type="uniqueness", detail="Duplicate userName")
+    exc = SCIMException.from_error(error)
+    assert exc.status == 409

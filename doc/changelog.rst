@@ -1,6 +1,17 @@
 Changelog
 =========
 
+[Unreleased]
+------------
+
+Fixed
+^^^^^
+- :meth:`~scim2_models.SCIMException.from_error` keeps the :class:`~scim2_models.Error`
+  object it is built from, and :meth:`~scim2_models.SCIMException.to_error` gives it back.
+  The status and the scimType a server sent used to be replaced by the ones of the
+  exception class, which dropped everything it has no class for, such as a ``429`` status
+  or a vendor specific scimType.
+
 [0.8.0] - 2026-09-20
 --------------------
 
