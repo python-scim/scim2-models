@@ -58,24 +58,24 @@ class Pagination(ComplexAttribute):
         index = "index"
 
     cursor: Annotated[bool | None, Mutability.read_only, Required.true] = None
-    """A Boolean value specifying whether or not the operation is supported."""
+    """A Boolean value specifying support of cursor-based pagination."""
 
     index: Annotated[bool | None, Mutability.read_only, Required.true] = None
-    """A Boolean value specifying whether or not the operation is supported."""
+    """A Boolean value specifying support of index-based pagination."""
 
     default_pagination_method: Annotated[
         DefaultPaginationMethod | None, Mutability.read_only
     ] = None
-    """A string value specifying the default pagination method"""
+    """A string value specifying the type of pagination that the service provider defaults to when the client has not specified which method it wishes to use. Possible values are "cursor" and "index"."""
 
     default_page_size: Annotated[int | None, Mutability.read_only] = None
-    """An integer value specifying the default page size."""
+    """Positive integer value specifying the default number of results returned in a page when a count is not specified in the query."""
 
     max_page_size: Annotated[int | None, Mutability.read_only] = None
-    """An integer value specifying the maximum page size."""
+    """Positive integer specifying the maximum number of results returned in a page regardless of what is specified for the count in a query. The maximum number of results returned may be further restricted by other criteria."""
 
     cursor_timeout: Annotated[int | None, Mutability.read_only] = None
-    """An integer value specifying the cursor timeout in seconds."""
+    """Positive integer specifying the minimum number of seconds that a cursor is valid between page requests. Clients waiting too long between cursor pagination requests may receive an invalid cursor error response. No value being specified may mean that there is no cursor timeout or that the cursor timeout is not a static duration."""
 
 
 class AuthenticationScheme(ComplexAttribute):
