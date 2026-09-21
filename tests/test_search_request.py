@@ -267,7 +267,7 @@ def test_cursor_with_start_index():
         "schemas": ["urn:ietf:params:scim:api:messages:2.0:SearchRequest"],
         "cursor": "",
         "count": 10,
-        "start_index": 1,
+        "startIndex": 1,
     }
     with pytest.raises(ValidationError):
         SearchRequest.model_validate(invalid_search)
