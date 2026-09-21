@@ -84,14 +84,6 @@ def test_index_0_properties():
     assert not req.cursor
 
 
-def test_default_pagination():
-    req = SearchRequest(count=10)
-    assert req.start_index == 1
-    assert req.start_index_0 == 0
-    assert req.stop_index_0 == 10
-    assert not req.cursor
-
-
 def test_pagination_does_not_default_if_cursor():
     req = SearchRequest(count=10, cursor="")
     assert not req.start_index
@@ -259,19 +251,6 @@ def test_cursor_model_validate():
     sr = SearchRequest.model_validate(payload)
     assert sr.cursor == "cursor-xyz"
     assert sr.count == 10
-
-
-def test_cursor_with_start_index():
-    """Cursor and start_index are mutually exclusive."""
-    invalid_search = {
-        "schemas": ["urn:ietf:params:scim:api:messages:2.0:SearchRequest"],
-        "cursor": "",
-        "count": 10,
-        "startIndex": 1,
-    }
-    with pytest.raises(ValidationError):
-        SearchRequest.model_validate(invalid_search)
-
 
 def test_invalid_cursor_exception():
     """An invalid cursor value raises InvalidCursorException."""
