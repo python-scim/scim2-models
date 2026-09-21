@@ -158,6 +158,10 @@
                 "multiValued": false,
                 "description": "none",
                 "required": false,
+                "canonicalValues": [
+                    "cursor",
+                    "index"
+                ],
                 "caseExact": false,
                 "mutability": "readOnly",
                 "returned": "default",

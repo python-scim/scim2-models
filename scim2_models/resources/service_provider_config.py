@@ -53,14 +53,20 @@ class ETag(ComplexAttribute):
 
 
 class Pagination(ComplexAttribute):
+    class DefaultPaginationMethod(ExtensibleStringEnum):
+        cursor = "cursor"
+        index = "index"
+
     cursor: Annotated[bool | None, Mutability.read_only, Required.true] = None
     """A Boolean value specifying whether or not the operation is supported."""
 
     index: Annotated[bool | None, Mutability.read_only, Required.true] = None
     """A Boolean value specifying whether or not the operation is supported."""
 
-    default_pagination_method: Annotated[str | None, Mutability.read_only] = None
-    """A string value specifying the default pagination method."""
+    default_pagination_method: Annotated[
+        DefaultPaginationMethod | None, Mutability.read_only
+    ] = None
+    """A string value specifying the default pagination method"""
 
     default_page_size: Annotated[int | None, Mutability.read_only] = None
     """An integer value specifying the default page size."""
