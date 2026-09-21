@@ -1,12 +1,15 @@
 from typing import Annotated
 from typing import Any
 
+from pydantic import field_validator
+
 from ..annotations import Mutability
 from ..annotations import Required
 from ..annotations import Returned
 from ..annotations import Uniqueness
 from ..attributes import ComplexAttribute
 from ..attributes import ExtensibleStringEnum
+from ..exceptions import SCIMException
 from ..reference import External
 from ..reference import Reference
 from ..urn import URN
@@ -77,6 +80,14 @@ class Pagination(ComplexAttribute):
     cursor_timeout: Annotated[int | None, Mutability.read_only] = None
     """Positive integer specifying the minimum number of seconds that a cursor is valid between page requests. Clients waiting too long between cursor pagination requests may receive an invalid cursor error response. No value being specified may mean that there is no cursor timeout or that the cursor timeout is not a static duration."""
 
+    @field_validator("default_page_size", "max_page_size", "cursor_timeout")
+    @classmethod
+    def validate_positive_integers(cls, value: int | None) -> int | None:
+        if value is not None and value <= 0:
+                raise SCIMException(
+                    path=str(value), detail=f"{str(value)!r} is not a positive integer"
+                ).as_pydantic_error()
+        return value
 
 class AuthenticationScheme(ComplexAttribute):
     class Type(ExtensibleStringEnum):
