@@ -5,6 +5,7 @@ from scim2_models import Context
 from scim2_models import EnterpriseUser
 from scim2_models import Group
 from scim2_models import ListResponse
+from scim2_models import Pagination
 from scim2_models import Resource
 from scim2_models import ResourceType
 from scim2_models import ResponseParameters
@@ -475,9 +476,8 @@ def test_cursor_absent_when_none():
     assert "nextCursor" not in dumped
     assert "previousCursor" not in dumped
 
-
 def test_total_results_required():
-    """ListResponse.total_results is required."""
+    """ListResponse.total_results is required if the provider does not specify cursor based pagination support."""
     payload = {
         "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
         "Resources": [
@@ -498,3 +498,30 @@ def test_total_results_required():
         ListResponse[User].model_validate(
             payload, scim_ctx=Context.RESOURCE_QUERY_RESPONSE
         )
+
+def test_total_results_not_required_for_cursor_pagination():
+    """ListResponse.total_results is not required when the service provider supports cursor-based pagination."""
+    spc = ServiceProviderConfig(pagination=Pagination(cursor=True))
+    payload = {
+        "itemsPerPage": 1,
+        "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
+        "nextCursor": "cursor-abc",
+        "previousCursor": "cursor-xyz",
+        "Resources": [
+            {
+                "schemas": [
+                    "urn:ietf:params:scim:schemas:core:2.0:User",
+                ],
+                "userName": "bjensen@example.com",
+                "id": "foobar",
+            }
+        ],
+    }
+    response = ListResponse[User].model_validate(
+        payload, scim_ctx=Context.RESOURCE_QUERY_RESPONSE, scim_spc=spc
+    )
+    assert response.next_cursor == "cursor-abc"
+    assert response.previous_cursor == "cursor-xyz"
+    dumped = response.model_dump(scim_ctx=Context.RESOURCE_QUERY_RESPONSE)
+    assert dumped["nextCursor"] == "cursor-abc"
+    assert dumped["previousCursor"] == "cursor-xyz"

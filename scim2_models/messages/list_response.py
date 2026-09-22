@@ -98,13 +98,15 @@ class ListResponse(
         ):
             return obj
 
-        if obj.total_results is None:
+        config = info.context.get("scim_spc")
+        cursor_supported = bool(config and config.pagination and config.pagination.cursor)
+        if not cursor_supported and obj.total_results is None:
             raise PydanticCustomError(
                 "required_error",
                 "Field 'total_results' is required but value is missing or null",
             )
 
-        if obj.total_results > 0 and obj.resources is None:
+        if obj.total_results is not None and obj.total_results > 0 and obj.resources is None:
             raise PydanticCustomError(
                 "no_resource_error",
                 "Field 'resources' is missing or null but 'total_results' is non-zero.",
