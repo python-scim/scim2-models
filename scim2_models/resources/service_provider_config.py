@@ -1,12 +1,15 @@
 from typing import Annotated
 from typing import Any
 
+from pydantic import field_validator
+
 from ..annotations import Mutability
 from ..annotations import Required
 from ..annotations import Returned
 from ..annotations import Uniqueness
 from ..attributes import ComplexAttribute
 from ..attributes import ExtensibleStringEnum
+from ..exceptions import SCIMException
 from ..reference import External
 from ..reference import Reference
 from ..urn import URN
@@ -51,6 +54,40 @@ class ETag(ComplexAttribute):
     supported: Annotated[bool | None, Mutability.read_only, Required.true] = None
     """A Boolean value specifying whether or not the operation is supported."""
 
+
+class Pagination(ComplexAttribute):
+    class DefaultPaginationMethod(ExtensibleStringEnum):
+        cursor = "cursor"
+        index = "index"
+
+    cursor: Annotated[bool | None, Mutability.read_only, Required.true] = None
+    """A Boolean value specifying support of cursor-based pagination."""
+
+    index: Annotated[bool | None, Mutability.read_only, Required.true] = None
+    """A Boolean value specifying support of index-based pagination."""
+
+    default_pagination_method: Annotated[
+        DefaultPaginationMethod | None, Mutability.read_only
+    ] = None
+    """A string value specifying the type of pagination that the service provider defaults to when the client has not specified which method it wishes to use. Possible values are "cursor" and "index"."""
+
+    default_page_size: Annotated[int | None, Mutability.read_only] = None
+    """Positive integer value specifying the default number of results returned in a page when a count is not specified in the query."""
+
+    max_page_size: Annotated[int | None, Mutability.read_only] = None
+    """Positive integer specifying the maximum number of results returned in a page regardless of what is specified for the count in a query. The maximum number of results returned may be further restricted by other criteria."""
+
+    cursor_timeout: Annotated[int | None, Mutability.read_only] = None
+    """Positive integer specifying the minimum number of seconds that a cursor is valid between page requests. Clients waiting too long between cursor pagination requests may receive an invalid cursor error response. No value being specified may mean that there is no cursor timeout or that the cursor timeout is not a static duration."""
+
+    @field_validator("default_page_size", "max_page_size", "cursor_timeout")
+    @classmethod
+    def validate_positive_integers(cls, value: int | None) -> int | None:
+        if value is not None and value <= 0:
+                raise SCIMException(
+                    path=str(value), detail=f"{str(value)!r} is not a positive integer"
+                ).as_pydantic_error()
+        return value
 
 class AuthenticationScheme(ComplexAttribute):
     class Type(ExtensibleStringEnum):
@@ -130,3 +167,6 @@ class ServiceProviderConfig(Resource[Any]):
     ] = None
     """A complex type that specifies supported authentication scheme
     properties."""
+
+    pagination: Annotated[Pagination | None, Mutability.read_only] = None
+    """A complex type that specifies pagination configuration options."""

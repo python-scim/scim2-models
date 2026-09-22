@@ -1,6 +1,10 @@
 import datetime
 
+import pytest
+from pydantic import ValidationError
+
 from scim2_models import AuthenticationScheme
+from scim2_models import Pagination
 from scim2_models import Reference
 from scim2_models import ServiceProviderConfig
 
@@ -88,3 +92,18 @@ def test_authentication_scheme_type_accepts_unknown_schemes():
     )
     assert str(scheme.type) == "oauth2bearer"
     assert scheme.model_dump()["type"] == "oauth2bearer"
+
+@pytest.mark.parametrize("field", ["defaultPageSize", "maxPageSize", "cursorTimeout"])
+@pytest.mark.parametrize("value", [0, -1])
+def test_positive_integer_validator_rejects_invalid_values(field, value):
+    """Test that pagination integer fields reject zero and negative values."""
+    with pytest.raises(ValidationError, match=f"'{value}' is not a positive integer"):
+        Pagination.model_validate({field: value})
+
+
+@pytest.mark.parametrize("field", ["defaultPageSize", "maxPageSize", "cursorTimeout"])
+@pytest.mark.parametrize("value", [1, 100, None])
+def test_positive_integer_validator_accepts_valid_values(field, value):
+    """Test that pagination integer fields accept positive integers and None."""
+    pagination = Pagination.model_validate({field: value})
+    assert pagination.model_dump().get(field) == value

@@ -5,11 +5,13 @@ from scim2_models import Context
 from scim2_models import EnterpriseUser
 from scim2_models import Group
 from scim2_models import ListResponse
+from scim2_models import Pagination
 from scim2_models import Resource
 from scim2_models import ResourceType
 from scim2_models import ResponseParameters
 from scim2_models import ServiceProviderConfig
 from scim2_models import User
+from scim2_models.exceptions import InvalidCursorException
 from scim2_models.urn import URN
 
 
@@ -396,8 +398,86 @@ def test_model_dump_without_scim_context():
     assert payload["resources"][0]["user_name"] == "user-name"
 
 
+def test_cursor_pagination():
+    payload = {
+        "totalResults": 3,
+        "itemsPerPage": 1,
+        "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
+        "nextCursor": "cursor-abc",
+        "previousCursor": "cursor-xyz",
+        "Resources": [
+            {
+                "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+                "id": "user-1",
+                "userName": "bjensen",
+            }
+        ],
+    }
+    response = ListResponse[User].model_validate(payload)
+    assert response.next_cursor == "cursor-abc"
+    assert response.previous_cursor == "cursor-xyz"
+    dumped = response.model_dump(scim_ctx=Context.RESOURCE_QUERY_RESPONSE)
+    assert dumped["nextCursor"] == "cursor-abc"
+    assert dumped["previousCursor"] == "cursor-xyz"
+
+
+def test_cursor_pagination_first_page():
+    payload = {
+        "totalResults": 5,
+        "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
+        "nextCursor": "cursor-abc",
+        "Resources": [
+            {
+                "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+                "id": "user-1",
+                "userName": "bjensen",
+            }
+        ],
+    }
+    response = ListResponse[User].model_validate(payload)
+    assert response.next_cursor == "cursor-abc"
+    assert response.previous_cursor is None
+    dumped = response.model_dump(scim_ctx=Context.RESOURCE_QUERY_RESPONSE)
+    assert "nextCursor" in dumped
+    assert "previousCursor" not in dumped
+
+
+def test_invalid_cursor_exception():
+    """An invalid cursor value raises InvalidCursorException."""
+    payload = {
+        "totalResults": 1,
+        "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
+        "nextCursor": "not a valid cursor!",
+        "Resources": [
+            {
+                "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+                "id": "user-1",
+                "userName": "bjensen",
+            }
+        ],
+    }
+    with pytest.raises(ValidationError) as exc_info:
+        ListResponse[User].model_validate(payload)
+
+    error = exc_info.value.errors()[0]
+    assert error["type"] == "scim_invalidCursor"
+    assert error["ctx"]["scim_type"] == InvalidCursorException.scim_type
+    assert error["ctx"]["status"] == InvalidCursorException.status
+
+
+def test_cursor_absent_when_none():
+    response = ListResponse[User](
+        total_results=1,
+        resources=[User(id="user-1", user_name="bjensen")],
+    )
+    assert response.next_cursor is None
+    assert response.previous_cursor is None
+    dumped = response.model_dump(scim_ctx=Context.RESOURCE_QUERY_RESPONSE)
+    assert "nextCursor" not in dumped
+    assert "previousCursor" not in dumped
+
 def test_total_results_required():
-    """ListResponse.total_results is required."""
+    """ListResponse.total_results is required if the provider does not specify cursor based pagination support."""
     payload = {
         "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
         "Resources": [
@@ -418,3 +498,30 @@ def test_total_results_required():
         ListResponse[User].model_validate(
             payload, scim_ctx=Context.RESOURCE_QUERY_RESPONSE
         )
+
+def test_total_results_not_required_for_cursor_pagination():
+    """ListResponse.total_results is not required when the service provider supports cursor-based pagination."""
+    spc = ServiceProviderConfig(pagination=Pagination(cursor=True))
+    payload = {
+        "itemsPerPage": 1,
+        "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
+        "nextCursor": "cursor-abc",
+        "previousCursor": "cursor-xyz",
+        "Resources": [
+            {
+                "schemas": [
+                    "urn:ietf:params:scim:schemas:core:2.0:User",
+                ],
+                "userName": "bjensen@example.com",
+                "id": "foobar",
+            }
+        ],
+    }
+    response = ListResponse[User].model_validate(
+        payload, scim_ctx=Context.RESOURCE_QUERY_RESPONSE, scim_spc=spc
+    )
+    assert response.next_cursor == "cursor-abc"
+    assert response.previous_cursor == "cursor-xyz"
+    dumped = response.model_dump(scim_ctx=Context.RESOURCE_QUERY_RESPONSE)
+    assert dumped["nextCursor"] == "cursor-abc"
+    assert dumped["previousCursor"] == "cursor-xyz"

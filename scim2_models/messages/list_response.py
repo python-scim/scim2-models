@@ -1,14 +1,17 @@
+import re
 from typing import Any
 from typing import Generic
 
 from pydantic import Field
 from pydantic import ValidationInfo
 from pydantic import ValidatorFunctionWrapHandler
+from pydantic import field_validator
 from pydantic import model_validator
 from pydantic_core import PydanticCustomError
 from typing_extensions import Self
 
 from ..context import Context
+from ..exceptions import InvalidCursorException
 from ..resources.resource import AnyResource
 from ..urn import URN
 from .message import Message
@@ -53,6 +56,22 @@ class ListResponse(
     items_per_page: int | None = None
     """The number of resources returned in a list response page."""
 
+    next_cursor: str | None = None
+    """A string value that can be used to retrieve the next page of list
+    results."""
+
+    previous_cursor: str | None = None
+    """A string value that can be used to retrieve the previous page of list
+    results."""
+
+    @field_validator("next_cursor", "previous_cursor")
+    @classmethod
+    def validate_cursor_chars(cls, value: str | None) -> str | None:
+        """According to :rfc:`RFC9865 §2 <9865#section-2>`, cursor values may only contain unreserved characters as defined in :rfc:`RFC3986 §2.3 <3986#section-2.3>`."""
+        if value is not None and not re.fullmatch(r"[A-Za-z0-9\-._~]*", value):
+            raise InvalidCursorException().as_pydantic_error()
+        return value
+
     resources: list[AnyResource] | None = Field(None, serialization_alias="Resources")
     """A multi-valued list of complex objects containing the requested
     resources."""
@@ -79,13 +98,15 @@ class ListResponse(
         ):
             return obj
 
-        if obj.total_results is None:
+        config = info.context.get("scim_spc")
+        cursor_supported = bool(config and config.pagination and config.pagination.cursor)
+        if not cursor_supported and obj.total_results is None:
             raise PydanticCustomError(
                 "required_error",
                 "Field 'total_results' is required but value is missing or null",
             )
 
-        if obj.total_results > 0 and obj.resources is None:
+        if obj.total_results is not None and obj.total_results > 0 and obj.resources is None:
             raise PydanticCustomError(
                 "no_resource_error",
                 "Field 'resources' is missing or null but 'total_results' is non-zero.",

@@ -4,6 +4,7 @@ from pydantic import ValidationError
 from scim2_models import EnterpriseUser
 from scim2_models import Group
 from scim2_models import User
+from scim2_models.exceptions import InvalidCursorException
 from scim2_models.messages.search_request import SearchRequest
 
 
@@ -80,6 +81,15 @@ def test_index_0_properties():
     req = SearchRequest(start_index=1, count=10)
     assert req.start_index_0 == 0
     assert req.stop_index_0 == 10
+    assert not req.cursor
+
+
+def test_pagination_does_not_default_if_cursor():
+    req = SearchRequest(count=10, cursor="")
+    assert not req.start_index
+    assert req.cursor == ""
+    assert not req.start_index_0
+    assert not req.stop_index_0
 
 
 def test_search_request_valid_attributes():
@@ -230,6 +240,34 @@ def test_comma_separated_empty_string():
     """An empty string produces an empty list."""
     req = SearchRequest.model_validate({"attributes": ""})
     assert req.attributes == []
+
+
+def test_cursor_model_validate():
+    payload = {
+        "schemas": ["urn:ietf:params:scim:api:messages:2.0:SearchRequest"],
+        "cursor": "cursor-xyz",
+        "count": 10,
+    }
+    sr = SearchRequest.model_validate(payload)
+    assert sr.cursor == "cursor-xyz"
+    assert sr.count == 10
+
+def test_invalid_cursor_exception():
+    """An invalid cursor value raises InvalidCursorException."""
+    with pytest.raises(ValidationError) as exc_info:
+        SearchRequest(cursor="not a valid cursor!")
+
+    error = exc_info.value.errors()[0]
+    assert error["type"] == "scim_invalidCursor"
+    assert error["ctx"]["scim_type"] == InvalidCursorException.scim_type
+    assert error["ctx"]["status"] == InvalidCursorException.status
+
+
+def test_cursor_with_count():
+    """Count is valid alongside cursor per RFC 9875."""
+    sr = SearchRequest(cursor="cursor-abc", count=25)
+    assert sr.cursor == "cursor-abc"
+    assert sr.count == 25
 
 
 def test_search_request_empty_lists():
