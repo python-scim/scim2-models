@@ -32,7 +32,7 @@ class GroupMember(ComplexAttribute):
     type: Annotated[str | None, Mutability.immutable] = Field(
         None, examples=["User", "Group"]
     )
-    """A label indicating the attribute's function, e.g., "work" or "home"."""
+    """A label indicating the type of resource, e.g., 'User' or 'Group'."""
 
     display: str | None = None
 

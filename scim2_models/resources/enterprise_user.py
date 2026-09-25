@@ -37,7 +37,7 @@ class EnterpriseUser(Extension):
     on order of hire or association with an organization."""
 
     cost_center: str | None = None
-    """"Identifies the name of a cost center."""
+    """Identifies the name of a cost center."""
 
     organization: str | None = None
     """Identifies the name of an organization."""
@@ -46,8 +46,7 @@ class EnterpriseUser(Extension):
     """Identifies the name of a division."""
 
     department: str | None = None
-    """Numeric or alphanumeric identifier assigned to a person, typically based
-    on order of hire or association with an organization."""
+    """Identifies the name of a department."""
 
     manager: Manager | None = None
     """The User's manager.
