@@ -10,6 +10,39 @@ from ..urn import URN
 from ..utils import _int_to_str
 from .message import Message
 
+_STRUCTURE_ERRORS = frozenset(
+    {
+        "json_invalid",
+        "json_type",
+        "extra_forbidden",
+        "schema_error",
+        "unknown_extension_schema",
+    }
+)
+"""Errors on the structure of a payload rather than on one of its values."""
+
+_OBJECT_TYPE_ERRORS = frozenset({"model_type", "model_attributes_type", "dict_type"})
+"""Errors refusing something that is not an object, at the root of a payload or below."""
+
+_RESPONSE_ERRORS = frozenset({"returned_error", "no_resource_error"})
+"""Errors only a response can carry, for which RFC7644 defines no keyword."""
+
+
+def _scim_type_of(error: Mapping[str, Any]) -> str | None:
+    """Return the RFC7644 §3.12 keyword a Pydantic error stands for."""
+    error_type = error["type"]
+    if error_type in _RESPONSE_ERRORS:
+        return None
+
+    # A payload that is not an object at all cannot follow the request schema,
+    # where the same error below the root refuses the value of a complex attribute.
+    if error_type in _STRUCTURE_ERRORS or (
+        error_type in _OBJECT_TYPE_ERRORS and not error["loc"]
+    ):
+        return "invalidSyntax"
+
+    return "invalidValue"
+
 
 class Error(Message):
     """Representation of SCIM API errors.
@@ -35,7 +68,11 @@ class Error(Message):
 
         If the error is a SCIM-specific error (raised via
         :meth:`SCIMException.as_pydantic_error`), its scim_type and status
-        are preserved. Otherwise, a best-effort mapping is performed.
+        are preserved. Otherwise the error is mapped on the keywords of
+        :rfc:`RFC7644 §3.12 <7644#section-3.12>`: a payload whose structure does
+        not follow the request schema is ``invalidSyntax``, a value that does not
+        fit its attribute is ``invalidValue``, and an error only a response can
+        carry has no keyword.
 
         :param error: A single error dict from ``ValidationError.errors()``.
         :return: A SCIM Error object.
@@ -50,25 +87,7 @@ class Error(Message):
 
         loc = ", ".join(str(loc) for loc in error["loc"])
         detail = f"{error['msg']}: {loc}" if loc else error["msg"]
-
-        scim_type: str | None = None
-        error_type = error["type"]
-        if error_type in ("missing", "required_error"):
-            scim_type = "invalidValue"
-        elif error_type in (
-            "string_type",
-            "int_type",
-            "int_parsing",
-            "bool_type",
-            "bool_parsing",
-            "float_type",
-            "float_parsing",
-            "json_invalid",
-            "value_error",
-        ):
-            scim_type = "invalidSyntax"
-
-        return cls(status=400, scim_type=scim_type, detail=detail)
+        return cls(status=400, scim_type=_scim_type_of(error), detail=detail)
 
     @classmethod
     def from_validation_errors(

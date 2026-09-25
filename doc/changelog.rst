@@ -4,6 +4,13 @@ Changelog
 [Unreleased]
 ------------
 
+Changed
+^^^^^^^
+- :meth:`Error.from_validation_error <scim2_models.Error.from_validation_error>` follows
+  :rfc:`RFC7644 §3.12 <7644#section-3.12>`: an invalid value answers ``invalidValue``, where
+  it used to be ``invalidSyntax`` or nothing, and an invalid payload structure answers
+  ``invalidSyntax``.
+
 Fixed
 ^^^^^
 - :meth:`~scim2_models.SCIMException.from_error` keeps the :class:`~scim2_models.Error`

@@ -703,7 +703,7 @@ def test_fastapi_example_smoke():
 @pytest.mark.parametrize(
     ("parameters", "scim_type"),
     [
-        ({"count": "abc"}, "invalidSyntax"),
+        ({"count": "abc"}, "invalidValue"),
         ({"attributes": 'emails[type eq "work"]'}, "invalidPath"),
         ({"filter": "nonsense @"}, "invalidFilter"),
         ({"sortBy": "nonexistent"}, "invalidPath"),

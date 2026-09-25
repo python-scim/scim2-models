@@ -20,6 +20,7 @@ from scim2_models import SCIMException
 from scim2_models import SensitiveException
 from scim2_models import TooManyException
 from scim2_models import UniquenessException
+from scim2_models import User
 
 
 def test_base_exception_default_message():
@@ -220,7 +221,7 @@ def test_from_validation_error_with_scim_error():
 
 
 def test_from_validation_error_with_standard_pydantic_error():
-    """from_validation_error() maps Pydantic type errors to invalidSyntax."""
+    """from_validation_error() maps a value not fitting its attribute type to invalidValue."""
 
     class TestModel(BaseModel):
         value: int
@@ -230,7 +231,7 @@ def test_from_validation_error_with_standard_pydantic_error():
 
     error = Error.from_validation_error(exc_info.value.errors()[0])
     assert error.status == 400
-    assert error.scim_type == "invalidSyntax"
+    assert error.scim_type == "invalidValue"
     assert "value" in error.detail
 
 
@@ -249,8 +250,8 @@ def test_from_validation_error_with_missing_field():
     assert "required_field" in error.detail
 
 
-def test_from_validation_error_with_unmapped_error_type():
-    """from_validation_error() returns scim_type=None for unmapped error types."""
+def test_from_validation_error_with_any_value_error_type():
+    """from_validation_error() maps a value error it has no explicit rule for to invalidValue."""
 
     class TestModel(BaseModel):
         url: HttpUrl
@@ -260,8 +261,79 @@ def test_from_validation_error_with_unmapped_error_type():
 
     error = Error.from_validation_error(exc_info.value.errors()[0])
     assert error.status == 400
-    assert error.scim_type is None
+    assert error.scim_type == "invalidValue"
     assert "url" in error.detail
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"schemas": [User.__schema__], "userName": "bjensen", "active": "maybe"},
+        {"schemas": [User.__schema__], "userName": "bjensen", "name": "Barbara"},
+        {
+            "schemas": [User.__schema__],
+            "userName": "bjensen",
+            "emails": [{"value": "bjensen@example.com", "type": {"work": True}}],
+        },
+        {
+            "schemas": [User.__schema__],
+            "userName": "bjensen",
+            "emails": [
+                {"value": "a@example.com", "primary": True},
+                {"value": "b@example.com", "primary": True},
+            ],
+        },
+    ],
+    ids=["boolean", "complex attribute", "enumeration", "primary"],
+)
+def test_from_validation_error_maps_values_to_invalid_value(payload):
+    """A value that does not fit its attribute is invalidValue, per RFC7644 §3.12."""
+    with pytest.raises(ValidationError) as exc_info:
+        User.model_validate(payload, scim_ctx=Context.RESOURCE_CREATION_REQUEST)
+
+    error = Error.from_validation_error(exc_info.value.errors()[0])
+    assert error.scim_type == "invalidValue"
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        [],
+        {"schemas": [User.__schema__], "userName": "bjensen", "unknown": "x"},
+        {"schemas": ["urn:example:Unknown"], "userName": "bjensen"},
+        {"schemas": [User.__schema__, "urn:example:Unknown"], "userName": "bjensen"},
+    ],
+    ids=["not an object", "unknown attribute", "base schema", "unknown extension"],
+)
+def test_from_validation_error_maps_structure_to_invalid_syntax(payload):
+    """A payload not following the request schema is invalidSyntax, per RFC7644 §3.12."""
+    with pytest.raises(ValidationError) as exc_info:
+        User.model_validate(payload, scim_ctx=Context.RESOURCE_CREATION_REQUEST)
+
+    error = Error.from_validation_error(exc_info.value.errors()[0])
+    assert error.scim_type == "invalidSyntax"
+
+
+def test_from_validation_error_maps_malformed_json_to_invalid_syntax():
+    """A body that is not JSON is invalidSyntax."""
+    with pytest.raises(ValidationError) as exc_info:
+        User.model_validate_json("{", scim_ctx=Context.RESOURCE_CREATION_REQUEST)
+
+    error = Error.from_validation_error(exc_info.value.errors()[0])
+    assert error.scim_type == "invalidSyntax"
+
+
+def test_from_validation_error_gives_no_keyword_to_response_errors():
+    """RFC7644 §3.12 defines no keyword for what only a response can get wrong."""
+    with pytest.raises(ValidationError) as exc_info:
+        User.model_validate(
+            {"schemas": [User.__schema__], "userName": "bjensen"},
+            scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
+        )
+
+    error = Error.from_validation_error(exc_info.value.errors()[0])
+    assert error.status == 400
+    assert error.scim_type is None
 
 
 def test_from_validation_errors_with_validation_error():
@@ -276,7 +348,7 @@ def test_from_validation_errors_with_validation_error():
 
     errors = Error.from_validation_errors(exc_info.value)
     assert len(errors) == 2
-    assert all(e.scim_type == "invalidSyntax" for e in errors)
+    assert all(e.scim_type == "invalidValue" for e in errors)
 
 
 def test_from_validation_errors_with_list():
