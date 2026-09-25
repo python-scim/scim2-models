@@ -221,8 +221,8 @@ silently skipped ``emails.value``. The test is reproduced here as it stands:
    :start-after: # -- oracle-start --
    :end-before: # -- oracle-end --
 
-The order answers to the same treatment. ``sort_resources``, the helper of :doc:`helpers`,
-applies the rules of §3.4.2.3 to Python values, and comparing the two over six attributes in both
+The order answers to the same treatment. :meth:`SearchRequest.sort
+<scim2_models.SearchRequest.sort>` applies the rules of §3.4.2.3 to Python values, and comparing the two over six attributes in both
 orders says whether an ``ORDER BY`` implements them. It caught two defects of its own. The
 example refused a ``sortBy`` naming a sub-attribute although its column is mapped, and the suite
 asserted the ``BINARY`` order of SQLite for ``sortBy=userName`` as though it were the one
@@ -230,6 +230,6 @@ asserted the ``BINARY`` order of SQLite for ``sortBy=userName`` as though it wer
 
 .. literalinclude:: ../../tests/test_doc_examples.py
    :language: python
-   :caption: Comparing the order to the helper
+   :caption: Comparing the order to SearchRequest.sort
    :start-after: # -- sort-oracle-start --
    :end-before: # -- sort-oracle-end --

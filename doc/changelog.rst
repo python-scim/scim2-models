@@ -4,6 +4,11 @@ Changelog
 [Unreleased]
 ------------
 
+Added
+^^^^^
+- :meth:`SearchRequest.sort <scim2_models.SearchRequest.sort>` orders resources as
+  :rfc:`RFC7644 §3.4.2.3 <7644#section-3.4.2.3>` describes, for a server keeping them in memory.
+
 Changed
 ^^^^^^^
 - :attr:`SearchRequest.sort_by <scim2_models.SearchRequest.sort_by>` refuses a complex

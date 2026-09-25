@@ -1,3 +1,4 @@
+from collections.abc import Iterable
 from enum import Enum
 from inspect import isclass
 from typing import Any
@@ -5,6 +6,7 @@ from typing import Generic
 
 from pydantic import field_validator
 
+from ..annotations import CaseExact
 from ..annotations import Mutability
 from ..base import BaseModel
 from ..exceptions import InvalidFilterException
@@ -15,6 +17,7 @@ from ..path.path import ResourceT
 from ..path.resolution import AttributeBinding
 from ..path.resolution import _resolve_attr_path
 from ..path.resolution import _unwrap_annotated
+from ..path.resolution import attribute_host
 from ..urn import URN
 from .message import Message
 from .response_parameters import ResponseParameters
@@ -48,6 +51,40 @@ def _unsortable_reason(path: str, binding: AttributeBinding) -> str | None:
     if Mutability.write_only in mutabilities:
         return f"{path!r} is write-only and cannot be sorted on"
     return None
+
+
+def _sort_value(resource: Any, binding: AttributeBinding | None) -> Any:
+    """Return the single value a resource is ordered by, or None when it has none."""
+    if binding is None:
+        return None
+
+    host = attribute_host(resource, binding)
+    value = getattr(host, binding.field_name, None) if host is not None else None
+    sub_field_name = binding.sub_field_name
+    case_exact = binding.case_exact
+    if binding.is_multivalued:
+        # "resources are sorted by the value of the primary attribute, if any,
+        # or else the first value in the list, if any."
+        entries = value or []
+        value = next(
+            (entry for entry in entries if getattr(entry, "primary", None)),
+            entries[0] if entries else None,
+        )
+        if sub_field_name is None and isinstance(value, BaseModel):
+            # RFC7643 §2.4 holds the significant value of a complex entry in a
+            # "value" sub-attribute, where a scalar entry is the value itself.
+            sub_field_name = "value"
+            case_exact = (
+                type(value).get_field_annotation("value", CaseExact) == CaseExact.true
+            )
+
+    if value is not None and sub_field_name is not None:
+        value = getattr(value, sub_field_name, None)
+    # "String type attributes are case insensitive by default, unless the
+    # attribute type is defined as a case-exact string", RFC7644 §3.4.2.3.
+    if isinstance(value, str) and not case_exact:
+        return value.casefold()
+    return value
 
 
 class SearchRequest(Message, ResponseParameters[ResourceT], Generic[ResourceT]):
@@ -197,6 +234,51 @@ class SearchRequest(Message, ResponseParameters[ResourceT], Generic[ResourceT]):
         A negative value SHALL be interpreted as 0.
         """
         return None if value is None else max(0, value)
+
+    def sort(self, resources: Iterable[ResourceT]) -> list[ResourceT]:
+        """Order resources as :rfc:`RFC7644 §3.4.2.3 <7644#section-3.4.2.3>` describes.
+
+        A string is compared without its case, unless its attribute is annotated
+        :attr:`CaseExact.true <scim2_models.CaseExact.true>`. A multi-valued
+        attribute is compared on its ``primary`` entry, or else its first one,
+        and a complex one named alone on the ``value`` of that entry. A resource
+        without a value comes last when ascending and first when descending, and
+        so does a resource whose type does not declare the attribute or cannot
+        sort on it. Resources comparing equal keep their order.
+
+        The attribute is resolved against the type of each resource, so a request
+        that names no resource type sorts as well as one that does.
+
+        :param resources: The resources to order.
+        :returns: The ordered resources, in their order when :attr:`sort_by` is
+            not set.
+        """
+        if self.sort_by is None:
+            return list(resources)
+
+        sort_by = self.sort_by
+        designated = sort_by._designated_attr_path()
+        assert designated is not None
+        bindings: dict[type, AttributeBinding | None] = {}
+
+        def key(resource: ResourceT) -> tuple[bool, Any]:
+            model = type(resource)
+            if model not in bindings:
+                # "For filtered attributes that are not part of a particular
+                # resource type, the service provider SHALL treat the attribute
+                # as if there is no attribute value", RFC7644 §3.4.2.1.
+                binding = _resolve_attr_path(model, designated, strict=False)
+                sortable = binding and _unsortable_reason(str(sort_by), binding) is None
+                bindings[model] = binding if sortable else None
+            value = _sort_value(resource, bindings[model])
+            # "if there is no data for the specified sortBy value, they are
+            # sorted via the sortOrder parameter, i.e., they are ordered last if
+            # ascending and first if descending", which reversing the whole key
+            # achieves.
+            return value is None, value if value is not None else ""
+
+        descending = self.sort_order == SearchRequest.SortOrder.descending
+        return sorted(resources, key=key, reverse=descending)
 
     @property
     def start_index_0(self) -> int | None:

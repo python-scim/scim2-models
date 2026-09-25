@@ -75,13 +75,9 @@ Ordering and paging collections
 -------------------------------
 
 A collection endpoint answers the ``sortBy``, ``sortOrder``, ``startIndex`` and ``count``
-parameters of :rfc:`RFC7644 §3.4.2 <7644#section-3.4.2>`. Naming the resource type the endpoint
-serves, with :class:`~scim2_models.SearchRequest`\ [:class:`~scim2_models.User`], resolves
-:attr:`~scim2_models.SearchRequest.sort_by` against that model, so ``sort_value`` works from the
-:class:`~scim2_models.AttributeBinding` it designates instead of from the name a client spelled.
-
-:rfc:`RFC7644 §3.4.2.3 <7644#section-3.4.2.3>` decides the order in three ways, and
-``sort_value`` follows them:
+parameters of :rfc:`RFC7644 §3.4.2 <7644#section-3.4.2>`.
+:meth:`SearchRequest.sort <scim2_models.SearchRequest.sort>` orders resources the way
+:rfc:`RFC7644 §3.4.2.3 <7644#section-3.4.2.3>` decides:
 
 - A string attribute is compared without its case, unless it is annotated
   :attr:`CaseExact.true <scim2_models.CaseExact.true>`.
@@ -89,7 +85,7 @@ serves, with :class:`~scim2_models.SearchRequest`\ [:class:`~scim2_models.User`]
   one.
 - A resource with no value for the attribute comes last when ascending, first when descending.
 
-The second rule is why ``sort_value`` picks an entry before reading a sub-attribute from it:
+The second rule is why the entry is picked before a sub-attribute is read from it:
 ``emails.value`` designates the value of *every* entry, where an order wants one value per
 resource. ``sortBy=emails`` is therefore the same query as ``sortBy=emails.value``,
 :rfc:`RFC7643 §2.4 <7643#section-2.4>` holding the significant value of a complex entry in its
@@ -98,6 +94,10 @@ resource. ``sortBy=emails`` is therefore the same query as ``sortBy=emails.value
 :class:`~scim2_models.SearchRequest` refuses the query otherwise. It refuses a binary attribute
 too, which has no order, and a write-only attribute, such as ``password``, whose order would
 tell a client about its value.
+
+The attribute is resolved against the type of each resource, so on the server root a resource
+whose type does not declare it sorts as having no value, as
+:rfc:`RFC7644 §3.4.2.1 <7644#section-3.4.2.1>` has a filter evaluate it.
 
 .. literalinclude:: _examples/integrations.py
    :language: python

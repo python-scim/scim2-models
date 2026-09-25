@@ -16,8 +16,6 @@ from doc.integrations._examples.integrations import (  # noqa: E402
     PayloadTooLargeException,
 )
 from doc.integrations._examples.integrations import execute_bulk  # noqa: E402
-from doc.integrations._examples.integrations import sort_resources  # noqa: E402
-from doc.integrations._examples.integrations import sort_value  # noqa: E402
 from doc.integrations._examples.sqlalchemy_example import EmailRecord  # noqa: E402
 from doc.integrations._examples.sqlalchemy_example import GroupRecord  # noqa: E402
 from doc.integrations._examples.sqlalchemy_example import UserRecord  # noqa: E402
@@ -28,7 +26,6 @@ from doc.integrations._examples.sqlalchemy_example import query_users  # noqa: E
 from doc.integrations._examples.sqlalchemy_example import to_scim_user  # noqa: E402
 from scim2_models import BulkRequest  # noqa: E402
 from scim2_models import Context  # noqa: E402
-from scim2_models import EnterpriseUser  # noqa: E402
 from scim2_models import InvalidPathException  # noqa: E402
 from scim2_models import ScimFilter  # noqa: E402
 from scim2_models import SearchRequest  # noqa: E402
@@ -245,116 +242,6 @@ def test_flask_example_smoke():
     # A sub-attribute of a multi-valued attribute is read from the entry the
     # order picks, and only one user carries an email.
     assert sorted_names("sortBy=emails.value")[0] == "bjensen@example.com"
-
-
-def sorting_users(emails_by_id):
-    """Build users carrying the emails each id maps to."""
-    return [
-        User[EnterpriseUser](id=user_id, user_name=user_id, emails=emails)
-        for user_id, emails in emails_by_id.items()
-    ]
-
-
-def sorting_order(resources, attribute, sort_order=None):
-    """Return the ids a ``sortBy`` puts the resources in."""
-    request = SearchRequest[User[EnterpriseUser]](
-        sort_by=attribute, sort_order=sort_order
-    )
-    return [
-        resource.id
-        for resource in sort_resources(resources, request.sort_by, sort_order)
-    ]
-
-
-def sorting_key(resource, attribute):
-    """Return the single value a ``sortBy`` orders a resource by."""
-    request = SearchRequest[User[EnterpriseUser]](sort_by=attribute)
-    return sort_value(resource, request.sort_by.resolve())
-
-
-@pytest.mark.parametrize("attribute", ["emails", "emails.value"])
-def test_sorting_reads_the_primary_entry_of_a_multivalued_attribute(attribute):
-    """The entry marked ``primary`` decides the order, not the first one.
-
-    Ordering on the first entry instead would put ``1`` ahead of ``2``, since
-    ``a@example.com`` precedes ``m@example.com``.
-    """
-    resources = sorting_users(
-        {
-            "1": [
-                User.Emails(value="a@example.com"),
-                User.Emails(value="z@example.com", primary=True),
-            ],
-            "2": [User.Emails(value="m@example.com")],
-        }
-    )
-    assert sorting_order(resources, attribute) == ["2", "1"]
-
-
-def test_sorting_reads_a_sub_attribute_from_the_primary_entry():
-    """A path naming a sub-attribute reads it from the entry the order picked.
-
-    Reading the first entry instead would put ``2`` ahead of ``1``, ``other``
-    preceding ``work``.
-    """
-    resources = sorting_users(
-        {
-            "1": [
-                User.Emails(value="a@example.com", type="work"),
-                User.Emails(value="z@example.com", type="home", primary=True),
-            ],
-            "2": [User.Emails(value="m@example.com", type="other")],
-        }
-    )
-    assert sorting_order(resources, "emails.type") == ["1", "2"]
-
-
-def test_sorting_falls_back_to_the_first_entry_without_a_primary():
-    """An attribute marking no entry primary is ordered by its first one."""
-    resources = sorting_users(
-        {
-            "1": [
-                User.Emails(value="z@example.com"),
-                User.Emails(value="a@example.com"),
-            ],
-            "2": [User.Emails(value="m@example.com")],
-        }
-    )
-    assert sorting_order(resources, "emails.value") == ["2", "1"]
-
-
-def test_sorting_an_unassigned_multivalued_attribute():
-    """A resource carrying no entry comes last ascending and first descending."""
-    resources = sorting_users({"1": None, "2": [User.Emails(value="m@example.com")]})
-    assert sorting_order(resources, "emails.value") == ["2", "1"]
-    assert sorting_order(resources, "emails.value", "descending") == ["1", "2"]
-
-
-def test_sorting_a_scalar_multivalued_attribute_reads_the_entry_itself():
-    """A scalar entry is the value, where a complex one holds it in a sub-attribute."""
-    resource = sorting_users({"1": [User.Emails(value="m@example.com")]})[0]
-    assert sorting_key(resource, "schemas") == User.__schema__
-
-
-def test_sorting_an_attribute_of_an_extension_left_unset():
-    """An extension that is not set holds no value to order by."""
-    resource = sorting_users({"1": None})[0]
-    urn = "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:department"
-    assert sorting_key(resource, urn) is None
-
-    resource[EnterpriseUser] = EnterpriseUser(department="Tour Operations")
-    assert sorting_key(resource, urn) == "Tour Operations"
-
-
-def test_sorting_a_request_that_named_no_resource_type():
-    """The helper orders by a resolved attribute, which an unparameterised request has none of.
-
-    A request naming the type it serves cannot reach here: an attribute the
-    model does not declare is refused when the request is built.
-    """
-    resources = sorting_users({"1": None})
-    with pytest.raises(InvalidPathException):
-        sort_resources(resources, SearchRequest(sort_by="userName").sort_by)
 
 
 def configure_django():
@@ -864,10 +751,10 @@ SQLALCHEMY_SORTS = [
 
 
 # -- sort-oracle-start --
-def test_sqlalchemy_orders_rows_the_way_the_helper_orders_resources(sqlalchemy_session):
-    """The ``ORDER BY`` and ``sort_resources`` answer a ``sortBy`` the same way.
+def test_sqlalchemy_orders_rows_the_way_search_request_sort_does(sqlalchemy_session):
+    """The ``ORDER BY`` and ``SearchRequest.sort`` answer a ``sortBy`` the same way.
 
-    Feeding the helper resources already in primary key order gives its stable
+    Feeding the method resources already in primary key order gives its stable
     sort the tie-break the query closes its own order with.
     """
     stored = sqlalchemy_session.scalars(sqlalchemy.select(UserRecord)).all()
@@ -877,7 +764,7 @@ def test_sqlalchemy_orders_rows_the_way_the_helper_orders_resources(sqlalchemy_s
         for order in SearchRequest.SortOrder:
             request = SearchRequest[User](sort_by=attribute, sort_order=order)
             _total, page = query_users(sqlalchemy_session, request)
-            ordered = sort_resources(scim_users, request.sort_by, order)
+            ordered = request.sort(scim_users)
             assert [record.id for record in page] == [user.id for user in ordered], (
                 attribute,
                 order,
