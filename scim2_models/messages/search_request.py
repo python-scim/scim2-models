@@ -1,17 +1,53 @@
 from enum import Enum
+from inspect import isclass
 from typing import Any
 from typing import Generic
 
 from pydantic import field_validator
 
+from ..annotations import Mutability
+from ..base import BaseModel
 from ..exceptions import InvalidFilterException
 from ..exceptions import InvalidPathException
 from ..path import Path
 from ..path import ScimFilter
 from ..path.path import ResourceT
+from ..path.resolution import AttributeBinding
+from ..path.resolution import _resolve_attr_path
+from ..path.resolution import _unwrap_annotated
 from ..urn import URN
 from .message import Message
 from .response_parameters import ResponseParameters
+
+
+def _unsortable_reason(path: str, binding: AttributeBinding) -> str | None:
+    """Tell why an attribute cannot order a query, or None when it can."""
+    mutabilities = [
+        binding.model.get_field_annotation(binding.field_name, Mutability),
+        binding.get_annotation(Mutability),
+    ]
+    sorted_type = binding.target_type
+    if isclass(sorted_type) and issubclass(sorted_type, BaseModel):
+        # "If the attribute is complex, the attribute name must be a path to a
+        # sub-attribute", RFC7644 §3.4.2.3, except for a multi-valued attribute
+        # sorted "by the value of the primary attribute": RFC7643 §2.4 holds
+        # that value in a "value" sub-attribute, which ``emails`` stands for.
+        if not binding.is_multivalued or "value" not in sorted_type.model_fields:
+            return f"{path!r} is a complex attribute, sort on one of its sub-attributes"
+        mutabilities.append(sorted_type.get_field_annotation("value", Mutability))
+        sorted_type = _unwrap_annotated(sorted_type.get_field_root_type("value"))
+
+    # RFC7644 §3.4.2.2 refuses to order binary values, which §3.4.2.3 gives no
+    # sort order for.
+    if isclass(sorted_type) and issubclass(sorted_type, bytes):
+        return f"{path!r} is a binary attribute and cannot be sorted on"
+
+    # An order over a write-only value tells a client about it, which RFC7643
+    # §4.1.1 forbids for password "in any form". A value that is merely not
+    # returned may still be queried, §7 letting it be used in a search filter.
+    if Mutability.write_only in mutabilities:
+        return f"{path!r} is write-only and cannot be sorted on"
+    return None
 
 
 class SearchRequest(Message, ResponseParameters[ResourceT], Generic[ResourceT]):
@@ -77,6 +113,13 @@ class SearchRequest(Message, ResponseParameters[ResourceT], Generic[ResourceT]):
     of :attr:`~scim2_models.ResponseParameters.attributes` is ignored, an order
     cannot be: a ``sortBy`` left out answers an arbitrary order the client has
     no way of telling from the one it asked for.
+
+    A complex attribute is refused as well, :rfc:`RFC7644 §3.4.2.3
+    <7644#section-3.4.2.3>` asking for a path to one of its sub-attributes. A
+    multi-valued one holding a ``value`` sub-attribute stands for it, so
+    ``emails`` sorts as ``emails.value``. A binary attribute, and a write-only
+    attribute such as ``password``, are refused too. On a union, the attribute is accepted
+    as long as one of the resource types can sort on it.
     """
 
     @field_validator("sort_by")
@@ -96,16 +139,31 @@ class SearchRequest(Message, ResponseParameters[ResourceT], Generic[ResourceT]):
 
     @field_validator("sort_by")
     @classmethod
-    def _resolvable_sort_by(cls, value: Any) -> Any:
-        """Reject an attribute the bound resource types do not declare."""
+    def _sortable_sort_by(cls, value: Any) -> Any:
+        """Reject an attribute none of the bound resource types lets a client sort on."""
         # Parameterising the request names the resource types the endpoint
         # serves, which is what makes an attribute none of them declares a
         # client error rather than something to resolve later.
-        if value is not None and value.models and value.resolve() is None:
+        if value is None or not value.models:
+            return value
+
+        if value.resolve() is None:
             raise InvalidPathException(
                 path=str(value), detail=f"Cannot sort on {str(value)!r}"
             ).as_pydantic_error()
-        return value
+
+        designated = value._designated_attr_path()
+        reasons = [
+            _unsortable_reason(str(value), binding)
+            for model in value.models
+            if (binding := _resolve_attr_path(model, designated, strict=False))
+        ]
+        if None in reasons:
+            return value
+
+        raise InvalidPathException(
+            path=str(value), detail=reasons[0]
+        ).as_pydantic_error()
 
     class SortOrder(str, Enum):
         ascending = "ascending"

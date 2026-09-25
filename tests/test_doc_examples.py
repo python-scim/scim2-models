@@ -933,11 +933,11 @@ def test_sqlalchemy_rejects_a_filter_on_an_unknown_attribute():
     assert raised.value.errors()[0]["type"] == "scim_invalidFilter"
 
 
-@pytest.mark.parametrize("attribute", ["emails", "emails.value", "name"])
+@pytest.mark.parametrize("attribute", ["emails", "emails.value"])
 def test_sqlalchemy_rejects_sorting_on_an_unreachable_attribute(
     sqlalchemy_session, attribute
 ):
-    """An attribute spread over its own table, or holding none, has no column to sort on."""
+    """An attribute spread over its own table has no column to sort on."""
     with pytest.raises(InvalidPathException):
         query_users(sqlalchemy_session, SearchRequest[User](sort_by=attribute))
 

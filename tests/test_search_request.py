@@ -1,8 +1,15 @@
+from typing import Annotated
+
 import pytest
 from pydantic import ValidationError
 
+from scim2_models import URN
+from scim2_models import ComplexAttribute
 from scim2_models import EnterpriseUser
 from scim2_models import Group
+from scim2_models import Mutability
+from scim2_models import Resource
+from scim2_models import Returned
 from scim2_models import User
 from scim2_models.messages.search_request import SearchRequest
 
@@ -454,3 +461,123 @@ def test_an_unparameterised_request_leaves_its_attributes_unresolved():
     request = SearchRequest.model_validate({"attributes": "userName"})
     assert request.attributes == ["userName"]
     assert request.attributes[0].resolve() is None
+
+
+class Vault(Resource):
+    __schema__ = URN("urn:example:2.0:Vault")
+
+    class Lock(ComplexAttribute):
+        code: str | None = None
+
+    class Key(ComplexAttribute):
+        value: Annotated[str | None, Mutability.write_only] = None
+        primary: bool | None = None
+
+    class Tag(ComplexAttribute):
+        value: Annotated[str | None, Returned.never] = None
+        primary: bool | None = None
+
+    secret: Annotated[str | None, Mutability.write_only] = None
+    hidden: Annotated[str | None, Returned.never] = None
+    lock: Annotated[Lock | None, Mutability.write_only] = None
+    seal: Annotated[Lock | None, Returned.never] = None
+    keys: list[Key] | None = None
+    tags: list[Tag] | None = None
+
+
+class Safe(Resource):
+    __schema__ = URN("urn:example:2.0:Safe")
+
+    secret: str | None = None
+    name: str | None = None
+
+
+@pytest.mark.parametrize(
+    ("model", "attribute"),
+    [
+        (User, "name"),
+        (User, "meta"),
+        (User, "addresses"),
+        (User[EnterpriseUser], EnterpriseUser.__schema__ + ":manager"),
+    ],
+)
+def test_a_sort_by_on_a_complex_attribute_is_refused(model, attribute):
+    """RFC7644 §3.4.2.3 asks a complex attribute holding no value for a path to a sub-attribute."""
+    with pytest.raises(ValidationError, match="is a complex attribute") as raised:
+        SearchRequest[model].model_validate({"sortBy": attribute})
+    assert raised.value.errors()[0]["type"] == "scim_invalidPath"
+
+
+@pytest.mark.parametrize(
+    ("model", "attribute"),
+    [
+        (User, "name.givenName"),
+        (User, "emails.value"),
+        (User[EnterpriseUser], EnterpriseUser.__schema__ + ":manager.value"),
+    ],
+)
+def test_a_sort_by_on_a_sub_attribute_of_a_complex_attribute_is_accepted(
+    model, attribute
+):
+    """A path to a sub-attribute is what RFC7644 §3.4.2.3 asks of a complex attribute."""
+    assert SearchRequest[model].model_validate({"sortBy": attribute}).sort_by
+
+
+@pytest.mark.parametrize(
+    ("model", "attribute"),
+    [(User, "emails"), (User, "groups"), (User | Group, "members")],
+)
+def test_a_sort_by_on_a_multivalued_attribute_holding_a_value_is_accepted(
+    model, attribute
+):
+    """RFC7644 §3.4.2.3 sorts it "by the value of the primary attribute", its value sub-attribute."""
+    assert SearchRequest[model].model_validate({"sortBy": attribute}).sort_by
+
+
+@pytest.mark.parametrize(
+    ("model", "attribute"),
+    [
+        (User, "password"),
+        (Vault, "secret"),
+        (Vault, "lock.code"),
+        (Vault, "keys"),
+        (Vault, "keys.value"),
+    ],
+)
+def test_a_sort_by_on_a_write_only_attribute_is_refused(model, attribute):
+    """RFC7643 §4.1.1 returns a write-only value in no form, an order included."""
+    with pytest.raises(ValidationError, match="is write-only") as raised:
+        SearchRequest[model].model_validate({"sortBy": attribute})
+    assert raised.value.errors()[0]["type"] == "scim_invalidPath"
+
+
+@pytest.mark.parametrize("attribute", ["hidden", "seal.code", "tags", "tags.value"])
+def test_a_sort_by_on_an_attribute_never_returned_is_accepted(attribute):
+    """RFC7643 §7 lets an attribute that is never returned be used in a query."""
+    assert SearchRequest[Vault].model_validate({"sortBy": attribute}).sort_by
+
+
+@pytest.mark.parametrize("attribute", ["x509Certificates", "x509Certificates.value"])
+def test_a_sort_by_on_a_binary_attribute_is_refused(attribute):
+    """RFC7644 §3.4.2.2 refuses to order binary values, which §3.4.2.3 gives no order for."""
+    with pytest.raises(ValidationError, match="is a binary attribute") as raised:
+        SearchRequest[User].model_validate({"sortBy": attribute})
+    assert raised.value.errors()[0]["type"] == "scim_invalidPath"
+
+
+def test_a_sort_by_on_a_union_is_accepted_when_one_type_can_sort_on_it():
+    """Resources whose type cannot sort on the attribute are sorted as having no value."""
+    assert SearchRequest[Vault | Safe].model_validate({"sortBy": "secret"}).sort_by
+    assert SearchRequest[User | Safe].model_validate({"sortBy": "name"}).sort_by
+
+
+def test_a_sort_by_on_a_union_is_refused_when_no_type_can_sort_on_it():
+    """Declaring an attribute is not enough when every declaration forbids the order."""
+    with pytest.raises(ValidationError, match="is write-only"):
+        SearchRequest[User | Group].model_validate({"sortBy": "password"})
+
+
+def test_an_unparameterised_request_does_not_check_what_its_sort_by_designates():
+    """Without a model, nothing tells a complex or a sensitive attribute apart."""
+    assert SearchRequest.model_validate({"sortBy": "password"}).sort_by
+    assert SearchRequest.model_validate({"sortBy": "name"}).sort_by

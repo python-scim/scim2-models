@@ -93,7 +93,11 @@ The second rule is why ``sort_value`` picks an entry before reading a sub-attrib
 ``emails.value`` designates the value of *every* entry, where an order wants one value per
 resource. ``sortBy=emails`` is therefore the same query as ``sortBy=emails.value``,
 :rfc:`RFC7643 §2.4 <7643#section-2.4>` holding the significant value of a complex entry in its
-``value`` sub-attribute.
+``value`` sub-attribute. A complex attribute holding no such value, whether singular like
+``name`` or multi-valued like ``addresses``, needs a path to one of its sub-attributes, and
+:class:`~scim2_models.SearchRequest` refuses the query otherwise. It refuses a binary attribute
+too, which has no order, and a write-only attribute, such as ``password``, whose order would
+tell a client about its value.
 
 .. literalinclude:: _examples/integrations.py
    :language: python

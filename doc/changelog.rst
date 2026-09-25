@@ -1,6 +1,17 @@
 Changelog
 =========
 
+[Unreleased]
+------------
+
+Changed
+^^^^^^^
+- :attr:`SearchRequest.sort_by <scim2_models.SearchRequest.sort_by>` refuses a complex
+  attribute, such as ``name`` or ``addresses``, where :rfc:`RFC7644 §3.4.2.3
+  <7644#section-3.4.2.3>` asks for a sub-attribute, a binary attribute, and a write-only
+  attribute, such as ``password``. A multi-valued attribute holding a ``value``, such as
+  ``emails``, is still sorted on it.
+
 [0.8.1] - 2026-09-25
 --------------------
 
