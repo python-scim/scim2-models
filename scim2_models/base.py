@@ -701,6 +701,8 @@ class BaseModel(PydanticBaseModel):
         - ``readOnly`` fields are copied from *original* unconditionally.
         - ``immutable`` fields are copied from *original* when absent from
           ``self``; a MutabilityException is raised when the value differs.
+        - ``writeOnly`` fields left out of ``self`` are copied from *original*,
+          and only an explicit null clears them.
 
         Recursively applies to nested complex attributes, and to the entries of
         a multi-valued one whose ``value`` designates a single entry on both
@@ -727,6 +729,14 @@ class BaseModel(PydanticBaseModel):
                     raise MutabilityException(
                         attribute=field_name, mutability="immutable"
                     )
+            elif (
+                mutability == Mutability.write_only
+                and field_name not in self.model_fields_set
+            ):
+                # RFC 7644 §3.5.1 only lets an omitted "readWrite" attribute be
+                # cleared: a client that retrieved the resource and revised it
+                # never got the write-only value back, and cannot resend it.
+                self.__dict__[field_name] = original_val
 
         complex_and_extensions = self.__scim_info__.complex_fields.union(
             self.__scim_info__.extensions

@@ -490,6 +490,69 @@ def test_replace_preserves_immutable_when_absent():
     assert replacement.immutable == "y"
 
 
+def test_replace_preserves_a_write_only_field_left_out():
+    """RFC 7644 §3.5.1 only clears omitted readWrite attributes: a write-only value is never returned to resend."""
+    original = MutResource(write_only="secret")
+    replacement = MutResource(read_write="x")
+    replacement.replace(original)
+    assert replacement.write_only == "secret"
+    assert "write_only" not in replacement.model_fields_set
+
+
+def test_replace_clears_a_write_only_field_set_to_null():
+    """An explicit null is how RFC 7644 §3.5.1 lets a client clear a value."""
+    original = MutResource(write_only="secret")
+    replacement = MutResource(write_only=None)
+    replacement.replace(original)
+    assert replacement.write_only is None
+
+
+def test_replace_takes_a_provided_write_only_value():
+    """RFC 7644 §3.5.1: write-only values provided "SHALL replace the existing" ones."""
+    original = MutResource(write_only="secret")
+    replacement = MutResource(write_only="new")
+    replacement.replace(original)
+    assert replacement.write_only == "new"
+
+
+@pytest.mark.parametrize(
+    ("payload", "expected"),
+    [({}, "secret"), ({"writeOnly": None}, None), ({"writeOnly": "new"}, "new")],
+    ids=["omitted", "null", "provided"],
+)
+def test_replace_reads_a_write_only_field_from_a_replacement_request(payload, expected):
+    """A payload tells an omitted write-only attribute apart from a null one."""
+    original = MutResource(write_only="secret")
+    replacement = MutResource.model_validate(
+        {"schemas": ["urn:example:MutResource"], **payload},
+        scim_ctx=Context.RESOURCE_REPLACEMENT_REQUEST,
+    )
+    replacement.replace(original)
+    assert replacement.write_only == expected
+
+
+def test_replace_preserves_a_write_only_sub_attribute_left_out():
+    """The rule applies to the sub-attributes of complex and multi-valued attributes."""
+
+    class Sub(ComplexAttribute):
+        value: str | None = None
+        write_only: Annotated[str | None, Mutability.write_only] = None
+
+    class Holder(Resource):
+        __schema__ = URN("urn:example:Holder")
+        sub: Sub | None = None
+        subs: list[Sub] | None = None
+
+    original = Holder(
+        sub=Sub(value="a", write_only="secret"),
+        subs=[Sub(value="a", write_only="secret")],
+    )
+    replacement = Holder(sub=Sub(value="b"), subs=[Sub(value="a")])
+    replacement.replace(original)
+    assert replacement.sub.write_only == "secret"
+    assert replacement.subs[0].write_only == "secret"
+
+
 def test_replace_does_not_assert_the_fields_it_copies():
     """The fields replace copies from the original are not reported as set.
 

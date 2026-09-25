@@ -192,7 +192,9 @@ class Resource(ScimObject, Generic[AnyExtension]):
 
         ``readOnly`` fields are copied from *original*.
         ``immutable`` fields are preserved from *original* when absent,
-        or checked for equality when present.
+        or checked for equality when present. ``writeOnly`` fields, such as
+        ``password``, are preserved from *original* when left out, and cleared
+        by an explicit null only.
 
         The same applies to the sub-attributes of a complex attribute, and to
         those of an entry a multi-valued one keeps. Entries are matched on their

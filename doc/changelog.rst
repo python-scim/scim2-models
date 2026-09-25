@@ -26,6 +26,9 @@ Fixed
   <7643#section-3.1>` declares it, so filters and orders on it respect the case.
 - The :class:`~scim2_models.Meta` sub-attributes are read-only, and ``resourceType`` and
   ``version`` are case-exact, as :rfc:`RFC7643 §3.1 <7643#section-3.1>` declares them.
+- :meth:`Resource.replace <scim2_models.Resource.replace>` keeps a write-only attribute, such
+  as ``password``, that the replacement leaves out, and clears it on an explicit null only. A
+  client never gets that value back, so a PUT built from a GET used to erase it.
 
 [0.8.1] - 2026-09-25
 --------------------
