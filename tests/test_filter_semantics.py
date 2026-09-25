@@ -8,16 +8,20 @@ from lark.exceptions import LarkError
 from pydantic import BaseModel as PydanticBaseModel
 from pydantic import ValidationError
 
+from scim2_models import URN
 from scim2_models import AttributeBinding
+from scim2_models import ComplexAttribute
 from scim2_models import EnterpriseUser
 from scim2_models import Extension
 from scim2_models import Group
 from scim2_models import InvalidFilterException
 from scim2_models import Meta
+from scim2_models import Mutability
 from scim2_models import Name
 from scim2_models import Path
 from scim2_models import PathNotFoundException
 from scim2_models import Required
+from scim2_models import Resource
 from scim2_models import Schema
 from scim2_models import ScimFilter
 from scim2_models import SearchRequest
@@ -341,6 +345,46 @@ def test_ordering_a_boolean_attribute_is_rejected(operator):
     """§3.4.2.2 requires boolean attributes to fail the ordering operators."""
     with pytest.raises(InvalidFilterException, match="boolean"):
         ScimFilter[User](f"active {operator} true")._validate_semantics()
+
+
+class Keyring(Resource):
+    __schema__ = URN("urn:example:2.0:Keyring")
+
+    class Lock(ComplexAttribute):
+        code: Annotated[str | None, Mutability.write_only] = None
+        label: str | None = None
+
+    lock: Lock | None = None
+    vault: Annotated[Lock | None, Mutability.write_only] = None
+
+
+@pytest.mark.parametrize("operator", ["co", "sw", "ew", "gt", "ge", "lt", "le"])
+def test_a_write_only_attribute_is_only_compared_for_equality(operator):
+    """RFC7643 §4.1.1 has password compared "(i.e., filter for equality)" only."""
+    with pytest.raises(InvalidFilterException, match="write-only"):
+        ScimFilter[User](f'password {operator} "x"')._validate_semantics()
+
+
+@pytest.mark.parametrize(
+    "filter_", ['password eq "x"', 'password ne "x"', "password pr"]
+)
+def test_a_write_only_attribute_takes_an_equality_or_a_presence_test(filter_):
+    """An equality test, its negation and a presence test reveal nothing of the value."""
+    ScimFilter[User](filter_)._validate_semantics()
+
+
+@pytest.mark.parametrize("filter_", ['lock.code sw "x"', 'vault.label sw "x"'])
+def test_a_write_only_attribute_is_refused_through_a_complex_attribute(filter_):
+    """A write-only sub-attribute, or the sub-attribute of a write-only one, is refused."""
+    with pytest.raises(InvalidFilterException, match="write-only"):
+        ScimFilter[Keyring](filter_)._validate_semantics()
+
+
+def test_a_search_request_refuses_a_write_only_ordering_as_an_invalid_filter():
+    """The refusal reaches a client as invalidFilter."""
+    with pytest.raises(ValidationError) as raised:
+        SearchRequest[User].model_validate({"filter": 'password sw "a"'})
+    assert raised.value.errors()[0]["type"] == "scim_invalidFilter"
 
 
 @pytest.mark.parametrize("operator", ["co", "sw", "ew"])

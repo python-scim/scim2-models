@@ -11,6 +11,7 @@ from pydantic import TypeAdapter
 from pydantic import ValidationError
 
 from ..annotations import CaseExact
+from ..annotations import Mutability
 from ..base import BaseModel
 from ..exceptions import InvalidFilterException
 from ..exceptions import PathNotFoundException
@@ -22,6 +23,9 @@ from .expressions import CompareOperator
 
 # Python types that RFC7644 §3.4.2.2 forbids comparing with an ordering operator.
 _UNORDERABLE_TYPES = (bool, bytes)
+
+# Operators a write-only attribute may be compared with, per RFC7643 §4.1.1.
+_EQUALITY_OPERATORS = frozenset({CompareOperator.eq, CompareOperator.ne})
 
 _RESOLVED_ATTRS = "__scim_resolved_attrs__"
 """The attribute a model keeps its resolved paths under."""
@@ -448,9 +452,22 @@ def _validate_operator(resolved: AttributeBinding, op: CompareOperator) -> None:
 
     RFC7644 §3.4.2.2 requires boolean and binary attributes to be rejected for
     the ordering operators. The same is done for the substring operators, which
-    have no meaning on those types either. A combination that is not supported
-    raises InvalidFilterException.
+    have no meaning on those types either. A write-only attribute only takes
+    an equality test. A combination that is not supported raises
+    InvalidFilterException.
     """
+    # RFC7643 §4.1.1 has password compared "(i.e., filter for equality)", and
+    # returned "in any form" otherwise: a substring or an ordering would tell
+    # a client about the value, where "ne" only negates the equality test.
+    mutabilities = (
+        resolved.model.get_field_annotation(resolved.field_name, Mutability),
+        resolved.get_annotation(Mutability),
+    )
+    if Mutability.write_only in mutabilities and op not in _EQUALITY_OPERATORS:
+        raise InvalidFilterException(
+            detail=f"operator '{op.value}' cannot be applied to the write-only attribute '{resolved.urn}'"
+        )
+
     target_type = resolved.target_type
     if not isclass(target_type) or not issubclass(target_type, _UNORDERABLE_TYPES):
         return

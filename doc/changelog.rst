@@ -11,6 +11,9 @@ Added
 
 Changed
 ^^^^^^^
+- A filter on a write-only attribute, such as ``password``, only takes ``eq``, ``ne`` and ``pr``,
+  :rfc:`RFC7643 §4.1.1 <7643#section-4.1.1>` comparing it for equality alone. Any other operator
+  answers ``invalidFilter``.
 - :attr:`SearchRequest.sort_by <scim2_models.SearchRequest.sort_by>` refuses a complex
   attribute, such as ``name`` or ``addresses``, where :rfc:`RFC7644 §3.4.2.3
   <7644#section-3.4.2.3>` asks for a sub-attribute, a binary attribute, and a write-only

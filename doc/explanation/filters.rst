@@ -108,7 +108,7 @@ Numbers out of range
 Choices the RFC leaves open
 ---------------------------
 
-Seven questions are left open by the specification, and an implementation has to answer each of
+Eight questions are left open by the specification, and an implementation has to answer each of
 them:
 
 ``ne`` on a multi-valued attribute
@@ -122,6 +122,13 @@ Substring operators
     :func:`~scim2_models.path.coerce_value` leaves their operand as it is instead of converting
     it to the type of the attribute. The bound filter accepts ``emails[value co "example"]``
     even though ``"example"`` is not a valid email address on its own.
+
+Filtering on a write-only attribute
+    :rfc:`RFC7643 §4.1.1 <7643#section-4.1.1>` lets a client "compare (i.e., filter for
+    equality) a password", and returns its value "in any form" otherwise. A substring or an
+    ordering operator would tell a client about the value, so a write-only attribute only takes
+    ``eq``, ``ne``, which negates the equality test, and ``pr``. Any other operator answers
+    ``invalidFilter``.
 
 Filtering on ``schemas``
     §3.4.2.2 lets a client query by schema extension with ``schemas eq "urn:…"``. A filter reads
