@@ -614,9 +614,9 @@ class BaseModel(PydanticBaseModel):
                 field_name,
                 PydanticCustomError(
                     "mutability_error",
-                    "Field '{field_name}' has mutability '{field_mutability}' but this in not valid in {context} context",
+                    "Field '{field_name}' has mutability '{field_mutability}' but this is not valid in {context} context",
                     {
-                        "field_name": field_name,
+                        "field_name": self._scim_name(field_name),
                         "field_mutability": mutability,
                         "context": scim_context.name.lower().replace("_", " "),
                     },
@@ -644,7 +644,7 @@ class BaseModel(PydanticBaseModel):
                 "required_error",
                 "Field '{field_name}' is required but value is missing or null",
                 {
-                    "field_name": field_name,
+                    "field_name": self._scim_name(field_name),
                 },
             )
 
@@ -657,7 +657,7 @@ class BaseModel(PydanticBaseModel):
                 "returned_error",
                 "Field '{field_name}' has returnability 'always' but value is missing or null",
                 {
-                    "field_name": field_name,
+                    "field_name": self._scim_name(field_name),
                 },
             )
 
@@ -666,7 +666,7 @@ class BaseModel(PydanticBaseModel):
                 "returned_error",
                 "Field '{field_name}' has returnability 'never' but value is set",
                 {
-                    "field_name": field_name,
+                    "field_name": self._scim_name(field_name),
                 },
             )
 
@@ -690,7 +690,7 @@ class BaseModel(PydanticBaseModel):
                 "primary_uniqueness_error",
                 "Field '{field_name}' has {count} items marked as primary, but only one is allowed per RFC 7643",
                 {
-                    "field_name": field_name,
+                    "field_name": self._scim_name(field_name),
                     "count": primary_count,
                 },
             )

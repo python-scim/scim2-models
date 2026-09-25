@@ -189,7 +189,7 @@ request that leaves the extension out is then refused:
    ...     )
    ... except ValidationError as exc:
    ...     print(exc.errors()[0]["msg"])
-   Field 'PetOwner' is required but value is missing or null
+   Field 'urn:example:schemas:extension:pet:2.0:User' is required but value is missing or null
 
 :meth:`ResourceType.from_resource <scim2_models.ResourceType.from_resource>` publishes that
 necessity, so a server announces it on its ``/ResourceTypes`` endpoint:

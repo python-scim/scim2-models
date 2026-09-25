@@ -11,6 +11,8 @@ Fixed
   The status and the scimType a server sent used to be replaced by the ones of the
   exception class, which dropped everything it has no class for, such as a ``429`` status
   or a vendor specific scimType.
+- Validation error messages name attributes as SCIM spells them, such as ``userName`` instead
+  of ``user_name``, and extensions by their schema URN.
 
 [0.8.0] - 2026-09-20
 --------------------

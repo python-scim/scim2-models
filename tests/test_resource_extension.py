@@ -462,7 +462,10 @@ def test_a_required_extension_must_be_carried_by_a_creation_request():
     """
     payload = {"schemas": [User.__schema__], "userName": "bjensen"}
 
-    with pytest.raises(ValidationError, match="Field 'EnterpriseUser' is required"):
+    with pytest.raises(
+        ValidationError,
+        match="Field 'urn:ietf:params:scim:schemas:extension:enterprise:2.0:User' is required",
+    ):
         User[Annotated[EnterpriseUser, Required.true]].model_validate(
             payload, scim_ctx=Context.RESOURCE_CREATION_REQUEST
         )

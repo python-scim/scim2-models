@@ -82,13 +82,13 @@ class ListResponse(
         if obj.total_results is None:
             raise PydanticCustomError(
                 "required_error",
-                "Field 'total_results' is required but value is missing or null",
+                "Field 'totalResults' is required but value is missing or null",
             )
 
         if obj.total_results > 0 and obj.resources is None:
             raise PydanticCustomError(
                 "no_resource_error",
-                "Field 'resources' is missing or null but 'total_results' is non-zero.",
+                "Field 'Resources' is missing or null but 'totalResults' is non-zero.",
             )
 
         return obj

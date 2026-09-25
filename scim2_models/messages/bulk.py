@@ -263,7 +263,7 @@ class BulkResponse(_ResourceParameterized, Message, Generic[ResourceT]):
         if self.operations is None:
             raise PydanticCustomError(
                 "required_error",
-                "Field 'operations' is required but value is missing or null",
+                "Field 'Operations' is required but value is missing or null",
             )
 
         return self

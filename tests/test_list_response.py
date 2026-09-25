@@ -413,7 +413,7 @@ def test_total_results_required():
 
     with pytest.raises(
         ValidationError,
-        match="Field 'total_results' is required but value is missing or null",
+        match="Field 'totalResults' is required but value is missing or null",
     ):
         ListResponse[User].model_validate(
             payload, scim_ctx=Context.RESOURCE_QUERY_RESPONSE
