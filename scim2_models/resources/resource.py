@@ -50,20 +50,20 @@ class Meta(ComplexAttribute):
     This attribute SHALL be ignored when provided by clients.  "meta" contains the following sub-attributes:
     """
 
-    resource_type: str | None = None
+    resource_type: Annotated[str | None, Mutability.read_only, CaseExact.true] = None
     """The name of the resource type of the resource.
 
     This attribute has a mutability of "readOnly" and "caseExact" as
     "true".
     """
 
-    created: datetime | None = None
+    created: Annotated[datetime | None, Mutability.read_only] = None
     """The "DateTime" that the resource was added to the service provider.
 
     This attribute MUST be a DateTime.
     """
 
-    last_modified: datetime | None = None
+    last_modified: Annotated[datetime | None, Mutability.read_only] = None
     """The most recent DateTime that the details of this resource were updated
     at the service provider.
 
@@ -71,14 +71,14 @@ class Meta(ComplexAttribute):
     the value MUST be the same as the value of "created".
     """
 
-    location: str | None = None
+    location: Annotated[str | None, Mutability.read_only] = None
     """The URI of the resource being returned.
 
     This value MUST be the same as the "Content-Location" HTTP response
     header (see Section 3.1.4.2 of [RFC7231]).
     """
 
-    version: str | None = None
+    version: Annotated[str | None, Mutability.read_only, CaseExact.true] = None
     """The version of the resource being returned.
 
     This value must be the same as the entity-tag (ETag) HTTP response
@@ -165,7 +165,11 @@ class Resource(ScimObject, Generic[AnyExtension]):
     # https://www.rfc-editor.org/rfc/rfc7643#section-3.1
 
     id: Annotated[
-        str | None, Mutability.read_only, Returned.always, Uniqueness.global_
+        str | None,
+        Mutability.read_only,
+        Returned.always,
+        Uniqueness.global_,
+        CaseExact.true,
     ] = None
     """A unique identifier for a SCIM resource as defined by the service
     provider.

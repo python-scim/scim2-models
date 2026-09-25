@@ -13,6 +13,7 @@ from scim2_models import EnterpriseUser
 from scim2_models import Extension
 from scim2_models import Group
 from scim2_models import InvalidFilterException
+from scim2_models import Meta
 from scim2_models import Name
 from scim2_models import Path
 from scim2_models import PathNotFoundException
@@ -396,6 +397,23 @@ def test_comparison_is_case_sensitive_on_a_case_exact_attribute():
     group = Group(display_name="G", members=[{"value": "AbC"}])
     assert ScimFilter[Group]('members[value eq "AbC"]').match(group)
     assert not ScimFilter[Group]('members[value eq "abc"]').match(group)
+
+
+@pytest.mark.parametrize(
+    ("attribute", "user"),
+    [
+        ("id", User(id="AbC", user_name="bjensen")),
+        (
+            "meta.resourceType",
+            User(user_name="bjensen", meta=Meta(resource_type="AbC")),
+        ),
+        ("meta.version", User(user_name="bjensen", meta=Meta(version="AbC"))),
+    ],
+)
+def test_the_common_attributes_rfc7643_declares_case_exact_are(attribute, user):
+    """RFC7643 §3.1 gives these common attributes "caseExact" as "true"."""
+    assert ScimFilter[User](f'{attribute} eq "AbC"').match(user)
+    assert not ScimFilter[User](f'{attribute} eq "abc"').match(user)
 
 
 def test_case_insensitive_comparison_folds_a_letter_expanding_to_two():

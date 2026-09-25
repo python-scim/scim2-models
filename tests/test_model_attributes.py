@@ -9,8 +9,10 @@ from pydantic import Field
 from pydantic import ValidationError
 
 from scim2_models import URN
+from scim2_models import Path
 from scim2_models import ResponseParameters
 from scim2_models.annotations import CaseExact
+from scim2_models.annotations import Mutability
 from scim2_models.annotations import Returned
 from scim2_models.attributes import ComplexAttribute
 from scim2_models.base import BaseModel
@@ -618,3 +620,19 @@ def test_an_alias_naming_a_place_in_the_payload_names_no_attribute():
 
     assert "outer" not in Nested.__scim_info__.field_by_name
     assert Nested.__scim_info__.validation_names["value"] == "value"
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "meta.resourceType",
+        "meta.created",
+        "meta.lastModified",
+        "meta.location",
+        "meta.version",
+    ],
+)
+def test_meta_sub_attributes_are_read_only(path):
+    """RFC7643 §3.1 has every "meta" sub-attribute assigned by the service provider."""
+    binding = Path[User](path).resolve()
+    assert binding.get_annotation(Mutability) == Mutability.read_only

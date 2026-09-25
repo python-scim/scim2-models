@@ -12,6 +12,13 @@ Changed
   attribute, such as ``password``. A multi-valued attribute holding a ``value``, such as
   ``emails``, is still sorted on it.
 
+Fixed
+^^^^^
+- :attr:`Resource.id <scim2_models.Resource.id>` is case-exact, as :rfc:`RFC7643 §3.1
+  <7643#section-3.1>` declares it, so filters and orders on it respect the case.
+- The :class:`~scim2_models.Meta` sub-attributes are read-only, and ``resourceType`` and
+  ``version`` are case-exact, as :rfc:`RFC7643 §3.1 <7643#section-3.1>` declares them.
+
 [0.8.1] - 2026-09-25
 --------------------
 
