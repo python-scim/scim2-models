@@ -115,7 +115,7 @@ def _make_python_model(
             obj.attributes, f"the schema {obj.id or obj.name}"
         )
 
-    model_name = to_pascal(to_snake(obj.name))
+    model_name = obj.name if isinstance(obj, Schema) else to_pascal(to_snake(obj.name))
     model = cast(
         type[T],
         create_model(model_name, __base__=base, **pydantic_attributes),
@@ -125,6 +125,9 @@ def _make_python_model(
         model.__schema__ = URN(obj.id)  # type: ignore[attr-defined]
         # __scim_info__ was built by pydantic before __schema__ was known
         model.__pydantic_on_complete__()
+
+    if isinstance(obj, Schema):
+        model.__doc__ = obj.description
 
     for attr_name in model.model_fields:
         attr_type = model.get_field_root_type(attr_name)

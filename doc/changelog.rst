@@ -29,6 +29,10 @@ Fixed
 - :meth:`Resource.replace <scim2_models.Resource.replace>` keeps a write-only attribute, such
   as ``password``, that the replacement leaves out, and clears it on an explicit null only. A
   client never gets that value back, so a PUT built from a GET used to erase it.
+- A model built with :meth:`Resource.from_schema <scim2_models.Resource.from_schema>` or
+  :meth:`Extension.from_schema <scim2_models.Extension.from_schema>` is named as its schema, and
+  its docstring is the description of the schema, so ``to_schema`` publishes both again. A
+  schema named ``petOwner`` used to build a ``PetOwner`` class, and to lose its description.
 
 [0.8.1] - 2026-09-25
 --------------------
