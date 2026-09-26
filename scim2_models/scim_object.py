@@ -3,6 +3,7 @@
 from typing import Annotated
 from typing import Any
 from typing import ClassVar
+from typing import Self
 from typing import TypeVar
 
 from pydantic import Field
@@ -11,7 +12,6 @@ from pydantic import ValidatorFunctionWrapHandler
 from pydantic import field_serializer
 from pydantic import model_validator
 from pydantic_core import PydanticCustomError
-from typing_extensions import Self
 
 from .annotations import Required
 from .base import BaseModel

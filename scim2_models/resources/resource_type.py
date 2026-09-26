@@ -1,8 +1,8 @@
 from typing import Annotated
 from typing import Any
+from typing import Self
 
 from pydantic import Field
-from typing_extensions import Self
 
 from ..annotations import CaseExact
 from ..annotations import Mutability

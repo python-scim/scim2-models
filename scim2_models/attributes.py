@@ -1,15 +1,15 @@
-from enum import Enum
+from enum import StrEnum
 from inspect import isclass
 from typing import Annotated
 from typing import Any
 from typing import ClassVar
+from typing import Self
 from typing import get_origin
 
 from pydantic import Field
 from pydantic import GetJsonSchemaHandler
 from pydantic.json_schema import JsonSchemaValue
 from pydantic_core import CoreSchema
-from typing_extensions import Self
 
 from .annotations import Mutability
 
@@ -18,16 +18,13 @@ from .base import BaseModel
 from .reference import Reference
 
 
-class ExtensibleStringEnum(str, Enum):
+class ExtensibleStringEnum(StrEnum):
     """String enum accepting values beyond its canonical ones.
 
     :rfc:`RFC7643 §2.3.1 <7643#section-2.3.1>` and :rfc:`§7 <7643#section-7>`
     define ``canonicalValues`` as suggestions that service providers MAY restrict,
     so unknown values are kept as-is instead of being rejected.
     """
-
-    def __str__(self) -> str:
-        return str(self.value)
 
     @classmethod
     def __get_pydantic_json_schema__(

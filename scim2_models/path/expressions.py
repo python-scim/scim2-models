@@ -7,7 +7,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from dataclasses import field
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 from typing import Union
 
@@ -35,7 +35,7 @@ class _Expression(str):
     """
 
 
-class CompareOperator(str, Enum):
+class CompareOperator(StrEnum):
     """The comparison operators defined at :rfc:`RFC7644 §3.4.2.2 <7644#section-3.4.2.2>`."""
 
     eq = "eq"
@@ -83,7 +83,7 @@ STRING_OPERATORS = frozenset(
 """Operators that require a string operand."""
 
 
-class LogicalOperator(str, Enum):
+class LogicalOperator(StrEnum):
     """The logical operators defined at :rfc:`RFC7644 §3.4.2.2 <7644#section-3.4.2.2>`."""
 
     and_ = "and"

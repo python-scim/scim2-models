@@ -7,8 +7,8 @@ django = pytest.importorskip("django")
 fastapi = pytest.importorskip("fastapi")
 sqlalchemy = pytest.importorskip("sqlalchemy")
 
+from datetime import UTC  # noqa: E402
 from datetime import datetime  # noqa: E402
-from datetime import timezone  # noqa: E402
 
 from pydantic import ValidationError  # noqa: E402
 
@@ -625,7 +625,7 @@ def sqlalchemy_records():
             user_name="bjensen",
             title="Manager",
             active=True,
-            last_modified=datetime(2024, 6, 1, tzinfo=timezone.utc),
+            last_modified=datetime(2024, 6, 1, tzinfo=UTC),
             emails=[EmailRecord(type="work", value="bjensen@example.com")],
             groups=[GroupRecord(value="2819c223-7f76", display="Tour Guides")],
         ),
@@ -633,7 +633,7 @@ def sqlalchemy_records():
             id="2",
             user_name="RSanchez",
             active=False,
-            last_modified=datetime(2023, 1, 15, tzinfo=timezone.utc),
+            last_modified=datetime(2023, 1, 15, tzinfo=UTC),
             emails=[EmailRecord(type="home", value="rick@example.org")],
             groups=[GroupRecord(value="2819C223-7F76", display="Tour Guides")],
         ),
@@ -642,7 +642,7 @@ def sqlalchemy_records():
             user_name="jsmith",
             title="Engineer",
             active=True,
-            last_modified=datetime(2025, 3, 20, tzinfo=timezone.utc),
+            last_modified=datetime(2025, 3, 20, tzinfo=UTC),
             emails=[EmailRecord(type="Work", value="J.Smith@Example.com")],
         ),
         UserRecord(
@@ -650,14 +650,14 @@ def sqlalchemy_records():
             user_name="dpotter",
             title="100% remote",
             active=True,
-            last_modified=datetime(2025, 1, 1, tzinfo=timezone.utc),
+            last_modified=datetime(2025, 1, 1, tzinfo=UTC),
         ),
         UserRecord(
             id="5",
             user_name="mgarcia",
             title="1000 Files",
             active=True,
-            last_modified=datetime(2025, 2, 1, tzinfo=timezone.utc),
+            last_modified=datetime(2025, 2, 1, tzinfo=UTC),
         ),
     ]
 

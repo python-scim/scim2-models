@@ -1,9 +1,10 @@
 from collections.abc import Iterator
-from enum import Enum
+from enum import StrEnum
 from inspect import isclass
 from typing import Annotated
 from typing import Any
 from typing import Generic
+from typing import Self
 from typing import TypeVar
 from typing import cast
 from typing import get_origin
@@ -13,7 +14,6 @@ from pydantic import Field
 from pydantic import ValidationInfo
 from pydantic import field_validator
 from pydantic import model_validator
-from typing_extensions import Self
 
 from ..annotations import Mutability
 from ..annotations import Required
@@ -206,7 +206,7 @@ def _diff(
 
 
 class PatchOperation(ComplexAttribute, Generic[ResourceT]):
-    class Op(str, Enum):
+    class Op(StrEnum):
         replace_ = "replace"
         remove = "remove"
         add = "add"

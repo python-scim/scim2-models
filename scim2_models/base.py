@@ -7,6 +7,7 @@ from typing import Any
 from typing import ClassVar
 from typing import NamedTuple
 from typing import NoReturn
+from typing import Self
 from typing import cast
 from typing import get_args
 from typing import get_origin
@@ -27,7 +28,6 @@ from pydantic import model_validator
 from pydantic.fields import FieldInfo
 from pydantic_core import InitErrorDetails
 from pydantic_core import PydanticCustomError
-from typing_extensions import Self
 
 from scim2_models.annotations import CaseExact
 from scim2_models.annotations import Mutability

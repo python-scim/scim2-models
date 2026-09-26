@@ -1,7 +1,8 @@
 from enum import Enum
+from enum import StrEnum
 
 
-class Mutability(str, Enum):
+class Mutability(StrEnum):
     """A single keyword indicating the circumstances under which the value of the attribute can be (re)defined."""
 
     read_only = "readOnly"
@@ -48,7 +49,7 @@ class Mutability(str, Enum):
     _default = read_write
 
 
-class Returned(str, Enum):
+class Returned(StrEnum):
     """A single keyword that indicates when an attribute and associated values are returned in response to a GET request or in response to a PUT, POST, or PATCH request."""
 
     always = "always"  # cannot be excluded
@@ -88,7 +89,7 @@ class Returned(str, Enum):
     _default = default
 
 
-class Uniqueness(str, Enum):
+class Uniqueness(StrEnum):
     """A single keyword value that specifies how the service provider enforces uniqueness of attribute values.
 
     Unlike the other attribute characteristics, this one carries no validation:

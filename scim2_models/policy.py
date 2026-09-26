@@ -1,7 +1,7 @@
 """How a peer's deviations from the specification are treated."""
 
 from contextvars import ContextVar
-from enum import Enum
+from enum import StrEnum
 from types import TracebackType
 
 from pydantic import BaseModel
@@ -55,7 +55,7 @@ class ScimPolicy(BaseModel):
 
     model_config = ConfigDict(frozen=True)
 
-    class Unknown(str, Enum):
+    class Unknown(StrEnum):
         """What becomes of an attribute no model declares."""
 
         forbid = "forbid"
@@ -80,7 +80,7 @@ class ScimPolicy(BaseModel):
         declared for it, so no context filters it out.
         """
 
-    class RemoveValue(str, Enum):
+    class RemoveValue(StrEnum):
         """What becomes of a PATCH ``remove`` operation carrying a ``value``."""
 
         forbid = "forbid"

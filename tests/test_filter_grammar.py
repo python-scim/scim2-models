@@ -1,5 +1,5 @@
+from datetime import UTC
 from datetime import datetime
-from datetime import timezone
 
 import pytest
 
@@ -495,7 +495,7 @@ def test_rendering_a_value_no_filter_can_carry_is_rejected():
 
 def test_rendering_a_datetime_yields_the_string_form_of_a_datetime():
     """A node built by hand can hold a datetime, which a filter carries as a string."""
-    when = datetime(2011, 5, 13, 4, 42, 34, tzinfo=timezone.utc)
+    when = datetime(2011, 5, 13, 4, 42, 34, tzinfo=UTC)
     node = Comparison(AttrPath("meta", "lastModified"), CompareOperator.gt, when)
     assert str(node) == 'meta.lastModified gt "2011-05-13T04:42:34+00:00"'
 

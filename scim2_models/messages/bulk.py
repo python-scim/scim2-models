@@ -1,8 +1,9 @@
-from enum import Enum
+from enum import StrEnum
 from typing import Annotated
 from typing import Any
 from typing import ClassVar
 from typing import Generic
+from typing import Self
 from typing import TypeVar
 from typing import Union
 from typing import get_args
@@ -15,7 +16,6 @@ from pydantic import ValidatorFunctionWrapHandler
 from pydantic import field_validator
 from pydantic import model_validator
 from pydantic_core import PydanticCustomError
-from typing_extensions import Self
 
 from ..annotations import Required
 from ..annotations import Returned
@@ -43,7 +43,7 @@ class BulkOperation(_ResourceParameterized, ComplexAttribute, Generic[ResourceT]
     ``BulkOperation[User]``.
     """
 
-    class Method(str, Enum):
+    class Method(StrEnum):
         post = "POST"
         put = "PUT"
         patch = "PATCH"

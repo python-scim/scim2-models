@@ -1,5 +1,6 @@
 import re
 from inspect import isclass
+from types import UnionType
 from typing import TYPE_CHECKING
 from typing import Any
 from typing import Union
@@ -12,13 +13,7 @@ from pydantic.alias_generators import to_snake
 if TYPE_CHECKING:
     from .base import BaseModel
 
-try:
-    from types import UnionType
-
-    UNION_TYPES = [Union, UnionType]
-except ImportError:
-    # Python 3.9 has no UnionType
-    UNION_TYPES = [Union]
+UNION_TYPES = [Union, UnionType]
 
 
 def _model_union(annotation: Any) -> "tuple[type[BaseModel], ...] | None":

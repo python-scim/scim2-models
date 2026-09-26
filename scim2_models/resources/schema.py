@@ -1,7 +1,7 @@
 import re
 from collections import Counter
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 from typing import Annotated
 from typing import Any
 from typing import List  # noqa : UP005,UP035
@@ -138,7 +138,7 @@ def _make_python_model(
 
 
 class Attribute(ComplexAttribute):
-    class Type(str, Enum):
+    class Type(StrEnum):
         string = "string"
         complex = "complex"
         boolean = "boolean"

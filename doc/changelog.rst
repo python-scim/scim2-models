@@ -1,6 +1,15 @@
 Changelog
 =========
 
+[Unreleased]
+------------
+
+Changed
+^^^^^^^
+- Python 3.11 is now the minimum supported version.
+- The enumerations, such as :class:`~scim2_models.Mutability`, are :class:`~enum.StrEnum`:
+  :class:`str` and f-strings give their value, ``readOnly`` rather than ``Mutability.read_only``.
+
 [0.8.2] - 2026-09-25
 --------------------
 

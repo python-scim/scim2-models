@@ -1,12 +1,12 @@
 from typing import Any
 from typing import Generic
+from typing import Self
 
 from pydantic import Field
 from pydantic import ValidationInfo
 from pydantic import ValidatorFunctionWrapHandler
 from pydantic import model_validator
 from pydantic_core import PydanticCustomError
-from typing_extensions import Self
 
 from ..context import Context
 from ..resources.resource import AnyResource

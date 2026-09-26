@@ -29,11 +29,9 @@ def test_extension_getitem():
         user_name="bjensen@example.com",
         meta=Meta(
             resource_type="User",
-            created=datetime.datetime(
-                2010, 1, 23, 4, 56, 22, tzinfo=datetime.timezone.utc
-            ),
+            created=datetime.datetime(2010, 1, 23, 4, 56, 22, tzinfo=datetime.UTC),
             last_modified=datetime.datetime(
-                2011, 5, 13, 4, 42, 34, tzinfo=datetime.timezone.utc
+                2011, 5, 13, 4, 42, 34, tzinfo=datetime.UTC
             ),
             version='W\\/"a330bc54f0671c9"',
             location="https://example.com/v2/Users/2819c223-7f76-453a-919d-413861904646",
@@ -89,11 +87,9 @@ def test_extension_setitem():
         user_name="bjensen@example.com",
         meta=Meta(
             resource_type="User",
-            created=datetime.datetime(
-                2010, 1, 23, 4, 56, 22, tzinfo=datetime.timezone.utc
-            ),
+            created=datetime.datetime(2010, 1, 23, 4, 56, 22, tzinfo=datetime.UTC),
             last_modified=datetime.datetime(
-                2011, 5, 13, 4, 42, 34, tzinfo=datetime.timezone.utc
+                2011, 5, 13, 4, 42, 34, tzinfo=datetime.UTC
             ),
             version='W\\/"a330bc54f0671c9"',
             location="https://example.com/v2/Users/2819c223-7f76-453a-919d-413861904646",

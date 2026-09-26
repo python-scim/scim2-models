@@ -1,5 +1,5 @@
 from collections.abc import Iterable
-from enum import Enum
+from enum import StrEnum
 from inspect import isclass
 from typing import Any
 from typing import Generic
@@ -202,7 +202,7 @@ class SearchRequest(Message, ResponseParameters[ResourceT], Generic[ResourceT]):
             path=str(value), detail=reasons[0]
         ).as_pydantic_error()
 
-    class SortOrder(str, Enum):
+    class SortOrder(StrEnum):
         ascending = "ascending"
         descending = "descending"
 
