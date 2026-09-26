@@ -12,6 +12,7 @@ on:
 
 env:
   UV_LOCKED: 1
+  UV_PYTHON_PREFERENCE: only-managed
 
 permissions:
   contents: read
@@ -34,9 +35,8 @@ jobs:
         uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
           version: "0.12.13"
+          python-version: ${{ matrix.python }}
           enable-cache: true
-      - name: Install Python ${{ matrix.python }}
-        run: uv python install ${{ matrix.python }}
       - name: Run tests
         run: uv run pytest --showlocals
 
@@ -48,11 +48,10 @@ jobs:
         uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
           version: "0.12.13"
+          python-version: "3.14"
           enable-cache: true
-      - name: Install Python 3.14
-        run: uv python install 3.14
       - name: Run tests
-        run: uv run --python 3.14 pytest --cov --cov-fail-under=100
+        run: uv run pytest --cov --cov-fail-under=100
 
   downstream-tests:
     name: py${{ matrix.python }} ${{ matrix.downstream }} downstream unit tests
@@ -78,16 +77,13 @@ jobs:
         uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
           version: "0.12.13"
+          python-version: ${{ matrix.python }}
           enable-cache: true
       - name: Checkout downstream pyproject
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: python-scim/${{ matrix.downstream }}
           path: ${{ matrix.downstream }}
-      - name: Install Python ${{ matrix.python }}
-        run: |
-          cd ${{ matrix.downstream }}
-          uv python install ${{ matrix.python }}
       - name: Install downstream test environment
         run: |
           cd ${{ matrix.downstream }}
@@ -110,6 +106,7 @@ jobs:
         uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
           version: "0.12.13"
+          python-version: "3.11"
           enable-cache: true
       - name: Install minimum dependencies
         run: uv sync
@@ -124,9 +121,10 @@ jobs:
         uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
           version: "0.12.13"
+          python-version: "3.14"
           enable-cache: true
       - name: Run style checks
-        run: uv run --python 3.14 prek run --all-files --show-diff-on-failure
+        run: uv run prek run --all-files --show-diff-on-failure
 
   doc:
     runs-on: ubuntu-24.04
@@ -136,7 +134,8 @@ jobs:
         uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
           version: "0.12.13"
+          python-version: "3.14"
           enable-cache: true
       - name: Install dependencies
-        run: uv sync --python 3.14 --group doc
+        run: uv sync --group doc
       - run: uv run sphinx-build -W --keep-going -b html doc build/sphinx/html
