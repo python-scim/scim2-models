@@ -1,5 +1,5 @@
 [build-system]
-requires = ["uv_build>=0.12.16,<0.13.0"]
+requires = ["uv_build>=0.12.13,<0.13.0"]
 build-backend = "uv_build"
 
 [project]
@@ -36,6 +36,10 @@ documentation = "https://scim2-models.readthedocs.io"
 repository = "https://github.com/python-scim/scim2-models"
 changelog = "https://scim2-models.readthedocs.io/en/latest/changelog.html"
 funding = "https://github.com/sponsors/python-scim"
+
+[tool.uv]
+exclude-newer = "14 days"
+exclude-newer-package = { scim2-models = false, scim2-client = false, scim2-server = false, scim2-cli = false, scim2-tester = false, pytest-scim2-server = false }
 
 [tool.uv.build-backend]
 module-root = ""
