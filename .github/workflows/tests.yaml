@@ -19,7 +19,7 @@ permissions:
 jobs:
   tests:
     name: py${{ matrix.python }} unit tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -41,7 +41,7 @@ jobs:
         run: uv run pytest --showlocals
 
   coverage:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install uv
@@ -57,7 +57,7 @@ jobs:
   downstream-tests:
     name: py${{ matrix.python }} ${{ matrix.downstream }} downstream unit tests
     if: ${{ !startsWith(github.head_ref, 'renovate/') }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -100,7 +100,7 @@ jobs:
 
   minversions:
     name: minimum dependency versions
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       UV_RESOLUTION: lowest-direct
       UV_LOCKED: 0
@@ -117,7 +117,7 @@ jobs:
         run: uv run pytest --showlocals
 
   style:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install uv
@@ -129,7 +129,7 @@ jobs:
         run: uv run --python 3.14 prek run --all-files --show-diff-on-failure
 
   doc:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install uv
