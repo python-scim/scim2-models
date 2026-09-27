@@ -10,6 +10,12 @@ Changed
 - The enumerations, such as :class:`~scim2_models.Mutability`, are :class:`~enum.StrEnum`:
   :class:`str` and f-strings give their value, ``readOnly`` rather than ``Mutability.read_only``.
 
+Fixed
+^^^^^
+- A PATCH ``add`` recognizes an entry the multi-valued attribute already holds whatever the
+  spelling of its attribute names, instead of adding it a second time, and compares the entries
+  without dumping each of them, which made adding to a large group slow.
+
 [0.8.2] - 2026-09-25
 --------------------
 

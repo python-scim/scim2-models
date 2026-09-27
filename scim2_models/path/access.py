@@ -38,8 +38,30 @@ def _to_comparable(value: Any) -> Any:
 
 
 def _values_match(value1: Any, value2: Any) -> bool:
-    """Check if two values match, handling BaseModel comparison."""
+    """Check if two values match, handling BaseModel comparison.
+
+    Two models of the same type compare their fields directly, which spares a
+    dump of each.
+    """
+    if isinstance(value1, BaseModel) and type(value1) is type(value2):
+        return bool(value1 == value2)
     return bool(_to_comparable(value1) == _to_comparable(value2))
+
+
+def _as_entry(model: type[BaseModel], field_name: str, value: Any) -> Any:
+    """Read a mapping as an entry of a multi-valued complex attribute.
+
+    The entry is compared by the values of its attributes, whatever the
+    spelling of their names.
+    """
+    item_type = model.get_field_root_type(field_name)
+    if (
+        isinstance(value, dict)
+        and isclass(item_type)
+        and issubclass(item_type, BaseModel)
+    ):
+        return item_type.model_validate(value)
+    return value
 
 
 def _value_in_list(current_list: list[Any], new_value: Any) -> bool:
@@ -259,14 +281,7 @@ def _set_selected(
         # Without a sub-attribute the matched entries are replaced wholesale.
         current = getattr(host, field_name)
         replacement = list(current)
-        item_type = type(host).get_field_root_type(field_name)
-        new_value = (
-            item_type.model_validate(value)
-            if isinstance(value, dict)
-            and isclass(item_type)
-            and issubclass(item_type, BaseModel)
-            else value
-        )
+        new_value = _as_entry(type(host), field_name, value)
         modified = False
         for index, item in enumerate(replacement):
             if any(item is candidate for candidate in matched):
@@ -378,15 +393,14 @@ def _set_field_value(obj: BaseModel, field_name: str, value: Any, is_add: bool) 
 
     if is_add and is_multivalued:
         current_list = getattr(obj, field_name) or []
-        if isinstance(value, list):
-            new_values = [v for v in value if not _value_in_list(current_list, v)]
-            if not new_values:
-                return False
-            setattr(obj, field_name, current_list + new_values)
-        else:
-            if _value_in_list(current_list, value):
-                return False
-            setattr(obj, field_name, [*current_list, value])
+        entries = [
+            _as_entry(type(obj), field_name, item)
+            for item in (value if isinstance(value, list) else [value])
+        ]
+        new_values = [e for e in entries if not _value_in_list(current_list, e)]
+        if not new_values:
+            return False
+        setattr(obj, field_name, current_list + new_values)
         return True
 
     if is_multivalued and not isinstance(value, list) and value is not None:

@@ -149,6 +149,25 @@ def test_add_operation_multiple_attribute_already_present():
     assert len(group.members) == 1
 
 
+def test_an_entry_spelled_in_other_capitals_is_already_present():
+    """RFC7643 §2.1 makes attribute names case-insensitive, so the spelling tells no entry apart."""
+    group = Group(members=[GroupMember(value="2819c223", display="Babs Jensen")])
+    patch = PatchOp[Group].model_validate(
+        {
+            "Operations": [
+                {
+                    "op": "add",
+                    "path": "members",
+                    "value": [{"VALUE": "2819c223", "Display": "Babs Jensen"}],
+                }
+            ]
+        }
+    )
+
+    assert patch.patch(group) is False
+    assert len(group.members) == 1
+
+
 def test_add_operation_single_value_in_multivalued_field():
     """Test adding a single value (not a list) to a multi-valued field.
 
