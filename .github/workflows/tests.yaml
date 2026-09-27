@@ -92,7 +92,7 @@ jobs:
       - name: Run downstream tests
         run: |
           cd ${{ matrix.downstream }}
-          uv run pytest --showlocals
+          uv run --no-sync pytest --showlocals
 
   minversions:
     name: minimum dependency versions
