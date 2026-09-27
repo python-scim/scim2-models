@@ -3,6 +3,7 @@ from typing import Annotated
 import pytest
 
 from scim2_models import URN
+from scim2_models import EnterpriseUser
 from scim2_models import MutabilityException
 from scim2_models import PatchOp
 from scim2_models import PatchOperation
@@ -395,3 +396,23 @@ def test_replace_a_subattribute_of_every_entry():
         "new@example.com",
         "new@example.com",
     ]
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "name.givenName",
+        "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:costCenter",
+        "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:manager.value",
+    ],
+)
+def test_unassigning_under_an_unassigned_container_leaves_the_resource(path):
+    """Nothing is created to hold a null value."""
+    user = User[EnterpriseUser](user_name="bjensen")
+    patch = PatchOp[User[EnterpriseUser]].model_validate(
+        {"Operations": [{"op": "replace", "path": path, "value": None}]}
+    )
+
+    assert patch.patch(user) is False
+    assert user.name is None
+    assert user[EnterpriseUser] is None

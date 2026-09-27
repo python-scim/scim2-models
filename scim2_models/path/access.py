@@ -347,7 +347,9 @@ def _set_value(
     if (selection := _select(path, resource)) is not None:
         return _set_selected(path, selection, value, is_add=is_add)
 
-    target = _walk(path, resource, create=True)
+    # Nothing is created to hold a null value: it would only unassign what the
+    # new container holds, which is nothing.
+    target = _walk(path, resource, create=value is not None)
     if target is None:
         return False
     if isinstance(target, _Root):

@@ -16,6 +16,8 @@ Fixed
 ^^^^^
 - A :class:`~scim2_models.PatchOperation` with a null value keeps it when dumped. A ``replace``
   that clears its target used to be sent without a value.
+- Setting a null value under an unset complex attribute or extension no longer creates an empty
+  one, and no longer reports the resource as modified.
 
 Security
 ^^^^^^^^
