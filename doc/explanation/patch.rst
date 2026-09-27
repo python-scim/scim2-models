@@ -1,9 +1,8 @@
 PATCH semantics and interoperability
 ====================================
 
-A PATCH request changes a stored resource through ordered operations, and the SCIM protocol
-splits the checks it needs in two: some need only the request, others need the resource as it
-stands. This page answers what each operation does, what a path selects, what happens when that
+A PATCH request changes a stored resource through ordered operations. Some checks need only the
+request, others need the stored resource, so scim2-models runs them in two steps. This page answers what each operation does, what a path selects, what happens when that
 selection matches nothing, and which error a rejected path answers. It is written for anyone
 implementing PATCH on a server, or explaining to a client why an operation was refused.
 :doc:`../how-to/validate-and-serialize` covers the request-processing sequence itself.
@@ -21,8 +20,10 @@ run in their listed order. This is where an immutable value can be compared with
 replaces, and where the method reports whether any operation changed the resource. It also
 rejects an operation that unassigns a required attribute in another way, such as removing its
 last entry through a filter. Read-only attributes in the value are checked there too. A client
-that sends back the ``id`` or ``meta`` it read is accepted, since
-:rfc:`RFC7643 §3.1 <7643#section-3.1>` says to ignore them. A client that changes them gets a
+that sends back the ``meta`` it read is accepted, since :rfc:`RFC7643 §3.1 <7643#section-3.1>`
+says to ignore it. The same goes for an ``id`` or any other read-only value sent back unchanged.
+:rfc:`RFC7644 §3.5.2 <7644#section-3.5.2>` forbids a client to modify a read-only attribute,
+and writing back the same value modifies nothing. A client that changes such a value gets a
 ``mutability`` error. Splitting the two keeps a parsed :class:`~scim2_models.PatchOp` useful
 before the resource is loaded.
 
@@ -276,8 +277,8 @@ Building a patch rather than applying one
 
 An application holding both the state a peer has and the state it should have does not have to
 spell the operations out. :meth:`~scim2_models.PatchOp.build_from` compares the two states and
-builds them, restricted to the attributes the wanted state names, so what the peer maintains and
-the application does not model is left alone.
+builds them, restricted to the attributes set in the wanted state. The attributes the peer
+maintains and the application does not model are left alone.
 
 What that builder can express follows from this page. A multi-valued attribute is replaced as a
 whole, since :rfc:`RFC7643 §2.4 <7643#section-2.4>` gives its entries no identity to match one

@@ -32,7 +32,7 @@ class ScimPolicy(BaseModel):
     >>> ScimPolicy().unknown is ScimPolicy.Unknown.forbid
     True
 
-    Name a policy at the call that reads or writes a payload:
+    Pass a policy to the call that reads or writes a payload:
 
     >>> from scim2_models import User
     >>> payload = {"schemas": [str(User.__schema__)], "userName": "bjensen"}
@@ -40,19 +40,19 @@ class ScimPolicy(BaseModel):
     >>> User.model_validate(payload, scim_policy=tolerant).user_name
     'bjensen'
 
-    Or open a block, which is how a server states once per request what it
-    tolerates instead of naming it at every call:
+    Or open a block. A server does this once per request, instead of passing
+    the policy to every call:
 
     >>> with tolerant:
     ...     user = User.model_validate(payload)
     >>> user.user_name
     'bjensen'
 
-    An argument named at the call site wins over the block, and leaving the
-    block restores what it interrupted.
+    A policy passed to the call wins over the block. Leaving the block
+    restores the policy it interrupted.
 
-    A policy is settled once built: the pass running under one cannot be
-    contradicted halfway through.
+    A policy cannot change once built. A validation or a dump sees the same
+    settings from start to end.
     """
 
     model_config = ConfigDict(frozen=True)

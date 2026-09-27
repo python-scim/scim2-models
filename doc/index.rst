@@ -36,7 +36,7 @@ SCIM clients and servers.
 :doc:`How-to guides <how-to/index>` show how to complete a specific task, such as accessing a
 resource value with a SCIM path.
 
-:doc:`Explanation <explanation/index>` gives the reasons behind the behaviour of the library, and
+:doc:`Explanation <explanation/index>` gives the reasons behind the behavior of the library, and
 the SCIM rules it applies.
 
 :doc:`Integrations <integrations/index>` shows how to build a SCIM server with Flask, Django,

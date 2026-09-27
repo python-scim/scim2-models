@@ -8,8 +8,8 @@ do not describe. scim2-models refuses such a payload by default. A
 Why a policy sits beside the context
 ------------------------------------
 
-A :class:`~scim2_models.Context` and a policy answer two different questions, and the difference
-decides what may become a policy setting at all.
+A :class:`~scim2_models.Context` and a policy answer two different questions. The difference
+tells which settings belong in a policy.
 
 The context says what a payload is: a creation request, a query response. Both ends of an exchange
 read it the same way, because :rfc:`RFC7644 <7644>` defines what each one contains. It travels
@@ -27,21 +27,18 @@ Why every default is strict
 ---------------------------
 
 §5.3 of the SCIM interoperability profile asks a service provider to reject the attributes and the
-schema URNs it does not define, and the strict reading is what the library applies when it is
-given no policy.
-
-Two consequences follow from that choice.
+schema URNs it does not define. The library applies this strict reading when it is given no
+policy.
 
 A service built on scim2-models keeps refusing the payloads of a client that sends unknown
 attributes until its author picks :attr:`~scim2_models.ScimPolicy.Unknown.ignore` or
-:attr:`~scim2_models.ScimPolicy.Unknown.keep`. What the library ships is a documented way to
-tolerate, and the tolerance itself stays a decision.
+:attr:`~scim2_models.ScimPolicy.Unknown.keep`. The library documents how to accept such payloads,
+but the author has to choose to.
 
-The strict default also applies to a client reading a response, which reaches further than the
-profile does: §5.3 addresses service providers receiving requests and says nothing about clients.
-Telling the two apart would take a notion of role, and a model has none — a request is validated
-by the client that wrote it as readily as by the server that received it, so the context cannot
-stand in for one.
+The strict default also applies to a client reading a response. This goes further than the
+profile, since §5.3 only addresses service providers. But a model has no notion of role. A
+client validates the request it writes, and the server validates the same request when it
+receives it. So the context cannot tell a client from a server.
 
 Tolerances that need no setting
 -------------------------------
@@ -75,17 +72,17 @@ has nowhere to go. A policy governs payloads, and a payload comes from a peer.
 Where a policy is read
 ----------------------
 
-Three layers answer, in order:
+A call runs under the first policy it finds among:
 
 1. the ``scim_policy`` argument of the call;
 2. the policy of the innermost open block, from ``with policy:`` or ``with provider:``;
 3. the strict reading.
 
-The resolution happens for each pass, which gives the layers a visible consequence. A model
-validated inside a block and serialized outside it is serialized under the strict reading. Under
-:attr:`~scim2_models.ScimPolicy.Unknown.keep` the attributes themselves survive on the instance
-and :attr:`~scim2_models.BaseModel.unknown_attributes` still reads them, so the dump can be made
-again inside a block; the other settings leave nothing behind.
+The policy is looked up for each validation and each dump. So a model validated inside a block
+and serialized outside it is serialized under the strict reading. Under
+:attr:`~scim2_models.ScimPolicy.Unknown.keep`, the unknown attributes stay on the instance, in
+:attr:`~scim2_models.BaseModel.unknown_attributes`, and a dump inside a block writes them back.
+The other settings leave nothing on the instance.
 
 Blocks nest, and each one restores what it interrupted. Each thread and each asyncio task carries
 its own, so a server may open one per request.
@@ -97,4 +94,4 @@ An attribute no model declares has no :class:`~scim2_models.Returned` and no
 :class:`~scim2_models.Mutability` annotation, since those come from a schema. Nothing can filter
 it by context, and it is written back in all of them. A client reading from one service under
 :attr:`~scim2_models.ScimPolicy.Unknown.keep` and creating on another pushes the first service's
-attributes to the second. A proxy wants exactly that, and ``keep`` is a setting an author picks.
+attributes to the second. A proxy needs this, and ``keep`` only applies when an author picks it.

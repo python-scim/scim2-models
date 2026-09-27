@@ -71,7 +71,8 @@ errata correcting the grammar is verified yet, and a reported one may still be r
 Stricter than the published ABNF
 --------------------------------
 
-The grammar refuses five forms the published ABNF allows. No known deployment needs any of them:
+The grammar refuses these forms, although the published ABNF allows them. No known deployment
+needs any of them:
 
 Schema URIs
     §3.4.2.2 defines ``URI`` per :rfc:`Appendix A of RFC3986 <3986#appendix-A>`, which any
@@ -108,8 +109,7 @@ Numbers out of range
 Choices the RFC leaves open
 ---------------------------
 
-Eight questions are left open by the specification, and an implementation has to answer each of
-them:
+The specification leaves these questions open, and an implementation has to answer each of them:
 
 ``ne`` on a multi-valued attribute
     §3.4.2.2 states that a filter matches "if any of the values" matches, without saying what
@@ -152,10 +152,14 @@ Comparing values of different types
     The :doc:`../integrations/sqlalchemy` guide shows where.
 
 Case-insensitive comparison
-    §3.4.2.2 defers to ``caseExact`` without saying how case is folded.
-    :meth:`~scim2_models.ScimFilter.match` applies Unicode case folding, on strings normalised
-    to Normalization Form C (NFC), so ``title eq "STRASSE"`` matches ``"Straße"``. A transpiler
-    emitting SQL ``LOWER()`` folds ASCII only, and departs from
+    §3.4.2.2 defers to ``caseExact``. :rfc:`RFC7644 §7.8 <7644#section-7.8>` asks for strings
+    to be "appropriately prepared" before comparison, but only defines that preparation for
+    ``userName`` and ``password``: :rfc:`RFC7644 §5 <7644#section-5>` points to the PRECIS
+    rules of RFC 7613, since replaced by :rfc:`8265`.
+    :meth:`~scim2_models.ScimFilter.match` applies Unicode case folding to every string, on
+    strings normalized to Normalization Form C (NFC). So ``title eq "STRASSE"`` matches
+    ``"Straße"``. PRECIS maps case to lowercase instead, and the two do not match there. A
+    transpiler emitting SQL ``LOWER()`` folds ASCII only, and departs from
     :meth:`~scim2_models.ScimFilter.match` on such a value.
 
 Coercion of comparison values
@@ -168,7 +172,7 @@ Coercion of comparison values
 Tolerances for real deployments
 -------------------------------
 
-Three tolerances go the other way, and make filters from deployed servers usable. The parser
+Some tolerances go the other way, and make filters from deployed servers usable. The parser
 accepts irregular spacing around operators. It reads keywords in any case, as in ``AND`` or
 ``Eq``. And it accepts ``attrName[value eq "…"]``, the notation implementations use to address
 the values of a multi-valued attribute that is not complex.

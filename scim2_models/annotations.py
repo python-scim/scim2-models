@@ -97,7 +97,7 @@ class Uniqueness(StrEnum):
     know. It is a declaration, published by
     :meth:`~scim2_models.Resource.to_schema` and read back by
     :meth:`~scim2_models.Resource.from_schema`, that a service provider
-    honours and whose violation it reports with
+    honors and whose violation it reports with
     :class:`~scim2_models.UniquenessException`.
     """
 
@@ -164,7 +164,7 @@ class CaseExact(Enum):
 
     ``binary`` and ``reference`` attributes are case-exact whatever their schema
     says, per :rfc:`RFC7643 §2.3.6 <7643#section-2.3.6>` and
-    :rfc:`§2.3.7 <7643#section-2.3.7>`. Filter comparisons honour it, and
+    :rfc:`§2.3.7 <7643#section-2.3.7>`. Filter comparisons honor it, and
     :meth:`~scim2_models.Resource.to_schema` publishes it.
     """
 

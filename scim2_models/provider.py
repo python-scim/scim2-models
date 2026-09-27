@@ -87,7 +87,7 @@ class ScimProvider:
     describes itself with a provider, and a client describes the peer it
     queries; the class carries no notion of either role.
 
-    ``models`` is the catalogue of what the service can build: bare resources
+    ``models`` is the catalog of what the service can build: bare resources
     and extensions, each identified by its schema URI. ``resource_types`` binds
     extensions to a resource and gives it an endpoint, as :rfc:`RFC7643 §6
     <7643#section-6>` describes. The provider composes the two:
@@ -267,7 +267,7 @@ class ScimProvider:
         (:rfc:`RFC7643 §6 <7643#section-6>`), not the name of a Python class and
         not an endpoint, which :meth:`model_for_endpoint` takes.
 
-        A schema URI, or a :class:`~scim2_models.Schema`, answers the catalogue
+        A schema URI, or a :class:`~scim2_models.Schema`, answers the catalog
         instead: the bare resource, or the extension the URI names.
         :rfc:`RFC7643 §3 <7643#section-3>` has ``meta.resourceType``, not
         ``schemas``, tell what a resource is.

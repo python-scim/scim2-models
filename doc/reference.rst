@@ -331,8 +331,8 @@ Aliases used where an API accepts more than one SCIM object or resource type.
 
 .. data:: DescribedModel
 
-   A model a schema describes: a resource, or an extension of one. This is what
-   :class:`~scim2_models.ScimProvider` holds in its catalogue.
+   A model a schema describes: a resource, or an extension of one.
+   :class:`~scim2_models.ScimProvider` holds these models in its catalog.
 
 .. data:: AnyResource
    :type: typing.TypeVar

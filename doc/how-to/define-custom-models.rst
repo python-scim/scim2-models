@@ -65,9 +65,9 @@ When the attribute name is not what camel-casing a Python name yields, declare i
    >>> Pet.model_validate({"$vetRef": "https://example.com/Vets/1"}).vet_ref
    'https://example.com/Vets/1'
 
-An alias applies to reading as well as to writing, and it wins over the Python name of any other
-field. A field whose alias is the Python name of its neighbour therefore takes the
-keyword that spells it, in a payload and in the constructor alike:
+An alias applies to reading as well as to writing. It also wins over the Python name of any other
+field. So when the alias of a field is the Python name of another field, that keyword goes to the
+field with the alias, in a payload and in the constructor:
 
 .. doctest::
 
@@ -79,8 +79,8 @@ keyword that spells it, in a payload and in the constructor alike:
    >>> Pet(pet_name="Mochi").legacy
    'Mochi'
 
-Two fields cannot answer to one attribute name. Such a model raises a :class:`TypeError` where it
-is defined, no payload key being able to reach both.
+Two fields cannot share one attribute name, since no payload key could reach both. Such a model
+raises a :class:`TypeError` when it is defined.
 
 Apply SCIM attribute metadata
 -----------------------------

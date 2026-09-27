@@ -11,7 +11,7 @@ Describe the service you expose
 A :class:`~scim2_models.ScimProvider` holds the attributes that describe a service. ``models``
 and ``resource_types`` cover the resources it serves and the endpoints it serves them under.
 
-``models`` is the catalogue of what the service can build: bare resources and extensions, each
+``models`` is the catalog of what the service can build: bare resources and extensions, each
 identified by its schema URI. ``resource_types`` binds extensions to a resource and gives it an
 endpoint, as :rfc:`RFC7643 §6 <7643#section-6>` describes. Build one from a parameterized model
 with :meth:`ResourceType.from_resource <scim2_models.ResourceType.from_resource>`, which supplies
@@ -76,8 +76,8 @@ Read the description during a validation
 ----------------------------------------
 
 A rule the specification makes conditional on a capability needs what the service declares, not
-only the payload. Name the provider at the call, and every validator the pass reaches sees it,
-down to a nested attribute:
+only the payload. Pass the provider to the call. Every validator sees it, down to a nested
+attribute:
 
 .. doctest::
 
@@ -145,7 +145,7 @@ Route a request to a model
 
 :meth:`~scim2_models.ScimProvider.model_for` takes a resource type name or a schema URI, and
 :meth:`~scim2_models.ScimProvider.model_for_endpoint` takes an endpoint. A name gives the composed
-model, a schema URI gives the catalogue entry: the bare resource, or the extension the URI names.
+model, a schema URI gives the catalog entry: the bare resource, or the extension with that URI.
 Neither method takes the name of a Python class:
 
 .. doctest::
@@ -191,8 +191,8 @@ third one, to :meth:`~scim2_models.ScimProvider.from_discovery`:
    ...     schemas, resource_types, service_provider_config
    ... )
 
-Each schema becomes a model, a resource or an extension depending on how the resource types name
-it, and the resource types bind them back together:
+Each schema becomes a model: a resource or an extension, depending on how the resource types use
+it. The resource types bind them back together:
 
 .. doctest::
 

@@ -66,7 +66,7 @@ class Path(_BoundToModels, _Expression, Generic[ResourceT]):
       they belong to.
 
     Syntax is checked on creation. Resolving attribute names requires a model
-    to resolve them against, bound with a parameterised type such as
+    to resolve them against, bound with a parameterized type such as
     ``Path[User]``. The :meth:`get`, :meth:`set` and :meth:`delete` methods
     read and write a resource through the path.
 
@@ -180,7 +180,7 @@ class Path(_BoundToModels, _Expression, Generic[ResourceT]):
         ``emails[type eq "work"].value`` designates ``emails.value``. The
         resource root designates no attribute at all.
 
-        The path is normalised first, so the three spellings errata 7122 offers
+        The path is normalized first, so the three spellings errata 7122 offers
         for one selection designate the same attribute: the sub-attribute of
         ``emails.type eq "work"`` belongs to the filter, not to the attribute
         the path operates on.

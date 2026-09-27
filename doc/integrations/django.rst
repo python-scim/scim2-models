@@ -83,7 +83,7 @@ Error handler
 ^^^^^^^^^^^^^
 
 Django does not produce SCIM-formatted 404 responses by default. Defining ``handler404`` in the
-URLconf module overrides this behaviour. Django calls ``handler404`` only when ``DEBUG`` is
+URLconf module overrides this behavior. Django calls ``handler404`` only when ``DEBUG`` is
 ``False``.
 
 .. literalinclude:: _examples/django_example.py

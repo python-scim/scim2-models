@@ -42,8 +42,7 @@ from:
    >>> user.name.unknown_attributes
    {'bogusSub': 1}
 
-An unmodelled extension takes the same route, since a payload names one with a root key whose name
-is a URN.
+An extension with no model is handled the same way. In a payload, it is a root key that is a URN.
 
 Under that policy, a PATCH operation on an undeclared attribute changes
 nothing, and the other operations still apply. Pass the policy to
@@ -52,8 +51,8 @@ nothing, and the other operations still apply. Pass the policy to
 Write unknown attributes back
 -----------------------------
 
-:attr:`~scim2_models.ScimPolicy.Unknown.keep` also writes them to the dump, which is what a proxy
-reading from one service and creating on another needs:
+:attr:`~scim2_models.ScimPolicy.Unknown.keep` also writes them back when dumping. A proxy that
+reads from one service and creates on another needs this:
 
 .. doctest::
 
@@ -108,8 +107,8 @@ means:
    >>> [member.value for member in group.members]
    ['902c246b']
 
-Each entry becomes a filter on the sub-attributes it names, so a member carrying more than the
-entry describes still matches. A selection matching nothing changes nothing and reports success,
+Each entry becomes a filter on its sub-attributes, so a member with more sub-attributes than the
+entry still matches. A selection matching nothing changes nothing and reports success,
 which :rfc:`RFC7644 §3.5.2.2 <7644#section-3.5.2.2>` asks for a membership that was not there.
 
 Entra documents this form as non-conformant, and its ``aadOptscim062020`` tenant flag makes it
@@ -150,8 +149,8 @@ sub-attributes. :doc:`../explanation/patch` explains why this is not the default
 State a policy once per request
 -------------------------------
 
-A server naming the policy at every call repeats itself. Opening a block sets it for everything
-inside:
+A server can set the policy once per request instead of passing it to every call. Opening a block
+sets it for everything inside:
 
 .. doctest::
 
@@ -160,7 +159,7 @@ inside:
    >>> user.user_name
    'bjensen'
 
-An argument named at the call site wins over the block:
+A policy passed to the call wins over the block:
 
 .. doctest::
 
