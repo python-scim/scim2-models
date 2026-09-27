@@ -72,16 +72,17 @@ class ScimPolicy(BaseModel):
 
         It stays readable on
         :attr:`~scim2_models.BaseModel.unknown_attributes`, and no dump
-        restores it.
+        restores it. A PATCH operation on such an attribute changes
+        nothing.
         """
 
         keep = "keep"
         """The payload is accepted and the attribute is dumped back.
 
         The original spelling is preserved. No attribute characteristic is
-        declared for it, so no context filters it out. In the value of a PATCH
-        operation, the attribute has no field to be written to and is dropped
-        as ``ignore`` drops it.
+        declared for it, so no context filters it out. In the value or the
+        path of a PATCH operation, it has no field to write to, so it is
+        dropped as with ``ignore``.
         """
 
     class RemoveValue(StrEnum):

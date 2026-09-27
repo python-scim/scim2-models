@@ -61,6 +61,10 @@ Fixed
   pydantic :class:`~pydantic.ValidationError` without ``scimType``.
 - :meth:`PatchOp.patch <scim2_models.PatchOp.patch>` no longer reports a resource as modified
   when an operation writes a complex or multi-valued value it already has.
+- A PATCH path to an undeclared attribute follows
+  :attr:`ScimPolicy.unknown <scim2_models.ScimPolicy.unknown>`, like a value does. With ``ignore``
+  or ``keep``, the operation changes nothing instead of failing the whole patch with
+  ``invalidPath``. An undeclared sub-attribute in a filter still fails with ``invalidFilter``.
 
 Security
 ^^^^^^^^

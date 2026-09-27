@@ -257,9 +257,12 @@ Rejected paths
 Which ``scimType`` a rejected path answers follows Table 9 of
 :rfc:`RFC7644 §3.12 <7644#section-3.12>`. ``invalidPath`` covers "the ``path`` attribute was
 invalid or malformed (see Figure 7)". It answers a path the grammar refuses, and an attribute the
-model does not declare. Table 9 lists ``invalidFilter`` as applying to a "PATCH (Path Filter)",
+model does not declare, unless :attr:`ScimPolicy.unknown <scim2_models.ScimPolicy.unknown>` drops
+it. With ``ignore`` or ``keep``, an operation on an undeclared attribute changes
+nothing. Table 9 lists ``invalidFilter`` as applying to a "PATCH (Path Filter)",
 so it answers what goes wrong between the brackets. That covers an unknown sub-attribute, a
-comparison the attribute cannot take, and a selection over an attribute holding a single value.
+comparison the attribute cannot take, and a selection over an attribute holding a single value,
+under any policy.
 
 Building a patch rather than applying one
 -----------------------------------------

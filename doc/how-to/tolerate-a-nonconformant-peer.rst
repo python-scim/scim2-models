@@ -45,6 +45,10 @@ from:
 An unmodelled extension takes the same route, since a payload names one with a root key whose name
 is a URN.
 
+Under that policy, a PATCH operation on an undeclared attribute changes
+nothing, and the other operations still apply. Pass the policy to
+:meth:`PatchOp.patch <scim2_models.PatchOp.patch>` as well as to the validation of the message.
+
 Write unknown attributes back
 -----------------------------
 

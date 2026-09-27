@@ -316,6 +316,15 @@ def _as_payload(value: Any) -> Any:
     return value
 
 
+def _dropped(path: Path[Any], policy: ScimPolicy) -> bool:
+    """Whether the policy drops the undeclared attribute of a path."""
+    return (
+        path.model is None
+        and path.resolve() is None
+        and policy.unknown != ScimPolicy.Unknown.forbid
+    )
+
+
 def _check_operation(
     model: type[Resource[Any]],
     operation: PatchOperation[Any],
@@ -333,6 +342,8 @@ def _check_operation(
     removal = operation.op == PatchOperation.Op.remove
     if removal and in_request:
         _removal_path(path, operation.value, policy)
+    if _dropped(path, policy):
+        return
 
     if path.model is None:
         binding = path.resolve()
@@ -425,6 +436,8 @@ def _apply_operation(
     if not isinstance(operation.op, PatchOperation.Op):
         raise InvalidValueException(detail=f"{operation.op!r} is not a PATCH operation")
     path = Path.__class_getitem__(type(resource))(operation.path or "")
+    if _dropped(path, policy):
+        return False
 
     removal = None
     if operation.op == PatchOperation.Op.remove:

@@ -59,13 +59,14 @@ only break that client. :doc:`patch` describes how such a key is read.
 What a policy leaves alone
 --------------------------
 
-**PATCH paths stay strict.** An operation whose ``path`` names an attribute no model declares is
-refused with ``invalidPath``, whatever the policy says. Path resolution and unknown attributes are
-two separate mechanisms, and making them uniform would take a third. The default that would come
-out of it is the wrong one: a server would answer 200 to a modification it never applied, where
-:rfc:`RFC7644 §3.5.2 <7644#section-3.5.2>` asks for an error. Inside the body of a resource the
-trade is different, since dropping one unknown attribute still lands everything the peer and the
-model both knew.
+**PATCH filters stay strict.** Under :attr:`~scim2_models.ScimPolicy.Unknown.ignore` or
+:attr:`~scim2_models.ScimPolicy.Unknown.keep`, a PATCH operation on an attribute no model
+declares changes nothing, like an undeclared attribute in its value. A filter that
+compares such an attribute is still rejected with ``invalidFilter``, and a malformed path with
+``invalidPath``. In both cases, there is no attribute the policy could drop. Dropping an
+operation has a cost: the server returns 200 for a change it never applied, where
+:rfc:`RFC7644 §3.5.2 <7644#section-3.5.2>` asks for an error. A tolerant policy already accepts
+that cost for the body of a resource, and the strict default keeps the error.
 
 **Building a model in Python stays strict.** ``User(bogus=1)`` and ``user.bogus = 1`` raise under
 every policy. Pydantic only offers a hook for extra keys during validation, so a keyword argument

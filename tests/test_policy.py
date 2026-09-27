@@ -19,6 +19,7 @@ from scim2_models import CreationRequestContext
 from scim2_models import CreationResponseContext
 from scim2_models import EnterpriseUser
 from scim2_models import Group
+from scim2_models import InvalidFilterException
 from scim2_models import InvalidValueException
 from scim2_models import PatchOp
 from scim2_models import PatchOperation
@@ -386,6 +387,92 @@ def test_the_keys_microsoft_entra_adds_to_a_patch_are_ignored():
 
     assert patch_op.unknown_attributes == {"id": "2819c223"}
     assert patch_op.operations[0].unknown_attributes == {"name": "addMember"}
+
+
+# Unknown attributes in a PATCH path
+
+
+def _pathed_patch(operations, policy):
+    return PatchOp[User].model_validate(
+        {"Operations": operations},
+        scim_ctx=Context.RESOURCE_PATCH_REQUEST,
+        scim_policy=policy,
+    )
+
+
+def _pathed_user():
+    return User(
+        user_name="bjensen", emails=[{"value": "b@example.com", "type": "work"}]
+    )
+
+
+UNDECLARED_PATHS = [
+    pytest.param("unknownAttr", id="attribute"),
+    pytest.param("name.unknownAttr", id="sub-attribute"),
+    pytest.param("urn:example:2.0:Unmodelled:attr", id="extension"),
+    pytest.param(
+        'emails[type eq "work"].unknownAttr', id="sub-attribute of a selection"
+    ),
+]
+
+
+def test_an_undeclared_path_is_refused_by_default():
+    """The interoperability profile asks a service provider to reject what it does not define."""
+    with pytest.raises(ValidationError) as raised:
+        _pathed_patch([{"op": "replace", "path": "unknownAttr", "value": "x"}], None)
+
+    assert raised.value.errors()[0]["type"] == "scim_invalidPath"
+
+
+@pytest.mark.parametrize(
+    "policy", [IGNORE, ScimPolicy(unknown=ScimPolicy.Unknown.keep)]
+)
+@pytest.mark.parametrize("op", ["add", "replace", "remove"])
+@pytest.mark.parametrize("path", UNDECLARED_PATHS)
+def test_an_undeclared_path_is_dropped_under_a_tolerant_policy(policy, op, path):
+    """An attribute the policy drops from a value is also dropped from a path, since it has no field to write to."""
+    operation = {"op": op, "path": path}
+    if op != "remove":
+        operation["value"] = "x"
+    user = _pathed_user()
+    before = user.model_dump()
+
+    assert not _pathed_patch([operation], policy).patch(user, scim_policy=policy)
+    assert user.model_dump() == before
+
+
+def test_the_operations_beside_an_undeclared_path_are_applied():
+    """Dropping one operation leaves the others of the patch to apply."""
+    user = _pathed_user()
+    patch = _pathed_patch(
+        [
+            {"op": "replace", "path": "unknownAttr", "value": "x"},
+            {"op": "replace", "path": "nickName", "value": "Babs"},
+        ],
+        IGNORE,
+    )
+
+    assert patch.patch(user, scim_policy=IGNORE)
+    assert user.nick_name == "Babs"
+
+
+def test_a_filter_comparing_an_undeclared_sub_attribute_is_invalid_under_any_policy():
+    """The policy applies to attribute names, not to filter expressions."""
+    patch = _pathed_patch(
+        [{"op": "replace", "path": 'emails[unknownAttr eq "x"].value', "value": "x"}],
+        IGNORE,
+    )
+
+    with pytest.raises(InvalidFilterException):
+        patch.patch(_pathed_user(), scim_policy=IGNORE)
+
+
+def test_a_malformed_path_is_invalid_under_any_policy():
+    """A path the grammar rejects has no attribute the policy could drop."""
+    with pytest.raises(ValidationError) as raised:
+        _pathed_patch([{"op": "replace", "path": "unknown attr", "value": "x"}], IGNORE)
+
+    assert raised.value.errors()[0]["type"] == "scim_invalidPath"
 
 
 # Unknown attributes, carried back
