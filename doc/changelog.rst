@@ -12,6 +12,11 @@ Changed
 - In a model built from a schema, an attribute named after a member of the model, such as
   ``copy``, is held as ``copy_``. Its SCIM name is unchanged.
 
+Fixed
+^^^^^
+- A :class:`~scim2_models.PatchOperation` with a null value keeps it when dumped. A ``replace``
+  that clears its target used to be sent without a value.
+
 Security
 ^^^^^^^^
 - A published schema can no longer break the models built from it, nor make
@@ -20,7 +25,6 @@ Security
   levels deep at most, as :rfc:`RFC7643 §7 <7643#section-7>` allows for ``Schema``.
 - :func:`~scim2_models.get_model_by_payload` matches no model when ``schemas`` is not a list
   of strings.
-
 
 [0.8.2] - 2026-09-25
 --------------------

@@ -11,8 +11,11 @@ from typing import get_origin
 
 from pydantic import BaseModel as PydanticBaseModel
 from pydantic import Field
+from pydantic import SerializationInfo
+from pydantic import SerializerFunctionWrapHandler
 from pydantic import ValidationInfo
 from pydantic import field_validator
+from pydantic import model_serializer
 from pydantic import model_validator
 
 from ..annotations import Mutability
@@ -316,6 +319,24 @@ class PatchOperation(ComplexAttribute, Generic[ResourceT]):
 
     value: Any | None = None
 
+    @model_serializer(mode="wrap")
+    def _scim_serializer(
+        self, handler: SerializerFunctionWrapHandler, info: SerializationInfo
+    ) -> dict[str, Any]:
+        """Keep a null value the operation was given.
+
+        SCIM dumps drop null values, so a replace that clears its target would
+        be sent without a value.
+        """
+        serialized = super()._scim_serializer(handler, info)
+        if (
+            self.op != PatchOperation.Op.remove
+            and "value" in self.model_fields_set
+            and self.value is None
+        ):
+            serialized["value"] = None
+        return serialized
+
     @field_validator("op", mode="before")
     @classmethod
     def _normalize_op(cls, v: Any) -> Any:
@@ -376,12 +397,7 @@ class PatchOp(_ResourceParameterized, Message, Generic[ResourceT]):
 
     @model_validator(mode="after")
     def _validate_operations(self, info: ValidationInfo) -> Self:
-        """Validate operations against resource type metadata if available.
-
-        When PatchOp is used with a specific resource type (e.g.,
-        PatchOp[User]), this validator will automatically check mutability and
-        required constraints.
-        """
+        """Reject the errors the operations have on any resource of the type."""
         # RFC 7644: The body of an HTTP PATCH request MUST contain the attribute "Operations"
         scim_ctx = info.context.get("scim") if info.context else None
         if scim_ctx == Context.RESOURCE_PATCH_REQUEST and self.operations is None:
@@ -534,11 +550,7 @@ class PatchOp(_ResourceParameterized, Message, Generic[ResourceT]):
     def _apply_operation(
         self, resource: Resource[Any], operation: PatchOperation[ResourceT]
     ) -> bool:
-        """Apply a single patch operation, and say whether the resource changed.
-
-        An operation modifying an immutable attribute raises
-        MutabilityException.
-        """
+        """Apply one operation as RFC7644 §3.5.2 defines it, then check the result."""
         if operation.path is not None:
             self._check_immutable(resource, operation)
 

@@ -260,13 +260,12 @@ def _set_selected(
 ) -> bool:
     """Apply a value to every entry matched by a value selection.
 
-    A replacement selection matching nothing raises NoTargetException, per
-    RFC7644 §3.5.2.3. That failure is defined for ``replace`` only: §3.5.2.1
-    says nothing of a selection that matches nothing for ``add``, so the
-    operation is a no-op instead. Errata 8097
-    (https://errata.rfc-editor.org/eid8097/) asks for value selections in
-    ``add`` to be clarified at all, implementations differing on whether they
-    are allowed.
+    A selection matching nothing raises NoTargetException. RFC7644 §3.5.2.3
+    requires it for replace, and Table 9 of §3.12 defines noTarget for a filter
+    that "yields no match", which applies to add too.
+
+    Without a sub-attribute, each matched entry is replaced in place, so it
+    stays the same object. Entries have no identity other than the object.
     """
     host, field_name, matched, sub_attr = selection
 

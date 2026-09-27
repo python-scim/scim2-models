@@ -804,7 +804,7 @@ def test_an_operation_without_path_refuses_an_undeclared_attribute():
 
 
 def test_an_operation_without_path_may_unassign_an_extension():
-    """An extension is no attribute of the resource, so none of it is required."""
+    """An extension is not an attribute of the resource, so it is not required."""
     patch = PatchOp[User[ConstrainedExtension]].model_validate(
         {
             "Operations": [
@@ -1109,3 +1109,39 @@ def test_a_path_designating_the_resource_itself_is_accepted():
     user = User(user_name="bjensen")
     patch.patch(user)
     assert user.nick_name == "Babs"
+
+
+def test_a_replace_unassigning_its_target_keeps_its_null_value_when_dumped():
+    """A replace dumped without its value would be read back as missing its value."""
+    patch = PatchOp[User](
+        operations=[PatchOperation[User](op="replace", path="title", value=None)]
+    )
+
+    payload = patch.model_dump(scim_ctx=Context.RESOURCE_PATCH_REQUEST)
+
+    assert payload["Operations"] == [{"op": "replace", "path": "title", "value": None}]
+    user = User(user_name="bjensen", title="CEO")
+    PatchOp[User].model_validate(
+        payload, scim_ctx=Context.RESOURCE_PATCH_REQUEST
+    ).patch(user)
+    assert user.title is None
+
+
+def test_an_operation_given_no_value_is_dumped_without_one():
+    """Only a null value the operation was given is kept in the dump."""
+    operation = PatchOperation[User](op="replace", path="title")
+
+    assert operation.model_dump(scim_ctx=Context.RESOURCE_PATCH_REQUEST) == {
+        "op": "replace",
+        "path": "title",
+    }
+
+
+def test_a_remove_given_a_null_value_is_dumped_without_one():
+    """RFC7644 §3.5.2.2 reads a remove from its path only, so a null value is left out."""
+    operation = PatchOperation[User](op="remove", path="title", value=None)
+
+    assert operation.model_dump(scim_ctx=Context.RESOURCE_PATCH_REQUEST) == {
+        "op": "remove",
+        "path": "title",
+    }
