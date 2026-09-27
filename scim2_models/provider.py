@@ -335,7 +335,8 @@ class ScimProvider:
             from the specification. This is a choice, not something a service
             publishes about itself.
         :raises ScimProviderError: When a resource type names a schema the
-            service does not publish.
+            service does not publish, or when a model cannot be built from a
+            schema.
         """
         resource_types = tuple(resource_types)
         extended = {
@@ -343,18 +344,32 @@ class ScimProvider:
             for resource_type in resource_types
             for declared in resource_type.schema_extensions or []
         }
-        models = [
-            Extension.from_schema(schema)
-            if _schema_key(schema.id) in extended
-            else Resource.from_schema(schema)
-            for schema in schemas
-        ]
+        models = [_discovered_model(schema, extended) for schema in schemas]
         return cls(
             models=models,
             resource_types=resource_types,
             config=config,
             policy=policy,
         )
+
+
+def _discovered_model(
+    schema: Schema, extended: set[str]
+) -> type[Resource[Any]] | type[Extension]:
+    """Build the model of a schema a service publishes.
+
+    The resource types tell whether the schema describes an extension.
+    """
+    try:
+        if _schema_key(schema.id) in extended:
+            return Extension.from_schema(schema)
+
+        return Resource.from_schema(schema)
+
+    except ValueError as exc:
+        raise ScimProviderError(
+            f"The schema {schema.id} cannot be composed: {exc}"
+        ) from exc
 
 
 def _ambient_provider() -> "ScimProvider | None":

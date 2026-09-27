@@ -9,6 +9,17 @@ Changed
 - Python 3.11 is now the minimum supported version.
 - The enumerations, such as :class:`~scim2_models.Mutability`, are :class:`~enum.StrEnum`:
   :class:`str` and f-strings give their value, ``readOnly`` rather than ``Mutability.read_only``.
+- In a model built from a schema, an attribute named after a member of the model, such as
+  ``copy``, is held as ``copy_``. Its SCIM name is unchanged.
+
+Security
+^^^^^^^^
+- A published schema can no longer break the models built from it, nor make
+  :meth:`ScimProvider.from_discovery <scim2_models.ScimProvider.from_discovery>` raise another
+  exception than :class:`~scim2_models.ScimProviderError`. Complex attributes are nested two
+  levels deep at most, as :rfc:`RFC7643 §7 <7643#section-7>` allows for ``Schema``.
+- :func:`~scim2_models.get_model_by_payload` matches no model when ``schemas`` is not a list
+  of strings.
 
 
 [0.8.2] - 2026-09-25

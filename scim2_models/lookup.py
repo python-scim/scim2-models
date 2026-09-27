@@ -66,8 +66,8 @@ def get_model_by_payload(
     :param payload: The payload which schemas are used to look for a model.
     :param kwargs: Additional parameters passed to :func:`get_model_by_schema`.
     """
-    if not payload or not payload.get("schemas"):
+    schemas = payload.get("schemas") if payload else None
+    if not schemas or not isinstance(schemas, list) or not isinstance(schemas[0], str):
         return None
 
-    schema = payload["schemas"][0]
-    return get_model_by_schema(models, schema, **kwargs)
+    return get_model_by_schema(models, schemas[0], **kwargs)

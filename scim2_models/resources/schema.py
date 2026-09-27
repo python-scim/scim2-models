@@ -37,17 +37,28 @@ T = TypeVar("T", bound=BaseModel)
 
 _NON_WORD_OR_LEADING_DIGIT = re.compile(r"\W|^(?=\d)")
 
+_MAX_COMPLEX_DEPTH = 2
+"""How deep complex attributes can be nested.
 
-def _make_python_identifier(identifier: str) -> str:
-    """Sanitize string to be a suitable Python/Pydantic class attribute name."""
-    sanitized = _NON_WORD_OR_LEADING_DIGIT.sub("", identifier)
-    if sanitized in RESERVED_WORDS:
+RFC7643 §2.3.8 forbids complex sub-attributes, but §7 lets the "Schema"
+resource hold one, as its complex 'subAttributes' in its complex 'attributes'."""
+
+
+def _make_python_identifier(identifier: str, base: type) -> str:
+    """Sanitize string to be a suitable Python/Pydantic class attribute name.
+
+    Pydantic refuses the names with a leading underscore, and a field named after
+    a member of the base class, such as 'model_config' or 'model_dump', would
+    break the model. Such a name gets a trailing underscore, as a reserved word.
+    """
+    sanitized = to_snake(_NON_WORD_OR_LEADING_DIGIT.sub("", identifier).lstrip("_"))
+    if sanitized in RESERVED_WORDS or hasattr(base, sanitized):
         sanitized = f"{sanitized}_"
 
     return sanitized
 
 
-def _field_names(attributes: "list[Attribute]") -> list[str]:
+def _field_names(attributes: "list[Attribute]", base: type) -> list[str]:
     """Return the Python name each attribute is held under.
 
     Two SCIM names may yield one Python name, as ``employee_id`` and
@@ -58,18 +69,21 @@ def _field_names(attributes: "list[Attribute]") -> list[str]:
     costs nothing: an attribute is read under the name SCIM gives it, as in
     ``resource["employee-Id"]``.
     """
-    natural = [
-        to_snake(_make_python_identifier(attr.name or "")) for attr in attributes
-    ]
+    natural = [_make_python_identifier(attr.name or "", base) for attr in attributes]
     shared = Counter(natural)
-    return [
+    names = [
         name if shared[name] == 1 or name == attr.name else attr.name or ""
         for attr, name in zip(attributes, natural, strict=True)
     ]
+    for name in names:
+        if name.startswith("_") or hasattr(base, name):
+            raise ValueError(f"{name!r} cannot be the name of an attribute")
+
+    return names
 
 
 def _python_attributes(
-    attributes: "list[Attribute] | None", declared_by: str
+    attributes: "list[Attribute] | None", declared_by: str, base: type, depth: int
 ) -> dict[str, Any]:
     """Return the fields a schema or a complex attribute declares.
 
@@ -93,26 +107,37 @@ def _python_attributes(
         declared.append(attr)
 
     return {
-        field_name: attr._to_python()
-        for field_name, attr in zip(_field_names(declared), declared, strict=True)
+        field_name: attr._to_python(depth)
+        for field_name, attr in zip(_field_names(declared, base), declared, strict=True)
     }
 
 
 def _make_python_model(
     obj: Union["Schema", "Attribute"],
     base: type[T],
+    depth: int = 0,
 ) -> type[T]:
-    """Build a Python model from a Schema or an Attribute object."""
+    """Build a Python model from a Schema or an Attribute object.
+
+    ``depth`` is the nesting level of the complex attribute being built, 0 for
+    a schema.
+    """
     if not obj.name:
         raise ValueError("Schema or Attribute 'name' must be defined")
 
+    if depth > _MAX_COMPLEX_DEPTH:
+        raise ValueError(
+            f"the complex attribute {obj.name!r} is nested more than "
+            f"{_MAX_COMPLEX_DEPTH} levels deep"
+        )
+
     if isinstance(obj, Attribute):
         pydantic_attributes = _python_attributes(
-            obj.sub_attributes, f"the attribute {obj.name!r}"
+            obj.sub_attributes, f"the attribute {obj.name!r}", base, depth
         )
     else:
         pydantic_attributes = _python_attributes(
-            obj.attributes, f"the schema {obj.id or obj.name}"
+            obj.attributes, f"the schema {obj.id or obj.name}", base, depth
         )
 
     model_name = obj.name if isinstance(obj, Schema) else to_pascal(to_snake(obj.name))
@@ -259,15 +284,19 @@ class Attribute(ComplexAttribute):
     """When an attribute is of type "complex", "subAttributes" defines a set of
     sub-attributes."""
 
-    def _to_python(self) -> tuple[Any, Any] | None:
-        """Build tuple suited to be passed to pydantic 'create_model'."""
+    def _to_python(self, depth: int = 0) -> tuple[Any, Any] | None:
+        """Build tuple suited to be passed to pydantic 'create_model'.
+
+        ``depth`` is the nesting level of the complex attribute holding this
+        one, 0 for a schema.
+        """
         if not self.name or not self.type:
             return None
 
         attr_type = self.type._to_python(self.reference_types)
 
         if attr_type == ComplexAttribute:
-            attr_type = _make_python_model(obj=self, base=attr_type)
+            attr_type = _make_python_model(obj=self, base=attr_type, depth=depth + 1)
 
         if self.multi_valued:
             attr_type = list[attr_type]  # type: ignore
