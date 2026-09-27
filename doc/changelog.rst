@@ -4,6 +4,12 @@ Changelog
 [Unreleased]
 ------------
 
+Added
+^^^^^
+- :attr:`ScimPolicy.unmatched_path_filter <scim2_models.ScimPolicy.unmatched_path_filter>` can
+  make a PATCH ``add`` or ``replace`` create the entry its path filter describes when no entry
+  matches, as Microsoft Entra ID expects. By default, the operation still fails with ``noTarget``.
+
 Changed
 ^^^^^^^
 - Python 3.11 is now the minimum supported version.
@@ -11,6 +17,60 @@ Changed
   :class:`str` and f-strings give their value, ``readOnly`` rather than ``Mutability.read_only``.
 - In a model built from a schema, an attribute named after a member of the model, such as
   ``copy``, is held as ``copy_``. Its SCIM name is unchanged.
+- A PATCH ``add`` whose path filter matches no entry, such as ``emails[type eq "work"].value``
+  on a user without a work email, now fails with ``noTarget`` instead of silently doing nothing.
+  :meth:`Path.set <scim2_models.Path.set>` raises :class:`~scim2_models.NoTargetException` in
+  that case when strict.
+- A PATCH ``add`` or ``replace`` on a filtered path, such as ``emails[type eq "work"]``, merges
+  its value into the matching entries instead of replacing them
+  (:rfc:`RFC7644 §3.5.2.3 <7644#section-3.5.2.3>`). The entries are updated in place, so the
+  immutable sub-attributes of a group member cannot be changed this way.
+
+Fixed
+^^^^^
+- A :class:`~scim2_models.PatchOperation` with a null value keeps it when dumped. A ``replace``
+  that clears its target used to be sent without a value.
+- Setting a null value under an unset complex attribute or extension no longer creates an empty
+  one, and no longer reports the resource as modified.
+- A :class:`~scim2_models.PatchOp` with no operation, or with an operation other than ``add``,
+  ``remove`` and ``replace``, fails with ``invalidValue`` instead of a validation error without
+  ``scimType``.
+- A PATCH ``add`` or ``replace`` on a complex attribute keeps the sub-attributes its value leaves
+  out, instead of replacing the whole attribute (:rfc:`RFC7644 §3.5.2.3 <7644#section-3.5.2.3>`).
+- A PATCH ``add`` without a path adds to the multi-valued attributes in its value, like an
+  ``add`` with a path, instead of replacing their values.
+- A key of a PATCH value can be an attribute path, such as ``name.givenName`` or
+  ``urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:employeeNumber``, as Microsoft
+  Entra ID and its SCIM Validator send. It used to be rejected as an undeclared attribute.
+- Undeclared attributes and sub-attributes in a PATCH value follow
+  :attr:`ScimPolicy.unknown <scim2_models.ScimPolicy.unknown>`.
+- PATCH checks immutable attributes at every level and in every operation, including operations
+  with no path, an empty path or a schema URN, and the removal of an extension. For example, the
+  ``value`` of a group member can be added and removed, but not changed
+  (:rfc:`RFC7643 §4.2 <7643#section-4.2>`). Setting a first value with ``replace``, or writing
+  back the current value, is accepted.
+- PATCH checks read-only attributes at every level, such as the ``displayName`` of the
+  enterprise ``manager``. A path to one is rejected. A value that contains one is
+  rejected only if it changes it, so an attribute sent back as it was read is accepted. Okta, for
+  example, sends back the ``id`` of a group it renames.
+- PATCH rejects a change to a required attribute only when it leaves the attribute unset
+  (:rfc:`RFC7644 §3.5.2.2 <7644#section-3.5.2.2>`). Removing some values of a required
+  multi-valued attribute, removing a sub-attribute of a required complex attribute, or adding an
+  empty list is now accepted. Required sub-attributes and extensions are checked too.
+- A PATCH ``replace`` without a value fails with ``invalidValue`` instead of clearing its
+  target. So does an operation whose path targets the resource or an extension with a value that
+  is not an object, which used to be ignored.
+- A PATCH ``replace`` that sets several ``primary`` entries fails with ``invalidValue``, like
+  ``add`` already did, instead of keeping one of them at random.
+- :meth:`PatchOp.patch <scim2_models.PatchOp.patch>` raises
+  :class:`~scim2_models.InvalidValueException` when the attribute rejects a value, instead of a
+  pydantic :class:`~pydantic.ValidationError` without ``scimType``.
+- :meth:`PatchOp.patch <scim2_models.PatchOp.patch>` no longer reports a resource as modified
+  when an operation writes a complex or multi-valued value it already has.
+- A PATCH path to an undeclared attribute follows
+  :attr:`ScimPolicy.unknown <scim2_models.ScimPolicy.unknown>`, like a value does. With ``ignore``
+  or ``keep``, the operation changes nothing instead of failing the whole patch with
+  ``invalidPath``. An undeclared sub-attribute in a filter still fails with ``invalidFilter``.
 
 Security
 ^^^^^^^^
@@ -20,7 +80,6 @@ Security
   levels deep at most, as :rfc:`RFC7643 §7 <7643#section-7>` allows for ``Schema``.
 - :func:`~scim2_models.get_model_by_payload` matches no model when ``schemas`` is not a list
   of strings.
-
 
 [0.8.2] - 2026-09-25
 --------------------
