@@ -114,8 +114,8 @@ class ScimPolicy(BaseModel):
 
         Only ``eq`` comparisons on sub-attributes, joined by ``and``, describe
         an entry. The entry gets the compared values, then the operation
-        writes its value. Any other filter, and any ``remove``, is still
-        rejected with ``noTarget``.
+        writes its value. Any other filter is still rejected with
+        ``noTarget``. A ``remove`` is not affected: it changes nothing.
         """
 
     unknown: Unknown = Unknown.forbid
