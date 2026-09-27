@@ -350,8 +350,16 @@ class PatchOperation(ComplexAttribute, Generic[ResourceT]):
         Microsoft Entra ID emits the values of op as Add, Replace, and Remove.
         """
         if isinstance(v, str):
-            return v.lower()
-        return v
+            v = v.lower()
+        try:
+            return cls.Op(v)
+        except ValueError:
+            # RFC7644 §3.5.2 defines no scimType for an unknown operation, and
+            # §3.12 defines invalidValue for a value that does not fit the
+            # operation.
+            raise InvalidValueException(
+                detail=f"{v!r} is not a PATCH operation: add, remove or replace"
+            ).as_pydantic_error() from None
 
 
 class PatchOp(_ResourceParameterized, Message, Generic[ResourceT]):
@@ -390,7 +398,7 @@ class PatchOp(_ResourceParameterized, Message, Generic[ResourceT]):
     __schema__ = URN("urn:ietf:params:scim:api:messages:2.0:PatchOp")
 
     operations: Annotated[list[PatchOperation[ResourceT]] | None, Required.true] = (
-        Field(None, serialization_alias="Operations", min_length=1)
+        Field(None, serialization_alias="Operations")
     )
     """The body of an HTTP PATCH request MUST contain the attribute
     "Operations", whose value is an array of one or more PATCH operations."""
@@ -403,6 +411,11 @@ class PatchOp(_ResourceParameterized, Message, Generic[ResourceT]):
         if scim_ctx == Context.RESOURCE_PATCH_REQUEST and self.operations is None:
             raise InvalidValueException(
                 detail="operations attribute is required"
+            ).as_pydantic_error()
+
+        if self.operations == []:
+            raise InvalidValueException(
+                detail="operations holds one or more operations"
             ).as_pydantic_error()
 
         resource_class = _get_resource_class(self)

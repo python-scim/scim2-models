@@ -1145,3 +1145,22 @@ def test_a_remove_given_a_null_value_is_dumped_without_one():
         "op": "remove",
         "path": "title",
     }
+
+
+def test_a_patch_without_any_operation_is_refused():
+    """RFC7644 §3.5.2 requires "Operations" to hold at least one operation."""
+    with pytest.raises(ValidationError) as raised:
+        PatchOp[User].model_validate({"Operations": []})
+
+    assert raised.value.errors()[0]["type"] == "scim_invalidValue"
+
+
+@pytest.mark.parametrize("op", ["move", "copy", 1])
+def test_an_unknown_operation_is_refused(op):
+    """RFC7644 §3.5.2 defines add, remove and replace, and §3.12 gives invalidValue for anything else."""
+    with pytest.raises(ValidationError) as raised:
+        PatchOp[User].model_validate(
+            {"Operations": [{"op": op, "path": "nickName", "value": "Babs"}]}
+        )
+
+    assert raised.value.errors()[0]["type"] == "scim_invalidValue"

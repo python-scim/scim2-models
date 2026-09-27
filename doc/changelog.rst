@@ -18,6 +18,9 @@ Fixed
   that clears its target used to be sent without a value.
 - Setting a null value under an unset complex attribute or extension no longer creates an empty
   one, and no longer reports the resource as modified.
+- A :class:`~scim2_models.PatchOp` with no operation, or with an operation other than ``add``,
+  ``remove`` and ``replace``, fails with ``invalidValue`` instead of a validation error without
+  ``scimType``.
 
 Security
 ^^^^^^^^
