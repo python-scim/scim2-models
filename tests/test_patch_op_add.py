@@ -3,6 +3,7 @@ from pydantic import ValidationError
 
 from scim2_models import Group
 from scim2_models import GroupMember
+from scim2_models import InvalidValueException
 from scim2_models import NoTargetException
 from scim2_models import PatchOp
 from scim2_models import PatchOperation
@@ -305,18 +306,6 @@ def test_add_operation_no_path_with_invalid_attribute():
     assert user.nick_name == "Test"
 
 
-def test_add_operation_with_non_dict_value_no_path():
-    """Test add operation with no path and non-dict value should return False."""
-    user = User()
-    patch = PatchOp[User](
-        operations=[
-            PatchOperation[User](op=PatchOperation.Op.add, value="invalid_value")
-        ]
-    )
-    result = patch.patch(user)
-    assert result is False
-
-
 def test_add_a_subattribute_to_every_entry():
     """An unfiltered path designates the sub-attribute of each entry."""
     user = User(
@@ -351,7 +340,7 @@ def test_a_rejected_addition_leaves_the_attribute_untouched():
             )
         ]
     )
-    with pytest.raises(ValidationError):
+    with pytest.raises(InvalidValueException):
         patch.patch(user)
 
     assert user.emails == [User.Emails(value="bjensen@example.com")]
@@ -377,6 +366,66 @@ def test_an_operation_without_a_path_marks_the_attributes_it_wrote():
     assert user.display_name == "Barbara"
     assert "display_name" in user.model_fields_set
     assert user.model_dump(exclude_unset=True)["displayName"] == "Barbara"
+
+
+@pytest.mark.parametrize(
+    "path", [None, "", "urn:ietf:params:scim:schemas:core:2.0:User"]
+)
+def test_an_add_with_a_multi_valued_attribute_in_its_value_adds_to_it(path):
+    """RFC7644 §3.5.2.1 adds an email to the resource in its example of an add without a path."""
+    user = User(user_name="bjensen", emails=[{"value": "bjensen@example.com"}])
+    operation = {"op": "add", "value": {"emails": [{"value": "babs@example.com"}]}}
+    if path is not None:
+        operation["path"] = path
+
+    PatchOp[User].model_validate({"Operations": [operation]}).patch(user)
+
+    assert [email.value for email in user.emails] == [
+        "bjensen@example.com",
+        "babs@example.com",
+    ]
+
+
+def test_an_add_with_an_empty_list_in_its_value_leaves_the_attribute():
+    """An add of an empty list adds nothing, with or without a path."""
+    user = User(user_name="bjensen", emails=[{"value": "bjensen@example.com"}])
+    patch = PatchOp[User].model_validate(
+        {"Operations": [{"op": "add", "value": {"emails": []}}]}
+    )
+
+    assert patch.patch(user) is False
+    assert [email.value for email in user.emails] == ["bjensen@example.com"]
+
+
+def test_an_add_with_schemas_in_its_value_leaves_them_to_the_resource():
+    """The schemas of a resource follow the attributes it holds, not the payload writing them."""
+    user = User(user_name="bjensen")
+    patch = PatchOp[User].model_validate(
+        {
+            "Operations": [
+                {
+                    "op": "add",
+                    "value": {"schemas": ["urn:example:foo"], "nickName": "Babs"},
+                }
+            ]
+        }
+    )
+
+    patch.patch(user)
+
+    assert user.schemas == ["urn:ietf:params:scim:schemas:core:2.0:User"]
+    assert user.nick_name == "Babs"
+
+
+def test_an_add_setting_a_multi_valued_attribute_to_null_unassigns_it():
+    """RFC7643 §2.5 makes null the state of an attribute holding no value."""
+    user = User(user_name="bjensen", emails=[{"value": "bjensen@example.com"}])
+    patch = PatchOp[User].model_validate(
+        {"Operations": [{"op": "add", "value": {"emails": None}}]}
+    )
+
+    assert patch.patch(user)
+    assert user.emails is None
 
 
 def test_add_through_a_filter_matching_nothing_has_no_target():

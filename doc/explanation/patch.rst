@@ -13,19 +13,82 @@ Validation and application
 
 Validating a PATCH message in :attr:`~scim2_models.Context.RESOURCE_PATCH_REQUEST` rejects what
 the message alone settles: a missing operation value, a ``remove`` without a path or carrying a
-value, a read-only target, and an operation that would unassign a required attribute.
+value, a path to a read-only attribute, and an operation that removes a required
+attribute or sets it to an empty value.
 
 :meth:`~scim2_models.PatchOp.patch` then applies the message to the stored resource. Operations
 run in their listed order. This is where an immutable value can be compared with the value it
-replaces, and where the method reports whether any operation changed the resource. Splitting the
-two keeps a parsed :class:`~scim2_models.PatchOp` useful before the resource is loaded.
+replaces, and where the method reports whether any operation changed the resource. It also
+rejects an operation that unassigns a required attribute in another way, such as removing its
+last entry through a filter. Read-only attributes in the value are checked there too. A client
+that sends back the ``id`` or ``meta`` it read is accepted, since
+:rfc:`RFC7643 §3.1 <7643#section-3.1>` says to ignore them. A client that changes them gets a
+``mutability`` error. Splitting the two keeps a parsed :class:`~scim2_models.PatchOp` useful
+before the resource is loaded.
 
 Operation outcomes
 ------------------
 
 ``add`` appends a value to a multi-valued attribute rather than replacing its list. ``replace``
-replaces its target, creating an unassigned single-valued complex parent when necessary.
-``remove`` removes a selected list entry or unassigns the targeted attribute.
+replaces the value of a simple or multi-valued target. ``remove`` removes a selected list entry
+or unassigns the targeted attribute.
+
+A path to a sub-attribute of an absent complex attribute, such as ``name.givenName`` on a user
+without a name, creates that attribute.
+
+A complex attribute is merged rather than replaced. ``add`` and ``replace`` set the
+sub-attributes in their value and keep the others, as
+:rfc:`RFC7644 §3.5.2.3 <7644#section-3.5.2.3>` requires:
+
+.. doctest::
+
+    >>> from scim2_models import PatchOp, PatchOperation, User
+
+    >>> user = User(user_name="bjensen", name={"family_name": "Jensen", "given_name": "Barbara"})
+    >>> patch = PatchOp[User](
+    ...     operations=[
+    ...         PatchOperation(
+    ...             op=PatchOperation.Op.replace_, path="name", value={"givenName": "Babs"}
+    ...         )
+    ...     ]
+    ... )
+    >>> patch.patch(user)
+    True
+    >>> user.name.given_name, user.name.family_name
+    ('Babs', 'Jensen')
+
+Operations without a path
+-------------------------
+
+The value of an ``add`` or ``replace`` without a path holds the attributes to write. Each
+attribute is handled like an operation with that attribute as its path. A key can also be an
+attribute path, such as ``name.givenName`` or the full URN of an extension attribute. Microsoft
+Entra ID and its SCIM Validator send such keys. :rfc:`RFC7643 §2.1 <7643#section-2.1>` forbids
+dots and colons in attribute names, so such a key cannot be confused with a name:
+
+.. doctest::
+
+    >>> from scim2_models import EnterpriseUser, PatchOp, PatchOperation, User
+
+    >>> user = User[EnterpriseUser](user_name="bjensen", name={"family_name": "Jensen"})
+    >>> patch = PatchOp[User[EnterpriseUser]](
+    ...     operations=[
+    ...         PatchOperation(
+    ...             op=PatchOperation.Op.replace_,
+    ...             value={
+    ...                 "name.givenName": "Barbara",
+    ...                 "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:employeeNumber": "42",
+    ...             },
+    ...         )
+    ...     ]
+    ... )
+    >>> patch.patch(user)
+    True
+    >>> user.name.given_name, user.name.family_name, user[EnterpriseUser].employee_number
+    ('Barbara', 'Jensen', '42')
+
+A key with a filter is not read as a path, and neither is a key that matches no declared
+attribute. Both follow :attr:`ScimPolicy.unknown <scim2_models.ScimPolicy.unknown>`.
 
 What a path selects
 -------------------
@@ -59,6 +122,32 @@ of a multi-valued attribute an operation applies to:
     True
     >>> [email.value for email in user.emails]
     ['new@example.com', 'home@example.com']
+
+When a filter selects whole entries, ``add`` and ``replace`` merge their value into each selected
+entry, as they do for a complex attribute. :rfc:`RFC7644 §3.5.2.3 <7644#section-3.5.2.3>` says
+"all matching record values" are replaced, and keeps the sub-attributes the value does not
+specify:
+
+.. doctest::
+
+    >>> patch = PatchOp[User](
+    ...     operations=[
+    ...         PatchOperation(
+    ...             op=PatchOperation.Op.replace_,
+    ...             path='emails[type eq "home"]',
+    ...             value={"display": "Home"},
+    ...         )
+    ...     ]
+    ... )
+    >>> patch.patch(user)
+    True
+    >>> user.emails[1].type.value, user.emails[1].value, user.emails[1].display
+    ('home', 'home@example.com', 'Home')
+
+Each selected entry is updated in place, not replaced by a new one. So a client can change the
+``display`` of a group member without repeating its immutable ``value``. A different ``value`` is
+rejected with ``mutability``. To unassign a sub-attribute, give it a null value, or remove it with
+a path such as ``emails[type eq "home"].display``.
 
 A selection matching nothing
 ----------------------------

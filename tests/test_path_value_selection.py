@@ -163,11 +163,14 @@ def test_writing_the_same_value_changes_nothing(user):
 
 
 def test_writing_replaces_the_matching_values_wholesale(user):
-    """§3.5.2.3: all matching record values are replaced."""
+    """Path.set assigns, so unlike PATCH it unassigns the sub-attributes the value leaves out."""
+    entry = user.emails[1]
     assert Path[User]('emails[type eq "home"]').set(
         user, {"type": "other", "value": "other@example.com"}
     )
     assert [email.type for email in user.emails] == ["work", "other", "work"]
+    assert user.emails[1].primary is None
+    assert user.emails[1] is entry
 
 
 def test_writing_the_same_whole_value_changes_nothing(user):

@@ -43,6 +43,19 @@ Telling the two apart would take a notion of role, and a model has none — a re
 by the client that wrote it as readily as by the server that received it, so the context cannot
 stand in for one.
 
+Tolerances that need no setting
+-------------------------------
+
+A setting is worth its cost when a tolerance could confuse one payload with another. Some cases
+the specification does not cover carry no such risk, and scim2-models accepts them without a
+setting.
+
+A key of a PATCH value that is an attribute path, such as ``name.givenName``, is read as that
+path. Microsoft Entra ID and its SCIM Validator send such keys. A strict reading would reject them
+as unknown attributes. But :rfc:`RFC7643 §2.1 <7643#section-2.1>` forbids dots and colons in
+attribute names, so the key cannot mean anything else. A setting that rejects it by default would
+only break that client. :doc:`patch` describes how such a key is read.
+
 What a policy leaves alone
 --------------------------
 

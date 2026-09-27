@@ -20,8 +20,9 @@ Pass the state the peer holds first, then the state it should hold:
    [{'op': 'replace', 'path': 'name.givenName', 'value': 'Babs'}]
 
 A complex attribute is compared sub-attribute by sub-attribute, and each one gets its own path.
-Targeting ``name`` as a whole would replace it entirely and drop what the operation does not
-carry.
+Per :rfc:`RFC7644 §3.5.2.3 <7644#section-3.5.2.3>`, a ``replace`` on ``name`` keeps the
+sub-attributes it does not carry. But some peers replace the whole attribute and drop them. One
+path per sub-attribute gives the same result on every peer.
 
 Leave alone what the wanted state does not name
 -----------------------------------------------

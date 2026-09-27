@@ -63,7 +63,7 @@ def test_an_attribute_the_wanted_state_does_not_name_is_left_alone():
 
 
 def test_a_changed_sub_attribute_is_targeted_by_its_own_path():
-    """Targeting name as a whole would replace it entirely and drop the sub-attributes the operation does not carry."""
+    """A peer that replaces name as a whole would drop the sub-attributes the operation leaves out."""
     before = User(name=Name(given_name="Barbara", family_name="Jensen"))
     after = User(name=Name(given_name="Babs", family_name="Jensen"))
 

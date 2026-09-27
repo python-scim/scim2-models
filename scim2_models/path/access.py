@@ -273,19 +273,23 @@ def _set_selected(path: "Path[Any]", selection: "_Selection", value: Any) -> boo
         )
 
     if sub_attr is None:
-        # Without a sub-attribute the matched entries are replaced wholesale.
-        current = getattr(host, field_name)
-        replacement = list(current)
         new_value = _as_entry(type(host), field_name, value)
-        modified = False
-        for index, item in enumerate(replacement):
-            if any(item is candidate for candidate in matched):
-                if not _values_match(item, new_value):
-                    replacement[index] = new_value
-                    modified = True
-        if modified:
-            setattr(host, field_name, replacement)
-        return modified
+        changed = [item for item in matched if not _values_match(item, new_value)]
+        if not changed:
+            return False
+        if isinstance(new_value, BaseModel):
+            for item in changed:
+                item.__dict__.update(new_value.__dict__)
+                object.__setattr__(
+                    item, "__pydantic_fields_set__", set(new_value.model_fields_set)
+                )
+            return True
+        replacement = [
+            new_value if any(item is entry for entry in changed) else item
+            for item in getattr(host, field_name)
+        ]
+        setattr(host, field_name, replacement)
+        return True
 
     modified = False
     for item in matched:
@@ -343,8 +347,6 @@ def _set_value(
     if (selection := _select(path, resource)) is not None:
         return _set_selected(path, selection, value)
 
-    # Nothing is created to hold a null value: it would only unassign what the
-    # new container holds, which is nothing.
     target = _walk(path, resource, create=value is not None)
     if target is None:
         return False
@@ -356,6 +358,22 @@ def _set_value(
         for host in target.hosts
     ]
     return any(changed)
+
+
+def _set_values(
+    resource: BaseModel, writes: list[tuple["Path[Any]", Any]], *, is_add: bool = False
+) -> None:
+    """Write several values, resolving every selection before writing anything.
+
+    A value may write the sub-attributes a filter compares. Resolving first
+    keeps the rest of the value writing to the same entries.
+    """
+    selections = [_select(path, resource) for path, _ in writes]
+    for (path, value), selection in zip(writes, selections, strict=True):
+        if selection is None:
+            _set_value(path, resource, value, is_add=is_add)
+        else:
+            _set_selected(path, selection, value)
 
 
 def _merge(path: "Path[Any]", obj: BaseModel, value: Any, *, explicit: bool) -> bool:
@@ -388,7 +406,7 @@ def _set_field_value(obj: BaseModel, field_name: str, value: Any, is_add: bool) 
     """Set or add a value to a field."""
     is_multivalued = obj.get_field_multiplicity(field_name)
 
-    if is_add and is_multivalued:
+    if is_add and is_multivalued and value is not None:
         current_list = getattr(obj, field_name) or []
         entries = [
             _as_entry(type(obj), field_name, item)

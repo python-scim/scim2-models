@@ -465,8 +465,8 @@ def test_a_pathless_patch_operation_keeps_the_unknown_attributes_it_merges_over(
     assert user.unknown_attributes == {"unknownAttr": "x"}
 
 
-def test_replacing_a_complex_attribute_drops_the_unknowns_it_carried():
-    """The whole attribute is replaced, so what was unknown in it goes with the rest."""
+def test_replacing_a_complex_attribute_keeps_the_unknowns_it_carried():
+    """RFC7644 §3.5.2.3 keeps the sub-attributes a replace does not specify, unknown ones included."""
     with KEEP:
         user = User.model_validate(
             unknown_payload(name={"familyName": "Jensen", "bogusSub": 1})
@@ -476,8 +476,9 @@ def test_replacing_a_complex_attribute_drops_the_unknowns_it_carried():
         )
         PatchOp[User](operations=[operation]).patch(user)
 
-    assert user.name.family_name is None
-    assert user.name.unknown_attributes == {}
+    assert user.name.given_name == "Barbara"
+    assert user.name.family_name == "Jensen"
+    assert user.name.unknown_attributes == {"bogusSub": 1}
 
 
 # A remove operation carrying a value
@@ -586,6 +587,14 @@ def test_a_selection_that_matches_nothing_is_a_success():
     group = group_with_members()
 
     assert entra_remove([{"value": "absent"}]).patch(group, scim_policy=APPLY) is False
+    assert len(group.members) == 2
+
+
+def test_a_selection_listing_no_entry_removes_nothing():
+    """An empty list selects no member, so none is removed."""
+    group = group_with_members()
+
+    assert entra_remove([]).patch(group, scim_policy=APPLY) is False
     assert len(group.members) == 2
 
 

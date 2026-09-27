@@ -17,12 +17,13 @@ SCIM declares rules on attributes rather than on whole Python models:
 
 ``required``
    Requires a value in creation and replacement requests. A partial PATCH request does not have
-   to repeat every required attribute.
+   to repeat every required attribute, but it cannot leave one unassigned.
 
 ``mutability``
    Controls whether a client may write an attribute. ``readOnly`` is removed from creation and
-   replacement payloads, while a PATCH targeting it is rejected. ``immutable`` needs the current
-   resource value, so replacement and PATCH enforce it as the change is applied.
+   replacement payloads. A PATCH path to it is rejected. A PATCH value that contains it
+   is rejected only if it changes the current value. ``immutable`` needs the current resource
+   value, so replacement and PATCH enforce it as the change is applied.
 
 ``returned``
    Controls response projection. ``always`` cannot be excluded, ``never`` cannot be returned,
@@ -55,8 +56,8 @@ Where rules are enforced
 Creation and replacement validation check required values. Response serialization applies
 ``returned`` and attribute projection. The replacement workflow calls
 :meth:`~scim2_models.Resource.replace` after parsing so it can compare immutable values with the
-stored resource. PATCH first validates the operation message, then checks immutable values while
-applying it.
+stored resource. PATCH first validates the operation message, then checks immutable, read-only and
+required values on the result of each operation.
 
 :doc:`../how-to/validate-and-serialize` presents the validation and serialization procedure for
 each resource operation.

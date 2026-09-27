@@ -24,7 +24,9 @@ class ScimPolicy(BaseModel):
     on the wire, symmetric, and defined by the specification; the second is
     local, and nothing on the wire announces it.
 
-    Every setting defaults to the strict reading of the specification.
+    Every setting defaults to the strict reading of the specification. A
+    tolerance that cannot confuse one payload with another, such as a PATCH
+    value key that is an attribute path, needs no setting.
 
     >>> from scim2_models import ScimPolicy
     >>> ScimPolicy().unknown is ScimPolicy.Unknown.forbid
@@ -77,7 +79,9 @@ class ScimPolicy(BaseModel):
         """The payload is accepted and the attribute is dumped back.
 
         The original spelling is preserved. No attribute characteristic is
-        declared for it, so no context filters it out.
+        declared for it, so no context filters it out. In the value of a PATCH
+        operation, the attribute has no field to be written to and is dropped
+        as ``ignore`` drops it.
         """
 
     class RemoveValue(StrEnum):
