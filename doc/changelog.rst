@@ -4,6 +4,12 @@ Changelog
 [Unreleased]
 ------------
 
+Added
+^^^^^
+- :attr:`ScimPolicy.unmatched_path_filter <scim2_models.ScimPolicy.unmatched_path_filter>` can
+  make a PATCH ``add`` or ``replace`` create the entry its path filter describes when no entry
+  matches, as Microsoft Entra ID expects. By default, the operation still fails with ``noTarget``.
+
 Changed
 ^^^^^^^
 - Python 3.11 is now the minimum supported version.

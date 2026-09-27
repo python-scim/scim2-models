@@ -98,11 +98,34 @@ class ScimPolicy(BaseModel):
         apply = "apply"
         """The ``value`` selects what to remove, as Microsoft Entra sends it."""
 
+    class UnmatchedPathFilter(StrEnum):
+        """What becomes of a PATCH operation whose path filter matches no entry."""
+
+        forbid = "forbid"
+        """The ``add`` or ``replace`` operation is rejected with ``noTarget``.
+
+        :rfc:`RFC7644 §3.5.2.3 <7644#section-3.5.2.3>` requires it for
+        ``replace``, and Table 9 of :rfc:`RFC7644 §3.12 <7644#section-3.12>`
+        defines ``noTarget`` for a filter that "yields no match".
+        """
+
+        create = "create"
+        """The entry the filter describes is added, as Microsoft Entra expects.
+
+        Only ``eq`` comparisons on sub-attributes, joined by ``and``, describe
+        an entry. The entry gets the compared values, then the operation
+        writes its value. Any other filter, and any ``remove``, is still
+        rejected with ``noTarget``.
+        """
+
     unknown: Unknown = Unknown.forbid
     """What becomes of an attribute no model declares."""
 
     remove_value_as_filter: RemoveValue = RemoveValue.forbid
     """What becomes of a PATCH ``remove`` operation carrying a ``value``."""
+
+    unmatched_path_filter: UnmatchedPathFilter = UnmatchedPathFilter.forbid
+    """What becomes of a PATCH operation whose path filter matches no entry."""
 
     def __enter__(self) -> "ScimPolicy":
         """Make this policy the one every call in the block runs under."""

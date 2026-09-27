@@ -2,6 +2,7 @@
 
 import asyncio
 import threading
+from typing import Annotated
 from typing import Any
 
 import pytest
@@ -18,11 +19,16 @@ from scim2_models import Context
 from scim2_models import CreationRequestContext
 from scim2_models import CreationResponseContext
 from scim2_models import EnterpriseUser
+from scim2_models import Extension
 from scim2_models import Group
 from scim2_models import InvalidFilterException
 from scim2_models import InvalidValueException
+from scim2_models import Mutability
+from scim2_models import MutabilityException
+from scim2_models import NoTargetException
 from scim2_models import PatchOp
 from scim2_models import PatchOperation
+from scim2_models import Path
 from scim2_models import Resource
 from scim2_models import ScimPolicy
 from scim2_models import ScimProvider
@@ -715,3 +721,222 @@ def test_an_ambient_policy_reaches_a_remove_carrying_a_value():
         entra_remove([{"value": "s-foobar"}]).patch(group)
 
     assert [member.value for member in group.members] == ["autre"]
+
+
+# A path filter matching nothing
+
+
+CREATE = ScimPolicy(unmatched_path_filter=ScimPolicy.UnmatchedPathFilter.create)
+
+
+class Tag(ComplexAttribute):
+    kind: str | None = None
+    stamp: Annotated[str | None, Mutability.read_only] = None
+
+
+class Tagged(Resource):
+    __schema__ = URN("urn:example:2.0:Tagged")
+
+    tags: list[Tag] | None = None
+    sealed: Annotated[list[Tag] | None, Mutability.immutable] = None
+    labels: list[str] | None = None
+
+
+class Tagging(Extension):
+    __schema__ = URN("urn:example:2.0:Tagging")
+
+    tags: list[Tag] | None = None
+
+
+def unmatched_patch(model: Any, *operations: dict[str, Any]) -> "PatchOp[Any]":
+    """Build a patch from raw operations on the given resource type."""
+    return PatchOp[model].model_validate({"Operations": list(operations)})
+
+
+def test_an_add_whose_filter_matches_nothing_has_no_target_by_default():
+    """Table 9 of RFC7644 §3.12 defines noTarget for a filter that yields no match."""
+    patch = unmatched_patch(
+        User,
+        {"op": "add", "path": 'emails[type eq "work"].value', "value": "w@example.com"},
+    )
+
+    with pytest.raises(NoTargetException):
+        patch.patch(User(user_name="bjensen"))
+
+
+@pytest.mark.parametrize("op", ["add", "replace"])
+def test_the_entry_a_filter_describes_is_created_under_create(op):
+    """Microsoft Entra fills an absent work email through a filter, with add or replace."""
+    user = User(user_name="bjensen")
+    patch = unmatched_patch(
+        User,
+        {"op": op, "path": 'emails[type eq "work"].value', "value": "w@example.com"},
+    )
+
+    assert patch.patch(user, scim_policy=CREATE)
+
+    assert [(email.type, email.value) for email in user.emails] == [
+        ("work", "w@example.com")
+    ]
+
+
+def test_the_operations_with_the_same_filter_reach_the_created_entry():
+    """Entra spreads one entry over several operations that share a filter."""
+    user = User(user_name="bjensen")
+    patch = unmatched_patch(
+        User,
+        {"op": "add", "path": 'emails[type eq "work"].value', "value": "w@example.com"},
+        {"op": "add", "path": 'emails[type eq "work"].display', "value": "Work"},
+    )
+
+    assert patch.patch(user, scim_policy=CREATE)
+
+    assert len(user.emails) == 1
+    assert user.emails[0].display == "Work"
+
+
+def test_a_value_is_merged_into_the_created_entry():
+    """The created entry also takes the sub-attributes in the value."""
+    user = User(user_name="bjensen")
+    patch = unmatched_patch(
+        User,
+        {
+            "op": "add",
+            "path": 'emails[type eq "work"]',
+            "value": {"value": "w@example.com"},
+        },
+    )
+
+    assert patch.patch(user, scim_policy=CREATE)
+
+    assert (user.emails[0].type, user.emails[0].value) == ("work", "w@example.com")
+
+
+def test_a_created_primary_entry_becomes_the_only_primary():
+    """The filter literal is read as ScimFilter compares it, and primary stays unique."""
+    user = User(
+        user_name="bjensen",
+        emails=[{"type": "home", "value": "h@example.com", "primary": True}],
+    )
+    patch = unmatched_patch(
+        User,
+        {
+            "op": "replace",
+            "path": 'emails[type eq "work" and primary eq "True"].value',
+            "value": "w@example.com",
+        },
+    )
+
+    assert patch.patch(user, scim_policy=CREATE)
+
+    assert [(email.type, email.primary) for email in user.emails] == [
+        ("home", False),
+        ("work", True),
+    ]
+
+
+def test_a_value_contradicting_the_filter_is_refused():
+    """The created entry must match its filter, for a later operation to reach it."""
+    user = User(user_name="bjensen")
+    patch = unmatched_patch(
+        User,
+        {
+            "op": "add",
+            "path": 'emails[type eq "work"]',
+            "value": {"type": "home", "value": "h@example.com"},
+        },
+    )
+
+    with pytest.raises(InvalidValueException):
+        patch.patch(user, scim_policy=CREATE)
+    assert user.emails is None
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        'emails[type eq "work" or type eq "home"].value',
+        'emails[type ne "work"].value',
+        'emails[not (type eq "work")].value',
+        'emails[display co "Work"].value',
+        "emails[type pr].value",
+    ],
+)
+def test_a_filter_describing_no_entry_still_has_no_target(path):
+    """Only eq comparisons joined by and describe the entry to create."""
+    patch = unmatched_patch(User, {"op": "add", "path": path, "value": "w@example.com"})
+
+    with pytest.raises(NoTargetException):
+        patch.patch(User(user_name="bjensen"), scim_policy=CREATE)
+
+
+def test_a_filter_over_simple_values_still_has_no_target():
+    """A multi-valued attribute without sub-attributes has no entry to describe."""
+    patch = unmatched_patch(
+        Tagged, {"op": "replace", "path": 'labels[value eq "red"]', "value": "green"}
+    )
+
+    with pytest.raises(NoTargetException):
+        patch.patch(Tagged(labels=["blue"]), scim_policy=CREATE)
+
+
+def test_a_remove_whose_filter_matches_nothing_creates_nothing():
+    """Per RFC7644 §3.5.2.2, a remove that selects nothing succeeds without change."""
+    user = User(user_name="bjensen")
+    patch = unmatched_patch(User, {"op": "remove", "path": 'emails[type eq "work"]'})
+
+    assert patch.patch(user, scim_policy=CREATE) is False
+    assert user.emails is None
+
+
+def test_a_created_entry_cannot_set_a_read_only_sub_attribute():
+    """The created entry goes through the same checks as an add of that entry."""
+    patch = unmatched_patch(
+        Tagged, {"op": "add", "path": 'tags[stamp eq "x"].kind', "value": "k"}
+    )
+
+    with pytest.raises(MutabilityException):
+        patch.patch(Tagged(), scim_policy=CREATE)
+
+
+def test_no_entry_is_created_in_an_immutable_attribute_holding_values():
+    """An immutable multi-valued attribute takes no new entry once assigned."""
+    patch = unmatched_patch(
+        Tagged, {"op": "add", "path": 'sealed[kind eq "b"].kind', "value": "b"}
+    )
+
+    with pytest.raises(MutabilityException):
+        patch.patch(Tagged(sealed=[{"kind": "a"}]), scim_policy=CREATE)
+
+
+def test_an_unassigned_extension_is_created_with_the_entry():
+    """An extension attribute is selected into as a core one is."""
+    resource = Tagged[Tagging]()
+    patch = unmatched_patch(
+        Tagged[Tagging],
+        {"op": "add", "path": 'urn:example:2.0:Tagging:tags[kind eq "b"]', "value": {}},
+    )
+
+    assert patch.patch(resource, scim_policy=CREATE)
+
+    assert resource[Tagging].tags == [Tag(kind="b")]
+
+
+def test_an_ambient_policy_reaches_the_creation():
+    """A server may state the policy once per request with a block."""
+    user = User(user_name="bjensen")
+    patch = unmatched_patch(
+        User,
+        {"op": "add", "path": 'emails[type eq "work"].value', "value": "w@example.com"},
+    )
+
+    with CREATE:
+        assert patch.patch(user)
+
+
+def test_path_set_creates_nothing_under_create():
+    """The policy only applies to PATCH, and Path.set still reports the missing target."""
+    with CREATE, pytest.raises(NoTargetException):
+        Path[User]('emails[type eq "work"].value').set(
+            User(user_name="bjensen"), "w@example.com"
+        )

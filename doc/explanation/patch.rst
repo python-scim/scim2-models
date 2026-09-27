@@ -194,15 +194,22 @@ a selection matching nothing means for it, and Table 9 of :rfc:`RFC7644 §3.12 <
 defines ``noTarget`` for a filter that "yields no match". The filter selects the entries to
 write. It does not describe an entry to create. So the operation fails instead of silently doing
 nothing.
-`Errata 8097 <https://errata.rfc-editor.org/eid8097/>`_ asks the RFC to say whether ``add``
-accepts a value selection at all, since implementations differ on it.
 
-.. note::
+Implementations differ here. UnboundID's SCIM 2 SDK, Apache SCIMple and scim-patch create the
+entry on ``add``. SCIM-SDK returns ``noTarget``, and so does WSO2 Charon unless the attribute is
+unassigned. `Errata 8097 <https://errata.rfc-editor.org/eid8097/>`_ describes the creation
+Microsoft Entra ID expects. It is held, with no corrected text. The editor of :rfc:`7644`
+`replied <https://mailarchive.ietf.org/arch/msg/scim/kQ8B5YiYjDdGj8rX441FcsbOH4Q>`_ that
+such an implementation is "going outside the spec at the cost of their interoperability".
 
-   Microsoft Entra ID sends ``add`` operations whose selection matches nothing, such as
-   ``emails[type eq "work"].value`` for a user without a work email, and expects the selected
-   entry to be created. scim2-models answers ``noTarget``, so an integration serving that client
-   creates the entry before applying the operation.
+Entra sends such operations to fill an attribute it has not set yet. It sends ``add`` by
+default, and ``replace`` when its ``aadOptscim062020`` flag is set. For example, it targets
+``emails[type eq "work"].value`` on a user without a work email, and expects a new entry
+``{"type": "work", "value": ...}``.
+:attr:`ScimPolicy.UnmatchedPathFilter.create <scim2_models.ScimPolicy.UnmatchedPathFilter.create>`
+creates that entry for both operations. It only works with ``eq`` comparisons joined by ``and``.
+The new entry must still match the filter after the value is written, so that later operations
+with the same filter find it. See :doc:`../how-to/tolerate-a-nonconformant-peer`.
 
 What a remove selects
 ---------------------

@@ -1,5 +1,6 @@
 import copy
 from collections.abc import Iterator
+from dataclasses import replace
 from enum import StrEnum
 from inspect import isclass
 from typing import Annotated
@@ -29,6 +30,11 @@ from ..exceptions import InvalidValueException
 from ..exceptions import MutabilityException
 from ..exceptions import NoTargetException
 from ..exceptions import SCIMException
+from ..path import CompareOperator
+from ..path import Comparison
+from ..path import FilterNode
+from ..path import LogicalExpr
+from ..path import LogicalOperator
 from ..path import Path
 from ..path import ScimFilter
 from ..path.access import _select
@@ -282,7 +288,9 @@ class PatchOp(_ResourceParameterized, Message, Generic[ResourceT]):
             changes a read-only value through its value, or leaves a required
             attribute unassigned.
         :raises NoTargetException: If the path filter of an ``add`` or
-            ``replace`` matches no value.
+            ``replace`` matches no value, and
+            :attr:`~scim2_models.ScimPolicy.unmatched_path_filter` creates no
+            entry for it.
         """
         snapshot = resource.model_copy(deep=True)
         try:
@@ -456,7 +464,7 @@ def _apply_operation(
         if operation.op == PatchOperation.Op.remove:
             if removal is not None:
                 removal.delete(resource)
-        else:
+        elif not _create_described_entry(resource, path, operation.value, policy):
             _write(resource, path, writes, is_add=operation.op == PatchOperation.Op.add)
     except ValidationError as exc:
         raise InvalidValueException(detail=str(exc)) from exc
@@ -560,6 +568,67 @@ def _declared(parent: Path[Any], text: str, policy: ScimPolicy) -> Path[Any] | N
     raise InvalidValueException(
         detail=f"'{text}' is not declared by the resource schema"
     )
+
+
+def _create_described_entry(
+    resource: Resource[Any], path: Path[Any], value: Any, policy: ScimPolicy
+) -> bool:
+    """Add the entry an unmatched path filter describes, under the create policy.
+
+    The entry gets the values the eq comparisons of the filter compare, then
+    the value of the operation. It must still match the filter, so that later
+    operations find it.
+    """
+    value_path = path._as_value_path()
+    if (
+        value_path is None
+        or policy.unmatched_path_filter != ScimPolicy.UnmatchedPathFilter.create
+    ):
+        return False
+
+    selection = type(path)(str(replace(value_path, sub_attr=None)))
+    described = _described_entry(value_path.val_filter)
+    binding = selection.resolve()
+    written = (
+        {value_path.sub_attr: value} if value_path.sub_attr else _as_payload(value)
+    )
+    if (
+        selection.get(resource) is not None
+        or described is None
+        or binding is None
+        or not _is_model(binding.field_type)
+        or not isinstance(written, dict)
+    ):
+        return False
+
+    type(path)(str(value_path.attr_path)).set(
+        resource, {**described, **written}, is_add=True
+    )
+    if selection.get(resource) is None:
+        raise InvalidValueException(
+            detail=f"the value contradicts the filter of '{path}'"
+        )
+    return True
+
+
+def _described_entry(val_filter: FilterNode) -> dict[str, Any] | None:
+    """Return the sub-attribute values set by eq comparisons joined by and."""
+    terms = (
+        val_filter.terms
+        if isinstance(val_filter, LogicalExpr) and val_filter.op == LogicalOperator.and_
+        else (val_filter,)
+    )
+    comparisons = [
+        term
+        for term in terms
+        if isinstance(term, Comparison)
+        and term.op == CompareOperator.eq
+        and term.attr_path.sub_attr is None
+        and term.attr_path.uri is None
+    ]
+    if len(comparisons) != len(terms):
+        return None
+    return {comparison.attr_path.attr: comparison.value for comparison in comparisons}
 
 
 def _snapshot(

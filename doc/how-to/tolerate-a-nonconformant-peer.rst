@@ -115,6 +115,38 @@ which :rfc:`RFC7644 §3.5.2.2 <7644#section-3.5.2.2>` asks for a membership that
 Entra documents this form as non-conformant, and its ``aadOptscim062020`` tenant flag makes it
 send a filter path instead. Setting that flag is the other way out.
 
+Create the entry an Entra filter describes
+------------------------------------------
+
+Microsoft Entra ID fills an attribute it has not set yet through a filter, such as
+``emails[type eq "work"].value`` on a user without a work email. The filter matches nothing, and
+scim2-models returns ``noTarget``. Set
+:attr:`~scim2_models.ScimPolicy.UnmatchedPathFilter.create` to add the entry the filter describes
+instead:
+
+.. doctest::
+
+   >>> patch = PatchOp[User](
+   ...     operations=[
+   ...         PatchOperation(
+   ...             op=PatchOperation.Op.add,
+   ...             path='emails[type eq "work"].value',
+   ...             value="bjensen@example.com",
+   ...         )
+   ...     ]
+   ... )
+   >>> creating = ScimPolicy(unmatched_path_filter=ScimPolicy.UnmatchedPathFilter.create)
+   >>> user = User(user_name="bjensen")
+   >>> patch.patch(user, scim_policy=creating)
+   True
+   >>> [(email.type.value, email.value) for email in user.emails]
+   [('work', 'bjensen@example.com')]
+
+The setting covers ``add`` and ``replace``, since Entra sends ``replace`` once its
+``aadOptscim062020`` tenant flag is set. It only works with ``eq`` comparisons joined by ``and``.
+Any other filter still returns ``noTarget``, and so does a filter on an attribute without
+sub-attributes. :doc:`../explanation/patch` explains why this is not the default.
+
 State a policy once per request
 -------------------------------
 
