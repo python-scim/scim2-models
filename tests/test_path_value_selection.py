@@ -347,22 +347,27 @@ def test_a_selection_on_a_multivalued_attribute_of_an_unset_extension():
     assert not path.delete(user)
 
 
-def test_adding_to_a_selection_that_matches_nothing_changes_nothing(user):
-    """§3.5.2.1 does not define this case, and errata 8097 leaves it open.
+def test_adding_to_a_selection_that_matches_nothing_has_no_target(user):
+    """A filter yielding no match is noTarget per §3.12, and no entry is created."""
+    before = user.model_dump()
+    with pytest.raises(NoTargetException):
+        Path[User]('emails[type eq "other"].value').set(
+            user, "other@example.com", is_add=True
+        )
+    assert user.model_dump() == before
 
-    Microsoft Entra ID emits exactly this operation expecting the entry to be
-    created, which is not what the published text says, so the operation is a
-    no-op rather than a failure.
-    """
+
+def test_adding_to_a_selection_that_matches_nothing_leniently_changes_nothing(user):
+    """A non-strict write ignores the missing target and creates no entry."""
     before = user.model_dump()
     assert not Path[User]('emails[type eq "other"].value').set(
-        user, "other@example.com", is_add=True
+        user, "other@example.com", is_add=True, strict=False
     )
     assert user.model_dump() == before
 
 
 def test_replacing_a_selection_that_matches_nothing_has_no_target(user):
-    """§3.5.2.3 is the only operation the RFC requires ``noTarget`` for."""
+    """§3.5.2.3 requires noTarget when the filter matches no value."""
     with pytest.raises(NoTargetException):
         Path[User]('emails[type eq "other"].value').set(user, "x")
 

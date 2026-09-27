@@ -11,6 +11,10 @@ Changed
   :class:`str` and f-strings give their value, ``readOnly`` rather than ``Mutability.read_only``.
 - In a model built from a schema, an attribute named after a member of the model, such as
   ``copy``, is held as ``copy_``. Its SCIM name is unchanged.
+- A PATCH ``add`` whose path filter matches no entry, such as ``emails[type eq "work"].value``
+  on a user without a work email, now fails with ``noTarget`` instead of silently doing nothing.
+  :meth:`Path.set <scim2_models.Path.set>` raises :class:`~scim2_models.NoTargetException` in
+  that case when strict.
 
 Fixed
 ^^^^^

@@ -255,9 +255,7 @@ def _get_value(path: "Path[Any]", resource: BaseModel) -> Any:
     return values if target.multivalued else values[0]
 
 
-def _set_selected(
-    path: "Path[Any]", selection: "_Selection", value: Any, *, is_add: bool = False
-) -> bool:
+def _set_selected(path: "Path[Any]", selection: "_Selection", value: Any) -> bool:
     """Apply a value to every entry matched by a value selection.
 
     A selection matching nothing raises NoTargetException. RFC7644 §3.5.2.3
@@ -270,8 +268,6 @@ def _set_selected(
     host, field_name, matched, sub_attr = selection
 
     if not matched:
-        if is_add:
-            return False
         raise NoTargetException(
             detail=f"no value of '{field_name}' matches the path filter"
         )
@@ -345,7 +341,7 @@ def _set_value(
 ) -> bool:
     """Write a value where a path designates on a resource."""
     if (selection := _select(path, resource)) is not None:
-        return _set_selected(path, selection, value, is_add=is_add)
+        return _set_selected(path, selection, value)
 
     # Nothing is created to hold a null value: it would only unassign what the
     # new container holds, which is nothing.

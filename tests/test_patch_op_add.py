@@ -3,6 +3,7 @@ from pydantic import ValidationError
 
 from scim2_models import Group
 from scim2_models import GroupMember
+from scim2_models import NoTargetException
 from scim2_models import PatchOp
 from scim2_models import PatchOperation
 from scim2_models import User
@@ -376,3 +377,39 @@ def test_an_operation_without_a_path_marks_the_attributes_it_wrote():
     assert user.display_name == "Barbara"
     assert "display_name" in user.model_fields_set
     assert user.model_dump(exclude_unset=True)["displayName"] == "Barbara"
+
+
+def test_add_through_a_filter_matching_nothing_has_no_target():
+    """Entra expects the entry to be created, but the filter only selects entries, so noTarget."""
+    user = User(
+        user_name="bjensen", emails=[{"value": "b@example.com", "type": "home"}]
+    )
+    patch = PatchOp[User](
+        operations=[
+            {
+                "op": "add",
+                "path": 'emails[type eq "work"].value',
+                "value": "w@example.com",
+            }
+        ]
+    )
+    with pytest.raises(NoTargetException):
+        patch.patch(user)
+    assert [email.value for email in user.emails] == ["b@example.com"]
+
+
+def test_add_an_entry_through_a_filter_on_an_unassigned_attribute_has_no_target():
+    """An unassigned attribute holds no entry for the filter to match."""
+    user = User(user_name="bjensen")
+    patch = PatchOp[User](
+        operations=[
+            {
+                "op": "add",
+                "path": 'emails[type eq "work"]',
+                "value": {"value": "w@example.com"},
+            }
+        ]
+    )
+    with pytest.raises(NoTargetException):
+        patch.patch(user)
+    assert user.emails is None

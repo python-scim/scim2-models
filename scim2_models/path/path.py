@@ -389,8 +389,8 @@ class Path(_BoundToModels, _Expression, Generic[ResourceT]):
         :raises InvalidPathException: If strict and the path does not exist or is invalid.
         :raises InvalidFilterException: If strict and a value selection does not
             apply to the attribute it selects from.
-        :raises NoTargetException: If strict, ``is_add`` is false and a value
-            selection matches nothing.
+        :raises NoTargetException: If strict and a value selection matches
+            nothing.
         """
         try:
             return _set_value(self, resource, value, is_add=is_add)

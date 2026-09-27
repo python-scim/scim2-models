@@ -100,16 +100,20 @@ nothing changed:
     >>> patch.patch(user)
     False
 
-``add`` behaves the same way. :rfc:`RFC7644 §3.5.2.1 <7644#section-3.5.2.1>` does not say what a
-selection matching nothing means for it, so the operation is a no-op and not a failure.
+``add`` fails like ``replace``. :rfc:`RFC7644 §3.5.2.1 <7644#section-3.5.2.1>` does not say what
+a selection matching nothing means for it, and Table 9 of :rfc:`RFC7644 §3.12 <7644#section-3.12>`
+defines ``noTarget`` for a filter that "yields no match". The filter selects the entries to
+write. It does not describe an entry to create. So the operation fails instead of silently doing
+nothing.
 `Errata 8097 <https://errata.rfc-editor.org/eid8097/>`_ asks the RFC to say whether ``add``
 accepts a value selection at all, since implementations differ on it.
 
 .. note::
 
-   Microsoft Entra ID sends ``add`` operations whose selection matches nothing, and expects the
-   selected entry to be created. scim2-models does not create it, so an integration serving that
-   client handles the case before applying the operation.
+   Microsoft Entra ID sends ``add`` operations whose selection matches nothing, such as
+   ``emails[type eq "work"].value`` for a user without a work email, and expects the selected
+   entry to be created. scim2-models answers ``noTarget``, so an integration serving that client
+   creates the entry before applying the operation.
 
 What a remove selects
 ---------------------
