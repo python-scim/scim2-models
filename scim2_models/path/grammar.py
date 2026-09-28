@@ -89,14 +89,14 @@ SUB_ATTR: /{_ATTR_NAME}/
 
 // Trailing word boundaries are mandatory: without them an attribute named
 // "never" lexes as the "ne" operator followed by "ver".
-COMPARE_OP.2: /(?:eq|ne|co|sw|ew|gt|lt|ge|le)(?![A-Za-z0-9_-])/i
-PR.2: /pr(?![A-Za-z0-9_-])/i
-TRUE.2: /true(?![A-Za-z0-9_-])/i
-FALSE.2: /false(?![A-Za-z0-9_-])/i
-NULL.2: /null(?![A-Za-z0-9_-])/i
-_AND.3: /and(?![A-Za-z0-9_-])/i
-_OR.3: /or(?![A-Za-z0-9_-])/i
-_NOT.3: /not(?![A-Za-z0-9_-])/i
+COMPARE_OP.2: /(?:eq|ne|co|sw|ew|gt|lt|ge|le)(?![A-Za-z0-9$_-])/i
+PR.2: /pr(?![A-Za-z0-9$_-])/i
+TRUE.2: /true(?![A-Za-z0-9$_-])/i
+FALSE.2: /false(?![A-Za-z0-9$_-])/i
+NULL.2: /null(?![A-Za-z0-9$_-])/i
+_AND.3: /and(?![A-Za-z0-9$_-])/i
+_OR.3: /or(?![A-Za-z0-9$_-])/i
+_NOT.3: /not(?![A-Za-z0-9$_-])/i
 
 // Both literals follow the JSON rules the ABNF refers to, escapes included, so
 // that an invalid one is a syntax error located by the lexer rather than a
@@ -132,8 +132,8 @@ def _split_attr_path(raw: str) -> AttrPath:
 def _select_attr_path(raw: str) -> AttrPath:
     """Split the ``attrPath`` a value selection applies to.
 
-    :raises ValueError: If it names a sub-attribute, which the ABNF allows and
-        SCIM gives no meaning to.
+    A path naming a sub-attribute raises ValueError: the ABNF allows it, and
+    SCIM gives it no meaning.
     """
     attr_path = _split_attr_path(raw)
     if attr_path.sub_attr is not None:
@@ -145,7 +145,7 @@ def _select_attr_path(raw: str) -> AttrPath:
 
 @v_args(inline=True)
 class _AstBuilder(Transformer[Token, Any]):
-    """Turn a lark parse tree into the nodes of :mod:`scim2_models.path.expressions`."""
+    """Turn a lark parse tree into the nodes of scim2_models.path.expressions."""
 
     def or_expr(self, *terms: FilterNode) -> FilterNode:
         return LogicalExpr(op=LogicalOperator.or_, terms=terms)
@@ -215,16 +215,15 @@ _BUILDER = _AstBuilder()
 
 
 @lru_cache(maxsize=1024)
-def parse_filter(expression: str) -> FilterNode:
-    """Parse a SCIM filter expression into an abstract syntax tree.
+def _parse_filter(expression: str) -> FilterNode:
+    """Parse a SCIM filter expression into its root node.
 
-    :param expression: The filter expression, as found in a ``filter`` query
-        parameter or in :attr:`SearchRequest.filter <scim2_models.SearchRequest.filter>`.
-    :returns: The root node of the parsed expression.
-    :raises InvalidFilterException: If the expression is syntactically invalid.
+    The expression is the one a ``filter`` query parameter or a
+    ``SearchRequest.filter`` carries. A syntactically invalid one raises
+    InvalidFilterException.
 
-    >>> from scim2_models.path import parse_filter
-    >>> parse_filter('userName eq "bjensen"')
+    >>> from scim2_models.path.grammar import _parse_filter
+    >>> _parse_filter('userName eq "bjensen"')
     Comparison(attr_path=AttrPath(attr='userName', sub_attr=None, uri=None), op=<CompareOperator.eq: 'eq'>, value='bjensen')
     """
     try:
@@ -237,15 +236,14 @@ def parse_filter(expression: str) -> FilterNode:
 
 
 @lru_cache(maxsize=1024)
-def parse_path(path: str) -> PathNode:
+def _parse_path(path: str) -> PathNode:
     """Parse a SCIM PATCH path into an abstract syntax tree.
 
-    :param path: The path, as found in :attr:`PatchOperation.path <scim2_models.PatchOperation.path>`.
-    :returns: The parsed path.
-    :raises InvalidPathException: If the path is syntactically invalid.
+    The path is the one a ``PatchOperation.path`` carries. A syntactically
+    invalid one raises InvalidPathException.
 
-    >>> from scim2_models.path import parse_path
-    >>> parse_path("name.familyName")
+    >>> from scim2_models.path.grammar import _parse_path
+    >>> _parse_path("name.familyName")
     AttrPath(attr='name', sub_attr='familyName', uri=None)
     """
     try:

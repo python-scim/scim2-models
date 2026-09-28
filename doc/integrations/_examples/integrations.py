@@ -11,24 +11,18 @@ from scim2_models import Bulk
 from scim2_models import BulkOperation
 from scim2_models import BulkResponse
 from scim2_models import ChangePassword
-from scim2_models import ComplexAttribute
 from scim2_models import Error
 from scim2_models import ETag
 from scim2_models import Filter
 from scim2_models import Group
-from scim2_models import InvalidPathException
 from scim2_models import Meta
 from scim2_models import Patch
-from scim2_models import Path
-from scim2_models import ResourceType
 from scim2_models import SCIMException
 from scim2_models import ScimProvider
-from scim2_models import SearchRequest
 from scim2_models import ServiceProviderConfig
 from scim2_models import Sort
 from scim2_models import UniquenessException
 from scim2_models import User
-from scim2_models.path import attribute_host
 
 # -- storage-start --
 records = {}
@@ -60,77 +54,12 @@ def page_of(resources, req):
     :param req: The parsed query.
     :return: A ``(total, page)`` tuple.
     """
-    if req.sort_by:
-        resources = sort_resources(resources, req.sort_by, req.sort_order)
-
+    resources = req.sort(resources)
     start = req.start_index_0 or 0
     limit = start + MAX_RESULTS
     stop = req.stop_index_0
     stop = limit if stop is None else min(stop, limit)
     return len(resources), resources[start:stop]
-
-
-def sort_resources(resources, sort_by, sort_order=None):
-    """Order resources by an attribute, per :rfc:`RFC7644 §3.4.2.3 <7644#section-3.4.2.3>`.
-
-    :param resources: The SCIM resources to order.
-    :param sort_by: The ``sortBy`` query parameter, resolved by the request it
-        came from, which names the resource type the endpoint serves.
-    :param sort_order: The ``sortOrder`` query parameter, ascending by default.
-    :raises InvalidPathException: If the attribute is unknown.
-    """
-    resolved = sort_by.resolve()
-    if resolved is None:
-        raise InvalidPathException(
-            path=str(sort_by), detail=f"Cannot sort on {sort_by!r}"
-        )
-
-    descending = sort_order == SearchRequest.SortOrder.descending
-
-    def key(resource):
-        value = sort_value(resource, resolved)
-        # "String type attributes are case insensitive by default, unless the
-        # attribute type is defined as a case-exact string."
-        if isinstance(value, str) and not resolved.case_exact:
-            value = value.casefold()
-        # "if there is no data for the specified sortBy value, they are sorted
-        # via the sortOrder parameter, i.e., they are ordered last if ascending
-        # and first if descending", which reversing the whole key achieves.
-        return (value is None, value if value is not None else "")
-
-    return sorted(resources, key=key, reverse=descending)
-
-
-def sort_value(resource, resolved):
-    """Return the single value a resource is ordered by.
-
-    A path crossing a multi-valued attribute designates the sub-attribute of
-    every entry, where an order needs one value per resource, so the entry is
-    picked first and the sub-attribute read from it.
-
-    :param resource: The resource to read.
-    :param resolved: The attribute the ``sortBy`` designates.
-    """
-    host = attribute_host(resource, resolved)
-    value = None if host is None else getattr(host, resolved.field_name, None)
-    sub_field_name = resolved.sub_field_name
-
-    if resolved.is_multivalued:
-        entries = value or []
-        # "resources are sorted by the value of the primary attribute, if any,
-        # or else the first value in the list, if any."
-        primary = next(
-            (entry for entry in entries if getattr(entry, "primary", None)), None
-        )
-        value = primary if primary is not None else (entries[0] if entries else None)
-        if sub_field_name is None and isinstance(value, ComplexAttribute):
-            # RFC7643 §2.4 holds the significant value of a complex entry in a
-            # ``value`` sub-attribute, where a scalar entry is the value itself.
-            sub_field_name = "value"
-
-    if value is None or sub_field_name is None:
-        return value
-    return getattr(value, sub_field_name, None)
 
 
 # -- sorting-end --
@@ -416,4 +345,6 @@ def execute_bulk(bulk_request, location_for):
             break
 
     return BulkResponse[User](operations=operations)
+
+
 # -- bulk-end --

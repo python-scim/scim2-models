@@ -5,10 +5,12 @@ from pydantic import ValidationError
 
 from scim2_models import URN
 from scim2_models import Group
-from scim2_models import InvalidPathException
+from scim2_models import MutabilityException
 from scim2_models import PatchOp
 from scim2_models import PatchOperation
+from scim2_models import ScimPolicy
 from scim2_models import User
+from scim2_models.context import Context
 from scim2_models.resources.enterprise_user import EnterpriseUser
 from scim2_models.resources.resource import Resource
 
@@ -97,7 +99,7 @@ def test_patch_operation_extension_complex_attribute():
                 path="urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:manager",
                 value={
                     "value": "super-manager-789",
-                    "displayName": "Alice Johnson",
+                    "displayName": "John Smith",
                     "$ref": "https://example.com/Users/super-manager-789",
                 },
             )
@@ -106,7 +108,7 @@ def test_patch_operation_extension_complex_attribute():
     result = patch2.patch(user)
     assert result is True
     assert user[EnterpriseUser].manager.value == "super-manager-789"
-    assert user[EnterpriseUser].manager.display_name == "Alice Johnson"
+    assert user[EnterpriseUser].manager.display_name == "John Smith"
 
     patch3 = PatchOp[User[EnterpriseUser]](
         operations=[
@@ -304,24 +306,6 @@ def test_patch_main_schema_path_without_attribute():
     assert user.title == "Manager"
 
 
-def test_patch_schema_path_with_invalid_value_type():
-    """Test PATCH with schema URN path and invalid value type (non-dict)."""
-    user = User(user_name="test")
-
-    patch = PatchOp[User](
-        operations=[
-            PatchOperation[User](
-                op=PatchOperation.Op.add,
-                path="urn:ietf:params:scim:schemas:core:2.0:User",
-                value="invalid string value",
-            )
-        ]
-    )
-
-    with pytest.raises(InvalidPathException):
-        patch.patch(user)
-
-
 def test_patch_delete_extension_root():
     """Test PATCH remove operation targeting the root of an extension."""
     user = User[EnterpriseUser].model_validate(
@@ -352,3 +336,201 @@ def test_patch_delete_extension_root():
     result = patch.patch(user)
     assert result is True
     assert user[EnterpriseUser] is None
+
+
+MANAGER = "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:manager"
+
+
+def _managed_user():
+    return User[EnterpriseUser].model_validate(
+        {
+            "userName": "jane.doe",
+            MANAGER.rsplit(":", 1)[0]: {
+                "manager": {"value": "manager-123", "displayName": "John Smith"}
+            },
+        }
+    )
+
+
+def test_a_path_to_a_read_only_sub_attribute_is_refused():
+    """RFC7644 §3.5.2 forbids changing a read-only attribute, and this path points to one."""
+    with pytest.raises(ValidationError) as raised:
+        PatchOp[User[EnterpriseUser]].model_validate(
+            {
+                "Operations": [
+                    {
+                        "op": "replace",
+                        "path": f"{MANAGER}.displayName",
+                        "value": "Alice",
+                    }
+                ]
+            }
+        )
+
+    assert raised.value.errors()[0]["type"] == "scim_mutability"
+
+
+@pytest.mark.parametrize(
+    ("path", "value"),
+    [
+        (MANAGER, {"value": "manager-456", "displayName": "Alice"}),
+        (None, {MANAGER.rsplit(":", 1)[0]: {"manager": {"displayName": "Alice"}}}),
+    ],
+)
+def test_a_value_changing_a_read_only_sub_attribute_is_refused(path, value):
+    """A read-only sub-attribute in a value is rejected when it would change."""
+    user = _managed_user()
+    operation = {"op": "replace", "value": value}
+    if path is not None:
+        operation["path"] = path
+    patch = PatchOp[User[EnterpriseUser]].model_validate({"Operations": [operation]})
+
+    with pytest.raises(MutabilityException):
+        patch.patch(user)
+
+    assert user[EnterpriseUser].manager.display_name == "John Smith"
+
+
+def test_a_complex_attribute_holding_a_read_only_sub_attribute_may_be_removed():
+    """Removing an attribute also removes its read-only sub-attributes."""
+    user = _managed_user()
+    patch = PatchOp[User[EnterpriseUser]].model_validate(
+        {"Operations": [{"op": "remove", "path": MANAGER}]}
+    )
+
+    assert patch.patch(user)
+    assert user[EnterpriseUser].manager is None
+
+
+def test_a_new_complex_value_cannot_assign_a_read_only_sub_attribute():
+    """A client cannot set a read-only sub-attribute, even on an attribute that had no value."""
+    user = User[EnterpriseUser](user_name="jane.doe")
+    patch = PatchOp[User[EnterpriseUser]].model_validate(
+        {
+            "Operations": [
+                {
+                    "op": "add",
+                    "path": MANAGER,
+                    "value": {"value": "manager-123", "displayName": "John Smith"},
+                }
+            ]
+        }
+    )
+
+    with pytest.raises(MutabilityException):
+        patch.patch(user)
+
+
+ENTERPRISE_URN = "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"
+
+
+def _keyed_patch(op, value, **kwargs):
+    return PatchOp[User[EnterpriseUser]].model_validate(
+        {"Operations": [{"op": op, "value": value}]},
+        scim_ctx=Context.RESOURCE_PATCH_REQUEST,
+        **kwargs,
+    )
+
+
+def _keyed_user():
+    user = User[EnterpriseUser](user_name="bjensen", name={"familyName": "Jensen"})
+    user[EnterpriseUser] = EnterpriseUser(
+        manager={"value": "m1", "displayName": "Boss"}
+    )
+    return user
+
+
+@pytest.mark.parametrize("op", ["add", "replace"])
+def test_a_dotted_key_writes_its_sub_attribute(op):
+    """Entra uses paths as keys in a value without a path, and no attribute name looks like a path."""
+    user = _keyed_user()
+
+    assert _keyed_patch(op, {"name.givenName": "Barbara"}).patch(user)
+    assert user.name.given_name == "Barbara"
+    assert user.name.family_name == "Jensen"
+
+
+@pytest.mark.parametrize("op", ["add", "replace"])
+def test_a_urn_qualified_key_writes_its_extension_attribute(op):
+    """The Microsoft SCIM Validator uses the full URN of extension attributes as keys."""
+    user = _keyed_user()
+
+    assert _keyed_patch(op, {f"{ENTERPRISE_URN}:employeeNumber": "42"}).patch(user)
+    assert user[EnterpriseUser].employee_number == "42"
+
+
+def test_a_urn_qualified_key_merges_into_its_complex_attribute():
+    """A complex attribute written through a URN key keeps the sub-attributes its value leaves out."""
+    user = _keyed_user()
+
+    assert _keyed_patch(
+        "replace", {f"{ENTERPRISE_URN}:manager": {"value": "m2"}}
+    ).patch(user)
+    assert user[EnterpriseUser].manager.value == "m2"
+    assert user[EnterpriseUser].manager.display_name == "Boss"
+
+
+def test_a_dotted_key_inside_an_extension_is_read_from_the_extension():
+    """A key of the value an extension takes is a path relative to that extension."""
+    user = _keyed_user()
+
+    assert _keyed_patch("replace", {ENTERPRISE_URN: {"manager.value": "m2"}}).patch(
+        user
+    )
+    assert user[EnterpriseUser].manager.value == "m2"
+
+
+def test_a_key_qualified_by_the_resource_urn_writes_the_core_attribute():
+    """The core schema URN qualifies the attributes of the resource as well."""
+    user = _keyed_user()
+
+    assert _keyed_patch(
+        "replace", {"urn:ietf:params:scim:schemas:core:2.0:User:nickName": "Babs"}
+    ).patch(user)
+    assert user.nick_name == "Babs"
+
+
+@pytest.mark.parametrize(
+    "key",
+    [
+        pytest.param("name.nickName", id="undeclared sub-attribute"),
+        pytest.param("urn:example:2.0:Unknown:attr", id="undeclared extension"),
+        pytest.param('emails[type eq "work"].value', id="filter"),
+        pytest.param("display name", id="malformed"),
+    ],
+)
+def test_a_key_spelling_no_declared_attribute_path_is_refused(key):
+    """A key that is neither an attribute name nor a declared path is undeclared."""
+    with pytest.raises(ValidationError) as raised:
+        _keyed_patch("replace", {key: "x"})
+
+    assert raised.value.errors()[0]["type"] == "scim_invalidValue"
+
+
+def test_a_key_spelling_no_declared_attribute_path_is_dropped_under_a_tolerant_policy():
+    """The unknown policy handles such a key like any undeclared attribute."""
+    user = _keyed_user()
+    tolerant = ScimPolicy(unknown=ScimPolicy.Unknown.ignore)
+    patch = _keyed_patch("replace", {"name.nickName": "x"}, scim_policy=tolerant)
+
+    assert not patch.patch(user, scim_policy=tolerant)
+
+
+def test_a_dotted_key_cannot_change_a_read_only_sub_attribute():
+    """A path used as a key has the same constraints as in the path field."""
+    user = _keyed_user()
+    patch = _keyed_patch("replace", {f"{ENTERPRISE_URN}:manager.displayName": "Other"})
+
+    with pytest.raises(MutabilityException):
+        patch.patch(user)
+    assert user[EnterpriseUser].manager.display_name == "Boss"
+
+
+def test_a_qualified_key_cannot_unassign_a_required_attribute():
+    """Unassigning a required attribute is rejected however the key spells it."""
+    with pytest.raises(ValidationError) as raised:
+        _keyed_patch(
+            "replace", {"urn:ietf:params:scim:schemas:core:2.0:User:userName": None}
+        )
+
+    assert raised.value.errors()[0]["type"] == "scim_mutability"

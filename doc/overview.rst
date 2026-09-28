@@ -17,7 +17,7 @@ Install scim2-models in the application environment:
 
 This page introduces the operations used most often by SCIM clients and servers. Follow it in
 order for a first tour. The :doc:`how-to guides <how-to/index>` cover focused tasks, the
-:doc:`explanations <explanation/index>` cover protocol behaviour, the
+:doc:`explanations <explanation/index>` cover protocol behavior, the
 :doc:`integrations <integrations/index>` cover frameworks, and the :doc:`reference` lists the
 complete API.
 

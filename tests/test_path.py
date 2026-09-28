@@ -72,7 +72,7 @@ def test_validate_scim_path_syntax_invalid_paths():
 def test_a_reference_sub_attribute_is_a_valid_path():
     """RFC 7643 spells the reference of a complex attribute ``$ref``."""
     path = Path[Group]("members.$ref")
-    path.check_attribute_notation()
+    path._check_attribute_notation()
     assert path.resolve().target_field_name == "ref"
     assert path.attr == "members.$ref"
 

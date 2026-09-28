@@ -58,7 +58,7 @@ class ETag(ComplexAttribute):
 class Pagination(ComplexAttribute):
     class DefaultPaginationMethod(ExtensibleStringEnum):
         cursor = "cursor"
-        index = "index"
+        index = "index"  # type: ignore[assignment]
 
     cursor: Annotated[bool | None, Mutability.read_only, Required.true] = None
     """A Boolean value specifying support of cursor-based pagination."""
@@ -84,10 +84,11 @@ class Pagination(ComplexAttribute):
     @classmethod
     def validate_positive_integers(cls, value: int | None) -> int | None:
         if value is not None and value <= 0:
-                raise SCIMException(
-                    path=str(value), detail=f"{str(value)!r} is not a positive integer"
-                ).as_pydantic_error()
+            raise SCIMException(
+                path=str(value), detail=f"{str(value)!r} is not a positive integer"
+            ).as_pydantic_error()
         return value
+
 
 class AuthenticationScheme(ComplexAttribute):
     class Type(ExtensibleStringEnum):

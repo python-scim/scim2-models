@@ -1,6 +1,7 @@
 import re
 from typing import Any
 from typing import Generic
+from typing import Self
 
 from pydantic import Field
 from pydantic import ValidationInfo
@@ -8,7 +9,6 @@ from pydantic import ValidatorFunctionWrapHandler
 from pydantic import field_validator
 from pydantic import model_validator
 from pydantic_core import PydanticCustomError
-from typing_extensions import Self
 
 from ..context import Context
 from ..exceptions import InvalidCursorException
@@ -78,12 +78,12 @@ class ListResponse(
 
     @model_validator(mode="wrap")
     @classmethod
-    def check_results_number(
+    def _check_results_number(
         cls, value: Any, handler: ValidatorFunctionWrapHandler, info: ValidationInfo
     ) -> Self:
         """Validate result numbers.
 
-        :rfc:`RFC7644 §3.4.2 <7644#section-3.4.2.4>` indicates that:
+        RFC7644 §3.4.2 indicates that:
 
         - 'totalResults' is required
         - 'resources' must be set if 'totalResults' is non-zero.
@@ -99,17 +99,23 @@ class ListResponse(
             return obj
 
         config = info.context.get("scim_spc")
-        cursor_supported = bool(config and config.pagination and config.pagination.cursor)
+        cursor_supported = bool(
+            config and config.pagination and config.pagination.cursor
+        )
         if not cursor_supported and obj.total_results is None:
             raise PydanticCustomError(
                 "required_error",
-                "Field 'total_results' is required but value is missing or null",
+                "Field 'totalResults' is required but value is missing or null",
             )
 
-        if obj.total_results is not None and obj.total_results > 0 and obj.resources is None:
+        if (
+            obj.total_results is not None
+            and obj.total_results > 0
+            and obj.resources is None
+        ):
             raise PydanticCustomError(
                 "no_resource_error",
-                "Field 'resources' is missing or null but 'total_results' is non-zero.",
+                "Field 'Resources' is missing or null but 'totalResults' is non-zero.",
             )
 
         return obj

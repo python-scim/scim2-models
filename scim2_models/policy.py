@@ -1,7 +1,7 @@
 """How a peer's deviations from the specification are treated."""
 
 from contextvars import ContextVar
-from enum import Enum
+from enum import StrEnum
 from types import TracebackType
 
 from pydantic import BaseModel
@@ -24,13 +24,15 @@ class ScimPolicy(BaseModel):
     on the wire, symmetric, and defined by the specification; the second is
     local, and nothing on the wire announces it.
 
-    Every setting defaults to the strict reading of the specification.
+    Every setting defaults to the strict reading of the specification. A
+    tolerance that cannot confuse one payload with another, such as a PATCH
+    value key that is an attribute path, needs no setting.
 
     >>> from scim2_models import ScimPolicy
     >>> ScimPolicy().unknown is ScimPolicy.Unknown.forbid
     True
 
-    Name a policy at the call that reads or writes a payload:
+    Pass a policy to the call that reads or writes a payload:
 
     >>> from scim2_models import User
     >>> payload = {"schemas": [str(User.__schema__)], "userName": "bjensen"}
@@ -38,24 +40,24 @@ class ScimPolicy(BaseModel):
     >>> User.model_validate(payload, scim_policy=tolerant).user_name
     'bjensen'
 
-    Or open a block, which is how a server states once per request what it
-    tolerates instead of naming it at every call:
+    Or open a block. A server does this once per request, instead of passing
+    the policy to every call:
 
     >>> with tolerant:
     ...     user = User.model_validate(payload)
     >>> user.user_name
     'bjensen'
 
-    An argument named at the call site wins over the block, and leaving the
-    block restores what it interrupted.
+    A policy passed to the call wins over the block. Leaving the block
+    restores the policy it interrupted.
 
-    A policy is settled once built: the pass running under one cannot be
-    contradicted halfway through.
+    A policy cannot change once built. A validation or a dump sees the same
+    settings from start to end.
     """
 
     model_config = ConfigDict(frozen=True)
 
-    class Unknown(str, Enum):
+    class Unknown(StrEnum):
         """What becomes of an attribute no model declares."""
 
         forbid = "forbid"
@@ -70,17 +72,20 @@ class ScimPolicy(BaseModel):
 
         It stays readable on
         :attr:`~scim2_models.BaseModel.unknown_attributes`, and no dump
-        restores it.
+        restores it. A PATCH operation on such an attribute changes
+        nothing.
         """
 
         keep = "keep"
         """The payload is accepted and the attribute is dumped back.
 
         The original spelling is preserved. No attribute characteristic is
-        declared for it, so no context filters it out.
+        declared for it, so no context filters it out. In the value or the
+        path of a PATCH operation, it has no field to write to, so it is
+        dropped as with ``ignore``.
         """
 
-    class RemoveValue(str, Enum):
+    class RemoveValue(StrEnum):
         """What becomes of a PATCH ``remove`` operation carrying a ``value``."""
 
         forbid = "forbid"
@@ -93,11 +98,34 @@ class ScimPolicy(BaseModel):
         apply = "apply"
         """The ``value`` selects what to remove, as Microsoft Entra sends it."""
 
+    class UnmatchedPathFilter(StrEnum):
+        """What becomes of a PATCH operation whose path filter matches no entry."""
+
+        forbid = "forbid"
+        """The ``add`` or ``replace`` operation is rejected with ``noTarget``.
+
+        :rfc:`RFC7644 §3.5.2.3 <7644#section-3.5.2.3>` requires it for
+        ``replace``, and Table 9 of :rfc:`RFC7644 §3.12 <7644#section-3.12>`
+        defines ``noTarget`` for a filter that "yields no match".
+        """
+
+        create = "create"
+        """The entry the filter describes is added, as Microsoft Entra expects.
+
+        Only ``eq`` comparisons on sub-attributes, joined by ``and``, describe
+        an entry. The entry gets the compared values, then the operation
+        writes its value. Any other filter is still rejected with
+        ``noTarget``. A ``remove`` is not affected: it changes nothing.
+        """
+
     unknown: Unknown = Unknown.forbid
     """What becomes of an attribute no model declares."""
 
     remove_value_as_filter: RemoveValue = RemoveValue.forbid
     """What becomes of a PATCH ``remove`` operation carrying a ``value``."""
+
+    unmatched_path_filter: UnmatchedPathFilter = UnmatchedPathFilter.forbid
+    """What becomes of a PATCH operation whose path filter matches no entry."""
 
     def __enter__(self) -> "ScimPolicy":
         """Make this policy the one every call in the block runs under."""

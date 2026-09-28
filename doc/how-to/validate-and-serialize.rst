@@ -11,7 +11,7 @@ answer a rejected payload. It assumes the :doc:`../overview`.
 Choose the context of an operation
 ----------------------------------
 
-A :class:`~scim2_models.Context` names one representation of a resource. Requests are validated
+A :class:`~scim2_models.Context` stands for one representation of a resource. Requests are validated
 in a request context, responses are validated and serialized in the matching response context:
 
 .. list-table::
@@ -94,9 +94,8 @@ out.
 Replace a stored resource
 -------------------------
 
-A ``PUT`` carries a complete resource, and what the client sends is not the whole story: the
-server owns the read-only attributes, and the immutable ones keep the value they were created
-with. Parse the payload in the replacement-request context, then call
+A ``PUT`` carries a complete resource, but the client does not control all of it. The server owns
+the read-only attributes, and the immutable ones keep the value they were created with. Parse the payload in the replacement-request context, then call
 :meth:`~scim2_models.Resource.replace` with the resource currently stored:
 
 .. doctest::
@@ -123,13 +122,15 @@ with. Parse the payload in the replacement-request context, then call
 
 The read-only attributes of the stored resource are carried over, so the response reports the
 identity and the version the server holds. An immutable attribute whose value differs from the
-stored one raises :class:`~scim2_models.MutabilityException` instead. The check reaches the
-sub-attributes of a complex attribute, and the entries of a multi-valued one that the stored
-resource also holds: an entry is recognised by its ``value``, so adding and removing entries
-stays free, while changing an immutable sub-attribute of one that stays is refused. Two cases stay
-uncompared rather than risk refusing a legitimate replacement: an entry whose ``value``
-designates several entries, and an immutable reference, two spellings of one URI being
-equivalent per :rfc:`RFC7643 §2.4 <7643#section-2.4>`.
+stored one raises :class:`~scim2_models.MutabilityException` instead.
+
+The check also covers the sub-attributes of a complex attribute. In a multi-valued attribute, it
+covers the entries the stored resource also holds, matched by their ``value``. So a replacement
+can add and remove entries, but cannot change an immutable sub-attribute of an entry it keeps.
+
+Some values are not compared, so that a valid replacement is never refused. These are an entry
+whose ``value`` matches several entries, and an immutable reference. Per
+:rfc:`RFC7643 §2.4 <7643#section-2.4>`, two spellings of one URI can be equivalent.
 
 Answer a rejected payload
 -------------------------

@@ -200,7 +200,7 @@ class GroupMembership(ComplexAttribute):
     ref: Annotated[
         Reference["Group"] | None,
         Mutability.read_only,
-    ] = Field(None, serialization_alias="$ref")
+    ] = Field(None, serialization_alias="$ref", validation_alias="$ref")
     """The reference URI of a target resource, if the attribute is a
     reference."""
 
@@ -295,7 +295,9 @@ class User(Resource[AnyExtension]):
     active: bool | None = None
     """A Boolean value indicating the User's administrative status."""
 
-    password: Annotated[str | None, Mutability.write_only, Returned.never] = None
+    password: Annotated[
+        str | None, Mutability.write_only, Returned.never, CaseExact.true
+    ] = None
     """The User's cleartext password."""
 
     emails: list[Email] | None = None

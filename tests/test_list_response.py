@@ -476,6 +476,7 @@ def test_cursor_absent_when_none():
     assert "nextCursor" not in dumped
     assert "previousCursor" not in dumped
 
+
 def test_total_results_required():
     """ListResponse.total_results is required if the provider does not specify cursor based pagination support."""
     payload = {
@@ -493,11 +494,12 @@ def test_total_results_required():
 
     with pytest.raises(
         ValidationError,
-        match="Field 'total_results' is required but value is missing or null",
+        match="Field 'totalResults' is required but value is missing or null",
     ):
         ListResponse[User].model_validate(
             payload, scim_ctx=Context.RESOURCE_QUERY_RESPONSE
         )
+
 
 def test_total_results_not_required_for_cursor_pagination():
     """ListResponse.total_results is not required when the service provider supports cursor-based pagination."""

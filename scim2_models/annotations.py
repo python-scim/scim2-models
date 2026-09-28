@@ -1,7 +1,8 @@
 from enum import Enum
+from enum import StrEnum
 
 
-class Mutability(str, Enum):
+class Mutability(StrEnum):
     """A single keyword indicating the circumstances under which the value of the attribute can be (re)defined."""
 
     read_only = "readOnly"
@@ -48,7 +49,7 @@ class Mutability(str, Enum):
     _default = read_write
 
 
-class Returned(str, Enum):
+class Returned(StrEnum):
     """A single keyword that indicates when an attribute and associated values are returned in response to a GET request or in response to a PUT, POST, or PATCH request."""
 
     always = "always"  # cannot be excluded
@@ -88,7 +89,7 @@ class Returned(str, Enum):
     _default = default
 
 
-class Uniqueness(str, Enum):
+class Uniqueness(StrEnum):
     """A single keyword value that specifies how the service provider enforces uniqueness of attribute values.
 
     Unlike the other attribute characteristics, this one carries no validation:
@@ -96,7 +97,7 @@ class Uniqueness(str, Enum):
     know. It is a declaration, published by
     :meth:`~scim2_models.Resource.to_schema` and read back by
     :meth:`~scim2_models.Resource.from_schema`, that a service provider
-    honours and whose violation it reports with
+    honors and whose violation it reports with
     :class:`~scim2_models.UniquenessException`.
     """
 
@@ -163,7 +164,7 @@ class CaseExact(Enum):
 
     ``binary`` and ``reference`` attributes are case-exact whatever their schema
     says, per :rfc:`RFC7643 §2.3.6 <7643#section-2.3.6>` and
-    :rfc:`§2.3.7 <7643#section-2.3.7>`. Filter comparisons honour it, and
+    :rfc:`§2.3.7 <7643#section-2.3.7>`. Filter comparisons honor it, and
     :meth:`~scim2_models.Resource.to_schema` publishes it.
     """
 

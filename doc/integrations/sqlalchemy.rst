@@ -107,7 +107,7 @@ a multi-valued attribute, and ``not_()`` around it is the negation ``ne`` needs.
 ``LIKE`` reads them as wildcards. And every value reaches the database as a query parameter,
 never as text inside the query.
 
-Two decisions remain, and neither is automated:
+The mapping still makes these decisions by hand:
 
 - **Case**, read from :attr:`~scim2_models.AttributeBinding.case_exact` and the type of the
   attribute. ``icontains`` and ``contains`` differ by one letter and by which resources they
@@ -122,13 +122,13 @@ Sorting
 -------
 
 :attr:`SearchRequest.sort_by <scim2_models.SearchRequest.sort_by>` is a
-:class:`~scim2_models.Path`, already resolved against the model on a parameterised request. On a
+:class:`~scim2_models.Path`, already resolved against the model on a parameterized request. On a
 union, it resolves against the first resource type declaring the attribute. ``sort_expression``
 looks the path up in the same table of columns as the filter does. A sub-attribute is filed under
 the attribute holding it, so ``meta.lastModified`` is found at ``("meta", "last_modified")``. The
 remaining step turns the column into an ``ORDER BY`` term, and
-:rfc:`RFC7644 §3.4.2.3 <7644#section-3.4.2.3>` decides the order in three ways a bare
-``ORDER BY column`` follows none of:
+:rfc:`RFC7644 §3.4.2.3 <7644#section-3.4.2.3>` sets order rules that a bare ``ORDER BY column``
+does not follow:
 
 - **Case.** A case-insensitive attribute sorts on ``lower(column)``.
 - **Missing values.** They come "last if ascending and first if descending".
@@ -210,10 +210,10 @@ resolution, on Python objects instead of on a database, so it answers the questi
 meant to answer. Running both over the same resources tells a mapping mistake from a correct
 query. Do it for any mapping written by hand.
 
-The test suite of this documentation runs its whole list of filters that way. Writing it caught
-three defects in this example that had passed review: the naive :class:`~datetime.datetime` of
-the warning, the case-folding ``LIKE`` of SQLite, and a case test written on :class:`str` that
-silently skipped ``emails.value``. The test is reproduced here as it stands:
+The test suite of this documentation runs its whole list of filters that way. It catches mistakes
+that are easy to miss in review, such as a naive :class:`~datetime.datetime` (see the warning),
+the case-insensitive ``LIKE`` of SQLite, or a case test written on :class:`str` that skips
+``emails.value``. The test is reproduced here:
 
 .. literalinclude:: ../../tests/test_doc_examples.py
    :language: python
@@ -221,15 +221,14 @@ silently skipped ``emails.value``. The test is reproduced here as it stands:
    :start-after: # -- oracle-start --
    :end-before: # -- oracle-end --
 
-The order answers to the same treatment. ``sort_resources``, the helper of :doc:`helpers`,
-applies the rules of §3.4.2.3 to Python values, and comparing the two over six attributes in both
-orders says whether an ``ORDER BY`` implements them. It caught two defects of its own. The
-example refused a ``sortBy`` naming a sub-attribute although its column is mapped, and the suite
-asserted the ``BINARY`` order of SQLite for ``sortBy=userName`` as though it were the one
+Sorting gets the same treatment. :meth:`SearchRequest.sort <scim2_models.SearchRequest.sort>`
+applies the rules of §3.4.2.3 to Python values. Comparing it with the query, over several
+attributes in both orders, tells whether an ``ORDER BY`` implements them. It catches, for
+example, the ``BINARY`` order of SQLite on ``sortBy=userName``, which is not the order
 :rfc:`7644` asks for.
 
 .. literalinclude:: ../../tests/test_doc_examples.py
    :language: python
-   :caption: Comparing the order to the helper
+   :caption: Comparing the order to SearchRequest.sort
    :start-after: # -- sort-oracle-start --
    :end-before: # -- sort-oracle-end --

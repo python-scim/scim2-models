@@ -6,7 +6,7 @@ only in the HTTP layer. This page holds what they share: a storage layer, the co
 the application model and SCIM resources, the filtering, ordering and paging of a collection, the
 three discovery endpoints, and the execution of a bulk job. Read it before a framework guide, which assumes these helpers.
 
-The code shown here favours brevity over completeness: it keeps resources in a dictionary and
+The code shown here favors brevity over completeness: it keeps resources in a dictionary and
 walks them in Python. :doc:`sqlalchemy` replaces both with a database.
 
 Storage layer
@@ -27,8 +27,8 @@ Mapping application data to SCIM
 
 scim2-models assumes the application storage layer has its own internal model, and does not use
 SCIM models internally. Mapping helpers convert between the application representation and the
-SCIM resource exposed over HTTP — here :class:`~scim2_models.User`, but the same approach works
-for :class:`~scim2_models.Group` or any other resource type.
+SCIM resource exposed over HTTP. The example uses :class:`~scim2_models.User`, but the same
+approach works for :class:`~scim2_models.Group` or any other resource type.
 
 .. literalinclude:: _examples/integrations.py
    :language: python
@@ -75,13 +75,9 @@ Ordering and paging collections
 -------------------------------
 
 A collection endpoint answers the ``sortBy``, ``sortOrder``, ``startIndex`` and ``count``
-parameters of :rfc:`RFC7644 §3.4.2 <7644#section-3.4.2>`. Naming the resource type the endpoint
-serves, with :class:`~scim2_models.SearchRequest`\ [:class:`~scim2_models.User`], resolves
-:attr:`~scim2_models.SearchRequest.sort_by` against that model, so ``sort_value`` works from the
-:class:`~scim2_models.AttributeBinding` it designates instead of from the name a client spelled.
-
-:rfc:`RFC7644 §3.4.2.3 <7644#section-3.4.2.3>` decides the order in three ways, and
-``sort_value`` follows them:
+parameters of :rfc:`RFC7644 §3.4.2 <7644#section-3.4.2>`.
+:meth:`SearchRequest.sort <scim2_models.SearchRequest.sort>` orders resources the way
+:rfc:`RFC7644 §3.4.2.3 <7644#section-3.4.2.3>` decides:
 
 - A string attribute is compared without its case, unless it is annotated
   :attr:`CaseExact.true <scim2_models.CaseExact.true>`.
@@ -89,11 +85,19 @@ serves, with :class:`~scim2_models.SearchRequest`\ [:class:`~scim2_models.User`]
   one.
 - A resource with no value for the attribute comes last when ascending, first when descending.
 
-The second rule is why ``sort_value`` picks an entry before reading a sub-attribute from it:
-``emails.value`` designates the value of *every* entry, where an order wants one value per
-resource. ``sortBy=emails`` is therefore the same query as ``sortBy=emails.value``,
-:rfc:`RFC7643 §2.4 <7643#section-2.4>` holding the significant value of a complex entry in its
-``value`` sub-attribute.
+Because of the second rule, the entry is picked before a sub-attribute is read from it.
+``emails.value`` designates the value of *every* entry, but sorting needs one value per
+resource. Per :rfc:`RFC7643 §2.4 <7643#section-2.4>`, the ``value`` sub-attribute holds the
+significant value of a complex entry. So ``sortBy=emails`` is the same query as
+``sortBy=emails.value``. A complex attribute holding no such value, whether singular like
+``name`` or multi-valued like ``addresses``, needs a path to one of its sub-attributes, and
+:class:`~scim2_models.SearchRequest` refuses the query otherwise. It refuses a binary attribute
+too, which has no order, and a write-only attribute, such as ``password``, whose order would
+tell a client about its value.
+
+The attribute is resolved against the type of each resource. On the server root, a resource whose
+type does not declare it sorts as having no value. A filter treats it the same way, per
+:rfc:`RFC7644 §3.4.2.1 <7644#section-3.4.2.1>`.
 
 .. literalinclude:: _examples/integrations.py
    :language: python
@@ -103,7 +107,7 @@ resource. ``sortBy=emails`` is therefore the same query as ``sortBy=emails.value
 
 Sorting comes before paging, so a page holds the same resources whatever the order asked for, and
 a page never exceeds the ``maxResults`` the :class:`~scim2_models.ServiceProviderConfig`
-advertises. Both are what ``page_of`` applies, and every collection endpoint of this section goes
+advertises. ``page_of`` applies both rules, and every collection endpoint of this section goes
 through it.
 
 .. _helpers-discovery:
@@ -118,9 +122,9 @@ models the server serves and the capabilities it announces, and it derives the
 :class:`~scim2_models.Schema` and :class:`~scim2_models.ResourceType` objects the first two
 endpoints return.
 
-Deriving them is what keeps the three endpoints and the resources they describe from drifting
-apart. The two helpers below only pick one object out of a collection, which is what
-``/Schemas/<id>`` and ``/ResourceTypes/<id>`` serve.
+Since they are derived, the three endpoints always match the resources they describe. The two
+helpers below only pick one object out of a collection, for ``/Schemas/<id>`` and
+``/ResourceTypes/<id>``.
 
 .. literalinclude:: _examples/integrations.py
    :language: python
@@ -134,7 +138,7 @@ Bulk jobs
 ---------
 
 A client groups independent operations in a single ``POST /Bulk`` request (:rfc:`RFC7644 §3.7
-<7644#section-3.7>`). Each operation names a method and a path, and a creation or an update adds
+<7644#section-3.7>`). Each operation has a method and a path, and a creation or an update adds
 the payload a single request would carry.
 
 scim2-models validates that payload in the context of the request the operation stands for. A
@@ -142,7 +146,7 @@ POST or a PUT therefore hands ``apply_operation`` a :class:`~scim2_models.User`,
 :class:`~scim2_models.PatchOp`, both already validated. The dispatch reuses the storage and
 mapping helpers of the resource endpoints, and validates nothing again.
 
-Three rules of §3.7 shape ``execute_bulk``:
+``execute_bulk`` follows these rules of §3.7:
 
 - A job performs as many changes as possible and disregards partial failures. ``failOnErrors``
   caps the failures a client accepts, and the operations past that cap stay undone.
@@ -159,7 +163,7 @@ Three rules of §3.7 shape ``execute_bulk``:
    :start-after: # -- bulk-start --
    :end-before: # -- bulk-end --
 
-Two parts of §3.7 stay out of these helpers. Resolving a ``bulkId:`` reference, which lets one
+Some parts of §3.7 stay out of these helpers. Resolving a ``bulkId:`` reference, which lets one
 operation point at a resource another operation of the same job creates, is left to the
 application. And a payload that no model accepts fails the whole request with a ``400``, where
 §3.7.3 reports such an operation with its own ``400`` inside a job that answers ``200``:

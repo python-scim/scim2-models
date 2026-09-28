@@ -1,8 +1,9 @@
-from enum import Enum
+from enum import StrEnum
 from typing import Annotated
 from typing import Any
 from typing import ClassVar
 from typing import Generic
+from typing import Self
 from typing import TypeVar
 from typing import Union
 from typing import get_args
@@ -15,7 +16,6 @@ from pydantic import ValidatorFunctionWrapHandler
 from pydantic import field_validator
 from pydantic import model_validator
 from pydantic_core import PydanticCustomError
-from typing_extensions import Self
 
 from ..annotations import Required
 from ..annotations import Returned
@@ -43,7 +43,7 @@ class BulkOperation(_ResourceParameterized, ComplexAttribute, Generic[ResourceT]
     ``BulkOperation[User]``.
     """
 
-    class Method(str, Enum):
+    class Method(StrEnum):
         post = "POST"
         put = "PUT"
         patch = "PATCH"
@@ -94,10 +94,10 @@ class BulkOperation(_ResourceParameterized, ComplexAttribute, Generic[ResourceT]
 
         RFC 7644 §3.7: "data  The resource data as it would appear for a single
         SCIM POST, PUT, or PATCH operation." A payload answers to the rules of
-        the request it would be sent alone in, not to those of the bulk envelope
-        carrying it. The envelope keeps BULK_REQUEST, and a flag carries what
-        stays specific to a bulk job, such as a reference to a resource another
-        operation is still creating.
+        the request it would be sent alone in, not to those of the bulk
+        envelope carrying it. The envelope keeps BULK_REQUEST, and a flag
+        carries what stays specific to a bulk job, such as a reference to a
+        resource another operation is still creating.
         """
         context = info.context
         if not context or context.get("scim") != Context.BULK_REQUEST:
@@ -136,7 +136,7 @@ class BulkOperation(_ResourceParameterized, ComplexAttribute, Generic[ResourceT]
         return super().__class_getitem__(item)
 
     @model_validator(mode="after")
-    def validate_operation_requirements(self, info: ValidationInfo) -> Self:
+    def _validate_operation_requirements(self, info: ValidationInfo) -> Self:
         """Validate operation requirements according to RFC 7644."""
         scim_ctx = info.context.get("scim") if info.context else None
 
@@ -248,13 +248,13 @@ class BulkResponse(_ResourceParameterized, Message, Generic[ResourceT]):
     """Defines operations within a bulk job."""
 
     @model_validator(mode="after")
-    def check_operations(self, info: ValidationInfo) -> Self:
+    def _check_operations(self, info: ValidationInfo) -> Self:
         """Validate that a bulk response carries its operations.
 
-        :rfc:`RFC7644 §3.7 <7644#section-3.7>` makes ``Operations`` required in
-        a bulk response as it is in a bulk request. A response context checks
-        what a peer returns rather than what it must send, so the necessity of
-        the attribute is stated here.
+        RFC7644 §3.7 makes ``Operations`` required in a bulk response as it is
+        in a bulk request. A response context checks what a peer returns rather
+        than what it must send, so the necessity of the attribute is stated
+        here.
         """
         scim_ctx = info.context.get("scim") if info.context else None
         if scim_ctx != Context.BULK_RESPONSE:
@@ -263,7 +263,7 @@ class BulkResponse(_ResourceParameterized, Message, Generic[ResourceT]):
         if self.operations is None:
             raise PydanticCustomError(
                 "required_error",
-                "Field 'operations' is required but value is missing or null",
+                "Field 'Operations' is required but value is missing or null",
             )
 
         return self

@@ -42,14 +42,17 @@ from:
    >>> user.name.unknown_attributes
    {'bogusSub': 1}
 
-An unmodelled extension takes the same route, since a payload names one with a root key whose name
-is a URN.
+An extension with no model is handled the same way. In a payload, it is a root key that is a URN.
+
+Under that policy, a PATCH operation on an undeclared attribute changes
+nothing, and the other operations still apply. Pass the policy to
+:meth:`PatchOp.patch <scim2_models.PatchOp.patch>` as well as to the validation of the message.
 
 Write unknown attributes back
 -----------------------------
 
-:attr:`~scim2_models.ScimPolicy.Unknown.keep` also writes them to the dump, which is what a proxy
-reading from one service and creating on another needs:
+:attr:`~scim2_models.ScimPolicy.Unknown.keep` also writes them back when dumping. A proxy that
+reads from one service and creates on another needs this:
 
 .. doctest::
 
@@ -104,18 +107,50 @@ means:
    >>> [member.value for member in group.members]
    ['902c246b']
 
-Each entry becomes a filter on the sub-attributes it names, so a member carrying more than the
-entry describes still matches. A selection matching nothing changes nothing and reports success,
+Each entry becomes a filter on its sub-attributes, so a member with more sub-attributes than the
+entry still matches. A selection matching nothing changes nothing and reports success,
 which :rfc:`RFC7644 §3.5.2.2 <7644#section-3.5.2.2>` asks for a membership that was not there.
 
 Entra documents this form as non-conformant, and its ``aadOptscim062020`` tenant flag makes it
 send a filter path instead. Setting that flag is the other way out.
 
+Create the entry an Entra filter describes
+------------------------------------------
+
+Microsoft Entra ID fills an attribute it has not set yet through a filter, such as
+``emails[type eq "work"].value`` on a user without a work email. The filter matches nothing, and
+scim2-models returns ``noTarget``. Set
+:attr:`~scim2_models.ScimPolicy.UnmatchedPathFilter.create` to add the entry the filter describes
+instead:
+
+.. doctest::
+
+   >>> patch = PatchOp[User](
+   ...     operations=[
+   ...         PatchOperation(
+   ...             op=PatchOperation.Op.add,
+   ...             path='emails[type eq "work"].value',
+   ...             value="bjensen@example.com",
+   ...         )
+   ...     ]
+   ... )
+   >>> creating = ScimPolicy(unmatched_path_filter=ScimPolicy.UnmatchedPathFilter.create)
+   >>> user = User(user_name="bjensen")
+   >>> patch.patch(user, scim_policy=creating)
+   True
+   >>> [(email.type.value, email.value) for email in user.emails]
+   [('work', 'bjensen@example.com')]
+
+The setting covers ``add`` and ``replace``, since Entra sends ``replace`` once its
+``aadOptscim062020`` tenant flag is set. It only works with ``eq`` comparisons joined by ``and``.
+Any other filter still returns ``noTarget``, and so does a filter on an attribute without
+sub-attributes. :doc:`../explanation/patch` explains why this is not the default.
+
 State a policy once per request
 -------------------------------
 
-A server naming the policy at every call repeats itself. Opening a block sets it for everything
-inside:
+A server can set the policy once per request instead of passing it to every call. Opening a block
+sets it for everything inside:
 
 .. doctest::
 
@@ -124,7 +159,7 @@ inside:
    >>> user.user_name
    'bjensen'
 
-An argument named at the call site wins over the block:
+A policy passed to the call wins over the block:
 
 .. doctest::
 

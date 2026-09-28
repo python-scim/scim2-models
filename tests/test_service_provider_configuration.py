@@ -58,10 +58,10 @@ def test_service_provider_configuration(load_sample):
     assert obj.meta.location == "https://example.com/v2/ServiceProviderConfig"
     assert obj.meta.resource_type == "ServiceProviderConfig"
     assert obj.meta.created == datetime.datetime(
-        2010, 1, 23, 4, 56, 22, tzinfo=datetime.timezone.utc
+        2010, 1, 23, 4, 56, 22, tzinfo=datetime.UTC
     )
     assert obj.meta.last_modified == datetime.datetime(
-        2011, 5, 13, 4, 42, 34, tzinfo=datetime.timezone.utc
+        2011, 5, 13, 4, 42, 34, tzinfo=datetime.UTC
     )
     assert obj.meta.version == 'W\\/"3694e05e9dff594"'
 
@@ -92,6 +92,7 @@ def test_authentication_scheme_type_accepts_unknown_schemes():
     )
     assert str(scheme.type) == "oauth2bearer"
     assert scheme.model_dump()["type"] == "oauth2bearer"
+
 
 @pytest.mark.parametrize("field", ["defaultPageSize", "maxPageSize", "cursorTimeout"])
 @pytest.mark.parametrize("value", [0, -1])

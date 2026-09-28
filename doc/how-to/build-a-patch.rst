@@ -20,15 +20,16 @@ Pass the state the peer holds first, then the state it should hold:
    [{'op': 'replace', 'path': 'name.givenName', 'value': 'Babs'}]
 
 A complex attribute is compared sub-attribute by sub-attribute, and each one gets its own path.
-Targeting ``name`` as a whole would replace it entirely and drop what the operation does not
-carry.
+Per :rfc:`RFC7644 §3.5.2.3 <7644#section-3.5.2.3>`, a ``replace`` on ``name`` keeps the
+sub-attributes it does not carry. But some peers replace the whole attribute and drop them. One
+path per sub-attribute gives the same result on every peer.
 
-Leave alone what the wanted state does not name
------------------------------------------------
+Leave alone what the wanted state does not set
+----------------------------------------------
 
-Only the attributes the wanted state names take part in the comparison. This is what separates a
-patch from the :meth:`~scim2_models.Resource.replace` it stands for: an attribute the peer
-maintains and the application does not model survives the modification.
+Only the attributes set in the wanted state take part in the comparison. Unlike a
+:meth:`~scim2_models.Resource.replace`, the patch keeps an attribute the peer maintains and the
+application does not model.
 
 .. doctest::
 
@@ -38,8 +39,8 @@ maintains and the application does not model survives the modification.
    >>> patch.model_dump()["Operations"]
    [{'op': 'replace', 'path': 'nickName', 'value': 'Babs'}]
 
-Naming an attribute with no value says the opposite. ``title=None`` reads as "clear the title",
-where an unnamed ``title`` reads as "leave it alone":
+Setting an attribute to no value says the opposite. ``title=None`` reads as "clear the title",
+while a ``title`` left out reads as "leave it alone":
 
 .. doctest::
 
@@ -48,7 +49,8 @@ where an unnamed ``title`` reads as "leave it alone":
    >>> patch.model_dump()["Operations"]
    [{'op': 'remove', 'path': 'title'}]
 
-The same rule reaches sub-attributes, and an extension is named by its schema URN:
+The same rule applies to sub-attributes. The path to an extension attribute starts with the
+schema URN:
 
 .. doctest::
 
@@ -76,8 +78,8 @@ returns :data:`None`, so an application tests it before sending a request:
 Know how collections are compared
 ---------------------------------
 
-A multi-valued attribute is replaced as a whole. Only the sub-attributes the wanted entries name
-decide whether it changed, so the sub-attributes the peer alone maintains do not read as a
+A multi-valued attribute is replaced as a whole. Only the sub-attributes set in the wanted entries
+decide whether it changed. The sub-attributes that only the peer maintains do not count as a
 difference:
 
 .. doctest::
@@ -107,9 +109,9 @@ entries writes those operations itself, targeting a sub-attribute through a filt
 Read what the patch never carries
 ---------------------------------
 
-A ``readOnly`` attribute is left out however much the two states differ:
-:rfc:`RFC7644 §3.5.2 <7644#section-3.5.2>` forbids a client to modify one, and naming it would
-make the patch invalid. That covers :attr:`~scim2_models.Resource.id`,
+A ``readOnly`` attribute is always left out, even when the two states differ. Per
+:rfc:`RFC7644 §3.5.2 <7644#section-3.5.2>`, a client must not modify one, so the patch would be
+invalid. That covers :attr:`~scim2_models.Resource.id`,
 :attr:`~scim2_models.Resource.meta` and :attr:`~scim2_models.User.groups`, along with the
 ``readOnly`` sub-attributes of a complex attribute.
 
@@ -118,5 +120,5 @@ An ``immutable`` attribute that holds no value yet is added, which
 modified, and :meth:`~scim2_models.PatchOp.build_from` raises a
 :class:`~scim2_models.MutabilityException` rather than building a request the peer must refuse.
 
-An attribute a server never returns, such as :attr:`~scim2_models.User.password`, reads as unset on
-the side of the peer. Every patch built from a state naming it carries it again.
+An attribute a server never returns, such as :attr:`~scim2_models.User.password`, looks unset on the
+peer side. So every patch built from a state that sets it sends it again.

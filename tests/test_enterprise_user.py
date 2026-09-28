@@ -95,10 +95,10 @@ def test_enterprise_user(load_sample):
     )
     assert obj.meta.resource_type == "User"
     assert obj.meta.created == datetime.datetime(
-        2010, 1, 23, 4, 56, 22, tzinfo=datetime.timezone.utc
+        2010, 1, 23, 4, 56, 22, tzinfo=datetime.UTC
     )
     assert obj.meta.last_modified == datetime.datetime(
-        2011, 5, 13, 4, 42, 34, tzinfo=datetime.timezone.utc
+        2011, 5, 13, 4, 42, 34, tzinfo=datetime.UTC
     )
     assert obj.meta.version == 'W\\/"3694e05e9dff591"'
     assert (

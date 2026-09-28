@@ -11,7 +11,7 @@ The tutorial is written for people building a SCIM server who can read SQL. It a
 :ref:`Filter resources <overview-filters>` section of the :doc:`../overview`, and it uses SQLite
 through the :mod:`sqlite3` module of the standard library, so it needs no installation.
 :doc:`../explanation/filters` covers the grammar and the comparison rules the transpiler has to
-honour; :doc:`sqlalchemy` covers the same work on a real ORM.
+honor; :doc:`sqlalchemy` covers the same work on a real ORM.
 
 Over a large collection, a filter has to become a query the database runs: a ``WHERE`` clause, or
 its equivalent in another store. A server receives filters from its clients, in the query
@@ -62,7 +62,7 @@ This first visitor writes the ``WHERE`` clause of a filter over single-valued at
 stored in one column, ``meta.lastModified`` in ``meta_last_modified``. A node only carries the
 *name* of an attribute. The visitor first resolves that name against the model, with
 :meth:`ScimFilter.resolve_comparison <scim2_models.ScimFilter.resolve_comparison>` or
-:meth:`ScimFilter.resolve <scim2_models.ScimFilter.resolve>`. The result names the field holding
+:meth:`ScimFilter.resolve <scim2_models.ScimFilter.resolve>`. The result gives the field holding
 the attribute, and says whether the comparison ignores case. The values do not go into the SQL.
 The visitor collects them in ``params``, which the database driver sends separately from the
 query. :func:`~scim2_models.path.coerce_value` converts each one beforehand, from the JSON value
@@ -160,7 +160,7 @@ the filter spelled. A boolean has no case, so the visitor compares it as it is:
 Check the query against the evaluator
 -------------------------------------
 
-The example refuses five things a complete transpiler has to handle:
+The example refuses what a complete transpiler has to handle:
 
 - **A multi-valued attribute**, stored in a table of its own. A comparison reaches it through a
   correlated subquery, such as
@@ -173,8 +173,9 @@ The example refuses five things a complete transpiler has to handle:
   not equal to anything.
 - **The string operators**, which ``LIKE`` implements once the ``%`` and ``_`` in the value are
   escaped. Otherwise ``title co "100%"`` also selects ``"1000 Files"``.
-- **The case**, which ``LOWER()`` folds over ASCII only, where :rfc:`7643` asks for Unicode
-  folding. :ref:`filter-open-choices` describes the difference.
+- **The case**, which ``LOWER()`` folds over ASCII only, where
+  :meth:`ScimFilter.match <scim2_models.ScimFilter.match>` folds all of Unicode.
+  :ref:`filter-open-choices` describes the difference.
 
 Each of these mistakes produces valid SQL that answers a different question than the filter
 asked. :meth:`ScimFilter.match <scim2_models.ScimFilter.match>` walks the same tree through the
@@ -219,15 +220,14 @@ SQLite table:
 Where to go next
 ----------------
 
-The transpiler now answers five filters over three columns, and the oracle says its answers match
-the evaluator. What it does not answer yet are the five cases it refuses: multi-valued
-attributes, value selections, ``ne``, the string operators and Unicode case folding. The
-:doc:`sqlalchemy` guide handles each of them on SQLAlchemy expressions, and runs every filter of
+The transpiler now answers filters over single-valued attributes, and its answers match the
+evaluator. It still refuses multi-valued attributes, value selections, ``ne``, the string
+operators and Unicode case folding. The :doc:`sqlalchemy` guide handles each of them on SQLAlchemy expressions, and runs every filter of
 its test list through both the query and the evaluator.
 
 A search request also carries a ``sortBy`` parameter.
 :attr:`SearchRequest.sort_by <scim2_models.SearchRequest.sort_by>` is a
-:class:`~scim2_models.Path`, and it resolves the same way. The attribute it resolves to names the
+:class:`~scim2_models.Path`, and it resolves the same way. The attribute it resolves to gives the
 column an ``ORDER BY`` sorts on. The column alone does not settle the order: the case, the missing
 values and the multi-valued attributes each have a rule of their own in
 :rfc:`RFC7644 §3.4.2.3 <7644#section-3.4.2.3>`. The :doc:`sqlalchemy` guide implements them.

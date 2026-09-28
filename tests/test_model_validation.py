@@ -226,7 +226,7 @@ def test_validate_query_request_mutability():
 
     with pytest.raises(
         ValidationError,
-        match="Field 'write_only' has mutability 'writeOnly' but this in not valid in resource query request context",
+        match="Field 'writeOnly' has mutability 'writeOnly' but this is not valid in resource query request context",
     ):
         MutResource.model_validate(
             {
@@ -490,6 +490,69 @@ def test_replace_preserves_immutable_when_absent():
     assert replacement.immutable == "y"
 
 
+def test_replace_preserves_a_write_only_field_left_out():
+    """RFC 7644 §3.5.1 only clears omitted readWrite attributes: a write-only value is never returned to resend."""
+    original = MutResource(write_only="secret")
+    replacement = MutResource(read_write="x")
+    replacement.replace(original)
+    assert replacement.write_only == "secret"
+    assert "write_only" not in replacement.model_fields_set
+
+
+def test_replace_clears_a_write_only_field_set_to_null():
+    """An explicit null is how RFC 7644 §3.5.1 lets a client clear a value."""
+    original = MutResource(write_only="secret")
+    replacement = MutResource(write_only=None)
+    replacement.replace(original)
+    assert replacement.write_only is None
+
+
+def test_replace_takes_a_provided_write_only_value():
+    """RFC 7644 §3.5.1: write-only values provided "SHALL replace the existing" ones."""
+    original = MutResource(write_only="secret")
+    replacement = MutResource(write_only="new")
+    replacement.replace(original)
+    assert replacement.write_only == "new"
+
+
+@pytest.mark.parametrize(
+    ("payload", "expected"),
+    [({}, "secret"), ({"writeOnly": None}, None), ({"writeOnly": "new"}, "new")],
+    ids=["omitted", "null", "provided"],
+)
+def test_replace_reads_a_write_only_field_from_a_replacement_request(payload, expected):
+    """A payload tells an omitted write-only attribute apart from a null one."""
+    original = MutResource(write_only="secret")
+    replacement = MutResource.model_validate(
+        {"schemas": ["urn:example:MutResource"], **payload},
+        scim_ctx=Context.RESOURCE_REPLACEMENT_REQUEST,
+    )
+    replacement.replace(original)
+    assert replacement.write_only == expected
+
+
+def test_replace_preserves_a_write_only_sub_attribute_left_out():
+    """The rule applies to the sub-attributes of complex and multi-valued attributes."""
+
+    class Sub(ComplexAttribute):
+        value: str | None = None
+        write_only: Annotated[str | None, Mutability.write_only] = None
+
+    class Holder(Resource):
+        __schema__ = URN("urn:example:Holder")
+        sub: Sub | None = None
+        subs: list[Sub] | None = None
+
+    original = Holder(
+        sub=Sub(value="a", write_only="secret"),
+        subs=[Sub(value="a", write_only="secret")],
+    )
+    replacement = Holder(sub=Sub(value="b"), subs=[Sub(value="a")])
+    replacement.replace(original)
+    assert replacement.sub.write_only == "secret"
+    assert replacement.subs[0].write_only == "secret"
+
+
 def test_replace_does_not_assert_the_fields_it_copies():
     """The fields replace copies from the original are not reported as set.
 
@@ -615,7 +678,7 @@ def test_validate_search_request_mutability():
 
     with pytest.raises(
         ValidationError,
-        match="Field 'write_only' has mutability 'writeOnly' but this in not valid in search request context",
+        match="Field 'writeOnly' has mutability 'writeOnly' but this is not valid in search request context",
     ):
         MutResource.model_validate(
             {
@@ -722,7 +785,7 @@ def test_validate_response_returnability(context):
     # always is missing
     with pytest.raises(
         ValidationError,
-        match="Field 'always_returned' has returnability 'always' but value is missing or null",
+        match="Field 'alwaysReturned' has returnability 'always' but value is missing or null",
     ):
         RetResource.model_validate(
             {"schemas": ["urn:example:RetResource"], "id": "id"}, scim_ctx=context
@@ -731,7 +794,7 @@ def test_validate_response_returnability(context):
     # always is None
     with pytest.raises(
         ValidationError,
-        match="Field 'always_returned' has returnability 'always' but value is missing or null",
+        match="Field 'alwaysReturned' has returnability 'always' but value is missing or null",
     ):
         RetResource.model_validate(
             {
@@ -745,7 +808,7 @@ def test_validate_response_returnability(context):
     # never is not None
     with pytest.raises(
         ValidationError,
-        match="Field 'never_returned' has returnability 'never' but value is set",
+        match="Field 'neverReturned' has returnability 'never' but value is set",
     ):
         RetResource.model_validate(
             {
@@ -922,7 +985,7 @@ def test_validate_json_applies_the_scim_context():
     """The SCIM context drives the validation of JSON payloads."""
     with pytest.raises(
         ValidationError,
-        match="Field 'write_only' has mutability 'writeOnly' but this in not valid in resource query request context",
+        match="Field 'writeOnly' has mutability 'writeOnly' but this is not valid in resource query request context",
     ):
         MutResource.model_validate_json(
             '{"schemas": ["urn:example:MutResource"], "writeOnly": "x"}',
@@ -934,7 +997,7 @@ def test_validate_json_with_an_explicit_validation_context():
     """An explicit Pydantic validation context takes precedence over the SCIM context."""
     with pytest.raises(
         ValidationError,
-        match="Field 'write_only' has mutability 'writeOnly' but this in not valid in resource query request context",
+        match="Field 'writeOnly' has mutability 'writeOnly' but this is not valid in resource query request context",
     ):
         MutResource.model_validate_json(
             '{"schemas": ["urn:example:MutResource"], "writeOnly": "x"}',
@@ -1061,3 +1124,15 @@ def test_serialized_schemas_can_be_excluded():
     strings, which bear no 'schemas' parameter.
     """
     assert "schemas" not in User(user_name="foobar").model_dump(exclude={"schemas"})
+
+
+def test_required_error_names_the_attribute_as_scim_spells_it():
+    """A missing required attribute is reported under its SCIM name, not its Python name."""
+    with pytest.raises(
+        ValidationError,
+        match="Field 'userName' is required but value is missing or null",
+    ):
+        User.model_validate(
+            {"schemas": [User.__schema__]},
+            scim_ctx=Context.RESOURCE_CREATION_REQUEST,
+        )

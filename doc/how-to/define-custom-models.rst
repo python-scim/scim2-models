@@ -41,6 +41,47 @@ as optional because SCIM can omit an attribute in a valid request or response.
    >>> pet.model_dump()["details"]
    {'color': 'ginger', 'weightKg': 4.2}
 
+Name an attribute
+-----------------
+
+A field named in Python takes the camel-case spelling of its name as its SCIM attribute name:
+``weight_kg`` becomes ``weightKg``. Reading a payload goes the other way, and
+:rfc:`RFC7643 §2.1 <7643#section-2.1>` makes attribute names case-insensitive, so ``weightKg``,
+``weightkg`` and ``WEIGHTKG`` all reach ``weight_kg``. Nothing else is folded: the ABNF of that
+section makes ``$``, ``-`` and ``_`` part of a name, so ``weight-kg`` is another attribute
+altogether, refused as an unknown one. See :doc:`tolerate-a-nonconformant-peer` to accept what a peer
+spells its own way.
+
+When the attribute name is not what camel-casing a Python name yields, declare it with a
+``serialization_alias``:
+
+.. doctest::
+
+   >>> from pydantic import Field
+   >>> class Pet(Resource):
+   ...     __schema__ = URN("urn:example:schemas:Pet")
+   ...     vet_ref: str | None = Field(None, serialization_alias="$vetRef")
+   ...
+   >>> Pet.model_validate({"$vetRef": "https://example.com/Vets/1"}).vet_ref
+   'https://example.com/Vets/1'
+
+An alias applies to reading as well as to writing. It also wins over the Python name of any other
+field. So when the alias of a field is the Python name of another field, that keyword goes to the
+field with the alias, in a payload and in the constructor:
+
+.. doctest::
+
+   >>> class Pet(Resource):
+   ...     __schema__ = URN("urn:example:schemas:Pet")
+   ...     pet_name: str | None = None
+   ...     legacy: str | None = Field(None, serialization_alias="pet_name")
+   ...
+   >>> Pet(pet_name="Mochi").legacy
+   'Mochi'
+
+Two fields cannot share one attribute name, since no payload key could reach both. Such a model
+raises a :class:`TypeError` when it is defined.
+
 Apply SCIM attribute metadata
 -----------------------------
 
@@ -148,7 +189,7 @@ request that leaves the extension out is then refused:
    ...     )
    ... except ValidationError as exc:
    ...     print(exc.errors()[0]["msg"])
-   Field 'PetOwner' is required but value is missing or null
+   Field 'urn:example:schemas:extension:pet:2.0:User' is required but value is missing or null
 
 :meth:`ResourceType.from_resource <scim2_models.ResourceType.from_resource>` publishes that
 necessity, so a server announces it on its ``/ResourceTypes`` endpoint:

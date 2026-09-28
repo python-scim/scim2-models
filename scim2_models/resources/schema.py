@@ -1,6 +1,7 @@
 import re
+from collections import Counter
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 from typing import Annotated
 from typing import Any
 from typing import List  # noqa : UP005,UP035
@@ -30,55 +31,128 @@ from ..reference import URI
 from ..reference import External
 from ..reference import Reference
 from ..urn import URN
-from ..utils import _normalize_attribute_name
 from .resource import Resource
 
 T = TypeVar("T", bound=BaseModel)
 
 _NON_WORD_OR_LEADING_DIGIT = re.compile(r"\W|^(?=\d)")
 
+_MAX_COMPLEX_DEPTH = 2
+"""How deep complex attributes can be nested.
 
-def _make_python_identifier(identifier: str) -> str:
-    """Sanitize string to be a suitable Python/Pydantic class attribute name."""
-    sanitized = _NON_WORD_OR_LEADING_DIGIT.sub("", identifier)
-    if sanitized in RESERVED_WORDS:
+RFC7643 §2.3.8 forbids complex sub-attributes, but §7 lets the "Schema"
+resource hold one, as its complex 'subAttributes' in its complex 'attributes'."""
+
+
+def _make_python_identifier(identifier: str, base: type) -> str:
+    """Sanitize string to be a suitable Python/Pydantic class attribute name.
+
+    Pydantic refuses the names with a leading underscore, and a field named after
+    a member of the base class, such as 'model_config' or 'model_dump', would
+    break the model. Such a name gets a trailing underscore, as a reserved word.
+    """
+    sanitized = to_snake(_NON_WORD_OR_LEADING_DIGIT.sub("", identifier).lstrip("_"))
+    if sanitized in RESERVED_WORDS or hasattr(base, sanitized):
         sanitized = f"{sanitized}_"
 
     return sanitized
 
 
+def _field_names(attributes: "list[Attribute]", base: type) -> list[str]:
+    """Return the Python name each attribute is held under.
+
+    Two SCIM names may yield one Python name, as ``employee_id`` and
+    ``employeeId`` both yield ``employee_id``. The one already spelled as that
+    name keeps it and the others are held under their SCIM name, so that no
+    attribute is dropped and the order the schema declares them in changes
+    nothing. Such a name is no Python identifier when it carries a dash, which
+    costs nothing: an attribute is read under the name SCIM gives it, as in
+    ``resource["employee-Id"]``.
+    """
+    natural = [_make_python_identifier(attr.name or "", base) for attr in attributes]
+    shared = Counter(natural)
+    names = [
+        name if shared[name] == 1 or name == attr.name else attr.name or ""
+        for attr, name in zip(attributes, natural, strict=True)
+    ]
+    for name in names:
+        if name.startswith("_") or hasattr(base, name):
+            raise ValueError(f"{name!r} cannot be the name of an attribute")
+
+    return names
+
+
+def _python_attributes(
+    attributes: "list[Attribute] | None", declared_by: str, base: type, depth: int
+) -> dict[str, Any]:
+    """Return the fields a schema or a complex attribute declares.
+
+    ``declared_by`` is what declares them, quoted by the error. Two
+    attributes whose names only differ by case are refused: RFC7643 §2.1 makes
+    them one attribute, so a schema declaring both describes it twice.
+    """
+    declared = []
+    named: dict[str, str] = {}
+    for attr in attributes or []:
+        if not attr.name:
+            continue
+
+        claimed = named.get(attr.name.lower())
+        if claimed is not None:
+            raise ValueError(
+                f"{declared_by} declares {claimed!r} and {attr.name!r}, "
+                f"which name the same attribute"
+            )
+        named[attr.name.lower()] = attr.name
+        declared.append(attr)
+
+    return {
+        field_name: attr._to_python(depth)
+        for field_name, attr in zip(_field_names(declared, base), declared, strict=True)
+    }
+
+
 def _make_python_model(
     obj: Union["Schema", "Attribute"],
     base: type[T],
+    depth: int = 0,
 ) -> type[T]:
-    """Build a Python model from a Schema or an Attribute object."""
-    if isinstance(obj, Attribute):
-        pydantic_attributes = {
-            to_snake(_make_python_identifier(attr.name)): attr._to_python()
-            for attr in (obj.sub_attributes or [])
-            if attr.name
-        }
+    """Build a Python model from a Schema or an Attribute object.
 
-    else:
-        pydantic_attributes = {
-            to_snake(_make_python_identifier(attr.name)): attr._to_python()
-            for attr in (obj.attributes or [])
-            if attr.name
-        }
-
+    ``depth`` is the nesting level of the complex attribute being built, 0 for
+    a schema.
+    """
     if not obj.name:
         raise ValueError("Schema or Attribute 'name' must be defined")
 
-    model_name = to_pascal(to_snake(obj.name))
+    if depth > _MAX_COMPLEX_DEPTH:
+        raise ValueError(
+            f"the complex attribute {obj.name!r} is nested more than "
+            f"{_MAX_COMPLEX_DEPTH} levels deep"
+        )
+
+    if isinstance(obj, Attribute):
+        pydantic_attributes = _python_attributes(
+            obj.sub_attributes, f"the attribute {obj.name!r}", base, depth
+        )
+    else:
+        pydantic_attributes = _python_attributes(
+            obj.attributes, f"the schema {obj.id or obj.name}", base, depth
+        )
+
+    model_name = obj.name if isinstance(obj, Schema) else to_pascal(to_snake(obj.name))
     model = cast(
         type[T],
-        create_model(model_name, __base__=base, **pydantic_attributes),  # type: ignore[call-overload]
+        create_model(model_name, __base__=base, **pydantic_attributes),
     )
 
     if isinstance(obj, Schema) and obj.id:
         model.__schema__ = URN(obj.id)  # type: ignore[attr-defined]
         # __scim_info__ was built by pydantic before __schema__ was known
         model.__pydantic_on_complete__()
+
+    if isinstance(obj, Schema):
+        model.__doc__ = obj.description
 
     for attr_name in model.model_fields:
         attr_type = model.get_field_root_type(attr_name)
@@ -89,7 +163,7 @@ def _make_python_model(
 
 
 class Attribute(ComplexAttribute):
-    class Type(str, Enum):
+    class Type(StrEnum):
         string = "string"
         complex = "complex"
         boolean = "boolean"
@@ -210,15 +284,19 @@ class Attribute(ComplexAttribute):
     """When an attribute is of type "complex", "subAttributes" defines a set of
     sub-attributes."""
 
-    def _to_python(self) -> tuple[Any, Any] | None:
-        """Build tuple suited to be passed to pydantic 'create_model'."""
+    def _to_python(self, depth: int = 0) -> tuple[Any, Any] | None:
+        """Build tuple suited to be passed to pydantic 'create_model'.
+
+        ``depth`` is the nesting level of the complex attribute holding this
+        one, 0 for a schema.
+        """
         if not self.name or not self.type:
             return None
 
         attr_type = self.type._to_python(self.reference_types)
 
         if attr_type == ComplexAttribute:
-            attr_type = _make_python_model(obj=self, base=attr_type)
+            attr_type = _make_python_model(obj=self, base=attr_type, depth=depth + 1)
 
         if self.multi_valued:
             attr_type = list[attr_type]  # type: ignore
@@ -236,7 +314,7 @@ class Attribute(ComplexAttribute):
             description=self.description,
             examples=self.canonical_values,
             serialization_alias=self.name,
-            validation_alias=_normalize_attribute_name(self.name),
+            validation_alias=self.name,
             default=None,
         )
 
@@ -245,10 +323,8 @@ class Attribute(ComplexAttribute):
     def _implicit_case_exact(self) -> CaseExact:
         """Return the case sensitivity the built field must be annotated with.
 
-        Binary and reference values are case exact per
-        :rfc:`RFC7643 §2.3.6 <7643#section-2.3.6>` and
-        :rfc:`§2.3.7 <7643#section-2.3.7>`, unless the schema explicitly states
-        otherwise.
+        Binary and reference values are case exact per RFC7643 §2.3.6 and
+        §2.3.7, unless the schema explicitly states otherwise.
         """
         if "case_exact" in self.model_fields_set:
             return self.case_exact
@@ -294,7 +370,7 @@ class Schema(Resource[Any]):
 
     @field_validator("id")
     @classmethod
-    def urn_id(cls, value: str) -> str:
+    def _urn_id(cls, value: str) -> str:
         """Ensure that schema ids are URI, as defined in RFC7643 §7."""
         return str(Url(value))
 

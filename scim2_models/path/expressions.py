@@ -7,7 +7,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from dataclasses import field
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 from typing import Union
 
@@ -16,8 +16,8 @@ if sys.version_info >= (3, 14):
 else:  # pragma: no cover
     Template = None
 
-_ATTR_NAME = r"\$?[A-Za-z][A-Za-z0-9_-]*"
-"""The ``ATTRNAME`` rule, with the leading ``$`` of ``$ref`` that errata 8924 adds."""
+_ATTR_NAME = r"\$?[A-Za-z][A-Za-z0-9$_-]*"
+"""The ``ATTRNAME`` rule, ``nameChar`` and the leading ``$`` of ``$ref`` that errata 8924 adds."""
 
 _URN = r"urn:[A-Za-z0-9][A-Za-z0-9._-]*(?::[A-Za-z0-9][A-Za-z0-9._-]*)*"
 """A schema URN, the only ``URI`` an attribute path accepts."""
@@ -35,7 +35,7 @@ class _Expression(str):
     """
 
 
-class CompareOperator(str, Enum):
+class CompareOperator(StrEnum):
     """The comparison operators defined at :rfc:`RFC7644 §3.4.2.2 <7644#section-3.4.2.2>`."""
 
     eq = "eq"
@@ -83,7 +83,7 @@ STRING_OPERATORS = frozenset(
 """Operators that require a string operand."""
 
 
-class LogicalOperator(str, Enum):
+class LogicalOperator(StrEnum):
     """The logical operators defined at :rfc:`RFC7644 §3.4.2.2 <7644#section-3.4.2.2>`."""
 
     and_ = "and"
@@ -103,12 +103,11 @@ def _json_default(value: Any) -> str:
 def _quote(value: Any) -> str:
     """Render a comparison value using the JSON syntax mandated by the ABNF.
 
-    A :class:`~datetime.datetime` renders as the string
-    :rfc:`RFC7643 §2.3.5 <7643#section-2.3.5>` gives a dateTime.
+    A datetime.datetime renders as the string RFC7643 §2.3.5 gives a dateTime.
 
-    :raises ValueError: If the value is a float that JSON cannot express, such
-        as an infinity, which would render as a literal no parser accepts.
-    :raises TypeError: If the value is of a type no filter can carry.
+    A float JSON cannot express, such as an infinity, would render as a literal
+    no parser accepts, and raises ValueError. A type no filter can carry raises
+    TypeError.
     """
     return json.dumps(value, allow_nan=False, default=_json_default)
 
@@ -123,9 +122,9 @@ def _render_template(template: "Template") -> str:
     and what it yields is a string. A value interpolated as it stands keeps its
     type, so ``{True}`` renders as ``true`` and ``{18}`` as ``18``.
 
-    An :class:`_Expression`, a filter or a path, is syntax rather than a value
-    and is inserted unquoted. A conversion or a format specification turns it
-    into a value like any other.
+    An _Expression, a filter or a path, is syntax rather than a value and is
+    inserted unquoted. A conversion or a format specification turns it into a
+    value like any other.
     """
     parts: list[str] = []
     for part in template:
@@ -313,8 +312,7 @@ def _needs_parentheses(parent: LogicalExpr, child: FilterNode) -> bool:
     """Whether a child expression must be parenthesised inside its parent.
 
     Only a disjunction nested in a conjunction needs them, since ``and`` binds
-    tighter than ``or`` in the operator precedence of :rfc:`RFC7644 §3.4.2.2
-    <7644#section-3.4.2.2>`.
+    tighter than ``or`` in the operator precedence of RFC7644 §3.4.2.2.
     """
     return (
         isinstance(child, LogicalExpr)

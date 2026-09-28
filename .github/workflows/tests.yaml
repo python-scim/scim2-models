@@ -10,10 +10,17 @@ on:
       - main
       - '*.*.*'
 
+env:
+  UV_LOCKED: 1
+  UV_PYTHON_PREFERENCE: only-managed
+
+permissions:
+  contents: read
+
 jobs:
   tests:
     name: py${{ matrix.python }} unit tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -22,35 +29,38 @@ jobs:
           - '3.13'
           - '3.12'
           - '3.11'
-          - '3.10'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Install uv
         uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
+          version: "0.12.13"
+          python-version: ${{ matrix.python }}
           enable-cache: true
-      - name: Install Python ${{ matrix.python }}
-        run: uv python install ${{ matrix.python }}
       - name: Run tests
         run: uv run pytest --showlocals
 
   coverage:
-    name: py${{ matrix.python }} unit tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Install uv
         uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
+          version: "0.12.13"
+          python-version: "3.14"
           enable-cache: true
-      - name: Install Python ${{ matrix.python }}
-        run: uv python install ${{ matrix.python }}
       - name: Run tests
         run: uv run pytest --cov --cov-fail-under=100
 
   downstream-tests:
     name: py${{ matrix.python }} ${{ matrix.downstream }} downstream unit tests
-    runs-on: ubuntu-latest
+    if: ${{ !startsWith(github.head_ref, 'renovate/') }}
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -67,19 +77,20 @@ jobs:
     steps:
       - name: Checkout upstream pyproject
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Install uv
         uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
+          version: "0.12.13"
+          python-version: ${{ matrix.python }}
           enable-cache: true
       - name: Checkout downstream pyproject
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: python-scim/${{ matrix.downstream }}
           path: ${{ matrix.downstream }}
-      - name: Install Python ${{ matrix.python }}
-        run: |
-          cd ${{ matrix.downstream }}
-          uv python install ${{ matrix.python }}
+          persist-credentials: false
       - name: Install downstream test environment
         run: |
           cd ${{ matrix.downstream }}
@@ -88,40 +99,55 @@ jobs:
       - name: Run downstream tests
         run: |
           cd ${{ matrix.downstream }}
-          uv run pytest --showlocals
+          uv run --no-sync pytest --showlocals
 
   minversions:
     name: minimum dependency versions
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    env:
+      UV_RESOLUTION: lowest-direct
+      UV_LOCKED: 0
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Install uv
         uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
+          version: "0.12.13"
+          python-version: "3.11"
           enable-cache: true
       - name: Install minimum dependencies
-        run: uv sync --resolution=lowest-direct
+        run: uv sync
       - name: Run tests
         run: uv run pytest --showlocals
 
   style:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Install uv
         uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
+          version: "0.12.13"
+          python-version: "3.14"
           enable-cache: true
       - name: Run style checks
-        run: uv run --python 3.14 prek run --all-files --show-diff-on-failure
+        run: uv run prek run --all-files --show-diff-on-failure
 
   doc:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Install uv
         uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
+          version: "0.12.13"
+          python-version: "3.14"
           enable-cache: true
       - name: Install dependencies
         run: uv sync --group doc

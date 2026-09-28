@@ -319,7 +319,7 @@ Available aliases: :class:`~scim2_models.CreationRequestContext` /
 :class:`~scim2_models.SearchResponseContext`, and :class:`~scim2_models.PatchRequestContext` /
 :class:`~scim2_models.PatchResponseContext`.
 
-These aliases are **pure Pydantic** and carry no dependency on FastAPI — they work with any
+These aliases are **pure Pydantic** and carry no dependency on FastAPI: they work with any
 framework that respects :data:`typing.Annotated` metadata.
 
 ``*ResponseContext`` aliases do not support the ``attributes`` / ``excludedAttributes`` query

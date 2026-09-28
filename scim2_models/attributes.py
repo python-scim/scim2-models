@@ -1,15 +1,15 @@
-from enum import Enum
+from enum import StrEnum
 from inspect import isclass
 from typing import Annotated
 from typing import Any
 from typing import ClassVar
+from typing import Self
 from typing import get_origin
 
 from pydantic import Field
 from pydantic import GetJsonSchemaHandler
 from pydantic.json_schema import JsonSchemaValue
 from pydantic_core import CoreSchema
-from typing_extensions import Self
 
 from .annotations import Mutability
 
@@ -18,16 +18,13 @@ from .base import BaseModel
 from .reference import Reference
 
 
-class ExtensibleStringEnum(str, Enum):
+class ExtensibleStringEnum(StrEnum):
     """String enum accepting values beyond its canonical ones.
 
     :rfc:`RFC7643 §2.3.1 <7643#section-2.3.1>` and :rfc:`§7 <7643#section-7>`
     define ``canonicalValues`` as suggestions that service providers MAY restrict,
     so unknown values are kept as-is instead of being rejected.
     """
-
-    def __str__(self) -> str:
-        return str(self.value)
 
     @classmethod
     def __get_pydantic_json_schema__(
@@ -43,8 +40,8 @@ class ExtensibleStringEnum(str, Enum):
     def _missing_(cls, value: Any) -> Self:
         """Match canonical values regardless of their case, and keep unknown ones as-is.
 
-        Attributes bearing ``canonicalValues`` are case-insensitive unless stated
-        otherwise by :rfc:`RFC7643 §2.2 <7643#section-2.2>`.
+        Attributes bearing ``canonicalValues`` are case-insensitive unless
+        stated otherwise by RFC7643 §2.2.
         """
         if not isinstance(value, str):
             raise ValueError(f"{value} is not a valid string value for {cls.__name__}")
@@ -66,15 +63,12 @@ class ComplexAttribute(BaseModel):
 
     _attribute_urn: str | None = None
 
-    def get_attribute_urn(self, field_name: str) -> str:
+    def _get_attribute_urn(self, field_name: str) -> str:
         """Build the full URN of the attribute.
 
-        See :rfc:`RFC7644 §3.10 <7644#section-3.10>`.
+        See RFC7644 §3.10.
         """
-        alias = (
-            self.__class__.model_fields[field_name].serialization_alias or field_name
-        )
-        return f"{self._attribute_urn}.{alias}"
+        return f"{self._attribute_urn}.{self._scim_name(field_name)}"
 
 
 class MultiValuedComplexAttribute(ComplexAttribute):
@@ -95,7 +89,9 @@ class MultiValuedComplexAttribute(ComplexAttribute):
     value: Any | None = None
     """The value of an entitlement."""
 
-    ref: Reference[Any] | None = Field(None, serialization_alias="$ref")
+    ref: Reference[Any] | None = Field(
+        None, serialization_alias="$ref", validation_alias="$ref"
+    )
     """The reference URI of a target resource, if the attribute is a
     reference."""
 

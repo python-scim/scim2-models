@@ -14,20 +14,20 @@ from ..exceptions import NoTargetException
 from ..exceptions import PathNotFoundException
 from ..utils import UNION_TYPES
 from ..utils import _find_field_name
-from .filter import validate_value_filter
+from .filter import _validate_value_filter
+from .resolution import _designated_model
+from .resolution import _resolve_attr_path
 from .resolution import _target_model
+from .resolution import _validate_value_selection
 from .resolution import attribute_host
-from .resolution import designated_model
-from .resolution import resolve_attr_path
-from .resolution import validate_value_selection
-from .visitor import Evaluator
+from .visitor import _Evaluator
 
 if TYPE_CHECKING:
     from .path import Path
 
 
 def _accepts_none(model: type[BaseModel], field_name: str) -> bool:
-    """Whether the annotation of a field allows :data:`None`."""
+    """Whether the annotation of a field allows None."""
     annotation = model.model_fields[field_name].annotation
     return get_origin(annotation) in UNION_TYPES and type(None) in get_args(annotation)
 
@@ -38,8 +38,30 @@ def _to_comparable(value: Any) -> Any:
 
 
 def _values_match(value1: Any, value2: Any) -> bool:
-    """Check if two values match, handling BaseModel comparison."""
+    """Check if two values match, handling BaseModel comparison.
+
+    Two models of the same type compare their fields directly, which spares a
+    dump of each.
+    """
+    if isinstance(value1, BaseModel) and type(value1) is type(value2):
+        return bool(value1 == value2)
     return bool(_to_comparable(value1) == _to_comparable(value2))
+
+
+def _as_entry(model: type[BaseModel], field_name: str, value: Any) -> Any:
+    """Read a mapping as an entry of a multi-valued complex attribute.
+
+    The entry is compared by the values of its attributes, whatever the
+    spelling of their names.
+    """
+    item_type = model.get_field_root_type(field_name)
+    if (
+        isinstance(value, dict)
+        and isclass(item_type)
+        and issubclass(item_type, BaseModel)
+    ):
+        return item_type.model_validate(value)
+    return value
 
 
 def _value_in_list(current_list: list[Any], new_value: Any) -> bool:
@@ -80,8 +102,8 @@ class _Target(NamedTuple):
 class _Selection(NamedTuple):
     """The entries a value-selecting path matched, and where they live.
 
-    ``sub_attr`` is the attribute targeted past the brackets, which
-    :rfc:`RFC7644 §3.5.2 <7644#section-3.5.2>` allows a PATCH path to name.
+    ``sub_attr`` is the attribute targeted past the brackets, which RFC7644
+    §3.5.2 allows a PATCH path to name.
     """
 
     host: Any
@@ -95,23 +117,22 @@ def _walk(
 ) -> "_Root | _Target | None":
     """Locate the objects holding the attribute a path designates.
 
-    The path is resolved against the type of the resource rather than the
-    model it is bound to, so an unbound path reads and writes like a bound
-    one, and a path bound to a union answers for the type it is applied to.
-    A path crossing a multi-valued attribute fans out over its entries, as
-    :rfc:`RFC7644 §3.5.2 <7644#section-3.5.2>` has an unfiltered path
-    designate every one of them.
+    The path is resolved against the type of the resource rather than the model
+    it is bound to, so an unbound path reads and writes like a bound one, and a
+    path bound to a union answers for the type it is applied to. A path
+    crossing a multi-valued attribute fans out over its entries, as RFC7644
+    §3.5.2 has an unfiltered path designate every one of them.
 
-    :param resource: The object to walk from.
-    :param create: Whether an unassigned extension or complex attribute is
-        instantiated rather than ending the walk. Nothing is created for a
-        path that resolves to nothing.
-    :returns: The root when the path designates the resource itself, the
-        target otherwise, or :data:`None` when nothing is left to walk to.
-    :raises InvalidPathException: If the path is qualified by a URN that
-        designates neither the resource nor one of its extensions.
-    :raises PathNotFoundException: If the path names an attribute the model
-        does not declare, or a sub-attribute of one that has none.
+    With ``create``, an unassigned extension or complex attribute is
+    instantiated rather than ending the walk; nothing is created for a path
+    that resolves to nothing. The walk answers the root when the path
+    designates the resource itself, the target otherwise, and None when nothing
+    is left to walk to.
+
+    A path qualified by a URN designating neither the resource nor one of its
+    extensions raises InvalidPathException, and one naming an attribute the
+    model does not declare, or a sub-attribute of one that has none, raises
+    PathNotFoundException.
     """
     from ..resources.resource import Resource
 
@@ -119,7 +140,7 @@ def _walk(
         return _Root(explicit=False)
 
     model = type(resource)
-    if (designated := designated_model(model, str(path))) is not None:
+    if (designated := _designated_model(model, str(path))) is not None:
         if isinstance(resource, designated):
             return _Root(explicit=True)
         return _Target([resource], designated.__name__, False)
@@ -134,7 +155,7 @@ def _walk(
             raise InvalidPathException(path=str(path))
         return None
 
-    resolved = resolve_attr_path(model, attr_path, strict=True)
+    resolved = _resolve_attr_path(model, attr_path, strict=True)
     assert resolved is not None
 
     host = attribute_host(resource, resolved)
@@ -160,10 +181,9 @@ def _walk(
 def _create_intermediate(host: BaseModel, field_name: str) -> BaseModel | None:
     """Instantiate an unassigned complex attribute so a value can be set under it.
 
-    The walk has already established that the attribute is complex, so only
-    a multi-valued one is left alone: entries that do not exist have no
-    field to write to, and inventing one would guess what the caller meant
-    to address.
+    The walk has already established that the attribute is complex, so only a
+    multi-valued one is left alone: entries that do not exist have no field to
+    write to, and inventing one would guess what the caller meant to address.
     """
     if type(host).get_field_multiplicity(field_name):
         return None
@@ -176,37 +196,36 @@ def _create_intermediate(host: BaseModel, field_name: str) -> BaseModel | None:
 def _select(path: "Path[Any]", resource: BaseModel) -> "_Selection | None":
     """Resolve a value-selecting path against a resource.
 
-    The filter between the brackets is evaluated strictly, so an attribute
-    the model does not declare is reported rather than silently matching
-    nothing. Tolerance belongs to :meth:`get`, :meth:`set` and
-    :meth:`delete`, which swallow the failure when asked to.
+    The filter between the brackets is evaluated strictly, so an attribute the
+    model does not declare is reported rather than silently matching nothing.
+    Tolerance belongs to ``get``, ``set`` and ``delete``, which swallow the
+    failure when asked to.
 
-    :returns: The object holding the attribute, the Python field name, and
-        the matching entries, or :data:`None` if this is not a
-        value-selecting path.
-    :raises PathNotFoundException: If the selected attribute is unknown.
-    :raises InvalidFilterException: If the filter between the brackets
-        names an attribute the selected model does not declare.
+    The selection carries the object holding the attribute, the Python field
+    name and the matching entries; a path that selects no value answers None.
+    An unknown selected attribute raises PathNotFoundException, and a filter
+    naming an attribute the selected model does not declare raises
+    InvalidFilterException.
     """
     value_path = path._as_value_path()
     if value_path is None:
         return None
 
     model = type(resource)
-    resolved = resolve_attr_path(model, value_path.attr_path, strict=False)
+    resolved = _resolve_attr_path(model, value_path.attr_path, strict=False)
     if resolved is None:
         raise PathNotFoundException(path=str(path), field=value_path.attr_path.attr)
 
     # Checked before reading the resource, so that a selection that cannot
     # apply is rejected whether or not the attribute happens to be set.
-    validate_value_selection(resolved)
-    validate_value_filter(resolved, value_path.val_filter)
+    _validate_value_selection(resolved)
+    _validate_value_filter(resolved, value_path.val_filter)
 
     host = attribute_host(resource, resolved)
     if host is None:
         return _Selection(None, resolved.field_name, [], value_path.sub_attr)
 
-    matched = Evaluator(model, resource).select(value_path)
+    matched = _Evaluator(model, resource).select(value_path)
     return _Selection(host, resolved.field_name, matched, value_path.sub_attr)
 
 
@@ -236,50 +255,41 @@ def _get_value(path: "Path[Any]", resource: BaseModel) -> Any:
     return values if target.multivalued else values[0]
 
 
-def _set_selected(
-    path: "Path[Any]", selection: "_Selection", value: Any, *, is_add: bool = False
-) -> bool:
+def _set_selected(path: "Path[Any]", selection: "_Selection", value: Any) -> bool:
     """Apply a value to every entry matched by a value selection.
 
-    :raises NoTargetException: If a replacement selection matches nothing,
-        per :rfc:`RFC7644 §3.5.2.3 <7644#section-3.5.2.3>`. That failure is
-        defined for ``replace`` only: :rfc:`§3.5.2.1 <7644#section-3.5.2.1>`
-        says nothing of a selection that matches nothing for ``add``, so
-        the operation is a no-op instead. `Errata 8097
-        <https://errata.rfc-editor.org/eid8097/>`_ asks for value
-        selections in ``add`` to be clarified at all, implementations
-        differing on whether they are allowed.
+    A selection matching nothing raises NoTargetException. RFC7644 §3.5.2.3
+    requires it for replace, and Table 9 of §3.12 defines noTarget for a filter
+    that "yields no match", which applies to add too.
+
+    Without a sub-attribute, each matched entry is replaced in place, so it
+    stays the same object. Entries have no identity other than the object.
     """
     host, field_name, matched, sub_attr = selection
 
     if not matched:
-        if is_add:
-            return False
         raise NoTargetException(
             detail=f"no value of '{field_name}' matches the path filter"
         )
 
     if sub_attr is None:
-        # Without a sub-attribute the matched entries are replaced wholesale.
-        current = getattr(host, field_name)
-        replacement = list(current)
-        item_type = type(host).get_field_root_type(field_name)
-        new_value = (
-            item_type.model_validate(value)
-            if isinstance(value, dict)
-            and isclass(item_type)
-            and issubclass(item_type, BaseModel)
-            else value
-        )
-        modified = False
-        for index, item in enumerate(replacement):
-            if any(item is candidate for candidate in matched):
-                if not _values_match(item, new_value):
-                    replacement[index] = new_value
-                    modified = True
-        if modified:
-            setattr(host, field_name, replacement)
-        return modified
+        new_value = _as_entry(type(host), field_name, value)
+        changed = [item for item in matched if not _values_match(item, new_value)]
+        if not changed:
+            return False
+        if isinstance(new_value, BaseModel):
+            for item in changed:
+                item.__dict__.update(new_value.__dict__)
+                object.__setattr__(
+                    item, "__pydantic_fields_set__", set(new_value.model_fields_set)
+                )
+            return True
+        replacement = [
+            new_value if any(item is entry for entry in changed) else item
+            for item in getattr(host, field_name)
+        ]
+        setattr(host, field_name, replacement)
+        return True
 
     modified = False
     for item in matched:
@@ -294,11 +304,10 @@ def _delete_selected(path: "Path[Any]", selection: "_Selection") -> bool:
     """Remove every entry matched by a value selection.
 
     A selection that matches nothing leaves the resource untouched and
-    succeeds: :rfc:`RFC7644 §3.5.2.2 <7644#section-3.5.2.2>` requires
-    ``noTarget`` only for a missing ``path``, and its removal example
-    states that "if the user was not a member of this group, no changes
-    should be made to the resource, and a success response should be
-    returned".
+    succeeds: RFC7644 §3.5.2.2 requires ``noTarget`` only for a missing
+    ``path``, and its removal example states that "if the user was not a member
+    of this group, no changes should be made to the resource, and a success
+    response should be returned".
     """
     host, field_name, matched, sub_attr = selection
 
@@ -336,9 +345,9 @@ def _set_value(
 ) -> bool:
     """Write a value where a path designates on a resource."""
     if (selection := _select(path, resource)) is not None:
-        return _set_selected(path, selection, value, is_add=is_add)
+        return _set_selected(path, selection, value)
 
-    target = _walk(path, resource, create=True)
+    target = _walk(path, resource, create=value is not None)
     if target is None:
         return False
     if isinstance(target, _Root):
@@ -351,14 +360,28 @@ def _set_value(
     return any(changed)
 
 
+def _set_values(
+    resource: BaseModel, writes: list[tuple["Path[Any]", Any]], *, is_add: bool = False
+) -> None:
+    """Write several values, resolving every selection before writing anything.
+
+    A value may write the sub-attributes a filter compares. Resolving first
+    keeps the rest of the value writing to the same entries.
+    """
+    selections = [_select(path, resource) for path, _ in writes]
+    for (path, value), selection in zip(writes, selections, strict=True):
+        if selection is None:
+            _set_value(path, resource, value, is_add=is_add)
+        else:
+            _set_selected(path, selection, value)
+
+
 def _merge(path: "Path[Any]", obj: BaseModel, value: Any, *, explicit: bool) -> bool:
     """Write the attributes a mapping names onto the object the path designates.
 
-    :param explicit: Whether the object was designated by its schema URN,
-        in which case a value that is not a mapping is reported rather
-        than ignored.
-    :raises InvalidPathException: If ``explicit`` and the value is not a
-        mapping.
+    With ``explicit``, the object was designated by its schema URN, and a value
+    that is not a mapping raises InvalidPathException rather than being
+    ignored.
     """
     if not isinstance(value, dict):
         if explicit:
@@ -383,17 +406,16 @@ def _set_field_value(obj: BaseModel, field_name: str, value: Any, is_add: bool) 
     """Set or add a value to a field."""
     is_multivalued = obj.get_field_multiplicity(field_name)
 
-    if is_add and is_multivalued:
+    if is_add and is_multivalued and value is not None:
         current_list = getattr(obj, field_name) or []
-        if isinstance(value, list):
-            new_values = [v for v in value if not _value_in_list(current_list, v)]
-            if not new_values:
-                return False
-            setattr(obj, field_name, current_list + new_values)
-        else:
-            if _value_in_list(current_list, value):
-                return False
-            setattr(obj, field_name, [*current_list, value])
+        entries = [
+            _as_entry(type(obj), field_name, item)
+            for item in (value if isinstance(value, list) else [value])
+        ]
+        new_values = [e for e in entries if not _value_in_list(current_list, e)]
+        if not new_values:
+            return False
+        setattr(obj, field_name, current_list + new_values)
         return True
 
     if is_multivalued and not isinstance(value, list) and value is not None:

@@ -10,6 +10,7 @@ from scim2_models.attributes import ExtensibleStringEnum
 from scim2_models.context import Context
 from scim2_models.resources.enterprise_user import EnterpriseUser
 from scim2_models.resources.group import Group
+from scim2_models.resources.resource import Extension
 from scim2_models.resources.resource import Resource
 from scim2_models.resources.resource_type import ResourceType
 from scim2_models.resources.schema import Attribute
@@ -285,3 +286,26 @@ def test_schema_of_a_subclass_of_a_parameterized_model_keeps_its_own_attributes(
     assert schema.name == "VipUser"
     assert "vipLevel" in attribute_names
     assert EnterpriseUser.__schema__ not in attribute_names
+
+
+@pytest.mark.parametrize("base", [Resource, Extension])
+def test_a_model_built_from_a_schema_publishes_its_name_and_description(base):
+    """The round trip through from_schema and to_schema keeps what the schema said."""
+    schema = Schema(
+        id="urn:example:2.0:Pet",
+        name="Pet Owner",
+        description="Someone owning a pet",
+        attributes=[Attribute(name="petName", type=Attribute.Type.string)],
+    )
+    model = base.from_schema(schema)
+    assert model.__name__ == "Pet Owner"
+    published = model.to_schema()
+    assert published.name == "Pet Owner"
+    assert published.description == "Someone owning a pet"
+
+
+@pytest.mark.parametrize("name", ["petOwner", "pet-owner"])
+def test_a_model_built_from_a_schema_is_named_as_the_schema(name):
+    """The schema name is not converted to a Python class naming convention."""
+    schema = Schema(id="urn:example:2.0:Pet", name=name, attributes=[])
+    assert Extension.from_schema(schema).__name__ == name

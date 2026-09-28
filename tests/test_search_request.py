@@ -1,8 +1,15 @@
+from typing import Annotated
+
 import pytest
 from pydantic import ValidationError
 
+from scim2_models import URN
+from scim2_models import ComplexAttribute
 from scim2_models import EnterpriseUser
 from scim2_models import Group
+from scim2_models import Mutability
+from scim2_models import Resource
+from scim2_models import Returned
 from scim2_models import User
 from scim2_models.exceptions import InvalidCursorException
 from scim2_models.messages.search_request import SearchRequest
@@ -252,6 +259,7 @@ def test_cursor_model_validate():
     assert sr.cursor == "cursor-xyz"
     assert sr.count == 10
 
+
 def test_invalid_cursor_exception():
     """An invalid cursor value raises InvalidCursorException."""
     with pytest.raises(ValidationError) as exc_info:
@@ -492,3 +500,276 @@ def test_an_unparameterised_request_leaves_its_attributes_unresolved():
     request = SearchRequest.model_validate({"attributes": "userName"})
     assert request.attributes == ["userName"]
     assert request.attributes[0].resolve() is None
+
+
+class Vault(Resource):
+    __schema__ = URN("urn:example:2.0:Vault")
+
+    class Lock(ComplexAttribute):
+        code: str | None = None
+
+    class Key(ComplexAttribute):
+        value: Annotated[str | None, Mutability.write_only] = None
+        primary: bool | None = None
+
+    class Tag(ComplexAttribute):
+        value: Annotated[str | None, Returned.never] = None
+        primary: bool | None = None
+
+    secret: Annotated[str | None, Mutability.write_only] = None
+    hidden: Annotated[str | None, Returned.never] = None
+    lock: Annotated[Lock | None, Mutability.write_only] = None
+    seal: Annotated[Lock | None, Returned.never] = None
+    keys: list[Key] | None = None
+    tags: list[Tag] | None = None
+
+
+class Safe(Resource):
+    __schema__ = URN("urn:example:2.0:Safe")
+
+    secret: str | None = None
+    name: str | None = None
+    nicknames: list[str] | None = None
+
+
+@pytest.mark.parametrize(
+    ("model", "attribute"),
+    [
+        (User, "name"),
+        (User, "meta"),
+        (User, "addresses"),
+        (User[EnterpriseUser], EnterpriseUser.__schema__ + ":manager"),
+    ],
+)
+def test_a_sort_by_on_a_complex_attribute_is_refused(model, attribute):
+    """RFC7644 §3.4.2.3 asks a complex attribute holding no value for a path to a sub-attribute."""
+    with pytest.raises(ValidationError, match="is a complex attribute") as raised:
+        SearchRequest[model].model_validate({"sortBy": attribute})
+    assert raised.value.errors()[0]["type"] == "scim_invalidPath"
+
+
+@pytest.mark.parametrize(
+    ("model", "attribute"),
+    [
+        (User, "name.givenName"),
+        (User, "emails.value"),
+        (User[EnterpriseUser], EnterpriseUser.__schema__ + ":manager.value"),
+    ],
+)
+def test_a_sort_by_on_a_sub_attribute_of_a_complex_attribute_is_accepted(
+    model, attribute
+):
+    """A path to a sub-attribute is what RFC7644 §3.4.2.3 asks of a complex attribute."""
+    assert SearchRequest[model].model_validate({"sortBy": attribute}).sort_by
+
+
+@pytest.mark.parametrize(
+    ("model", "attribute"),
+    [(User, "emails"), (User, "groups"), (User | Group, "members")],
+)
+def test_a_sort_by_on_a_multivalued_attribute_holding_a_value_is_accepted(
+    model, attribute
+):
+    """RFC7644 §3.4.2.3 sorts it "by the value of the primary attribute", its value sub-attribute."""
+    assert SearchRequest[model].model_validate({"sortBy": attribute}).sort_by
+
+
+@pytest.mark.parametrize(
+    ("model", "attribute"),
+    [
+        (User, "password"),
+        (Vault, "secret"),
+        (Vault, "lock.code"),
+        (Vault, "keys"),
+        (Vault, "keys.value"),
+    ],
+)
+def test_a_sort_by_on_a_write_only_attribute_is_refused(model, attribute):
+    """RFC7643 §4.1.1 returns a write-only value in no form, an order included."""
+    with pytest.raises(ValidationError, match="is write-only") as raised:
+        SearchRequest[model].model_validate({"sortBy": attribute})
+    assert raised.value.errors()[0]["type"] == "scim_invalidPath"
+
+
+@pytest.mark.parametrize("attribute", ["hidden", "seal.code", "tags", "tags.value"])
+def test_a_sort_by_on_an_attribute_never_returned_is_accepted(attribute):
+    """RFC7643 §7 lets an attribute that is never returned be used in a query."""
+    assert SearchRequest[Vault].model_validate({"sortBy": attribute}).sort_by
+
+
+@pytest.mark.parametrize("attribute", ["x509Certificates", "x509Certificates.value"])
+def test_a_sort_by_on_a_binary_attribute_is_refused(attribute):
+    """RFC7644 §3.4.2.2 refuses to order binary values, which §3.4.2.3 gives no order for."""
+    with pytest.raises(ValidationError, match="is a binary attribute") as raised:
+        SearchRequest[User].model_validate({"sortBy": attribute})
+    assert raised.value.errors()[0]["type"] == "scim_invalidPath"
+
+
+def test_a_sort_by_on_a_union_is_accepted_when_one_type_can_sort_on_it():
+    """Resources whose type cannot sort on the attribute are sorted as having no value."""
+    assert SearchRequest[Vault | Safe].model_validate({"sortBy": "secret"}).sort_by
+    assert SearchRequest[User | Safe].model_validate({"sortBy": "name"}).sort_by
+
+
+def test_a_sort_by_on_a_union_is_refused_when_no_type_can_sort_on_it():
+    """Declaring an attribute is not enough when every declaration forbids the order."""
+    with pytest.raises(ValidationError, match="is write-only"):
+        SearchRequest[User | Group].model_validate({"sortBy": "password"})
+
+
+def test_an_unparameterised_request_does_not_check_what_its_sort_by_designates():
+    """Without a model, nothing tells a complex or a sensitive attribute apart."""
+    assert SearchRequest.model_validate({"sortBy": "password"}).sort_by
+    assert SearchRequest.model_validate({"sortBy": "name"}).sort_by
+
+
+def ids(resources):
+    """Return the ids of the resources, in their order."""
+    return [resource.id for resource in resources]
+
+
+def users_with_emails(emails_by_id):
+    """Build users carrying the emails each id maps to."""
+    return [
+        User[EnterpriseUser](id=user_id, user_name=user_id, emails=emails)
+        for user_id, emails in emails_by_id.items()
+    ]
+
+
+def test_sort_without_sort_by_keeps_the_order():
+    """A request carrying no sortBy leaves the order of the resources alone."""
+    users = [User(id="2", user_name="b"), User(id="1", user_name="a")]
+    assert ids(SearchRequest[User]().sort(users)) == ["2", "1"]
+
+
+def test_sort_ignores_the_case_of_a_case_insensitive_string():
+    """RFC7644 §3.4.2.3 sorts a case-insensitive string without its case."""
+    users = [User(id="upper", user_name="B"), User(id="lower", user_name="a")]
+    assert ids(SearchRequest[User](sort_by="userName").sort(users)) == [
+        "lower",
+        "upper",
+    ]
+
+
+def test_sort_follows_the_case_of_a_case_exact_string():
+    """RFC7644 §3.4.2.3 sorts a case-exact string with its case, upper case first."""
+    users = [
+        User(id="lower", user_name="x", external_id="a"),
+        User(id="upper", user_name="y", external_id="B"),
+    ]
+    assert ids(SearchRequest[User](sort_by="externalId").sort(users)) == [
+        "upper",
+        "lower",
+    ]
+
+
+@pytest.mark.parametrize("attribute", ["emails", "emails.value"])
+def test_sort_reads_the_primary_entry_of_a_multivalued_attribute(attribute):
+    """The entry marked primary decides the order, not the first one."""
+    users = users_with_emails(
+        {
+            "1": [
+                User.Emails(value="a@example.com"),
+                User.Emails(value="z@example.com", primary=True),
+            ],
+            "2": [User.Emails(value="m@example.com")],
+        }
+    )
+    request = SearchRequest[User[EnterpriseUser]](sort_by=attribute)
+    assert ids(request.sort(users)) == ["2", "1"]
+
+
+def test_sort_reads_a_sub_attribute_from_the_primary_entry():
+    """A path naming a sub-attribute reads it from the entry the order picked."""
+    users = users_with_emails(
+        {
+            "1": [
+                User.Emails(value="a@example.com", type="work"),
+                User.Emails(value="z@example.com", type="home", primary=True),
+            ],
+            "2": [User.Emails(value="m@example.com", type="other")],
+        }
+    )
+    request = SearchRequest[User[EnterpriseUser]](sort_by="emails.type")
+    assert ids(request.sort(users)) == ["1", "2"]
+
+
+def test_sort_falls_back_to_the_first_entry_without_a_primary():
+    """An attribute marking no entry primary is ordered by its first one."""
+    users = users_with_emails(
+        {
+            "1": [
+                User.Emails(value="z@example.com"),
+                User.Emails(value="a@example.com"),
+            ],
+            "2": [User.Emails(value="m@example.com")],
+        }
+    )
+    request = SearchRequest[User[EnterpriseUser]](sort_by="emails.value")
+    assert ids(request.sort(users)) == ["2", "1"]
+
+
+def test_sort_reads_the_first_entry_of_a_scalar_multivalued_attribute():
+    """A scalar entry is the value itself."""
+    safes = [Safe(id="1", nicknames=["c", "a"]), Safe(id="2", nicknames=["b"])]
+    assert ids(SearchRequest[Safe](sort_by="nicknames").sort(safes)) == ["2", "1"]
+
+
+def test_sort_on_a_multivalued_attribute_follows_the_case_of_its_value():
+    """A complex attribute named alone is compared with the case of its value."""
+    lower = Group(id="lower", display_name="G", members=[{"value": "a"}])
+    upper = Group(id="upper", display_name="G", members=[{"value": "B"}])
+    assert ids(SearchRequest[Group](sort_by="members").sort([lower, upper])) == [
+        "upper",
+        "lower",
+    ]
+
+
+@pytest.mark.parametrize(
+    ("sort_order", "expected"),
+    [(None, ["2", "1"]), ("descending", ["1", "2"])],
+)
+def test_sort_puts_resources_without_a_value_last_then_first(sort_order, expected):
+    """RFC7644 §3.4.2.3 orders missing values last ascending and first descending."""
+    users = users_with_emails({"1": None, "2": [User.Emails(value="m@example.com")]})
+    request = SearchRequest[User[EnterpriseUser]](
+        sort_by="emails.value", sort_order=sort_order
+    )
+    assert ids(request.sort(users)) == expected
+
+
+def test_sort_reads_an_attribute_of_an_extension():
+    """An attribute qualified by an extension URN is read from the extension."""
+    urn = EnterpriseUser.__schema__ + ":department"
+    unset, with_department = users_with_emails({"unset": None, "set": None})
+    with_department[EnterpriseUser] = EnterpriseUser(department="Tour Operations")
+    request = SearchRequest[User[EnterpriseUser]](sort_by=urn)
+    assert ids(request.sort([unset, with_department])) == ["set", "unset"]
+
+
+def test_sort_on_a_union_puts_types_lacking_the_attribute_last():
+    """RFC7644 §3.4.2.1 treats an attribute a resource type lacks as having no value."""
+    group = Group(id="group", display_name="admins")
+    user = User(id="user", user_name="bjensen")
+    request = SearchRequest[User | Group](sort_by="userName")
+    assert ids(request.sort([group, user])) == ["user", "group"]
+
+
+def test_sort_on_a_union_puts_types_that_cannot_sort_on_it_last():
+    """A write-only declaration yields no value, whatever the resource holds."""
+    vault = Vault(id="vault", secret="a")
+    safe = Safe(id="safe", secret="b")
+    request = SearchRequest[Vault | Safe](sort_by="secret")
+    assert ids(request.sort([vault, safe])) == ["safe", "vault"]
+
+
+def test_sort_resolves_an_unparameterised_request_against_each_resource():
+    """A request naming no resource type still sorts on the attribute each type declares."""
+    users = [User(id="2", user_name="b"), User(id="1", user_name="a")]
+    assert ids(SearchRequest(sort_by="userName").sort(users)) == ["1", "2"]
+
+
+def test_sort_on_an_unparameterised_request_never_orders_by_a_write_only_value():
+    """Nothing validated the request, so the order is withheld rather than leaked."""
+    vaults = [Vault(id="2", secret="b"), Vault(id="1", secret="a")]
+    assert ids(SearchRequest(sort_by="secret").sort(vaults)) == ["2", "1"]

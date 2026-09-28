@@ -34,18 +34,10 @@ class Message(ScimObject):
 def _create_schema_discriminator(
     resource_types_schemas: list[str],
 ) -> Callable[[Any], str | None]:
-    """Create a schema discriminator function for the given resource schemas.
-
-    :param resource_types_schemas: List of valid resource schemas
-    :return: Discriminator function for Pydantic
-    """
+    """Build the discriminator pydantic calls to tell resource types apart."""
 
     def get_schema_from_payload(payload: Any) -> str | None:
-        """Extract schema from SCIM payload for discrimination.
-
-        :param payload: SCIM payload dict or object
-        :return: First matching schema or None
-        """
+        """Return the first schema of the payload naming one of the resource types."""
         if not payload:
             return None
 
@@ -65,22 +57,16 @@ def _create_schema_discriminator(
 
 
 def _get_tag(resource_type: type[BaseModel]) -> Tag:
-    """Create Pydantic tag from resource type schema.
-
-    :param resource_type: SCIM resource type
-    :return: Pydantic Tag for discrimination
-    """
+    """Tag a resource type by its schema, for pydantic to discriminate on."""
     return Tag(getattr(resource_type, "__schema__", None) or "")
 
 
 def _create_tagged_resource_union(resource_union: Any) -> Any:
     """Build Discriminated Unions for SCIM resources.
 
-    Creates discriminated unions so Pydantic can determine which class to instantiate
-    by inspecting the payload's schemas field.
-
-    :param resource_union: Union type of SCIM resources
-    :return: Annotated discriminated union or original type
+    Creates discriminated unions so Pydantic can determine which class to
+    instantiate by inspecting the payload's schemas field. A type that is not a
+    union is answered as it stands.
     """
     if get_origin(resource_union) not in UNION_TYPES:
         return resource_union
@@ -128,9 +114,9 @@ class _GenericMessageMetaclass(ModelMetaclass):
 def _type_parameter(model: type) -> Any | None:
     """Return the type parameter a model was built with, or None when it has none.
 
-    A subclass of a parameterized model, such as
-    ``class Users(ListResponse[User])``, carries no parameter of its own and
-    answers the one it inherits.
+    A subclass of a parameterized model, such as ``class
+    Users(ListResponse[User])``, carries no parameter of its own and answers
+    the one it inherits.
     """
     for klass in getattr(model, "__mro__", (model,)):
         metadata = getattr(klass, "__pydantic_generic_metadata__", None)
@@ -190,8 +176,8 @@ def _names_concrete_resources(parameter: Any) -> bool:
 class _ResourceParameterized:
     """A model whose type parameter names the resource types its payloads carry.
 
-    The parameter says which model a payload is read as, so reading or
-    building one requires it to name concrete resource types. Writing
+    The parameter says which model a payload is read as, so reading or building
+    one requires it to name concrete resource types. Writing
     ListResponse[Resource] stays allowed where a type is expected rather than
     used, which is what an annotation covering any resource type needs.
     """
