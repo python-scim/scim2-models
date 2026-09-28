@@ -734,3 +734,11 @@ def test_sort_on_an_unparameterised_request_never_orders_by_a_write_only_value()
     """Nothing validated the request, so the order is withheld rather than leaked."""
     vaults = [Vault(id="2", secret="b"), Vault(id="1", secret="a")]
     assert ids(SearchRequest(sort_by="secret").sort(vaults)) == ["2", "1"]
+
+
+def test_a_filter_nested_too_deep_is_rejected_as_an_invalid_filter():
+    """A deeply nested filter is a client error, not a failure of the server."""
+    deep = "not(" * 1000 + "userName pr" + ")" * 1000
+    with pytest.raises(ValidationError, match="nests more than 32") as raised:
+        SearchRequest[User].model_validate({"filter": deep})
+    assert raised.value.errors()[0]["type"] == "scim_invalidFilter"

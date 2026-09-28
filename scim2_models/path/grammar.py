@@ -9,6 +9,7 @@ from typing import cast
 from lark import Lark
 from lark import Token
 from lark import Transformer
+from lark import Tree
 from lark import v_args
 from lark.exceptions import LarkError
 from lark.exceptions import VisitError
@@ -208,6 +209,34 @@ class _AstBuilder(Transformer[Token, Any]):
         return None
 
 
+_MAX_DEPTH = 32
+"""How many expressions a filter or a path may nest.
+
+A deeper tree would exhaust the stack of the recursive visitors, and no client
+sends one.
+"""
+
+_NESTING_RULES = frozenset(
+    {"or_expr", "and_expr", "not_expr", "value_path", "value_path_sub"}
+)
+
+
+def _depth(tree: Tree[Token]) -> int:
+    """Count the expressions nested in a parse tree, without recursion.
+
+    Parentheses leave no node in the tree, and a chain of ``and`` or ``or`` is a
+    single node, so neither adds to the depth.
+    """
+    depths: dict[int, int] = {}
+    for subtree in tree.iter_subtrees():
+        children = (
+            depths[id(child)] for child in subtree.children if isinstance(child, Tree)
+        )
+        nested = max(children, default=0)
+        depths[id(subtree)] = nested + (subtree.data in _NESTING_RULES)
+    return depths[id(tree)]
+
+
 # One parser for both entry points: the two start rules share a grammar, and
 # building their tables together halves the cost of importing this module.
 _PARSER = Lark(_GRAMMAR, start=["filter", "path"], parser="lalr")
@@ -228,6 +257,18 @@ def _parse_filter(expression: str) -> FilterNode:
     """
     try:
         tree = _PARSER.parse(expression, start="filter")
+    except LarkError as exc:
+        raise InvalidFilterException(
+            filter=expression, detail=_error_detail(exc)
+        ) from exc
+
+    if _depth(tree) > _MAX_DEPTH:
+        raise InvalidFilterException(
+            filter=expression,
+            detail=f"the filter nests more than {_MAX_DEPTH} expressions",
+        )
+
+    try:
         return cast(FilterNode, _BUILDER.transform(tree))
     except LarkError as exc:
         raise InvalidFilterException(
@@ -248,6 +289,15 @@ def _parse_path(path: str) -> PathNode:
     """
     try:
         tree = _PARSER.parse(path, start="path")
+    except LarkError as exc:
+        raise InvalidPathException(path=path, detail=_error_detail(exc)) from exc
+
+    if _depth(tree) > _MAX_DEPTH:
+        raise InvalidPathException(
+            path=path, detail=f"the path nests more than {_MAX_DEPTH} expressions"
+        )
+
+    try:
         return cast(PathNode, _BUILDER.transform(tree))
     except LarkError as exc:
         raise InvalidPathException(path=path, detail=_error_detail(exc)) from exc

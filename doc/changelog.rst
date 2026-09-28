@@ -10,6 +10,9 @@ Security
   no longer matches ``secret``. RFC 7643 declares it case-insensitive, but compares passwords
   by salted hash (:rfc:`RFC7643 §4.1.1 <7643#section-4.1.1>`), and the rules of
   :rfc:`RFC7644 §5 <7644#section-5>` keep the case of passwords.
+- A filter or a PATCH path that nests more than 32 expressions, such as ``not(not(...))``, is
+  refused with ``invalidFilter`` or ``invalidPath``. A deep one used to raise a
+  :class:`RecursionError`. Parentheses and chains of ``and`` or ``or`` do not count.
 
 [0.9.0] - 2026-09-27
 --------------------

@@ -2198,3 +2198,13 @@ def test_a_remove_value_on_an_undeclared_path_is_refused_under_a_tolerant_policy
         )
 
     assert raised.value.errors()[0]["type"] == "scim_invalidValue"
+
+
+def test_a_path_nested_too_deep_is_rejected_as_an_invalid_path():
+    """A deeply nested path is a client error, not a failure of the server."""
+    deep = "emails[" + "not(" * 1000 + "value pr" + ")" * 1000 + "].type"
+    with pytest.raises(ValidationError, match="nests more than 32") as raised:
+        PatchOp[User].model_validate(
+            {"Operations": [{"op": "replace", "path": deep, "value": "work"}]}
+        )
+    assert raised.value.errors()[0]["type"] == "scim_invalidPath"
