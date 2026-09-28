@@ -401,7 +401,7 @@ def test_make_user_model_from_schema(load_sample):
         == "The User's cleartext password.  This attribute is intended to be used as a means to specify an initial password when creating a new User or to reset an existing User'spassword."
     )
     assert User.get_field_annotation("password", Required) == Required.false
-    assert User.get_field_annotation("password", CaseExact) == CaseExact.false
+    assert User.get_field_annotation("password", CaseExact) == CaseExact.true
     assert User.get_field_annotation("password", Mutability) == Mutability.write_only
     assert User.get_field_annotation("password", Returned) == Returned.never
     assert User.get_field_annotation("password", Uniqueness) == Uniqueness.none

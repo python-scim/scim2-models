@@ -373,6 +373,15 @@ def test_a_write_only_attribute_takes_an_equality_or_a_presence_test(filter_):
     ScimFilter[User](filter_)._validate_semantics()
 
 
+def test_a_password_is_compared_with_its_case():
+    """RFC7643 §4.1.1 compares passwords by salted hash, which keeps the case."""
+    user = User(user_name="bjensen", password="Secret")
+
+    assert ScimFilter[User]('password eq "Secret"').match(user)
+    assert not ScimFilter[User]('password eq "secret"').match(user)
+    assert not ScimFilter[User]('password eq "SECRET"').match(user)
+
+
 @pytest.mark.parametrize("filter_", ['lock.code sw "x"', 'vault.label sw "x"'])
 def test_a_write_only_attribute_is_refused_through_a_complex_attribute(filter_):
     """A write-only sub-attribute, or the sub-attribute of a write-only one, is refused."""

@@ -295,7 +295,9 @@ class User(Resource[AnyExtension]):
     active: bool | None = None
     """A Boolean value indicating the User's administrative status."""
 
-    password: Annotated[str | None, Mutability.write_only, Returned.never] = None
+    password: Annotated[
+        str | None, Mutability.write_only, Returned.never, CaseExact.true
+    ] = None
     """The User's cleartext password."""
 
     emails: list[Email] | None = None
