@@ -187,7 +187,7 @@ class Resource(ScimObject, Generic[AnyExtension]):
     meta: Annotated[Meta | None, Mutability.read_only, Returned.default] = None
     """A complex attribute containing resource metadata."""
 
-    def replace(self, original: Self) -> None:
+    def replace(self, original: Self) -> bool:
         """Apply :rfc:`RFC 7644 §3.5.1 <7644#section-3.5.1>` replace (PUT) semantics.
 
         ``readOnly`` fields are copied from *original*.
@@ -204,9 +204,13 @@ class Resource(ScimObject, Generic[AnyExtension]):
         <7643#section-2.4>`.
 
         :param original: The original resource state to compare against.
+        :return: :data:`True` if the replacement differs from *original*, the
+            order of the entries of multi-valued attributes aside
+            (:rfc:`RFC7643 §2.4 <7643#section-2.4>`), :data:`False` otherwise.
         :raises MutabilityException: If an immutable field value differs.
         """
         self._apply_replace_constraints(original)
+        return bool(_unordered(self.model_dump()) != _unordered(original.model_dump()))
 
     @classmethod
     def __class_getitem__(cls, item: Any) -> type["Resource[Any]"]:
@@ -437,6 +441,15 @@ class Resource(ScimObject, Generic[AnyExtension]):
 
 
 AnyResource = TypeVar("AnyResource", bound="Resource[Any]")
+
+
+def _unordered(value: Any) -> Any:
+    """Reduce a dumped value to a form that compares equal regardless of entry order."""
+    if isinstance(value, dict):
+        return {key: _unordered(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return sorted((_unordered(item) for item in value), key=repr)
+    return value
 
 
 def _dedicated_attributes(

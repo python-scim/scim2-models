@@ -4,6 +4,12 @@ Changelog
 [Unreleased]
 ------------
 
+Added
+^^^^^
+- :meth:`Resource.replace <scim2_models.Resource.replace>` returns whether the replacement
+  changes the resource, the order of multi-valued entries aside. A server can keep
+  ``meta.version`` and ``meta.lastModified`` when a PUT changes nothing.
+
 Security
 ^^^^^^^^
 - The ``password`` of a :class:`~scim2_models.User` is case-exact, so ``password eq "SECRET"``

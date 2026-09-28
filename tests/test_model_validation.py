@@ -655,6 +655,104 @@ def test_replace_after_validating_a_replacement_request_that_changes_nothing():
     replacement.replace(original)
 
 
+def stored_user():
+    return User[EnterpriseUser].model_validate(
+        {
+            "schemas": [
+                "urn:ietf:params:scim:schemas:core:2.0:User",
+                "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User",
+            ],
+            "id": "2819c223",
+            "userName": "bjensen",
+            "password": "secret",
+            "emails": [
+                {"value": "bjensen@example.com", "type": "work"},
+                {"value": "babs@example.com", "type": "home"},
+            ],
+            "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User": {
+                "employeeNumber": "701984",
+            },
+            "meta": {"resourceType": "User", "version": 'W/"1"'},
+        }
+    )
+
+
+def replacement_user(**changes):
+    payload = {
+        "schemas": [
+            "urn:ietf:params:scim:schemas:core:2.0:User",
+            "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User",
+        ],
+        "userName": "bjensen",
+        "emails": [
+            {"value": "bjensen@example.com", "type": "work"},
+            {"value": "babs@example.com", "type": "home"},
+        ],
+        "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User": {
+            "employeeNumber": "701984",
+        },
+        **changes,
+    }
+    return User[EnterpriseUser].model_validate(
+        payload, scim_ctx=Context.RESOURCE_REPLACEMENT_REQUEST
+    )
+
+
+def test_replace_that_repeats_the_stored_values_changes_nothing():
+    """Replace returns False when the replacement repeats the stored resource."""
+    assert replacement_user().replace(stored_user()) is False
+
+
+def test_replace_that_changes_an_attribute_changes_the_resource():
+    """Replace returns True when a readWrite attribute gets a new value."""
+    assert replacement_user(displayName="Babs").replace(stored_user()) is True
+
+
+def test_replace_that_omits_an_attribute_changes_the_resource():
+    """Replace returns True when a readWrite attribute left out is cleared."""
+    assert replacement_user(emails=None).replace(stored_user()) is True
+
+
+def test_replace_that_reorders_entries_changes_nothing():
+    """The order of the entries of a multi-valued attribute carries no meaning."""
+    replacement = replacement_user(
+        emails=[
+            {"value": "babs@example.com", "type": "home"},
+            {"value": "bjensen@example.com", "type": "work"},
+        ]
+    )
+    assert replacement.replace(stored_user()) is False
+
+
+def test_replace_that_changes_an_extension_changes_the_resource():
+    """Replace returns True when an extension attribute gets a new value."""
+    replacement = replacement_user(
+        **{
+            "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User": {
+                "employeeNumber": "42",
+            }
+        }
+    )
+    assert replacement.replace(stored_user()) is True
+
+
+def test_replace_with_different_read_only_values_changes_nothing():
+    """The readOnly values of a replacement are ignored, so they change nothing."""
+    replacement = replacement_user(id="other")
+    replacement.meta = None
+    assert replacement.replace(stored_user()) is False
+
+
+def test_replace_that_repeats_the_password_changes_nothing():
+    """A writeOnly value sent again with the same value changes nothing."""
+    assert replacement_user(password="secret").replace(stored_user()) is False
+
+
+def test_replace_that_clears_the_password_changes_the_resource():
+    """An explicit null clears a writeOnly value."""
+    assert replacement_user(password=None).replace(stored_user()) is True
+
+
 def test_validate_search_request_mutability():
     """Test query validation for resource query request.
 

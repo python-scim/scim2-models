@@ -161,7 +161,8 @@ Replace and patch a resource
 ----------------------------
 
 Validate a replacement with :attr:`~scim2_models.Context.RESOURCE_REPLACEMENT_REQUEST`, then use
-:meth:`~scim2_models.Resource.replace` with the stored resource. This checks immutable values:
+:meth:`~scim2_models.Resource.replace` with the stored resource. This checks immutable values,
+and tells whether the replacement changes the resource:
 
 .. doctest::
 
@@ -170,6 +171,7 @@ Validate a replacement with :attr:`~scim2_models.Context.RESOURCE_REPLACEMENT_RE
    ...     scim_ctx=Context.RESOURCE_REPLACEMENT_REQUEST,
    ... )
    >>> replacement.replace(user)
+   False
 
 Apply a :class:`~scim2_models.PatchOp` to make a partial update:
 
