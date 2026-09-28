@@ -10,6 +10,12 @@ Added
   changes the resource, the order of multi-valued entries aside. A server can keep
   ``meta.version`` and ``meta.lastModified`` when a PUT changes nothing.
 
+Changed
+^^^^^^^
+- :attr:`AttributeBinding.urn <scim2_models.AttributeBinding.urn>` and the error messages
+  that quote it spell the attribute as the schema declares it, such as ``userName``, whatever
+  case the path used.
+
 Security
 ^^^^^^^^
 - The ``password`` of a :class:`~scim2_models.User` is case-exact, so ``password eq "SECRET"``
@@ -19,6 +25,9 @@ Security
 - A filter or a PATCH path that nests more than 32 expressions, such as ``not(not(...))``, is
   refused with ``invalidFilter`` or ``invalidPath``. A deep one used to raise a
   :class:`RecursionError`. Parentheses and chains of ``and`` or ``or`` do not count.
+- Filters and paths from clients no longer grow memory without limit. Each unknown attribute
+  name, and each spelling of a known one such as ``USERNAME``, used to stay in memory for the
+  life of the process.
 
 [0.9.0] - 2026-09-27
 --------------------

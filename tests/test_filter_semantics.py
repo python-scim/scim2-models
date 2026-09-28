@@ -38,6 +38,7 @@ from scim2_models.path import ValuePath
 from scim2_models.path import coerce_value
 from scim2_models.path.grammar import _error_detail
 from scim2_models.path.grammar import _parse_filter
+from scim2_models.path.resolution import _RESOLVED_ATTRS
 from scim2_models.path.resolution import _resolve_attr_path
 from scim2_models.path.resolution import _resolve_comparison_path
 from scim2_models.path.visitor import _compare
@@ -102,6 +103,52 @@ def test_resolution_targets_the_sub_attribute_when_there_is_one():
 def test_resolution_matches_attribute_names_case_insensitively():
     """§3.4.2.2 makes attribute names case-insensitive."""
     assert _resolve_attr_path(User, AttrPath("USERNAME")).field_name == "user_name"
+
+
+def test_resolution_spells_the_urn_as_the_schema_declares_it():
+    resolved = _resolve_attr_path(
+        User,
+        AttrPath("EMAILS", "TYPE", uri="URN:IETF:PARAMS:SCIM:SCHEMAS:CORE:2.0:USER"),
+    )
+    assert resolved.urn == "urn:ietf:params:scim:schemas:core:2.0:User:emails.type"
+
+
+def test_resolution_spells_the_urn_of_an_extension_as_the_schema_declares_it():
+    resolved = _resolve_attr_path(
+        UserWithExtension,
+        AttrPath(
+            "EMPLOYEENUMBER",
+            uri="urn:ietf:params:scim:schemas:extension:ENTERPRISE:2.0:user",
+        ),
+    )
+    assert (
+        resolved.urn
+        == "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:employeeNumber"
+    )
+
+
+def test_resolution_shares_one_cache_entry_between_spellings():
+    """A client cannot grow the cache by changing the case of a name."""
+    first = _resolve_attr_path(User, AttrPath("nickName"))
+    cache = User.__dict__[_RESOLVED_ATTRS]
+    size = len(cache)
+
+    for spelling in ("NICKNAME", "nickname", "NiCkNaMe"):
+        assert _resolve_attr_path(User, AttrPath(spelling), strict=False) is first
+    assert len(cache) == size
+
+
+def test_resolution_does_not_cache_unknown_attributes():
+    """A client cannot grow the cache with names the model does not declare."""
+    _resolve_attr_path(User, AttrPath("userName"))
+    cache = User.__dict__[_RESOLVED_ATTRS]
+    size = len(cache)
+
+    for name in ("unknown", "other", "name.nope"):
+        assert (
+            _resolve_attr_path(User, AttrPath(*name.split(".")), strict=False) is None
+        )
+    assert len(cache) == size
 
 
 def test_resolution_of_an_attribute_qualified_by_the_resource_schema():
