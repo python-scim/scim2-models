@@ -950,8 +950,12 @@ def test_bulk_answers_404_for_an_operation_on_an_unknown_resource():
     assert missing.response.detail == "Resource does not exist."
 
 
-def test_bulk_stops_once_the_error_limit_the_client_set_is_reached():
-    """A client caps the failures it accepts, and the operations past that cap stay undone."""
+@pytest.mark.parametrize("fail_on_errors", [1, 0])
+def test_bulk_stops_once_the_error_limit_the_client_set_is_reached(fail_on_errors):
+    """A client caps the failures it accepts, and the operations past that cap stay undone.
+
+    A client that accepts no failure stops the job at the first one.
+    """
     from doc.integrations._examples import integrations
 
     integrations.records.clear()
@@ -960,7 +964,7 @@ def test_bulk_stops_once_the_error_limit_the_client_set_is_reached():
     request = BulkRequest[User].model_validate(
         {
             "schemas": [BULK_REQUEST_SCHEMA],
-            "failOnErrors": 1,
+            "failOnErrors": fail_on_errors,
             "Operations": [
                 {
                     "method": "POST",
