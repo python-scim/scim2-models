@@ -1,4 +1,5 @@
 import warnings
+from collections.abc import Iterator
 from collections.abc import Mapping
 from inspect import isclass
 from types import MappingProxyType
@@ -263,6 +264,7 @@ class BaseModel(PydanticBaseModel):
         validate_by_alias=True,
         use_attribute_docstrings=True,
         extra="forbid",
+        hide_input_in_errors=True,
     )
 
     __scim_info__: ClassVar[_SCIMClassInfo] = _SCIMClassInfo()
@@ -280,6 +282,17 @@ class BaseModel(PydanticBaseModel):
         the complex attribute that carries it, not on the resource above.
         """
         return self._unknown_attributes
+
+    def __repr_args__(self) -> Iterator[tuple[str | None, Any]]:
+        """Leave out the write-only and never-returned attributes, such as a password."""
+        cls = type(self)
+        for name, value in super().__repr_args__():
+            if name in cls.model_fields and (
+                cls.get_field_annotation(name, Mutability) == Mutability.write_only
+                or cls.get_field_annotation(name, Returned) == Returned.never
+            ):
+                continue
+            yield name, value
 
     @classmethod
     def get_field_annotation(cls, field_name: str, annotation_type: type) -> Any:

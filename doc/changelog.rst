@@ -34,6 +34,9 @@ Security
 - Filters and paths from clients no longer grow memory without limit. Each unknown attribute
   name, and each spelling of a known one such as ``USERNAME``, used to stay in memory for the
   life of the process. Filters and paths longer than 1024 characters are no longer cached.
+- Write-only and never-returned attributes, such as ``password``, no longer appear in the
+  ``repr`` of a model. Validation error messages no longer include the input values, which
+  :meth:`ValidationError.errors() <pydantic_core.ValidationError.errors>` still returns.
 
 [0.9.0] - 2026-09-27
 --------------------
