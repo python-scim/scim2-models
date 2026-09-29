@@ -4,6 +4,7 @@ import pytest
 from pydantic import ValidationError
 
 from scim2_models import AuthenticationScheme
+from scim2_models import InvalidValueException
 from scim2_models import Pagination
 from scim2_models import Reference
 from scim2_models import ServiceProviderConfig
@@ -98,8 +99,18 @@ def test_authentication_scheme_type_accepts_unknown_schemes():
 @pytest.mark.parametrize("value", [0, -1])
 def test_positive_integer_validator_rejects_invalid_values(field, value):
     """Test that pagination integer fields reject zero and negative values."""
-    with pytest.raises(ValidationError, match=f"'{value}' is not a positive integer"):
+    with pytest.raises(
+        ValidationError, match=f"{value} is not a positive integer"
+    ) as exc_info:
         Pagination.model_validate({field: value})
+
+    error = exc_info.value.errors()[0]
+    assert error["type"] == "scim_invalidValue"
+    assert error["loc"] == (field,)
+    assert error["ctx"] == {
+        "scim_type": InvalidValueException.scim_type,
+        "status": InvalidValueException.status,
+    }
 
 
 @pytest.mark.parametrize("field", ["defaultPageSize", "maxPageSize", "cursorTimeout"])

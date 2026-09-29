@@ -9,7 +9,7 @@ from ..annotations import Returned
 from ..annotations import Uniqueness
 from ..attributes import ComplexAttribute
 from ..attributes import ExtensibleStringEnum
-from ..exceptions import SCIMException
+from ..exceptions import InvalidValueException
 from ..reference import External
 from ..reference import Reference
 from ..urn import URN
@@ -84,8 +84,8 @@ class Pagination(ComplexAttribute):
     @classmethod
     def validate_positive_integers(cls, value: int | None) -> int | None:
         if value is not None and value <= 0:
-            raise SCIMException(
-                path=str(value), detail=f"{str(value)!r} is not a positive integer"
+            raise InvalidValueException(
+                detail=f"{value} is not a positive integer"
             ).as_pydantic_error()
         return value
 
