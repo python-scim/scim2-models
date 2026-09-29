@@ -723,6 +723,51 @@ def test_an_ambient_policy_reaches_a_remove_carrying_a_value():
     assert [member.value for member in group.members] == ["autre"]
 
 
+def test_selections_from_several_entries_remove_every_member_they_name():
+    """Each entry of the value selects its own members, as a filter joined by ``or``."""
+    group = group_with_members()
+
+    entra_remove(
+        [{"value": "s-foobar", "display": "Foo Bar"}, {"value": "autre"}]
+    ).patch(group, scim_policy=APPLY)
+
+    assert group.members is None
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "value pr or value",
+        'value eq "s-foobar" or value',
+        "value) or (value",
+        "members.value",
+    ],
+)
+def test_a_selection_whose_name_carries_filter_syntax_is_refused(name):
+    """A name slipping filter syntax in would remove more than the value lists."""
+    group = group_with_members()
+
+    with pytest.raises(InvalidValueException, match="not an attribute name"):
+        entra_remove([{name: "absent"}]).patch(group, scim_policy=APPLY)
+
+    assert len(group.members) == 2
+
+
+@pytest.mark.parametrize("item", [{"value": "s-foobar"}, ["s-foobar"]])
+def test_a_selection_comparing_a_name_to_several_values_is_refused(item):
+    """A filter compares a sub-attribute to one value, not to an object or a list."""
+    with pytest.raises(InvalidValueException, match="single value"):
+        entra_remove([{"value": item}]).patch(group_with_members(), scim_policy=APPLY)
+
+
+def test_a_selection_comparing_a_name_to_a_value_no_filter_can_carry_is_refused():
+    """JSON has no literal for NaN, which a filter therefore cannot compare to."""
+    with pytest.raises(InvalidValueException):
+        entra_remove([{"value": float("nan")}]).patch(
+            group_with_members(), scim_policy=APPLY
+        )
+
+
 # A path filter matching nothing
 
 

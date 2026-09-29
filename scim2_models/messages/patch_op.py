@@ -2,7 +2,10 @@ import copy
 from collections.abc import Iterator
 from dataclasses import replace
 from enum import StrEnum
+from functools import reduce
 from inspect import isclass
+from operator import and_
+from operator import or_
 from typing import Annotated
 from typing import Any
 from typing import Generic
@@ -30,13 +33,13 @@ from ..exceptions import InvalidValueException
 from ..exceptions import MutabilityException
 from ..exceptions import NoTargetException
 from ..exceptions import SCIMException
+from ..path import AttrPath
 from ..path import CompareOperator
 from ..path import Comparison
 from ..path import FilterNode
 from ..path import LogicalExpr
 from ..path import LogicalOperator
 from ..path import Path
-from ..path import ScimFilter
 from ..path.access import _select
 from ..path.access import _set_values
 from ..policy import ScimPolicy
@@ -428,13 +431,29 @@ def _removal_path(path: Path[Any], value: Any, policy: ScimPolicy) -> Path[Any] 
         )
     if not entries:
         return None
-    selection = " or ".join(
-        " and ".join(
-            f"{name} eq {ScimFilter.quote(item)}" for name, item in entry.items()
+    try:
+        selection = reduce(
+            or_,
+            (
+                reduce(and_, (_selector(name, item) for name, item in entry.items()))
+                for entry in entries
+            ),
         )
-        for entry in entries
-    )
-    return type(path)(f"{path}[{selection}]")
+        selected = f"{path}[{selection}]"
+    except ValueError as exc:
+        raise InvalidValueException(detail=str(exc)) from exc
+    return type(path)(selected)
+
+
+def _selector(name: str, item: Any) -> FilterNode:
+    """Build the comparison for one key of a remove value.
+
+    AttrPath refuses a key that is not an attribute name, so a key cannot add
+    filter syntax.
+    """
+    if isinstance(item, dict | list):
+        raise ValueError(f"{name!r} must be compared to a single value")
+    return Comparison(AttrPath(name), CompareOperator.eq, item)
 
 
 def _apply_operation(

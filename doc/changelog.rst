@@ -37,6 +37,9 @@ Security
 - Write-only and never-returned attributes, such as ``password``, no longer appear in the
   ``repr`` of a model. Validation error messages no longer include the input values, which
   :meth:`ValidationError.errors() <pydantic_core.ValidationError.errors>` still returns.
+- Under :attr:`RemoveValue.apply <scim2_models.ScimPolicy.RemoveValue.apply>`, a PATCH
+  ``remove`` whose ``value`` has a key that is not an attribute name, such as
+  ``"value pr or value"``, is refused with ``invalidValue``.
 
 [0.9.0] - 2026-09-27
 --------------------
