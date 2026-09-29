@@ -6,12 +6,18 @@ Changelog
 
 Added
 ^^^^^
+- Support for :rfc:`RFC9865 <9865>`
 - :meth:`Resource.replace <scim2_models.Resource.replace>` returns whether the replacement
   changes the resource, the order of multi-valued entries aside. A server can keep
   ``meta.version`` and ``meta.lastModified`` when a PUT changes nothing.
 
 Changed
 ^^^^^^^
+- :meth:`SCIMException.from_error <scim2_models.SCIMException.from_error>` reconstructs
+  :class:`~scim2_models.InvalidCursorException`, :class:`~scim2_models.ExpiredCursorException` and
+  :class:`~scim2_models.InvalidCountException` from an :class:`~scim2_models.Error` carrying the
+  matching ``scimType``, as :rfc:`RFC9865 §2.1 <9865#section-2.1>` defines them. They used to fall
+  back to the base :class:`~scim2_models.SCIMException`.
 - :attr:`AttributeBinding.urn <scim2_models.AttributeBinding.urn>` and the error messages
   that quote it spell the attribute as the schema declares it, such as ``userName``, whatever
   case the path used.

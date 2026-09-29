@@ -1,3 +1,4 @@
+import re
 from collections.abc import Iterable
 from enum import StrEnum
 from inspect import isclass
@@ -9,6 +10,7 @@ from pydantic import field_validator
 from ..annotations import CaseExact
 from ..annotations import Mutability
 from ..base import BaseModel
+from ..exceptions import InvalidCursorException
 from ..exceptions import InvalidFilterException
 from ..exceptions import InvalidPathException
 from ..path import Path
@@ -221,6 +223,21 @@ class SearchRequest(Message, ResponseParameters[ResourceT], Generic[ResourceT]):
         A value less than 1 SHALL be interpreted as 1.
         """
         return None if value is None else max(1, value)
+
+    cursor: str | None = None
+    """A string value that can be used to retrieve the next page of results.
+    The cursor value is defined in :rfc:`RFC9865 §2 <9865#section-2>`."""
+
+    @field_validator("cursor")
+    @classmethod
+    def validate_cursor_chars(cls, value: str | None) -> str | None:
+        """According to :rfc:`RFC9865 §2 <9865#section-2>`, cursor values may only contain unreserved characters as defined in :rfc:`RFC3986 §2.3 <3986#section-2.3>`.
+
+        unreserved = ALPHA / DIGIT / "-" / "." / "_" / "~"
+        """
+        if value is not None and not re.fullmatch(r"[A-Za-z0-9\-._~]*", value):
+            raise InvalidCursorException().as_pydantic_error()
+        return value
 
     count: int | None = None
     """An integer indicating the desired maximum number of query results per
