@@ -87,6 +87,10 @@ class ListResponse(
 
         - 'totalResults' is required
         - 'resources' must be set if 'totalResults' is non-zero.
+
+        RFC9865 §2 makes 'totalResults' optional with cursor pagination.
+        A response uses cursor pagination if the service provider supports it,
+        or if the response carries a cursor.
         """
         obj = handler(value)
         assert isinstance(obj, cls)
@@ -99,10 +103,12 @@ class ListResponse(
             return obj
 
         config = info.context.get("scim_spc")
-        cursor_supported = bool(
-            config and config.pagination and config.pagination.cursor
+        cursor_pagination = bool(
+            (config and config.pagination and config.pagination.cursor)
+            or obj.next_cursor is not None
+            or obj.previous_cursor is not None
         )
-        if not cursor_supported and obj.total_results is None:
+        if not cursor_pagination and obj.total_results is None:
             raise PydanticCustomError(
                 "required_error",
                 "Field 'totalResults' is required but value is missing or null",

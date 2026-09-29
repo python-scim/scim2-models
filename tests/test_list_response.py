@@ -527,3 +527,23 @@ def test_total_results_not_required_for_cursor_pagination():
     dumped = response.model_dump(scim_ctx=Context.RESOURCE_QUERY_RESPONSE)
     assert dumped["nextCursor"] == "cursor-abc"
     assert dumped["previousCursor"] == "cursor-xyz"
+
+
+@pytest.mark.parametrize("cursor_field", ["nextCursor", "previousCursor"])
+def test_total_results_not_required_when_response_has_a_cursor(cursor_field):
+    """A response carrying a cursor uses cursor pagination, so it may omit totalResults without a service provider config."""
+    payload = {
+        "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
+        cursor_field: "cursor-abc",
+        "Resources": [
+            {
+                "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+                "userName": "bjensen@example.com",
+                "id": "foobar",
+            }
+        ],
+    }
+    response = ListResponse[User].model_validate(
+        payload, scim_ctx=Context.RESOURCE_QUERY_RESPONSE
+    )
+    assert response.total_results is None
