@@ -3,8 +3,8 @@ scim2-models
 
 scim2-models represents the resources and messages of the SCIM protocol as
 `Pydantic <https://pydantic.dev/docs/>`_ models, and applies the validation and serialization
-rules of :rfc:`RFC 7643 <7643>` and :rfc:`RFC 7644 <7644>` to them. A client or a server uses it to parse the
-payloads it receives, and to produce the ones it sends.
+rules of :rfc:`RFC 7643 <7643>`, :rfc:`RFC 7644 <7644>` and :rfc:`RFC 9865 <9865>` to them.
+A client or a server uses it to parse the payloads it receives, and to produce the ones it sends.
 
 .. doctest::
 
@@ -22,6 +22,10 @@ payloads it receives, and to produce the ones it sends.
 
 It provides no HTTP endpoint, no persistence and no authorization: those belong to the
 application, and the :doc:`integrations <integrations/index>` show how to wire them together.
+
+It does not (yet) implement the other SCIM RFCs: :rfc:`RFC 9944 <9944>` (device schema extensions)
+and :rfc:`RFC 9967 <9967>` (security event tokens). You can still define a device resource with
+a :doc:`custom model <how-to/define-custom-models>`.
 
 .. code-block:: shell
 

@@ -1,8 +1,6 @@
 # scim2-models
 
-[Pydantic](https://pydantic.dev/docs/) models for the SCIM schemas and protocol defined in
-[RFC7643](https://datatracker.ietf.org/doc/html/rfc7643) and
-[RFC7644](https://datatracker.ietf.org/doc/html/rfc7644).
+[Pydantic](https://pydantic.dev/docs/) models for the SCIM 2.0 schemas and protocol.
 It parses and produces SCIM payloads as native Python objects, and serves as a basis for SCIM
 servers and clients.
 
@@ -17,7 +15,22 @@ servers and clients.
 - SCIM filters and paths: parsing, validation against a model, and evaluation on resources
 - PATCH operations applied to a resource, with the SCIM path grammar
 - Schema extensions, and conversion between SCIM schemas and Python models
+- Cursor-based pagination of RFC 9865
 - SCIM exceptions, convertible to `Error` responses
+
+## Standards
+
+scim2-models implements:
+
+- [RFC7643](https://datatracker.ietf.org/doc/html/rfc7643) (core schemas)
+- [RFC7644](https://datatracker.ietf.org/doc/html/rfc7644) (protocol)
+- [RFC9865](https://datatracker.ietf.org/doc/html/rfc9865) (cursor-based pagination)
+
+It does not implement the other SCIM RFCs (yet):
+
+- [RFC9944](https://datatracker.ietf.org/doc/html/rfc9944) (device schema extensions).
+  You can still define a device resource with a [custom model](https://scim2-models.readthedocs.io/en/latest/how-to/define-custom-models.html).
+- [RFC9967](https://datatracker.ietf.org/doc/html/rfc9967) (security event tokens).
 
 ## Example
 
