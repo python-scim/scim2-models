@@ -341,7 +341,10 @@ def execute_bulk(bulk_request, location_for):
         # RFC7644 §3.7.3: a job performs as many changes as possible, unless
         # the client caps the failures it accepts with "failOnErrors".
         errors += 1
-        if bulk_request.fail_on_errors and errors >= bulk_request.fail_on_errors:
+        if (
+            bulk_request.fail_on_errors is not None
+            and errors >= bulk_request.fail_on_errors
+        ):
             break
 
     return BulkResponse[User](operations=operations)

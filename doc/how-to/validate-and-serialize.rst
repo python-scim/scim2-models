@@ -115,6 +115,7 @@ the read-only attributes, and the immutable ones keep the value they were create
    ...     scim_ctx=Context.RESOURCE_REPLACEMENT_REQUEST,
    ... )
    >>> replacement.replace(stored)
+   True
    >>> replacement.id
    '2819c223-7f76-453a-919d-413861904646'
    >>> replacement.meta.version
@@ -127,6 +128,10 @@ stored one raises :class:`~scim2_models.MutabilityException` instead.
 The check also covers the sub-attributes of a complex attribute. In a multi-valued attribute, it
 covers the entries the stored resource also holds, matched by their ``value``. So a replacement
 can add and remove entries, but cannot change an immutable sub-attribute of an entry it keeps.
+
+:meth:`~scim2_models.Resource.replace` returns :data:`False` when the replacement changes
+nothing, the order of multi-valued entries aside. A server can then keep ``meta.version`` and
+``meta.lastModified`` unchanged, as for a PATCH that changes nothing.
 
 Some values are not compared, so that a valid replacement is never refused. These are an entry
 whose ``value`` matches several entries, and an immutable reference. Per

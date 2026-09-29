@@ -16,6 +16,7 @@ from ..base import BaseModel
 from ..exceptions import InvalidFilterException
 from ..exceptions import PathNotFoundException
 from ..utils import _find_field_name
+from ..utils import _normalize_attribute_name
 from .expressions import ORDERING_OPERATORS
 from .expressions import STRING_OPERATORS
 from .expressions import AttrPath
@@ -251,16 +252,27 @@ def _resolve_attr_path(
     # cannot outlive the model it describes: a resolved attribute names the
     # model it was resolved on, which a cache keyed by that model would keep
     # alive for as long as the process runs.
-    cache: dict[tuple[AttrPath, bool], AttributeBinding | None] | None
+    cache: dict[tuple[str | None, str, str | None], AttributeBinding] | None
     cache = model.__dict__.get(_RESOLVED_ATTRS)
     if cache is None:
         cache = {}
         setattr(model, _RESOLVED_ATTRS, cache)
 
-    key = (attr_path, strict)
-    if key not in cache:
-        cache[key] = _resolve_attr_path_uncached(model, attr_path, strict=strict)
-    return cache[key]
+    # Paths come from clients. Folding their case and leaving out the unknown
+    # ones bounds the cache to the names the model accepts, however many
+    # spellings a client sends.
+    key = (
+        attr_path.uri.lower() if attr_path.uri else None,
+        _normalize_attribute_name(attr_path.attr),
+        _normalize_attribute_name(attr_path.sub_attr) if attr_path.sub_attr else None,
+    )
+    if key in cache:
+        return cache[key]
+
+    binding = _resolve_attr_path_uncached(model, attr_path, strict=strict)
+    if binding is not None:
+        cache[key] = binding
+    return binding
 
 
 def _resolve_attr_path_uncached(
@@ -319,7 +331,7 @@ def _resolve_attr_path_uncached(
         sub_field_name=sub_field_name,
         sub_field_type=sub_field_type,
         case_exact=case_exact,
-        urn=_build_urn(target, attr_path),
+        urn=_build_urn(target, field_name, field_type, sub_field_name),
     )
 
 
@@ -391,12 +403,21 @@ def _resolve_filter_path(
         raise InvalidFilterException(detail=str(exc)) from exc
 
 
-def _build_urn(model: type[BaseModel], attr_path: AttrPath) -> str:
-    """Build the fully qualified URN of a resolved attribute."""
-    schema = attr_path.uri or (
-        getattr(model, "__schema__", None) if isclass(model) else None
-    )
-    suffix = str(AttrPath(attr=attr_path.attr, sub_attr=attr_path.sub_attr))
+def _build_urn(
+    model: type[BaseModel],
+    field_name: str,
+    field_type: type | None,
+    sub_field_name: str | None,
+) -> str:
+    """Build the fully qualified URN of a resolved attribute.
+
+    The URN is spelled as the schema declares it, whatever case the path used.
+    """
+    schema = getattr(model, "__schema__", None)
+    suffix = model._scim_name(field_name)
+    if sub_field_name is not None:
+        sub_model = cast(type[BaseModel], field_type)
+        suffix = f"{suffix}.{sub_model._scim_name(sub_field_name)}"
     return f"{schema}:{suffix}" if schema else suffix
 
 

@@ -9,6 +9,7 @@ from typing import cast
 from lark import Lark
 from lark import Token
 from lark import Transformer
+from lark import Tree
 from lark import v_args
 from lark.exceptions import LarkError
 from lark.exceptions import VisitError
@@ -208,26 +209,75 @@ class _AstBuilder(Transformer[Token, Any]):
         return None
 
 
+_MAX_DEPTH = 32
+"""How many expressions a filter or a path may nest.
+
+A deeper tree would exhaust the stack of the recursive visitors, and no client
+sends one.
+"""
+
+_MAX_CACHED_LENGTH = 1024
+"""How long a filter or a path may be to stay in the parser cache.
+
+Real filters and paths are much shorter. Parsing the longer ones each time
+bounds the memory the cache holds.
+"""
+
+_NESTING_RULES = frozenset(
+    {"or_expr", "and_expr", "not_expr", "value_path", "value_path_sub"}
+)
+
+
+def _depth(tree: Tree[Token]) -> int:
+    """Count the expressions nested in a parse tree, without recursion.
+
+    Parentheses leave no node in the tree, and a chain of ``and`` or ``or`` is a
+    single node, so neither adds to the depth.
+    """
+    depths: dict[int, int] = {}
+    for subtree in tree.iter_subtrees():
+        children = (
+            depths[id(child)] for child in subtree.children if isinstance(child, Tree)
+        )
+        nested = max(children, default=0)
+        depths[id(subtree)] = nested + (subtree.data in _NESTING_RULES)
+    return depths[id(tree)]
+
+
 # One parser for both entry points: the two start rules share a grammar, and
 # building their tables together halves the cost of importing this module.
 _PARSER = Lark(_GRAMMAR, start=["filter", "path"], parser="lalr")
 _BUILDER = _AstBuilder()
 
 
-@lru_cache(maxsize=1024)
 def _parse_filter(expression: str) -> FilterNode:
     """Parse a SCIM filter expression into its root node.
 
-    The expression is the one a ``filter`` query parameter or a
-    ``SearchRequest.filter`` carries. A syntactically invalid one raises
+    The expression is the one a filter query parameter or a
+    SearchRequest.filter carries. A syntactically invalid one raises
     InvalidFilterException.
-
-    >>> from scim2_models.path.grammar import _parse_filter
-    >>> _parse_filter('userName eq "bjensen"')
-    Comparison(attr_path=AttrPath(attr='userName', sub_attr=None, uri=None), op=<CompareOperator.eq: 'eq'>, value='bjensen')
     """
+    if len(expression) > _MAX_CACHED_LENGTH:
+        return _build_filter(expression)
+    return _cached_filter(expression)
+
+
+def _build_filter(expression: str) -> FilterNode:
+    """Parse a SCIM filter expression, without the cache."""
     try:
         tree = _PARSER.parse(expression, start="filter")
+    except LarkError as exc:
+        raise InvalidFilterException(
+            filter=expression, detail=_error_detail(exc)
+        ) from exc
+
+    if _depth(tree) > _MAX_DEPTH:
+        raise InvalidFilterException(
+            filter=expression,
+            detail=f"the filter nests more than {_MAX_DEPTH} expressions",
+        )
+
+    try:
         return cast(FilterNode, _BUILDER.transform(tree))
     except LarkError as exc:
         raise InvalidFilterException(
@@ -235,22 +285,37 @@ def _parse_filter(expression: str) -> FilterNode:
         ) from exc
 
 
-@lru_cache(maxsize=1024)
 def _parse_path(path: str) -> PathNode:
     """Parse a SCIM PATCH path into an abstract syntax tree.
 
-    The path is the one a ``PatchOperation.path`` carries. A syntactically
+    The path is the one a PatchOperation.path carries. A syntactically
     invalid one raises InvalidPathException.
-
-    >>> from scim2_models.path.grammar import _parse_path
-    >>> _parse_path("name.familyName")
-    AttrPath(attr='name', sub_attr='familyName', uri=None)
     """
+    if len(path) > _MAX_CACHED_LENGTH:
+        return _build_path(path)
+    return _cached_path(path)
+
+
+def _build_path(path: str) -> PathNode:
+    """Parse a SCIM PATCH path, without the cache."""
     try:
         tree = _PARSER.parse(path, start="path")
+    except LarkError as exc:
+        raise InvalidPathException(path=path, detail=_error_detail(exc)) from exc
+
+    if _depth(tree) > _MAX_DEPTH:
+        raise InvalidPathException(
+            path=path, detail=f"the path nests more than {_MAX_DEPTH} expressions"
+        )
+
+    try:
         return cast(PathNode, _BUILDER.transform(tree))
     except LarkError as exc:
         raise InvalidPathException(path=path, detail=_error_detail(exc)) from exc
+
+
+_cached_filter = lru_cache(maxsize=1024)(_build_filter)
+_cached_path = lru_cache(maxsize=1024)(_build_path)
 
 
 def _error_detail(exc: LarkError) -> str:

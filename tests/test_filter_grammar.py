@@ -550,3 +550,97 @@ def test_an_attribute_path_accepts_a_urn_in_any_case():
     """A URN namespace identifier is case-insensitive, per RFC 8141 §2."""
     attr_path = AttrPath("userName", uri="URN:IETF:params:scim:schemas:core:2.0:User")
     assert _parse_filter(f"{attr_path} pr") == Present(attr_path)
+
+
+def nested_negations(depth):
+    return "not(" * depth + "userName pr" + ")" * depth
+
+
+def alternated_operators(depth):
+    operators = ("or", "and")
+    head = "".join(f"title pr {operators[i % 2]} (" for i in range(depth))
+    return head + "userName pr" + ")" * depth
+
+
+@pytest.mark.parametrize("build", [nested_negations, alternated_operators])
+def test_a_filter_nesting_32_expressions_is_parsed(build):
+    _parse_filter(build(32))
+
+
+@pytest.mark.parametrize("build", [nested_negations, alternated_operators])
+def test_a_filter_nesting_more_than_32_expressions_is_rejected(build):
+    with pytest.raises(InvalidFilterException) as exc_info:
+        _parse_filter(build(33))
+    assert exc_info.value.detail == "the filter nests more than 32 expressions"
+
+
+def test_a_filter_nested_far_too_deep_is_rejected_without_exhausting_the_stack():
+    with pytest.raises(InvalidFilterException):
+        _parse_filter(nested_negations(10_000))
+
+
+def test_parentheses_do_not_count_as_nesting():
+    """Grouping leaves no node in the syntax tree."""
+    assert _parse_filter("(" * 1000 + "userName pr" + ")" * 1000) == Present(
+        AttrPath("userName")
+    )
+
+
+def test_a_long_chain_of_conjunctions_does_not_count_as_nesting():
+    """A chain of ``and`` is a single node, however long it is."""
+    node = _parse_filter(" and ".join(["userName pr"] * 1000))
+    assert len(node.terms) == 1000
+
+
+def test_a_value_selection_counts_as_nesting():
+    _parse_filter(f"emails[{nested_negations(31)}]")
+    with pytest.raises(InvalidFilterException):
+        _parse_filter(f"emails[{nested_negations(32)}]")
+
+
+def test_a_path_nesting_32_expressions_is_parsed():
+    _parse_path(f"emails[{nested_negations(31)}].type")
+
+
+def test_a_path_nesting_more_than_32_expressions_is_rejected():
+    with pytest.raises(InvalidPathException) as exc_info:
+        _parse_path(f"emails[{nested_negations(32)}].type")
+    assert exc_info.value.detail == "the path nests more than 32 expressions"
+
+
+def padded_filter(length):
+    """Build a valid filter of the given length."""
+    head = 'userName eq "'
+    return head + "a" * (length - len(head) - 1) + '"'
+
+
+def padded_path(length):
+    """Build a valid path of the given length."""
+    head = 'emails[value eq "'
+    return head + "a" * (length - len(head) - 2) + '"]'
+
+
+def test_a_filter_of_1024_characters_is_parsed_once():
+    expression = padded_filter(1024)
+    assert _parse_filter(expression) is _parse_filter(expression)
+
+
+def test_a_longer_filter_is_parsed_each_time():
+    """Long filters stay out of the cache, so they cannot fill memory."""
+    expression = padded_filter(1025)
+    first = _parse_filter(expression)
+    assert first == _parse_filter(expression)
+    assert first is not _parse_filter(expression)
+
+
+def test_a_path_of_1024_characters_is_parsed_once():
+    path = padded_path(1024)
+    assert _parse_path(path) is _parse_path(path)
+
+
+def test_a_longer_path_is_parsed_each_time():
+    """Long paths stay out of the cache, so they cannot fill memory."""
+    path = padded_path(1025)
+    first = _parse_path(path)
+    assert first == _parse_path(path)
+    assert first is not _parse_path(path)

@@ -7,6 +7,9 @@ Changelog
 Added
 ^^^^^
 - Support for :rfc:`RFC9865 <9865>`
+- :meth:`Resource.replace <scim2_models.Resource.replace>` returns whether the replacement
+  changes the resource, the order of multi-valued entries aside. A server can keep
+  ``meta.version`` and ``meta.lastModified`` when a PUT changes nothing.
 
 Changed
 ^^^^^^^
@@ -15,6 +18,9 @@ Changed
   :class:`~scim2_models.InvalidCountException` from an :class:`~scim2_models.Error` carrying the
   matching ``scimType``, as :rfc:`RFC9865 §2.1 <9865#section-2.1>` defines them. They used to fall
   back to the base :class:`~scim2_models.SCIMException`.
+- :attr:`AttributeBinding.urn <scim2_models.AttributeBinding.urn>` and the error messages
+  that quote it spell the attribute as the schema declares it, such as ``userName``, whatever
+  case the path used.
 
 Security
 ^^^^^^^^
@@ -22,6 +28,12 @@ Security
   no longer matches ``secret``. RFC 7643 declares it case-insensitive, but compares passwords
   by salted hash (:rfc:`RFC7643 §4.1.1 <7643#section-4.1.1>`), and the rules of
   :rfc:`RFC7644 §5 <7644#section-5>` keep the case of passwords.
+- A filter or a PATCH path that nests more than 32 expressions, such as ``not(not(...))``, is
+  refused with ``invalidFilter`` or ``invalidPath``. A deep one used to raise a
+  :class:`RecursionError`. Parentheses and chains of ``and`` or ``or`` do not count.
+- Filters and paths from clients no longer grow memory without limit. Each unknown attribute
+  name, and each spelling of a known one such as ``USERNAME``, used to stay in memory for the
+  life of the process. Filters and paths longer than 1024 characters are no longer cached.
 
 [0.9.0] - 2026-09-27
 --------------------

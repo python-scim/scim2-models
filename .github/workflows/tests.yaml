@@ -152,3 +152,15 @@ jobs:
       - name: Install dependencies
         run: uv sync --group doc
       - run: uv run sphinx-build -W --keep-going -b html doc build/sphinx/html
+
+  all-checks:
+    if: always()
+    needs: [tests, coverage, minversions, style, doc]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Fail if a needed job did not succeed
+        if: >-
+          contains(needs.*.result, 'failure')
+          || contains(needs.*.result, 'cancelled')
+          || contains(needs.*.result, 'skipped')
+        run: exit 1
