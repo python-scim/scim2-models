@@ -465,6 +465,27 @@ def test_invalid_cursor_exception():
     assert error["ctx"]["status"] == InvalidCursorException.status
 
 
+@pytest.mark.parametrize("cursor_field", ["nextCursor", "previousCursor"])
+def test_empty_cursor_in_response_is_rejected(cursor_field):
+    """An empty cursor requests the first page, so a client following it would loop forever."""
+    payload = {
+        "totalResults": 1,
+        "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
+        cursor_field: "",
+        "Resources": [
+            {
+                "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+                "id": "user-1",
+                "userName": "bjensen",
+            }
+        ],
+    }
+    with pytest.raises(ValidationError) as exc_info:
+        ListResponse[User].model_validate(payload)
+
+    assert exc_info.value.errors()[0]["type"] == "scim_invalidCursor"
+
+
 def test_cursor_absent_when_none():
     response = ListResponse[User](
         total_results=1,

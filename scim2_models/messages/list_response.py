@@ -67,8 +67,11 @@ class ListResponse(
     @field_validator("next_cursor", "previous_cursor")
     @classmethod
     def validate_cursor_chars(cls, value: str | None) -> str | None:
-        """According to :rfc:`RFC9865 §2 <9865#section-2>`, cursor values may only contain unreserved characters as defined in :rfc:`RFC3986 §2.3 <3986#section-2.3>`."""
-        if value is not None and not re.fullmatch(r"[A-Za-z0-9\-._~]*", value):
+        """According to :rfc:`RFC9865 §2 <9865#section-2>`, cursor values may only contain unreserved characters as defined in :rfc:`RFC3986 §2.3 <3986#section-2.3>`.
+
+        An empty cursor requests the first page, so a response cannot carry one.
+        """
+        if value is not None and not re.fullmatch(r"[A-Za-z0-9\-._~]+", value):
             raise InvalidCursorException().as_pydantic_error()
         return value
 
