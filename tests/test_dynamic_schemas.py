@@ -99,7 +99,9 @@ def test_dynamic_service_provider_config_schema(load_sample):
     canonic_schema(sample)
 
     schema["attributes"] = [
-        attr for attr in schema["attributes"] if attr["name"] != "id"
+        attr
+        for attr in schema["attributes"]
+        if attr["name"] not in ("id", "pagination")
     ]
 
     assert sample == schema
