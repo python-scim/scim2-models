@@ -29,7 +29,6 @@ scim2-models implements:
 It does not implement the other SCIM RFCs (yet):
 
 - [RFC9944](https://datatracker.ietf.org/doc/html/rfc9944) (device schema extensions).
-  You can still define a device resource with a [custom model](https://scim2-models.readthedocs.io/en/latest/how-to/define-custom-models.html).
 - [RFC9967](https://datatracker.ietf.org/doc/html/rfc9967) (security event tokens).
 
 ## Example
