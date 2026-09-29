@@ -27,7 +27,7 @@ Security
   :class:`RecursionError`. Parentheses and chains of ``and`` or ``or`` do not count.
 - Filters and paths from clients no longer grow memory without limit. Each unknown attribute
   name, and each spelling of a known one such as ``USERNAME``, used to stay in memory for the
-  life of the process.
+  life of the process. Filters and paths longer than 1024 characters are no longer cached.
 
 [0.9.0] - 2026-09-27
 --------------------

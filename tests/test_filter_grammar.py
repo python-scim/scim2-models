@@ -606,3 +606,41 @@ def test_a_path_nesting_more_than_32_expressions_is_rejected():
     with pytest.raises(InvalidPathException) as exc_info:
         _parse_path(f"emails[{nested_negations(32)}].type")
     assert exc_info.value.detail == "the path nests more than 32 expressions"
+
+
+def padded_filter(length):
+    """Build a valid filter of the given length."""
+    head = 'userName eq "'
+    return head + "a" * (length - len(head) - 1) + '"'
+
+
+def padded_path(length):
+    """Build a valid path of the given length."""
+    head = 'emails[value eq "'
+    return head + "a" * (length - len(head) - 2) + '"]'
+
+
+def test_a_filter_of_1024_characters_is_parsed_once():
+    expression = padded_filter(1024)
+    assert _parse_filter(expression) is _parse_filter(expression)
+
+
+def test_a_longer_filter_is_parsed_each_time():
+    """Long filters stay out of the cache, so they cannot fill memory."""
+    expression = padded_filter(1025)
+    first = _parse_filter(expression)
+    assert first == _parse_filter(expression)
+    assert first is not _parse_filter(expression)
+
+
+def test_a_path_of_1024_characters_is_parsed_once():
+    path = padded_path(1024)
+    assert _parse_path(path) is _parse_path(path)
+
+
+def test_a_longer_path_is_parsed_each_time():
+    """Long paths stay out of the cache, so they cannot fill memory."""
+    path = padded_path(1025)
+    first = _parse_path(path)
+    assert first == _parse_path(path)
+    assert first is not _parse_path(path)
