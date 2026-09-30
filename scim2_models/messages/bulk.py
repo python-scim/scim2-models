@@ -1,4 +1,5 @@
 from enum import StrEnum
+from functools import cache
 from typing import Annotated
 from typing import Any
 from typing import ClassVar
@@ -11,6 +12,8 @@ from typing import get_origin
 
 from pydantic import Field
 from pydantic import PlainSerializer
+from pydantic import TypeAdapter
+from pydantic import ValidationError
 from pydantic import ValidationInfo
 from pydantic import ValidatorFunctionWrapHandler
 from pydantic import field_validator
@@ -21,13 +24,18 @@ from ..annotations import Required
 from ..annotations import Returned
 from ..attributes import ComplexAttribute
 from ..context import Context
+from ..exceptions import InvalidPathException
 from ..exceptions import InvalidValueException
+from ..exceptions import SCIMException
+from ..provider import _provider
 from ..resources.resource import Resource
 from ..urn import URN
 from ..utils import UNION_TYPES
 from ..utils import _int_to_str
+from ..utils import _normalize_attribute_name
 from .error import Error
 from .message import Message
+from .message import _parameter_members
 from .message import _ResourceParameterized
 from .message import _type_parameter
 from .patch_op import PatchOp
@@ -142,6 +150,34 @@ class BulkOperation(_ResourceParameterized, ComplexAttribute, Generic[ResourceT]
 
         return super().__class_getitem__(item)
 
+    @property
+    def endpoint(self) -> str | None:
+        """The endpoint of the resource type the :attr:`path` targets, e.g. ``/Users``.
+
+        >>> from scim2_models import BulkOperation, User
+        >>> BulkOperation[User](path="/Users/2819c223").endpoint
+        '/Users'
+        """
+        if self.path is None:
+            return None
+        return "/" + self.path.lstrip("/").partition("/")[0]
+
+    @property
+    def resource_id(self) -> str | None:
+        """The identifier of the resource the :attr:`path` targets.
+
+        A creation targets an endpoint rather than a resource, and has none.
+
+        >>> from scim2_models import BulkOperation, User
+        >>> BulkOperation[User](path="/Users/2819c223").resource_id
+        '2819c223'
+        >>> BulkOperation[User](path="/Users").resource_id is None
+        True
+        """
+        if self.path is None:
+            return None
+        return self.path.lstrip("/").partition("/")[2] or None
+
     @model_validator(mode="after")
     def _validate_operation_requirements(self, info: ValidationInfo) -> Self:
         """Validate operation requirements according to RFC 7644."""
@@ -223,6 +259,31 @@ class BulkRequest(_ResourceParameterized, Message, Generic[ResourceT]):
 
     scim2-models validates and serializes the message. Applying the operations it
     carries is left to the application.
+
+    In the :attr:`~scim2_models.Context.BULK_REQUEST` context, an operation that
+    cannot be validated does not fail the request, as
+    :rfc:`RFC7644 §3.7.3 <7644#section-3.7.3>` requires. It is kept as its own
+    failed result, with a ``status`` and an :class:`~scim2_models.Error` as
+    ``response``:
+
+    >>> request = BulkRequest[User].model_validate(
+    ...     {
+    ...         "Operations": [
+    ...             {"method": "POST", "bulkId": "x", "path": "/Users", "data": {}}
+    ...         ]
+    ...     },
+    ...     scim_ctx=Context.BULK_REQUEST,
+    ... )
+    >>> failed = request.operations[0]
+    >>> failed.bulk_id, failed.status, failed.response.scim_type
+    ('x', 400, 'invalidValue')
+
+    Under a :class:`~scim2_models.ScimProvider`, each operation is read as the
+    resource type its ``path`` targets, and an unknown endpoint fails the
+    operation with ``invalidPath``. Without a provider, the member of the type
+    parameter is picked from the ``data``, which cannot tell apart two resource
+    types accepting the same PATCH: validate a request covering several
+    resource types under the provider.
     """
 
     __schema__ = URN("urn:ietf:params:scim:api:messages:2.0:BulkRequest")
@@ -236,6 +297,98 @@ class BulkRequest(_ResourceParameterized, Message, Generic[ResourceT]):
         None, alias="Operations"
     )
     """Defines operations within a bulk job."""
+
+    @field_validator("operations", mode="wrap")
+    @classmethod
+    def _validate_each_operation(
+        cls,
+        value: Any,
+        handler: ValidatorFunctionWrapHandler,
+        info: ValidationInfo,
+    ) -> Any:
+        """Validate the operations of a request one by one, so that an invalid one fails alone.
+
+        RFC 7644 §3.7.3: the service provider reports an operation it cannot
+        perform in the result of that operation, and goes on with the others.
+        """
+        context = info.context
+        if (
+            not isinstance(value, list)
+            or not context
+            or context.get("scim") != Context.BULK_REQUEST
+        ):
+            return handler(value)
+
+        return [cls._validate_operation(operation, info) for operation in value]
+
+    @classmethod
+    def _validate_operation(cls, operation: Any, info: ValidationInfo) -> Any:
+        """Validate one operation, or return the failed result it stands for."""
+        try:
+            model = cls._model_for_path(_raw_attribute(operation, "path"), info)
+            return _operation_adapter(model).validate_python(
+                operation, context=info.context
+            )
+        except ValidationError as exception:
+            error = Error.from_validation_errors(exception)[0]
+        except SCIMException as exception:
+            error = exception.to_error()
+
+        method = _raw_attribute(operation, "method")
+        bulk_id = _raw_attribute(operation, "bulkId")
+        path = _raw_attribute(operation, "path")
+        failed_model = _parameter_members(_type_parameter(cls))[0]
+        return BulkOperation[failed_model](  # type: ignore[valid-type]
+            method=method if method in list(BulkOperation.Method) else None,
+            bulk_id=bulk_id if isinstance(bulk_id, str) else None,
+            path=path if isinstance(path, str) else None,
+            status=error.status,
+            response=error,
+        )
+
+    @classmethod
+    def _model_for_path(cls, path: Any, info: ValidationInfo) -> Any:
+        """Return the member of the type parameter the endpoint of a path serves.
+
+        Without a provider, nothing tells which resource type an endpoint
+        serves, and pydantic picks the member from the data.
+
+        :raises InvalidPathException: When no resource type is served at the endpoint.
+        :raises TypeError: When the type parameter lacks the model of the endpoint.
+        """
+        members = _parameter_members(_type_parameter(cls))
+        provider = _provider(info)
+        if provider is None or not isinstance(path, str):
+            return Union[members]  # noqa: UP007
+
+        endpoint = "/" + path.lstrip("/").partition("/")[0]
+        model = provider.model_for_endpoint(endpoint)
+        if model is None:
+            raise InvalidPathException(
+                detail=f"No resource type is served at {endpoint}"
+            )
+        if model not in members:
+            raise TypeError(
+                f"{cls.__name__} does not declare {model.__name__}, served at {endpoint}"
+            )
+        return model
+
+
+def _raw_attribute(payload: Any, name: str) -> Any:
+    """Return an attribute of a raw payload, whose names are case-insensitive."""
+    if not isinstance(payload, dict):
+        return None
+    key = _normalize_attribute_name(name)
+    return next(
+        (value for k, value in payload.items() if _normalize_attribute_name(k) == key),
+        None,
+    )
+
+
+@cache
+def _operation_adapter(model: Any) -> TypeAdapter[Any]:
+    """Return the adapter validating the operations of a model or a union of models."""
+    return TypeAdapter(BulkOperation[model])
 
 
 class BulkResponse(_ResourceParameterized, Message, Generic[ResourceT]):

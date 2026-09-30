@@ -67,6 +67,16 @@ class SCIMResponse(JSONResponse):
 router = APIRouter(prefix="/scim/v2", default_response_class=SCIMResponse)
 
 
+
+# -- provider-middleware-start --
+@app.middleware("http")
+async def scim_provider(request: Request, call_next):
+    """Validate the payloads under the provider, which knows the resource type of each endpoint."""
+    with provider:
+        return await call_next(request)
+# -- provider-middleware-end --
+
+
 def resource_location(request, app_record):
     """Return the canonical URL for a user record."""
     return str(request.url_for("get_user", user_id=app_record["id"]))

@@ -209,6 +209,14 @@ The job is validated through :class:`~scim2_models.BulkRequestContext`, which ap
 with :attr:`~scim2_models.Context.BULK_RESPONSE`. The route closes over its request to build each
 location.
 
+FastAPI validates the job before it calls the route, so the provider is opened by a middleware.
+Each operation is then read as the resource type its ``path`` targets.
+
+.. literalinclude:: _examples/fastapi_example.py
+   :language: python
+   :start-after: # -- provider-middleware-start --
+   :end-before: # -- provider-middleware-end --
+
 A job that exceeds ``maxOperations`` raises :class:`~scim2_models.SCIMException`, which the
 handler registered for it turns into a ``413``. See :ref:`helpers-bulk` for what
 the executor does with each operation.

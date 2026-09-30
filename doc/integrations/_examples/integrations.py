@@ -235,14 +235,6 @@ BULK_SUCCESS_STATUS = {
 """The status each method answers with when it succeeds."""
 
 
-def record_id_of(path):
-    """Return the resource identifier a bulk operation path designates.
-
-    :param path: The ``path`` of the operation, relative to the SCIM root.
-    """
-    return path.rsplit("/", 1)[-1]
-
-
 def apply_operation(operation, record):
     """Apply one bulk operation to the store and return the record it acted on.
 
@@ -290,16 +282,24 @@ def run_operation(operation, location_for):
     result = BulkOperation[User](method=operation.method, bulk_id=operation.bulk_id)
 
     record = None
-    if operation.method != BulkOperation.Method.post:
-        try:
-            record = get_record(record_id_of(operation.path))
-        except KeyError:
-            result.status = HTTPStatus.NOT_FOUND
-            result.response = Error(
-                status=HTTPStatus.NOT_FOUND, detail="Resource does not exist."
-            )
-            return result
+    try:
+        record = get_record(operation.resource_id)
         result.location = location_for(record)
+    except KeyError:
+        pass
+
+    if isinstance(operation.response, Error):
+        # scim2-models could not validate the operation, and tells why.
+        result.status = operation.status
+        result.response = operation.response
+        return result
+
+    if operation.method != BulkOperation.Method.post and record is None:
+        result.status = HTTPStatus.NOT_FOUND
+        result.response = Error(
+            status=HTTPStatus.NOT_FOUND, detail="Resource does not exist."
+        )
+        return result
 
     try:
         acted_record = apply_operation(operation, record)
@@ -318,7 +318,8 @@ def run_operation(operation, location_for):
 def execute_bulk(bulk_request, location_for):
     """Apply every operation of a bulk job and describe each outcome.
 
-    :param bulk_request: The validated bulk request.
+    :param bulk_request: The bulk request, validated under the provider so that
+        each operation is read by the resource type of its path.
     :param location_for: Builds the canonical URL of a record, which only the
         HTTP layer of a framework knows how to spell.
     """

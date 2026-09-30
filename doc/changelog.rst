@@ -10,6 +10,15 @@ Added
 - :meth:`Resource.replace <scim2_models.Resource.replace>` returns whether the replacement
   changes the resource, the order of multi-valued entries aside. A server can keep
   ``meta.version`` and ``meta.lastModified`` when a PUT changes nothing.
+- In the :attr:`~scim2_models.Context.BULK_REQUEST` context, an invalid operation of a
+  :class:`~scim2_models.BulkRequest` no longer fails the whole request. It becomes its own failed
+  result, with a ``status`` and an :class:`~scim2_models.Error`, as
+  :rfc:`RFC7644 §3.7.3 <7644#section-3.7.3>` requires. Under a
+  :class:`~scim2_models.ScimProvider`, each operation is read as the resource type its ``path``
+  targets, and an unknown endpoint fails the operation with ``invalidPath``.
+- :attr:`BulkOperation.endpoint <scim2_models.BulkOperation.endpoint>` and
+  :attr:`BulkOperation.resource_id <scim2_models.BulkOperation.resource_id>` read the target of
+  an operation from its ``path``.
 
 Changed
 ^^^^^^^

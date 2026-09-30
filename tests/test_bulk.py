@@ -2,6 +2,7 @@ import pytest
 from pydantic import ValidationError
 
 from scim2_models import Error
+from scim2_models import ScimProvider
 from scim2_models.base import Context
 from scim2_models.messages.bulk import BulkOperation
 from scim2_models.messages.bulk import BulkRequest
@@ -623,3 +624,201 @@ def test_a_subclass_of_a_parameterized_operation_reads_its_data():
         scim_ctx=Context.BULK_REQUEST,
     )
     assert operation.data.user_name == "bjensen"
+
+
+GROUP_PATH = "/Groups/e9e30dba-f08f-4109-8486-d5c6a331660a"
+PATCH_DISPLAY_NAME = {
+    "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+    "Operations": [{"op": "replace", "path": "displayName", "value": "Tour Guides"}],
+}
+
+
+def bulk_payload(*operations, **envelope):
+    """Build a raw bulk request carrying the given operations."""
+    return {
+        "schemas": ["urn:ietf:params:scim:api:messages:2.0:BulkRequest"],
+        **envelope,
+        "Operations": list(operations),
+    }
+
+
+def test_an_invalid_operation_fails_alone():
+    """RFC 7644 §3.7.3: an operation the service provider cannot perform is reported in its own result."""
+    request = BulkRequest[User].model_validate(
+        bulk_payload(
+            {
+                "method": "POST",
+                "bulkId": "invalid",
+                "path": "/Users",
+                "data": {"userName": 42},
+            },
+            {
+                "method": "POST",
+                "bulkId": "valid",
+                "path": "/Users",
+                "data": {"userName": "bjensen"},
+            },
+            failOnErrors=1,
+        ),
+        scim_ctx=Context.BULK_REQUEST,
+    )
+
+    invalid, valid = request.operations
+    assert request.fail_on_errors == 1
+    assert invalid.method == BulkOperation.Method.post
+    assert invalid.bulk_id == "invalid"
+    assert invalid.path == "/Users"
+    assert invalid.data is None
+    assert invalid.status == 400
+    assert invalid.response.scim_type == "invalidValue"
+    assert valid.data.user_name == "bjensen"
+    assert valid.response is None
+
+
+def test_an_invalid_operation_keeps_what_its_result_can_carry():
+    """Only the values a result can hold are kept from an operation that cannot be read."""
+    request = BulkRequest[User].model_validate(
+        bulk_payload(
+            {"METHOD": "FETCH", "BULKID": 42, "PATH": ["/Users"]},
+            "not an operation",
+        ),
+        scim_ctx=Context.BULK_REQUEST,
+    )
+
+    unreadable, not_an_object = request.operations
+    assert (unreadable.method, unreadable.bulk_id, unreadable.path) == (
+        None,
+        None,
+        None,
+    )
+    assert unreadable.status == 400
+    assert not_an_object.status == 400
+    assert isinstance(not_an_object.response, Error)
+
+
+def test_attribute_names_of_an_invalid_operation_are_case_insensitive():
+    """The method, bulkId and path of an invalid operation are read whatever their case."""
+    request = BulkRequest[User].model_validate(
+        bulk_payload(
+            {"METHOD": "POST", "BulkId": "invalid", "Path": "/Users", "data": {}}
+        ),
+        scim_ctx=Context.BULK_REQUEST,
+    )
+
+    (invalid,) = request.operations
+    assert (invalid.method, invalid.bulk_id, invalid.path) == (
+        BulkOperation.Method.post,
+        "invalid",
+        "/Users",
+    )
+
+
+@pytest.mark.parametrize(
+    "envelope",
+    [
+        {"Operations": "not a list"},
+        {"failOnErrors": "not a number", "Operations": []},
+    ],
+)
+def test_an_invalid_envelope_fails_the_whole_request(envelope):
+    """The operations fail one by one, but a request whose envelope is invalid fails whole."""
+    with pytest.raises(ValidationError):
+        BulkRequest[User].model_validate(envelope, scim_ctx=Context.BULK_REQUEST)
+
+
+def test_an_invalid_operation_fails_the_request_outside_a_bulk_request_context():
+    """Only a bulk request received by a service provider reports invalid operations one by one."""
+    with pytest.raises(ValidationError):
+        BulkRequest[User].model_validate(
+            bulk_payload({"method": "POST", "path": "/Users", "data": {"userName": 42}})
+        )
+
+
+def test_the_provider_picks_the_model_from_the_path():
+    """Under a provider, an operation is read as the resource type its endpoint serves."""
+    provider = ScimProvider(models=[User, Group])
+    payload = bulk_payload(
+        {"method": "PATCH", "path": GROUP_PATH, "data": PATCH_DISPLAY_NAME},
+        {"method": "DELETE", "path": GROUP_PATH},
+    )
+
+    with provider:
+        request = BulkRequest[User | Group].model_validate(
+            payload, scim_ctx=Context.BULK_REQUEST
+        )
+
+    patch, delete = request.operations
+    assert isinstance(patch.data, PatchOp[Group])
+    assert isinstance(delete, BulkOperation[Group])
+
+
+def test_a_provider_given_to_the_validation_picks_the_model_from_the_path():
+    """The provider can be given to the validation rather than opened as a block."""
+    request = BulkRequest[User | Group].model_validate(
+        bulk_payload(
+            {"method": "PATCH", "path": GROUP_PATH, "data": PATCH_DISPLAY_NAME}
+        ),
+        scim_ctx=Context.BULK_REQUEST,
+        scim_provider=ScimProvider(models=[User, Group]),
+    )
+
+    (patch,) = request.operations
+    assert isinstance(patch.data, PatchOp[Group])
+
+
+def test_without_provider_the_model_is_picked_from_the_data():
+    """Without a provider, nothing tells which resource type an endpoint serves."""
+    request = BulkRequest[User | Group].model_validate(
+        bulk_payload(
+            {"method": "PATCH", "path": GROUP_PATH, "data": PATCH_DISPLAY_NAME}
+        ),
+        scim_ctx=Context.BULK_REQUEST,
+    )
+
+    (patch,) = request.operations
+    assert isinstance(patch.data, PatchOp[User])
+
+
+def test_an_operation_on_an_unknown_endpoint_fails_alone():
+    """Under a provider, an endpoint no resource type is served at fails the operation with invalidPath."""
+    request = BulkRequest[User].model_validate(
+        bulk_payload(
+            {"method": "DELETE", "path": "/Pets/1"},
+            {"method": "DELETE", "path": "/Users/1"},
+        ),
+        scim_ctx=Context.BULK_REQUEST,
+        scim_provider=ScimProvider(models=[User]),
+    )
+
+    unknown, known = request.operations
+    assert unknown.status == 400
+    assert unknown.response.scim_type == "invalidPath"
+    assert unknown.response.detail == "No resource type is served at /Pets"
+    assert known.status is None
+
+
+def test_an_endpoint_whose_model_the_request_does_not_declare_is_a_programming_error():
+    """The type parameter of the request must cover every resource type the provider serves."""
+    with pytest.raises(TypeError, match="Group"):
+        BulkRequest[User].model_validate(
+            bulk_payload({"method": "DELETE", "path": GROUP_PATH}),
+            scim_ctx=Context.BULK_REQUEST,
+            scim_provider=ScimProvider(models=[User, Group]),
+        )
+
+
+@pytest.mark.parametrize(
+    "path,endpoint,resource_id",
+    [
+        ("/Users", "/Users", None),
+        ("/Users/2819c223", "/Users", "2819c223"),
+        ("Users/2819c223", "/Users", "2819c223"),
+        ("/Users/", "/Users", None),
+        (None, None, None),
+    ],
+)
+def test_the_target_of_an_operation_is_read_from_its_path(path, endpoint, resource_id):
+    """The endpoint and the resource identifier come from the path, a creation having no identifier."""
+    operation = BulkOperation[User](path=path)
+    assert operation.endpoint == endpoint
+    assert operation.resource_id == resource_id
