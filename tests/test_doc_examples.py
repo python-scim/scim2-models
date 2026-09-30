@@ -1212,3 +1212,165 @@ def test_bulk_write_operations_reach_the_store():
 
     assert integrations.get_record(replaced["id"])["user_name"] == "renamed@example.com"
     assert integrations.get_record(patched["id"])["display_name"] == "Babs"
+
+
+INVALID_AND_UNKNOWN_OPERATIONS = [
+    {
+        "method": "POST",
+        "bulkId": "invalid",
+        "path": "/Users",
+        "data": {"schemas": [USER_SCHEMA], "userName": 42},
+    },
+    {"method": "DELETE", "path": "/Pets/1"},
+    {
+        "method": "POST",
+        "bulkId": "valid",
+        "path": "/Users",
+        "data": {"schemas": [USER_SCHEMA], "userName": "bjensen@example.com"},
+    },
+]
+
+
+def test_bulk_reports_an_invalid_operation_and_carries_on():
+    """An operation scim2-models cannot validate fails on its own, and the job goes on."""
+    from doc.integrations._examples import integrations
+
+    integrations.records.clear()
+
+    request = BulkRequest[User].model_validate(
+        {
+            "schemas": [BULK_REQUEST_SCHEMA],
+            "Operations": INVALID_AND_UNKNOWN_OPERATIONS,
+        },
+        scim_ctx=Context.BULK_REQUEST,
+        scim_provider=integrations.provider,
+    )
+
+    invalid, unknown, valid = execute_bulk(request, bulk_location).operations
+
+    assert (invalid.bulk_id, invalid.status) == ("invalid", 400)
+    assert invalid.response.scim_type == "invalidValue"
+    assert unknown.status == 400
+    assert unknown.response.scim_type == "invalidPath"
+    assert (valid.bulk_id, valid.status) == ("valid", 201)
+
+
+def test_bulk_counts_an_invalid_operation_among_the_errors_the_client_accepts():
+    """FailOnErrors counts the operations that could not be validated."""
+    from doc.integrations._examples import integrations
+
+    integrations.records.clear()
+
+    request = BulkRequest[User].model_validate(
+        {
+            "schemas": [BULK_REQUEST_SCHEMA],
+            "failOnErrors": 1,
+            "Operations": INVALID_AND_UNKNOWN_OPERATIONS,
+        },
+        scim_ctx=Context.BULK_REQUEST,
+    )
+
+    response = execute_bulk(request, bulk_location)
+
+    assert [operation.bulk_id for operation in response.operations] == ["invalid"]
+    assert integrations.list_records() == []
+
+
+def test_bulk_locates_an_invalid_operation_on_a_stored_resource():
+    """An invalid operation that is not a creation keeps the location a bulk response requires."""
+    from doc.integrations._examples import integrations
+
+    integrations.records.clear()
+    replaced = stored_user("replaced@example.com")
+
+    request = bulk_request(
+        {
+            "method": "PUT",
+            "path": f"/Users/{replaced['id']}",
+            "data": {"schemas": [USER_SCHEMA], "userName": 42},
+        }
+    )
+
+    (invalid,) = execute_bulk(request, bulk_location).operations
+
+    assert invalid.status == 400
+    assert invalid.location == bulk_location(replaced)
+
+
+def test_flask_reports_each_invalid_bulk_operation():
+    """The Flask bulk endpoint validates under the provider, so an unknown endpoint fails alone."""
+    from doc.integrations._examples import integrations
+
+    integrations.records.clear()
+    client = create_flask_app().test_client()
+
+    response = client.post(
+        "/scim/v2/Bulk",
+        json={
+            "schemas": [BULK_REQUEST_SCHEMA],
+            "Operations": INVALID_AND_UNKNOWN_OPERATIONS,
+        },
+    )
+
+    assert response.status_code == 200
+    assert [operation["status"] for operation in response.get_json()["Operations"]] == [
+        "400",
+        "400",
+        "201",
+    ]
+
+
+def test_django_reports_each_invalid_bulk_operation():
+    """The Django bulk endpoint validates under the provider, so an unknown endpoint fails alone."""
+    configure_django()
+
+    from django.test import Client
+    from django.test import override_settings
+
+    from doc.integrations._examples import integrations
+
+    integrations.records.clear()
+
+    with override_settings(ROOT_URLCONF="doc.integrations._examples.django_example"):
+        response = Client().post(
+            "/scim/v2/Bulk",
+            data=json.dumps(
+                {
+                    "schemas": [BULK_REQUEST_SCHEMA],
+                    "Operations": INVALID_AND_UNKNOWN_OPERATIONS,
+                }
+            ),
+            content_type="application/scim+json",
+        )
+
+    assert response.status_code == 200
+    assert [operation["status"] for operation in response.json()["Operations"]] == [
+        "400",
+        "400",
+        "201",
+    ]
+
+
+def test_fastapi_reports_each_invalid_bulk_operation():
+    """The FastAPI middleware opens the provider, so the annotated bulk request fails an unknown endpoint alone."""
+    from starlette.testclient import TestClient
+
+    from doc.integrations._examples import integrations
+    from doc.integrations._examples.fastapi_example import app
+
+    integrations.records.clear()
+
+    response = TestClient(app).post(
+        "/scim/v2/Bulk",
+        json={
+            "schemas": [BULK_REQUEST_SCHEMA],
+            "Operations": INVALID_AND_UNKNOWN_OPERATIONS,
+        },
+    )
+
+    assert response.status_code == 200
+    assert [operation["status"] for operation in response.json()["Operations"]] == [
+        "400",
+        "400",
+        "201",
+    ]

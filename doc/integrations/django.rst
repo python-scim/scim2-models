@@ -254,8 +254,9 @@ so that the resource converter does not read ``.search`` as an identifier.
 POST /Bulk
 ^^^^^^^^^^
 
-Validate the job with :attr:`~scim2_models.Context.BULK_REQUEST`, apply it with ``execute_bulk``
-and serialize the outcome with :attr:`~scim2_models.Context.BULK_RESPONSE`. The view closes over
+Validate the job with :attr:`~scim2_models.Context.BULK_REQUEST` under the provider, apply it
+with ``execute_bulk`` and serialize the outcome with :attr:`~scim2_models.Context.BULK_RESPONSE`.
+The view closes over
 its request to build each location, and reports a job beyond ``maxOperations`` through the same
 ``scim_exception_error`` helper as the other views. See :ref:`helpers-bulk` for what the executor
 does with each operation.

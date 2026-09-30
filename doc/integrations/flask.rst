@@ -196,8 +196,9 @@ convert to native and persist, then serialize the created resource with
 POST /Bulk
 ^^^^^^^^^^
 
-Validate the job with :attr:`~scim2_models.Context.BULK_REQUEST`, apply it with ``execute_bulk``
-and serialize the outcome with :attr:`~scim2_models.Context.BULK_RESPONSE`. The view hands the
+Validate the job with :attr:`~scim2_models.Context.BULK_REQUEST` under the provider, apply it
+with ``execute_bulk`` and serialize the outcome with :attr:`~scim2_models.Context.BULK_RESPONSE`.
+The view hands the
 executor its own ``resource_location``, the only part of a result a framework has to spell.
 
 A job that exceeds ``maxOperations`` raises :class:`~scim2_models.SCIMException`, which the error

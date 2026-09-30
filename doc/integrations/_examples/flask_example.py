@@ -320,6 +320,7 @@ def bulk():
     bulk_request = BulkRequest[User].model_validate_json(
         request.data,
         scim_ctx=Context.BULK_REQUEST,
+        scim_provider=provider,
     )
     bulk_response = execute_bulk(bulk_request, resource_location)
     return bulk_response.model_dump(scim_ctx=Context.BULK_RESPONSE)

@@ -406,7 +406,7 @@ class BulkView(SCIMView):
     def post(self, request):
         try:
             bulk_request = BulkRequest[User].model_validate_json(
-                request.body, scim_ctx=Context.BULK_REQUEST
+                request.body, scim_ctx=Context.BULK_REQUEST, scim_provider=provider
             )
         except ValidationError as error:
             return scim_validation_error(error)

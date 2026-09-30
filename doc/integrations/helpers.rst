@@ -146,10 +146,18 @@ POST or a PUT therefore hands ``apply_operation`` a :class:`~scim2_models.User`,
 :class:`~scim2_models.PatchOp`, both already validated. The dispatch reuses the storage and
 mapping helpers of the resource endpoints, and validates nothing again.
 
+An operation that cannot be validated does not fail the request. It arrives as its own failed
+result, with a ``status`` and an :class:`~scim2_models.Error` as ``response``, and the other
+operations are validated as usual. Under a :class:`~scim2_models.ScimProvider`, each operation is
+read as the resource type its ``path`` targets, and an unknown endpoint fails with
+``invalidPath``. Without a provider, the model is picked from the ``data``. A request covering
+several resource types should therefore be validated under the provider.
+
 ``execute_bulk`` follows these rules of §3.7:
 
 - A job performs as many changes as possible and disregards partial failures. ``failOnErrors``
-  caps the failures a client accepts, and the operations past that cap stay undone.
+  caps the failures a client accepts, invalid operations included, and the operations past that
+  cap stay undone.
 - Every result carries the location of the resource its operation acted on, except a creation
   that failed. ``run_operation`` resolves the target before it applies the operation, so a failure
   still knows that location.
@@ -163,8 +171,5 @@ mapping helpers of the resource endpoints, and validates nothing again.
    :start-after: # -- bulk-start --
    :end-before: # -- bulk-end --
 
-Some parts of §3.7 stay out of these helpers. Resolving a ``bulkId:`` reference, which lets one
-operation point at a resource another operation of the same job creates, is left to the
-application. And a payload that no model accepts fails the whole request with a ``400``, where
-§3.7.3 reports such an operation with its own ``400`` inside a job that answers ``200``:
-scim2-models validates the request in one pass.
+Resolving a ``bulkId:`` reference, which lets one operation point at a resource another operation
+of the same job creates, stays out of these helpers and is left to the application.
