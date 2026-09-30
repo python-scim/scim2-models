@@ -75,7 +75,7 @@ class ListResponse(
             raise InvalidCursorException().as_pydantic_error()
         return value
 
-    resources: list[AnyResource] | None = Field(None, serialization_alias="Resources")
+    resources: list[AnyResource] | None = Field(None, alias="Resources")
     """A multi-valued list of complex objects containing the requested
     resources."""
 

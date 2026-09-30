@@ -179,7 +179,7 @@ class PatchOp(_ResourceParameterized, Message, Generic[ResourceT]):
     __schema__ = URN("urn:ietf:params:scim:api:messages:2.0:PatchOp")
 
     operations: Annotated[list[PatchOperation[ResourceT]] | None, Required.true] = (
-        Field(None, serialization_alias="Operations")
+        Field(None, alias="Operations")
     )
     """The body of an HTTP PATCH request MUST contain the attribute
     "Operations", whose value is an array of one or more PATCH operations."""

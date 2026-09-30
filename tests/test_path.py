@@ -103,7 +103,7 @@ def test_a_malformed_path_in_a_message_answers_invalid_path():
         )
 
     reported = raised.value.errors()[0]
-    assert reported["loc"] == ("operations", 0, "path")
+    assert reported["loc"] == ("Operations", 0, "path")
     error = Error.from_validation_error(reported)
     assert error.status == 400
     assert error.scim_type == "invalidPath"

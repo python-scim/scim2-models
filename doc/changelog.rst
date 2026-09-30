@@ -21,6 +21,8 @@ Changed
 - :attr:`AttributeBinding.urn <scim2_models.AttributeBinding.urn>` and the error messages
   that quote it spell the attribute as the schema declares it, such as ``userName``, whatever
   case the path used.
+- Validation errors locate the value with an attribute path, such as ``emails[1].value``, and no
+  longer expose internal names of pydantic.
 
 Security
 ^^^^^^^^

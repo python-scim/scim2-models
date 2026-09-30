@@ -44,6 +44,46 @@ def _scim_type_of(error: Mapping[str, Any]) -> str | None:
     return "invalidValue"
 
 
+def _is_urn(part: str | int | None) -> bool:
+    return isinstance(part, str) and part.casefold().startswith("urn:")
+
+
+def _attribute_path(loc: Sequence[str | int]) -> str:
+    """Write the location of a Pydantic error as a SCIM attribute path.
+
+    Sub-attributes follow their attribute after a dot, and the attributes of an
+    extension follow its schema URN after a colon, as in the notation of
+    :rfc:`RFC7644 §3.10 <7644#section-3.10>`. SCIM has no notation for one
+    value of a multi-valued attribute, so its index in the payload is written
+    in brackets, e.g. ``emails[1].value``.
+
+    Pydantic also names the member of a union it tried. A member is a schema
+    of its own, such as ``function-after[...]``, or the schema URN of a
+    resource in a list. No attribute name can hold brackets or parentheses
+    (:rfc:`RFC7643 §2.1 <7643#section-2.1>`), and no extension directly
+    follows an index, so both are left out.
+    """
+    path = ""
+    previous: str | int | None = None
+    for part in loc:
+        if isinstance(part, int):
+            path += f"[{part}]"
+        elif "[" in part or "(" in part:
+            continue
+        elif _is_urn(part) and isinstance(previous, int):
+            # The extensions of the resource may follow its own schema URN.
+            previous = None
+            continue
+        elif not path:
+            path = part
+        elif _is_urn(previous):
+            path += f":{part}"
+        else:
+            path += f".{part}"
+        previous = part
+    return path
+
+
 class Error(Message):
     """Representation of SCIM API errors.
 
@@ -85,8 +125,8 @@ class Error(Message):
                 detail=error["msg"],
             )
 
-        loc = ", ".join(str(loc) for loc in error["loc"])
-        detail = f"{error['msg']}: {loc}" if loc else error["msg"]
+        path = _attribute_path(error["loc"])
+        detail = f"{error['msg']}: {path}" if path else error["msg"]
         return cls(status=400, scim_type=_scim_type_of(error), detail=detail)
 
     @classmethod

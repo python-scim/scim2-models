@@ -226,7 +226,7 @@ class BulkRequest(_ResourceParameterized, Message, Generic[ResourceT]):
     returned."""
 
     operations: Annotated[list[BulkOperation[ResourceT]] | None, Required.true] = Field(
-        None, serialization_alias="Operations"
+        None, alias="Operations"
     )
     """Defines operations within a bulk job."""
 
@@ -243,7 +243,7 @@ class BulkResponse(_ResourceParameterized, Message, Generic[ResourceT]):
     __schema__ = URN("urn:ietf:params:scim:api:messages:2.0:BulkResponse")
 
     operations: Annotated[list[BulkOperation[ResourceT]] | None, Required.true] = Field(
-        None, serialization_alias="Operations"
+        None, alias="Operations"
     )
     """Defines operations within a bulk job."""
 

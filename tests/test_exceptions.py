@@ -6,9 +6,12 @@ from pydantic import HttpUrl
 from pydantic import ValidationError
 from pydantic import field_validator
 
+from scim2_models import BulkResponse
 from scim2_models import Context
+from scim2_models import EnterpriseUser
 from scim2_models import Error
 from scim2_models import ExpiredCursorException
+from scim2_models import Group
 from scim2_models import InvalidCountException
 from scim2_models import InvalidCursorException
 from scim2_models import InvalidFilterException
@@ -16,8 +19,10 @@ from scim2_models import InvalidPathException
 from scim2_models import InvalidSyntaxException
 from scim2_models import InvalidValueException
 from scim2_models import InvalidVersionException
+from scim2_models import ListResponse
 from scim2_models import MutabilityException
 from scim2_models import NoTargetException
+from scim2_models import PatchOp
 from scim2_models import PathNotFoundException
 from scim2_models import SCIMException
 from scim2_models import SensitiveException
@@ -616,3 +621,108 @@ def test_from_error_without_status():
     error = Error(scim_type="uniqueness", detail="Duplicate userName")
     exc = SCIMException.from_error(error)
     assert exc.status == 409
+
+
+ENTERPRISE_USER_SCHEMA = "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"
+USER_SCHEMA = "urn:ietf:params:scim:schemas:core:2.0:User"
+
+
+def first_error_detail(model, payload, scim_ctx):
+    """Return the detail of the first SCIM error a payload raises."""
+    with pytest.raises(ValidationError) as exc_info:
+        model.model_validate(payload, scim_ctx=scim_ctx)
+    return Error.from_validation_errors(exc_info.value)[0].detail
+
+
+@pytest.mark.parametrize(
+    "model,payload,scim_ctx,path",
+    [
+        (
+            User,
+            {"userName": "bjensen", "name": {"givenName": 3}},
+            Context.RESOURCE_CREATION_REQUEST,
+            "name.givenName",
+        ),
+        (
+            User,
+            {
+                "userName": "bjensen",
+                "emails": [{"value": "a@example.com"}, {"value": 3}],
+            },
+            Context.RESOURCE_CREATION_REQUEST,
+            "emails[1].value",
+        ),
+        (
+            User[EnterpriseUser],
+            {"userName": "bjensen", ENTERPRISE_USER_SCHEMA: {"manager": {"value": 3}}},
+            Context.RESOURCE_CREATION_REQUEST,
+            f"{ENTERPRISE_USER_SCHEMA}:manager.value",
+        ),
+        (
+            ListResponse[User | Group],
+            {"Resources": [{"schemas": [USER_SCHEMA], "id": "1", "userName": 3}]},
+            Context.RESOURCE_QUERY_RESPONSE,
+            "Resources[0].userName",
+        ),
+        (
+            ListResponse[User[EnterpriseUser] | Group],
+            {
+                "Resources": [
+                    {
+                        "schemas": [USER_SCHEMA, ENTERPRISE_USER_SCHEMA],
+                        "id": "1",
+                        "userName": "bjensen",
+                        ENTERPRISE_USER_SCHEMA: {"employeeNumber": 3},
+                    }
+                ]
+            },
+            Context.RESOURCE_QUERY_RESPONSE,
+            f"Resources[0].{ENTERPRISE_USER_SCHEMA}:employeeNumber",
+        ),
+        (
+            BulkResponse[User],
+            {
+                "Operations": [
+                    {
+                        "method": "POST",
+                        "status": 201,
+                        "location": "https://example.com/v2/Users/1",
+                        "response": {"schemas": [USER_SCHEMA], "userName": 3},
+                    }
+                ]
+            },
+            Context.BULK_RESPONSE,
+            "Operations[0].response.userName",
+        ),
+    ],
+)
+def test_the_detail_of_an_error_locates_it_with_an_attribute_path(
+    model, payload, scim_ctx, path
+):
+    """Sub-attributes follow a dot, extension attributes their schema URN and a colon, values their index.
+
+    The members of the unions pydantic tried are not part of the payload, and
+    are left out.
+    """
+    assert first_error_detail(model, payload, scim_ctx) == (
+        f"Input should be a valid string: {path}"
+    )
+
+
+def test_the_detail_of_an_error_at_the_root_of_a_payload_carries_no_path():
+    """An error on the payload itself has no attribute to point at."""
+    with pytest.raises(ValidationError) as exc_info:
+        User.model_validate("not an object", scim_ctx=Context.RESOURCE_CREATION_REQUEST)
+    error = Error.from_validation_errors(exc_info.value)[0]
+    assert error.detail == "Input should be a valid dictionary or instance of User"
+
+
+@pytest.mark.parametrize("key", ["Operations", "operations", "OPERATIONS"])
+def test_message_attributes_keep_their_case_insensitive_names(key):
+    """The Operations of a message are named as RFC 7644 spells them, and read whatever their case."""
+    patch = PatchOp[User].model_validate(
+        {key: [{"op": "replace", "path": "nickName", "value": "Babs"}]},
+        scim_ctx=Context.RESOURCE_PATCH_REQUEST,
+    )
+    assert patch.operations[0].value == "Babs"
+    assert "Operations" in patch.model_dump(scim_ctx=Context.RESOURCE_PATCH_REQUEST)
