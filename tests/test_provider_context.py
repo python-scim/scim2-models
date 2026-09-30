@@ -1,5 +1,6 @@
 """The provider and the service provider configuration a pass runs under."""
 
+import contextvars
 from typing import Any
 
 import pytest
@@ -12,8 +13,11 @@ from pydantic import model_validator
 from scim2_models import URN
 from scim2_models import ComplexAttribute
 from scim2_models import Resource
+from scim2_models import ScimPolicy
 from scim2_models import ScimProvider
 from scim2_models import ServiceProviderConfig
+from scim2_models.policy import _ambient_policy
+from scim2_models.provider import _ambient_provider
 from scim2_models.provider import _provider
 from scim2_models.provider import _spc
 
@@ -211,3 +215,33 @@ def test_an_ambient_provider_reaches_a_revalidated_assignment(provider):
         resource.probe = {"label": "b"}
 
     assert VALIDATION_PROVIDERS == [provider]
+
+
+def test_a_provider_entered_twice_stays_ambient_until_its_outer_block_exits():
+    """Nesting one provider in itself restores it and its policy, then nothing, as the blocks exit."""
+    policy = ScimPolicy(unknown=ScimPolicy.Unknown.ignore)
+    provider = ScimProvider(policy=policy)
+
+    with provider:
+        with provider:
+            assert _ambient_provider() is provider
+        assert _ambient_provider() is provider
+        assert _ambient_policy() is policy
+    assert _ambient_provider() is None
+    assert _ambient_policy() is None
+
+
+def test_a_provider_exiting_where_it_did_not_enter_keeps_the_other_blocks():
+    """A block closed in a context it did not enter raises, and leaves that context's own provider."""
+    entered = ScimProvider()
+    other = ScimProvider()
+
+    def exit_entered_under_other() -> ScimProvider | None:
+        with other:
+            with pytest.raises(RuntimeError, match="did not enter"):
+                entered.__exit__(None, None, None)
+            return _ambient_provider()
+
+    with entered:
+        assert contextvars.Context().run(exit_entered_under_other) is other
+        assert _ambient_provider() is entered

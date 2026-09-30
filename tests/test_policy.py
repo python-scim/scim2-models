@@ -1,6 +1,7 @@
 """The policy that says how a peer's deviations from the specification are treated."""
 
 import asyncio
+import contextvars
 import threading
 from typing import Annotated
 from typing import Any
@@ -33,6 +34,7 @@ from scim2_models import Resource
 from scim2_models import ScimPolicy
 from scim2_models import ScimProvider
 from scim2_models import User
+from scim2_models.policy import _ambient_policy
 from scim2_models.policy import _policy
 
 IGNORE = ScimPolicy(unknown=ScimPolicy.Unknown.ignore)
@@ -291,6 +293,43 @@ def test_two_asyncio_tasks_do_not_share_an_ambient_policy():
         return list(await asyncio.gather(record(IGNORE), record(ScimPolicy())))
 
     assert asyncio.run(both()) == [IGNORE, ScimPolicy()]
+
+
+def test_a_policy_entered_twice_stays_ambient_until_its_outer_block_exits():
+    """Nesting one policy in itself restores it, then nothing, as the blocks exit."""
+    with IGNORE:
+        with IGNORE:
+            assert _ambient_policy() is IGNORE
+        assert _ambient_policy() is IGNORE
+    assert _ambient_policy() is None
+
+
+def test_a_policy_exiting_in_a_copied_context_raises():
+    """A copy of the context cannot close the block the original opened."""
+    IGNORE.__enter__()
+    try:
+        copied = contextvars.copy_context()
+        with pytest.raises(ValueError, match="different Context"):
+            copied.run(IGNORE.__exit__, None, None, None)
+        assert _ambient_policy() is IGNORE
+    finally:
+        IGNORE.__exit__(None, None, None)
+    assert _ambient_policy() is None
+
+
+def test_a_policy_exiting_where_it_did_not_enter_keeps_the_other_blocks():
+    """A block closed in a context it did not enter raises, and leaves that context's own block open."""
+    strict = ScimPolicy()
+
+    def exit_ignore_under_strict() -> ScimPolicy | None:
+        with strict:
+            with pytest.raises(RuntimeError, match="did not enter"):
+                IGNORE.__exit__(None, None, None)
+            return _ambient_policy()
+
+    with IGNORE:
+        assert contextvars.Context().run(exit_ignore_under_strict) is strict
+        assert _ambient_policy() is IGNORE
 
 
 # Unknown attributes, dropped

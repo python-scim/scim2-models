@@ -33,6 +33,12 @@ Changed
 - Validation errors locate the value with an attribute path, such as ``emails[1].value``, and no
   longer expose internal names of pydantic.
 
+Fixed
+^^^^^
+- A :class:`~scim2_models.ScimProvider` or :class:`~scim2_models.ScimPolicy` block that exits in
+  a context where it did not enter, such as another thread or another asyncio task, raises an
+  error. It used to remove the provider or the policy of another block.
+
 Security
 ^^^^^^^^
 - The ``password`` of a :class:`~scim2_models.User` is case-exact, so ``password eq "SECRET"``

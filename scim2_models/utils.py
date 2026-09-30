@@ -1,8 +1,12 @@
 import re
+from contextvars import ContextVar
+from contextvars import Token
 from inspect import isclass
 from types import UnionType
 from typing import TYPE_CHECKING
 from typing import Any
+from typing import Generic
+from typing import TypeVar
 from typing import Union
 from typing import cast
 from typing import get_args
@@ -14,6 +18,52 @@ if TYPE_CHECKING:
     from .base import BaseModel
 
 UNION_TYPES = [Union, UnionType]
+
+T = TypeVar("T")
+
+
+class _AmbientStack(Generic[T]):
+    """The values of the blocks a call runs inside, the innermost one being current.
+
+    Each entry keeps the token of the value it set, and a block that exits
+    resets the token of its own latest entry. A block that exits in a context
+    where it did not enter raises instead of removing the entry of another
+    block. Instances are meant to live at module level, like the context
+    variables they hold.
+    """
+
+    def __init__(self, name: str) -> None:
+        self._current: ContextVar[T | None] = ContextVar(name, default=None)
+        self._entries: ContextVar[tuple[tuple[T, Token[T | None]], ...]] = ContextVar(
+            f"{name}_entries", default=()
+        )
+
+    def get(self) -> T | None:
+        """Return the value of the innermost open block, if any."""
+        return self._current.get()
+
+    def enter(self, value: T) -> None:
+        """Make a value current until the block it opens exits."""
+        token = self._current.set(value)
+        self._entries.set((*self._entries.get(), (value, token)))
+
+    def exit(self, value: T) -> None:
+        """Restore the value that was current when the latest block of a value entered.
+
+        Raise RuntimeError when the value entered no block in this context, and
+        ValueError when it entered in another context.
+        """
+        entries = self._entries.get()
+        index = next(
+            (i for i in reversed(range(len(entries))) if entries[i][0] is value),
+            None,
+        )
+        if index is None:
+            raise RuntimeError(
+                f"This {type(value).__name__} exits a block it did not enter in this context"
+            )
+        self._current.reset(entries[index][1])
+        self._entries.set(entries[:index] + entries[index + 1 :])
 
 
 def _model_union(annotation: Any) -> "tuple[type[BaseModel], ...] | None":

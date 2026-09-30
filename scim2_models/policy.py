@@ -1,6 +1,5 @@
 """How a peer's deviations from the specification are treated."""
 
-from contextvars import ContextVar
 from enum import StrEnum
 from types import TracebackType
 
@@ -9,10 +8,10 @@ from pydantic import ConfigDict
 from pydantic import SerializationInfo
 from pydantic import ValidationInfo
 
-_AMBIENT_POLICIES: ContextVar[tuple["ScimPolicy", ...]] = ContextVar(
-    "scim2_models_policies", default=()
-)
-"""The policies of the blocks a call is running inside, innermost last."""
+from .utils import _AmbientStack
+
+_AMBIENT_POLICIES: _AmbientStack["ScimPolicy"] = _AmbientStack("scim2_models_policies")
+"""The policies of the blocks a call is running inside."""
 
 
 class ScimPolicy(BaseModel):
@@ -129,7 +128,7 @@ class ScimPolicy(BaseModel):
 
     def __enter__(self) -> "ScimPolicy":
         """Make this policy the one every call in the block runs under."""
-        _AMBIENT_POLICIES.set(_AMBIENT_POLICIES.get() + (self,))
+        _AMBIENT_POLICIES.enter(self)
         return self
 
     def __exit__(
@@ -139,7 +138,7 @@ class ScimPolicy(BaseModel):
         traceback: TracebackType | None,
     ) -> None:
         """Restore the policy the block interrupted."""
-        _AMBIENT_POLICIES.set(_AMBIENT_POLICIES.get()[:-1])
+        _AMBIENT_POLICIES.exit(self)
 
 
 _DEFAULT_POLICY = ScimPolicy()
@@ -147,8 +146,7 @@ _DEFAULT_POLICY = ScimPolicy()
 
 def _ambient_policy() -> ScimPolicy | None:
     """Return the policy of the innermost open block, if any."""
-    policies = _AMBIENT_POLICIES.get()
-    return policies[-1] if policies else None
+    return _AMBIENT_POLICIES.get()
 
 
 def _effective_policy(explicit: ScimPolicy | None = None) -> ScimPolicy:

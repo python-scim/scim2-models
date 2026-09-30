@@ -2,7 +2,6 @@
 
 import operator
 from collections.abc import Iterable
-from contextvars import ContextVar
 from functools import cached_property
 from functools import reduce
 from types import TracebackType
@@ -22,6 +21,7 @@ from .resources.resource_type import ResourceType
 from .resources.schema import Schema
 from .resources.service_provider_config import ServiceProviderConfig
 from .scim_object import ScimObject
+from .utils import _AmbientStack
 
 DescribedModel = type[Resource[Any]] | type[Extension]
 """A model a schema describes: a resource, or an extension of one."""
@@ -64,10 +64,10 @@ _DISCOVERY_BY_ENDPOINT = {
 }
 
 
-_AMBIENT_PROVIDERS: ContextVar[tuple["ScimProvider", ...]] = ContextVar(
-    "scim2_models_providers", default=()
+_AMBIENT_PROVIDERS: _AmbientStack["ScimProvider"] = _AmbientStack(
+    "scim2_models_providers"
 )
-"""The providers of the blocks a call is running inside, innermost last."""
+"""The providers of the blocks a call is running inside."""
 
 
 class ScimProviderError(ValueError):
@@ -235,7 +235,7 @@ class ScimProvider:
 
     def __enter__(self) -> "ScimProvider":
         """Make this provider, its configuration and its policy the ones the block runs under."""
-        _AMBIENT_PROVIDERS.set(_AMBIENT_PROVIDERS.get() + (self,))
+        _AMBIENT_PROVIDERS.enter(self)
         self._policy.__enter__()
         return self
 
@@ -247,7 +247,7 @@ class ScimProvider:
     ) -> None:
         """Restore the provider and the policy the block interrupted."""
         self._policy.__exit__(exc_type, exc_value, traceback)
-        _AMBIENT_PROVIDERS.set(_AMBIENT_PROVIDERS.get()[:-1])
+        _AMBIENT_PROVIDERS.exit(self)
 
     @cached_property
     def schemas(self) -> tuple[Schema, ...]:
@@ -374,8 +374,7 @@ def _discovered_model(
 
 def _ambient_provider() -> "ScimProvider | None":
     """Return the provider of the innermost open block, if any."""
-    providers = _AMBIENT_PROVIDERS.get()
-    return providers[-1] if providers else None
+    return _AMBIENT_PROVIDERS.get()
 
 
 def _provider(info: ValidationInfo | SerializationInfo) -> "ScimProvider | None":
