@@ -9,6 +9,9 @@ Fixed
 - :class:`~scim2_models.ListResponse` reads the pagination capabilities of the
   :class:`~scim2_models.ScimProvider`, including a provider opened around the validation.
   The last page of a server that only supports cursor pagination no longer needs ``totalResults``.
+- The policy of a :class:`~scim2_models.ScimProvider` passed as ``scim_provider`` applies to
+  the validation and the serialization. It wins over the policy of an open block.
+  ``scim_policy`` still wins over both.
 
 [0.10.0] - 2026-09-30
 ---------------------

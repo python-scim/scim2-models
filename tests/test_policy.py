@@ -227,6 +227,58 @@ def test_a_provider_lends_its_policy_to_the_block_it_opens():
     assert VALIDATION_POLICIES == [IGNORE]
 
 
+def test_a_provider_passed_at_the_call_lends_its_policy_to_a_validation():
+    """The policy of a provider passed at the call applies without a block."""
+    provider = ScimProvider(models=[Probed], policy=IGNORE)
+
+    Probed.model_validate(PAYLOAD, scim_provider=provider)
+
+    assert VALIDATION_POLICIES == [IGNORE]
+
+
+def test_a_provider_passed_at_the_call_lends_its_policy_to_a_serialization():
+    """A dump reads the policy of the provider the way a validation does."""
+    provider = ScimProvider(models=[Probed], policy=IGNORE)
+    resource = Probed.model_validate(PAYLOAD)
+
+    resource.model_dump(scim_provider=provider)
+
+    assert SERIALIZATION_POLICIES == [IGNORE]
+
+
+def test_a_policy_passed_at_the_call_wins_over_the_one_of_the_provider():
+    """One provider can read a single payload under another policy."""
+    provider = ScimProvider(models=[Probed], policy=IGNORE)
+
+    Probed.model_validate(PAYLOAD, scim_provider=provider, scim_policy=ScimPolicy())
+
+    assert VALIDATION_POLICIES == [ScimPolicy()]
+
+
+def test_a_provider_passed_at_the_call_wins_over_the_ambient_policy():
+    """The call names what it wants, and the block only says what is otherwise meant."""
+    provider = ScimProvider(models=[Probed], policy=IGNORE)
+
+    with ScimPolicy():
+        Probed.model_validate(PAYLOAD, scim_provider=provider)
+
+    assert VALIDATION_POLICIES == [IGNORE]
+
+
+def test_a_provider_passed_at_the_call_tolerates_an_unknown_attribute():
+    """An unknown attribute is ignored when the provider passed at the call tolerates it."""
+    provider = ScimProvider(models=[User], policy=IGNORE)
+    payload = {
+        "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+        "userName": "bjensen",
+        "foo": "bar",
+    }
+
+    user = User.model_validate(payload, scim_provider=provider)
+
+    assert user.user_name == "bjensen"
+
+
 def test_a_provider_given_no_policy_declares_the_strict_reading():
     """Unlike its config, a provider always has a policy: one always applies."""
     assert ScimProvider().policy == ScimPolicy()

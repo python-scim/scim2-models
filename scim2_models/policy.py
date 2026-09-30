@@ -157,9 +157,18 @@ def _effective_policy(explicit: ScimPolicy | None = None) -> ScimPolicy:
 def _policy(info: ValidationInfo | SerializationInfo) -> ScimPolicy:
     """Return the policy a validation or a serialization runs under.
 
+    A policy passed at the call wins over the one of the provider passed at
+    the call, which wins over the ambient policy.
+
     Passes that no call of ours started carry no context — an assignment
     revalidated under ``validate_assignment``, a round trip made by the PATCH
     machinery — and fall back on the ambient policy.
     """
     context = getattr(info, "context", None) or {}
-    return context.get("scim_policy") or _ambient_policy() or _DEFAULT_POLICY
+    provider = context.get("scim_provider")
+    return (
+        context.get("scim_policy")
+        or (provider.policy if provider else None)
+        or _ambient_policy()
+        or _DEFAULT_POLICY
+    )

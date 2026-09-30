@@ -959,7 +959,9 @@ class BaseModel(PydanticBaseModel):
 
         :param scim_ctx: The SCIM :class:`~scim2_models.Context` in which the validation happens.
         :param scim_policy: The :class:`~scim2_models.ScimPolicy` the validation
-            runs under. Defaults to the strict reading of the specification.
+            runs under. Defaults to the policy of *scim_provider*, then to the
+            policy of the innermost open block, then to the strict reading of
+            the specification.
         :param scim_provider: The :class:`~scim2_models.ScimProvider` describing
             the service the payload belongs to. Defaults to the provider of the
             innermost open block, if any.
@@ -993,7 +995,9 @@ class BaseModel(PydanticBaseModel):
 
         :param scim_ctx: The SCIM :class:`~scim2_models.Context` in which the validation happens.
         :param scim_policy: The :class:`~scim2_models.ScimPolicy` the validation
-            runs under. Defaults to the strict reading of the specification.
+            runs under. Defaults to the policy of *scim_provider*, then to the
+            policy of the innermost open block, then to the strict reading of
+            the specification.
         :param scim_provider: The :class:`~scim2_models.ScimProvider` describing
             the service the payload belongs to. Defaults to the provider of the
             innermost open block, if any.
@@ -1111,8 +1115,9 @@ class BaseModel(PydanticBaseModel):
                 Pass a :class:`~scim2_models.ResponseParameters` as
                 *response_parameters* instead. Will be removed in 0.9.0.
         :param scim_policy: The :class:`~scim2_models.ScimPolicy` the
-            serialization runs under. Defaults to the strict reading of the
-            specification.
+            serialization runs under. Defaults to the policy of *scim_provider*,
+            then to the policy of the innermost open block, then to the strict
+            reading of the specification.
         :param scim_provider: The :class:`~scim2_models.ScimProvider` describing
             the service the payload belongs to. Defaults to the provider of the
             innermost open block, if any.
@@ -1172,8 +1177,9 @@ class BaseModel(PydanticBaseModel):
                 Pass a :class:`~scim2_models.ResponseParameters` as
                 *response_parameters* instead. Will be removed in 0.9.0.
         :param scim_policy: The :class:`~scim2_models.ScimPolicy` the
-            serialization runs under. Defaults to the strict reading of the
-            specification.
+            serialization runs under. Defaults to the policy of *scim_provider*,
+            then to the policy of the innermost open block, then to the strict
+            reading of the specification.
         :param scim_provider: The :class:`~scim2_models.ScimProvider` describing
             the service the payload belongs to. Defaults to the provider of the
             innermost open block, if any.
