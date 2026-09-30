@@ -29,6 +29,7 @@ from ..utils import _int_to_str
 from .error import Error
 from .message import Message
 from .message import _ResourceParameterized
+from .message import _type_parameter
 from .patch_op import PatchOp
 
 ResourceT = TypeVar("ResourceT", bound=Resource[Any])
@@ -98,9 +99,13 @@ class BulkOperation(_ResourceParameterized, ComplexAttribute, Generic[ResourceT]
         envelope carrying it. The envelope keeps BULK_REQUEST, and a flag
         carries what stays specific to a bulk job, such as a reference to a
         resource another operation is still creating.
+
+        The method also sets the type of the payload: a PATCH carries a
+        PatchOp, and a POST or a PUT carries a resource. The data union is not
+        tried, so a resource cannot pass as the payload of a PATCH.
         """
         context = info.context
-        if not context or context.get("scim") != Context.BULK_REQUEST:
+        if value is None or not context or context.get("scim") != Context.BULK_REQUEST:
             return handler(value)
 
         method = info.data.get("method")
@@ -108,10 +113,12 @@ class BulkOperation(_ResourceParameterized, ComplexAttribute, Generic[ResourceT]
         if derived is None:
             return handler(value)
 
+        resource_type: Any = _type_parameter(cls)
+        model = PatchOp[resource_type] if method == cls.Method.patch else resource_type
         context["scim"] = derived
         context["scim_bulk"] = True
         try:
-            return handler(value)
+            return model.model_validate(value, context=context)
         finally:
             context["scim"] = Context.BULK_REQUEST
             del context["scim_bulk"]

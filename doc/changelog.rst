@@ -42,6 +42,11 @@ Security
 - Under :attr:`RemoveValue.apply <scim2_models.ScimPolicy.RemoveValue.apply>`, a PATCH
   ``remove`` whose ``value`` has a key that is not an attribute name, such as
   ``"value pr or value"``, is refused with ``invalidValue``.
+- In a :class:`~scim2_models.BulkRequest`, the ``data`` of a ``PATCH`` operation must be a
+  :class:`~scim2_models.PatchOp`, and the ``data`` of a ``POST`` or a ``PUT`` must be a resource.
+  A full resource sent as the ``data`` of a ``PATCH`` used to be accepted with its read-only
+  attributes, such as ``id`` and ``groups``. An invalid ``data`` only reports the errors of the
+  type the method expects.
 
 [0.9.0] - 2026-09-27
 --------------------

@@ -125,7 +125,13 @@ def test_data_required_for_post_put_patch_request_bulk_operations():
             "method": BulkOperation.Method.patch,
             "bulkId": "qwerty",
             "path": "/Users/2819c223-7f76-453a-919d-413861904646",
-            "data": User(user_name="John Doe"),
+            "data": PatchOp[User](
+                operations=[
+                    PatchOperation[User](
+                        op=PatchOperation.Op.add, path="nickName", value="Babs"
+                    )
+                ]
+            ),
         },
         context={"scim": Context.BULK_REQUEST},
     )
@@ -138,7 +144,7 @@ def test_data_required_for_post_put_patch_request_bulk_operations():
         },
         context={"scim": Context.BULK_REQUEST},
     )
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError, match="data is required"):
         BulkOperation[User].model_validate(
             {
                 "method": BulkOperation.Method.post,
@@ -148,7 +154,7 @@ def test_data_required_for_post_put_patch_request_bulk_operations():
             },
             context={"scim": Context.BULK_REQUEST},
         )
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError, match="data is required"):
         BulkOperation[User].model_validate(
             {
                 "method": BulkOperation.Method.patch,
@@ -443,6 +449,75 @@ def test_post_operation_data_answers_to_the_creation_request_rules():
     assert operation.data.user_name == "bjensen"
 
 
+def test_patch_operation_data_must_be_a_patch():
+    """A PATCH carries a PatchOp, so a full resource cannot slip read-only attributes through."""
+    with pytest.raises(ValidationError) as exc_info:
+        BulkOperation[User].model_validate(
+            {
+                "method": BulkOperation.Method.patch,
+                "path": "/Users/2819c223-7f76-453a-919d-413861904646",
+                "data": {
+                    "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+                    "id": "evil",
+                    "userName": "bjensen",
+                    "groups": [{"value": "admins"}],
+                },
+            },
+            scim_ctx=Context.BULK_REQUEST,
+        )
+    assert {error["loc"] for error in exc_info.value.errors()} == {
+        ("data", "id"),
+        ("data", "userName"),
+        ("data", "groups"),
+    }
+
+
+@pytest.mark.parametrize(
+    "method,path",
+    [
+        (BulkOperation.Method.post, "/Users"),
+        (BulkOperation.Method.put, "/Users/2819c223-7f76-453a-919d-413861904646"),
+    ],
+)
+def test_post_and_put_operation_data_must_be_a_resource(method, path):
+    """A POST or a PUT carries a resource, not a PatchOp."""
+    with pytest.raises(ValidationError) as exc_info:
+        BulkOperation[User].model_validate(
+            {
+                "method": method,
+                "bulkId": "qwerty",
+                "path": path,
+                "data": {
+                    "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+                    "Operations": [{"op": "add", "path": "userName", "value": "x"}],
+                },
+            },
+            scim_ctx=Context.BULK_REQUEST,
+        )
+    assert [error["loc"] for error in exc_info.value.errors()] == [
+        ("data", "Operations")
+    ]
+
+
+def test_operation_data_errors_come_from_the_payload_of_the_method():
+    """An invalid PATCH data reports the errors of the patch alone."""
+    with pytest.raises(ValidationError) as exc_info:
+        BulkOperation[User].model_validate(
+            {
+                "method": BulkOperation.Method.patch,
+                "path": "/Users/2819c223-7f76-453a-919d-413861904646",
+                "data": {
+                    "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+                    "Operations": [{"op": "frobnicate", "path": "userName"}],
+                },
+            },
+            scim_ctx=Context.BULK_REQUEST,
+        )
+    assert [error["loc"] for error in exc_info.value.errors()] == [
+        ("data", "Operations", 0, "op")
+    ]
+
+
 def test_operation_data_keeps_the_bulk_context_when_no_single_request_matches():
     """Neither a DELETE nor an unreadable method names a single request to borrow the rules from."""
     operation = BulkOperation[User].model_validate(
@@ -530,3 +605,21 @@ def test_bulk_rules_do_not_apply_outside_a_bulk_context():
         scim_ctx=Context.SEARCH_REQUEST,
     )
     assert operation.path is None
+
+
+def test_a_subclass_of_a_parameterized_operation_reads_its_data():
+    """A class deriving from BulkOperation[User] validates its data as a User."""
+
+    class UserOperation(BulkOperation[User]):
+        pass
+
+    operation = UserOperation.model_validate(
+        {
+            "method": BulkOperation.Method.post,
+            "bulkId": "qwerty",
+            "path": "/Users",
+            "data": {"userName": "bjensen"},
+        },
+        scim_ctx=Context.BULK_REQUEST,
+    )
+    assert operation.data.user_name == "bjensen"
