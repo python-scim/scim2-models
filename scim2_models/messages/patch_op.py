@@ -10,6 +10,7 @@ from typing import Annotated
 from typing import Any
 from typing import Generic
 from typing import Self
+from typing import TypeGuard
 from typing import TypeVar
 from typing import cast
 from typing import get_origin
@@ -33,6 +34,7 @@ from ..exceptions import InvalidValueException
 from ..exceptions import MutabilityException
 from ..exceptions import NoTargetException
 from ..exceptions import SCIMException
+from ..path import AttributeBinding
 from ..path import AttrPath
 from ..path import CompareOperator
 from ..path import Comparison
@@ -99,6 +101,27 @@ class PatchOperation(ComplexAttribute, Generic[ResourceT]):
                 detail=f"value is required for {self.op.value} operations"
             ).as_pydantic_error()
         return self
+
+    def __repr_args__(self) -> Iterator[tuple[str | None, Any]]:
+        """Leave out a value that holds a write-only or never-returned attribute, such as a password."""
+        hidden = _holds_hidden(self._target(), self.value)
+        for name, value in super().__repr_args__():
+            if name == "value" and hidden:
+                continue
+            yield name, value
+
+    def _target(self) -> Path[Any] | None:
+        """Return the path the value is written at, the resource root when there is no path.
+
+        An operation that is not parameterized with a resource type has no root.
+        """
+        if self.path is not None:
+            return self.path
+        args = type(self).__pydantic_generic_metadata__["args"]
+        if not args:
+            return None
+        resource_type: Any = args[0]
+        return Path[resource_type]("")
 
     @model_serializer(mode="wrap")
     def _scim_serializer(
@@ -315,7 +338,49 @@ def _in_patch_request(info: ValidationInfo) -> bool:
     return (info.context or {}).get("scim") == Context.RESOURCE_PATCH_REQUEST
 
 
-def _is_model(type_: Any) -> bool:
+def _holds_hidden(path: Path[Any] | None, value: Any) -> bool:
+    """Whether a value written at a path holds a write-only or never-returned attribute."""
+    if path is None:
+        return False
+    binding = path.resolve()
+    if binding is not None and _is_hidden_binding(binding):
+        return True
+    if isinstance(value, list):
+        return any(_holds_hidden(path, item) for item in value)
+    if not isinstance(value, dict):
+        return False
+    return any(
+        _holds_hidden(_child_path(path, key), item) for key, item in value.items()
+    )
+
+
+def _is_hidden_binding(binding: AttributeBinding) -> bool:
+    """Whether a bound attribute, or its sub-attribute, is write-only or never returned."""
+    if binding.model._is_hidden(binding.field_name):
+        return True
+    field_type = binding.field_type
+    return (
+        binding.sub_field_name is not None
+        and _is_model(field_type)
+        and field_type._is_hidden(binding.sub_field_name)
+    )
+
+
+def _child_path(path: Path[Any], key: Any) -> Path[Any] | None:
+    """Return the path of a key of a value written at a path, or None if the key is not an attribute."""
+    if not isinstance(key, str):
+        return None
+    if path.model is None:
+        text = f"{path}.{key}"
+    else:
+        text = f"{path}:{key}" if path else key
+    try:
+        return type(path)(text)
+    except InvalidPathException:
+        return None
+
+
+def _is_model(type_: Any) -> TypeGuard[type[BaseModel]]:
     """Whether a type is a model, whose values hold attributes."""
     return isclass(type_) and issubclass(type_, BaseModel)
 

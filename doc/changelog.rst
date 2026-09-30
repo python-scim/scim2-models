@@ -46,7 +46,9 @@ Security
   name, and each spelling of a known one such as ``USERNAME``, used to stay in memory for the
   life of the process. Filters and paths longer than 1024 characters are no longer cached.
 - Write-only and never-returned attributes, such as ``password``, no longer appear in the
-  ``repr`` of a model. Validation error messages no longer include the input values, which
+  ``repr`` of a model. A :class:`~scim2_models.PatchOperation` bound to a resource type, as in a
+  ``PatchOp[User]``, leaves out a ``value`` that writes one of them. Validation error messages no
+  longer include the input values, which
   :meth:`ValidationError.errors() <pydantic_core.ValidationError.errors>` still returns.
 - Under :attr:`RemoveValue.apply <scim2_models.ScimPolicy.RemoveValue.apply>`, a PATCH
   ``remove`` whose ``value`` has a key that is not an attribute name, such as

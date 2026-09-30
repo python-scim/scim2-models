@@ -287,12 +287,16 @@ class BaseModel(PydanticBaseModel):
         """Leave out the write-only and never-returned attributes, such as a password."""
         cls = type(self)
         for name, value in super().__repr_args__():
-            if name in cls.model_fields and (
-                cls.get_field_annotation(name, Mutability) == Mutability.write_only
-                or cls.get_field_annotation(name, Returned) == Returned.never
-            ):
+            if name in cls.model_fields and cls._is_hidden(name):
                 continue
             yield name, value
+
+    @classmethod
+    def _is_hidden(cls, field_name: str) -> bool:
+        """Whether a field is write-only or never returned, such as a password."""
+        mutability: Mutability = cls.get_field_annotation(field_name, Mutability)
+        returned: Returned = cls.get_field_annotation(field_name, Returned)
+        return mutability == Mutability.write_only or returned == Returned.never
 
     @classmethod
     def get_field_annotation(cls, field_name: str, annotation_type: type) -> Any:
