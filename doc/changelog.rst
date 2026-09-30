@@ -4,6 +4,13 @@ Changelog
 [Unreleased]
 ------------
 
+Removed
+^^^^^^^
+- The ``attributes`` and ``excluded_attributes`` parameters of
+  :meth:`~scim2_models.BaseModel.model_dump` and
+  :meth:`~scim2_models.BaseModel.model_dump_json`, deprecated in 0.8.0. Pass a
+  :class:`~scim2_models.ResponseParameters` as ``response_parameters`` instead. :issue:`141`
+
 Fixed
 ^^^^^
 - :class:`~scim2_models.ListResponse` reads the pagination capabilities of the

@@ -715,30 +715,3 @@ def test_response_parameters_reach_the_json_dump():
     )
     assert "displayName" not in dumped
     assert '"userName":"bjensen"' in dumped
-
-
-@pytest.mark.parametrize("method", ["model_dump", "model_dump_json"])
-@pytest.mark.parametrize("keyword", ["attributes", "excluded_attributes"])
-def test_the_two_spellings_of_the_selection_cannot_be_mixed(method, keyword):
-    """Naming both a ResponseParameters and a bare list leaves the selection ambiguous."""
-    user = User(id="id", user_name="bjensen")
-    with pytest.raises(TypeError, match="Cannot pass both"):
-        getattr(user, method)(
-            scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
-            response_parameters=ResponseParameters(attributes=["userName"]),
-            **{keyword: ["displayName"]},
-        )
-
-
-@pytest.mark.parametrize("method", ["model_dump", "model_dump_json"])
-@pytest.mark.parametrize(
-    ("keyword", "carried"), [("attributes", True), ("excluded_attributes", False)]
-)
-def test_the_bare_selection_keywords_are_deprecated(method, keyword, carried):
-    """The two keywords still select, and announce their replacement."""
-    user = User(id="id", user_name="bjensen", display_name="Babs")
-    with pytest.warns(DeprecationWarning, match="response_parameters"):
-        dumped = getattr(user, method)(
-            scim_ctx=Context.RESOURCE_QUERY_RESPONSE, **{keyword: ["userName"]}
-        )
-    assert ("bjensen" in str(dumped)) is carried

@@ -144,8 +144,8 @@ Parse the query parameters with :class:`~scim2_models.SearchRequest`\
 [:class:`~scim2_models.User`], keep the resources the filter accepts as described in
 :ref:`helpers-filtering`, order and page them as described in :ref:`helpers-sorting`, then wrap
 the page in a :class:`~scim2_models.ListResponse` serialized with
-:attr:`~scim2_models.Context.RESOURCE_QUERY_RESPONSE`. Pass ``req.attributes`` and
-``req.excluded_attributes`` to :meth:`~scim2_models.BaseModel.model_dump_json` so that the
+:attr:`~scim2_models.Context.RESOURCE_QUERY_RESPONSE`. Pass ``req`` as
+``response_parameters`` to :meth:`~scim2_models.BaseModel.model_dump_json` so that the
 ``attributes`` and ``excludedAttributes`` query parameters are applied to each embedded resource.
 
 .. literalinclude:: _examples/fastapi_example.py

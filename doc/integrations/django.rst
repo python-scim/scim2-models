@@ -182,8 +182,8 @@ Parse the query parameters with :class:`~scim2_models.SearchRequest`\
 [:class:`~scim2_models.User`], keep the resources the filter accepts as described in
 :ref:`helpers-filtering`, order and page them as described in :ref:`helpers-sorting`, then wrap
 the page in a :class:`~scim2_models.ListResponse` serialized with
-:attr:`~scim2_models.Context.RESOURCE_QUERY_RESPONSE`. ``req.attributes`` and
-``req.excluded_attributes`` are passed to :meth:`~scim2_models.BaseModel.model_dump` to apply the
+:attr:`~scim2_models.Context.RESOURCE_QUERY_RESPONSE`. ``req`` is passed as
+``response_parameters`` to :meth:`~scim2_models.BaseModel.model_dump` to apply the
 ``attributes`` and ``excludedAttributes`` query parameters to each embedded resource.
 
 .. literalinclude:: _examples/django_example.py
