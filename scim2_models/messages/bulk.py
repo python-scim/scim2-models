@@ -20,6 +20,7 @@ from pydantic import field_validator
 from pydantic import model_validator
 from pydantic_core import PydanticCustomError
 
+from ..annotations import Mutability
 from ..annotations import Required
 from ..annotations import Returned
 from ..attributes import ComplexAttribute
@@ -50,6 +51,9 @@ class BulkOperation(_ResourceParameterized, ComplexAttribute, Generic[ResourceT]
     stands for, as :attr:`~scim2_models.Context.BULK_REQUEST` describes.
     Parameterize the operation with the resource type it targets, e.g.
     ``BulkOperation[User]``.
+
+    ``location``, ``response`` and ``status`` belong to responses. They are
+    ignored in a request.
     """
 
     class Method(StrEnum):
@@ -82,13 +86,15 @@ class BulkOperation(_ResourceParameterized, ComplexAttribute, Generic[ResourceT]
     """The resource data as it would appear for a single SCIM POST, PUT, or
     PATCH operation."""
 
-    location: str | None = None
+    location: Annotated[str | None, Mutability.read_only] = None
     """The resource endpoint URL."""
 
-    response: ResourceT | Error | None = None
+    response: Annotated[ResourceT | Error | None, Mutability.read_only] = None
     """The HTTP response body for the specified request operation."""
 
-    status: Annotated[int | None, PlainSerializer(_int_to_str)] = None
+    status: Annotated[
+        int | None, Mutability.read_only, PlainSerializer(_int_to_str)
+    ] = None
     """The HTTP response status code for the requested operation."""
 
     @field_validator("data", mode="wrap")
@@ -279,8 +285,8 @@ class BulkRequest(_ResourceParameterized, Message, Generic[ResourceT]):
     ('x', 400, 'invalidValue')
 
     Under a :class:`~scim2_models.ScimProvider`, each operation is read as the
-    resource type its ``path`` targets, and an unknown endpoint fails the
-    operation with ``invalidPath``. Without a provider, the member of the type
+    resource type its ``path`` targets. An endpoint that serves none of the
+    types of the parameter fails the operation with ``invalidPath``. Without a provider, the member of the type
     parameter is picked from the ``data``, which cannot tell apart two resource
     types accepting the same PATCH: validate a request covering several
     resource types under the provider.
@@ -351,10 +357,8 @@ class BulkRequest(_ResourceParameterized, Message, Generic[ResourceT]):
         """Return the member of the type parameter the endpoint of a path serves.
 
         Without a provider, nothing tells which resource type an endpoint
-        serves, and pydantic picks the member from the data.
-
-        :raises InvalidPathException: When no resource type is served at the endpoint.
-        :raises TypeError: When the type parameter lacks the model of the endpoint.
+        serves, and pydantic picks the member from the data. An endpoint that
+        serves no member fails the operation with invalidPath.
         """
         members = _parameter_members(_type_parameter(cls))
         provider = _provider(info)
@@ -368,8 +372,8 @@ class BulkRequest(_ResourceParameterized, Message, Generic[ResourceT]):
                 detail=f"No resource type is served at {endpoint}"
             )
         if model not in members:
-            raise TypeError(
-                f"{cls.__name__} does not declare {model.__name__}, served at {endpoint}"
+            raise InvalidPathException(
+                detail=f"Bulk operations are not supported at {endpoint}"
             )
         return model
 

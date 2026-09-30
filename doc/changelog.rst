@@ -15,7 +15,8 @@ Added
   result, with a ``status`` and an :class:`~scim2_models.Error`, as
   :rfc:`RFC7644 §3.7.3 <7644#section-3.7.3>` requires. Under a
   :class:`~scim2_models.ScimProvider`, each operation is read as the resource type its ``path``
-  targets, and an unknown endpoint fails the operation with ``invalidPath``.
+  targets. An endpoint that serves none of the types of the request fails the operation with
+  ``invalidPath``.
 - :attr:`BulkOperation.endpoint <scim2_models.BulkOperation.endpoint>` and
   :attr:`BulkOperation.resource_id <scim2_models.BulkOperation.resource_id>` read the target of
   an operation from its ``path``.
@@ -64,6 +65,9 @@ Security
   A full resource sent as the ``data`` of a ``PATCH`` used to be accepted with its read-only
   attributes, such as ``id`` and ``groups``. An invalid ``data`` only reports the errors of the
   type the method expects.
+- In the :attr:`~scim2_models.Context.BULK_REQUEST` context, the ``location``, ``status`` and
+  ``response`` of an operation are ignored, and they are left out of a serialized request.
+  A client can no longer make an operation look like it failed.
 
 [0.9.0] - 2026-09-27
 --------------------

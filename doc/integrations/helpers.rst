@@ -149,9 +149,11 @@ mapping helpers of the resource endpoints, and validates nothing again.
 An operation that cannot be validated does not fail the request. It arrives as its own failed
 result, with a ``status`` and an :class:`~scim2_models.Error` as ``response``, and the other
 operations are validated as usual. Under a :class:`~scim2_models.ScimProvider`, each operation is
-read as the resource type its ``path`` targets, and an unknown endpoint fails with
-``invalidPath``. Without a provider, the model is picked from the ``data``. A request covering
+read as the resource type its ``path`` targets. An endpoint that serves none of the types of the
+request fails with ``invalidPath``, so ``BulkRequest[User]`` limits a job to users. Without a provider, the model is picked from the ``data``. A request covering
 several resource types should therefore be validated under the provider.
+The ``location``, ``status`` and ``response`` sent by a client are ignored, so a failed result
+always comes from the validation.
 
 ``execute_bulk`` follows these rules of §3.7:
 

@@ -797,14 +797,59 @@ def test_an_operation_on_an_unknown_endpoint_fails_alone():
     assert known.status is None
 
 
-def test_an_endpoint_whose_model_the_request_does_not_declare_is_a_programming_error():
-    """The type parameter of the request must cover every resource type the provider serves."""
-    with pytest.raises(TypeError, match="Group"):
-        BulkRequest[User].model_validate(
-            bulk_payload({"method": "DELETE", "path": GROUP_PATH}),
-            scim_ctx=Context.BULK_REQUEST,
-            scim_provider=ScimProvider(models=[User, Group]),
-        )
+def test_an_operation_on_a_type_the_request_does_not_declare_fails_alone():
+    """A request can restrict its operations to some of the resource types the provider serves."""
+    request = BulkRequest[User].model_validate(
+        bulk_payload(
+            {"method": "DELETE", "path": GROUP_PATH},
+            {"method": "DELETE", "path": "/Users/1"},
+        ),
+        scim_ctx=Context.BULK_REQUEST,
+        scim_provider=ScimProvider(models=[User, Group]),
+    )
+
+    group, user = request.operations
+    assert group.status == 400
+    assert group.response.scim_type == "invalidPath"
+    assert group.response.detail == "Bulk operations are not supported at /Groups"
+    assert user.status is None
+
+
+def test_the_response_values_of_a_request_operation_are_ignored():
+    """A client cannot make a valid operation look like a failed one."""
+    request = BulkRequest[User].model_validate(
+        bulk_payload(
+            {
+                "method": "DELETE",
+                "path": "/Users/1",
+                "location": "https://example.com/v2/Users/1",
+                "status": "400",
+                "response": {"status": "400", "scimType": "mutability"},
+            }
+        ),
+        scim_ctx=Context.BULK_REQUEST,
+    )
+
+    (operation,) = request.operations
+    assert operation.location is None
+    assert operation.status is None
+    assert operation.response is None
+
+
+def test_the_response_values_are_left_out_of_a_serialized_request():
+    """Only a bulk response carries the location, status and response of an operation."""
+    operation = BulkOperation[User](
+        method="DELETE",
+        path="/Users/1",
+        location="https://example.com/v2/Users/1",
+        status=204,
+    )
+
+    assert operation.model_dump(scim_ctx=Context.BULK_REQUEST) == {
+        "method": "DELETE",
+        "path": "/Users/1",
+    }
+    assert operation.model_dump(scim_ctx=Context.BULK_RESPONSE)["status"] == "204"
 
 
 @pytest.mark.parametrize(
