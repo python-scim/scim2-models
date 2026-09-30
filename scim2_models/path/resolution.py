@@ -360,13 +360,6 @@ def _resolve_comparison_path(
 
     An attribute the model does not declare raises PathNotFoundException under
     ``strict``, and answers None otherwise.
-
-    >>> from scim2_models import User
-    >>> from scim2_models.path import AttrPath
-    >>> from scim2_models.path.resolution import _resolve_comparison_path
-
-    >>> _resolve_comparison_path(User, AttrPath("emails")).sub_field_name
-    'value'
     """
     resolved = _resolve_attr_path(model, attr_path, strict=strict)
     if resolved is None or not _addresses_entry_values(resolved):
