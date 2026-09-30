@@ -9,6 +9,7 @@ from scim2_models import Pagination
 from scim2_models import Resource
 from scim2_models import ResourceType
 from scim2_models import ResponseParameters
+from scim2_models import ScimProvider
 from scim2_models import ServiceProviderConfig
 from scim2_models import User
 from scim2_models.exceptions import InvalidCursorException
@@ -548,6 +549,46 @@ def test_total_results_not_required_for_cursor_pagination():
     dumped = response.model_dump(scim_ctx=Context.RESOURCE_QUERY_RESPONSE)
     assert dumped["nextCursor"] == "cursor-abc"
     assert dumped["previousCursor"] == "cursor-xyz"
+
+
+LAST_PAGE = {
+    "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
+    "itemsPerPage": 1,
+    "Resources": [
+        {
+            "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+            "userName": "bjensen@example.com",
+            "id": "foobar",
+        }
+    ],
+}
+CURSOR_SPC = ServiceProviderConfig(pagination=Pagination(cursor=True, index=False))
+
+
+def test_last_page_with_configuration_passed_at_the_call():
+    """The last page of a cursor-only server needs neither a cursor nor totalResults."""
+    response = ListResponse[User].model_validate(
+        LAST_PAGE, scim_ctx=Context.RESOURCE_QUERY_RESPONSE, scim_spc=CURSOR_SPC
+    )
+    assert response.total_results is None
+
+
+def test_last_page_with_configuration_of_the_provider():
+    """The configuration of the provider passed at the call is used."""
+    provider = ScimProvider(models=[User], config=CURSOR_SPC)
+    response = ListResponse[User].model_validate(
+        LAST_PAGE, scim_ctx=Context.RESOURCE_QUERY_RESPONSE, scim_provider=provider
+    )
+    assert response.total_results is None
+
+
+def test_last_page_with_configuration_of_the_ambient_provider():
+    """The configuration of the provider opened around the validation is used."""
+    with ScimProvider(models=[User], config=CURSOR_SPC):
+        response = ListResponse[User].model_validate(
+            LAST_PAGE, scim_ctx=Context.RESOURCE_QUERY_RESPONSE
+        )
+    assert response.total_results is None
 
 
 @pytest.mark.parametrize("cursor_field", ["nextCursor", "previousCursor"])

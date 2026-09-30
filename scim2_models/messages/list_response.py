@@ -12,6 +12,7 @@ from pydantic_core import PydanticCustomError
 
 from ..context import Context
 from ..exceptions import InvalidCursorException
+from ..provider import _spc
 from ..resources.resource import AnyResource
 from ..urn import URN
 from .message import Message
@@ -105,7 +106,7 @@ class ListResponse(
         ):
             return obj
 
-        config = info.context.get("scim_spc")
+        config = _spc(info)
         cursor_pagination = bool(
             (config and config.pagination and config.pagination.cursor)
             or obj.next_cursor is not None

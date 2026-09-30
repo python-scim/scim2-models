@@ -1,6 +1,15 @@
 Changelog
 =========
 
+[Unreleased]
+------------
+
+Fixed
+^^^^^
+- :class:`~scim2_models.ListResponse` reads the pagination capabilities of the
+  :class:`~scim2_models.ScimProvider`, including a provider opened around the validation.
+  The last page of a server that only supports cursor pagination no longer needs ``totalResults``.
+
 [0.10.0] - 2026-09-30
 ---------------------
 
