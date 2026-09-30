@@ -304,7 +304,8 @@ class PatchOp(_ResourceParameterized, Message, Generic[ResourceT]):
 
         :param resource: The SCIM resource to patch. This object is modified in-place.
         :param scim_policy: The :class:`~scim2_models.ScimPolicy` the patch is
-            applied under. Defaults to the strict reading of the specification.
+            applied under. Defaults to the policy of the innermost open block,
+            then to the strict reading of the specification.
         :return: True if the resource was modified by any operation, False otherwise.
         :raises InvalidValueException: If a value is not compatible with the type of
             the attribute it is written to, if multiple values are marked as primary
