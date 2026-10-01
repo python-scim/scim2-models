@@ -191,7 +191,8 @@ def skip_unwanted_member(app, what, name, obj, skip, options):
     autodoc renders the latter as an alias, but takes an attribute named like
     the class it holds for a nested class, and describes ``Name`` a second time
     under ``User``: the same canonical object twice, which the Python domain
-    reports as a duplicate description.
+    reports as a duplicate description. A class defined inside its parent, such
+    as ``ScimPolicy.Unknown``, has a dotted qualified name and is kept.
 
     ``model_config`` and ``model_post_init`` respectively expose implementation
     configuration and an inherited Pydantic lifecycle hook. They are not part of
@@ -199,7 +200,7 @@ def skip_unwanted_member(app, what, name, obj, skip, options):
     """
     if what == "class" and name in {"model_config", "model_post_init"}:
         return True
-    if what != "module" and isinstance(obj, type) and obj.__name__ == name:
+    if what != "module" and isinstance(obj, type) and obj.__qualname__ == name:
         return True
     return None
 
