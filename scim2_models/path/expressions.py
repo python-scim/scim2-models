@@ -9,7 +9,6 @@ from dataclasses import field
 from datetime import datetime
 from enum import StrEnum
 from typing import Any
-from typing import Union
 
 if sys.version_info >= (3, 14):
     from string.templatelib import Template as Template
@@ -321,6 +320,6 @@ def _needs_parentheses(parent: LogicalExpr, child: FilterNode) -> bool:
     )
 
 
-PathNode = Union[AttrPath, ValuePath, Comparison, Present]  # noqa: UP007
+PathNode = AttrPath | ValuePath | Comparison | Present
 """A parsed PATCH path, per the ``PATH`` rule of :rfc:`RFC7644 §3.5.2 <7644#section-3.5.2>`
 as corrected by errata 7122: ``PATH = attrPath / valuePath [subAttr] / attrExp``."""

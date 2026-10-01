@@ -129,12 +129,8 @@ plugins = [
 ]
 # ``string.templatelib.Template`` is None below 3.14, and a variable is not a type.
 python_version = "3.14"
-warn_unused_ignores = true
-exclude = [
-  "tests/",
-  "conftest.py",
-]
-strict=true
+files = ["scim2_models"]
+strict = true
 
 [tool.pydantic-mypy]
 init_forbid_extra = true
