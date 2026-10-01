@@ -872,8 +872,8 @@ def _differences(
     """Yield the operations that set the attributes of the wanted state.
 
     A complex attribute or an extension is compared attribute by attribute. A
-    multi-valued attribute is compared on the sub-attributes its wanted entries
-    name.
+    multi-valued attribute is compared on the writable sub-attributes its wanted
+    entries name.
     """
     model = type(after)
     for field_name in model.model_fields:
@@ -886,7 +886,11 @@ def _differences(
             continue
 
         old = getattr(before, field_name, None)
-        new = getattr(after, field_name)
+        wanted = getattr(after, field_name)
+        new = _writable_entries(wanted)
+        if isinstance(wanted, list) and wanted and not new:
+            continue
+
         path = f"{prefix}{model._scim_name(field_name)}"
         include = _named_sub_attributes(new)
         if isinstance(new, BaseModel):
@@ -902,6 +906,31 @@ def _differences(
                 else PatchOperation.Op.replace_
             )
             yield op, path, new
+
+
+def _writable_entries(value: Any) -> Any:
+    """Drop the read-only sub-attributes of the entries of a wanted collection.
+
+    An entry left with no assigned sub-attribute is dropped too.
+    """
+    if not isinstance(value, list):
+        return value
+    entries = []
+    for entry in value:
+        if not isinstance(entry, BaseModel):
+            entries.append(entry)
+            continue
+        entry_model = type(entry)
+        fields = {
+            name: getattr(entry, name)
+            for name in entry.model_fields_set
+            if entry_model.get_field_annotation(name, Mutability)
+            != Mutability.read_only
+        }
+        writable = entry_model.model_construct(_fields_set=set(fields), **fields)
+        if _assigned(writable):
+            entries.append(writable)
+    return entries
 
 
 def _named_sub_attributes(value: Any) -> set[str] | None:

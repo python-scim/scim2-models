@@ -1,6 +1,15 @@
 Changelog
 =========
 
+[0.10.2] - Unreleased
+---------------------
+
+Fixed
+^^^^^
+- :meth:`PatchOp.build_from <scim2_models.PatchOp.build_from>` leaves out the read-only
+  sub-attributes of multi-valued attributes, such as a read-only ``members.display``.
+  The patch it builds is no longer rejected.
+
 [0.10.1] - 2026-09-30
 ---------------------
 

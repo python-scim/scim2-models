@@ -3,6 +3,7 @@ from typing import Annotated
 import pytest
 
 from scim2_models import URN
+from scim2_models import ComplexAttribute
 from scim2_models import Context
 from scim2_models import Email
 from scim2_models import EnterpriseUser
@@ -292,6 +293,46 @@ def test_a_read_only_sub_attribute_is_never_patched():
     before[EnterpriseUser] = EnterpriseUser(manager=Manager(display_name="Jan"))
     after = User[EnterpriseUser](user_name="bjensen")
     after[EnterpriseUser] = EnterpriseUser(manager=Manager(display_name="Ada"))
+
+    assert PatchOp.build_from(before, after) is None
+
+
+class Member(ComplexAttribute):
+    value: str | None = None
+    display: Annotated[str | None, Mutability.read_only] = None
+
+
+class Team(Resource):
+    __schema__ = URN("urn:test:Team")
+
+    members: list[Member] | None = None
+
+
+def test_a_read_only_sub_attribute_of_a_multi_valued_attribute_is_never_patched():
+    """A peer computes the read-only members.display itself, and would reject a patch that sets it."""
+    before = Team(members=[Member(value="a", display="A")])
+    after = Team(
+        members=[Member(value="a", display="A"), Member(value="b", display="B")]
+    )
+
+    patch = PatchOp.build_from(before, after)
+
+    assert paths(patch) == [("replace", "members")]
+    assert patch.operations[0].value == [Member(value="a"), Member(value="b")]
+
+
+def test_a_change_of_a_read_only_sub_attribute_of_a_multi_valued_attribute_is_ignored():
+    """Only the writable sub-attributes of the wanted entries are compared."""
+    before = Team(members=[Member(value="a", display="A")])
+    after = Team(members=[Member(value="a", display="Ada")])
+
+    assert PatchOp.build_from(before, after) is None
+
+
+def test_a_multi_valued_attribute_with_only_read_only_sub_attributes_is_left_alone():
+    """Entries that only hold read-only values do not ask to empty the collection."""
+    before = Team(members=[Member(value="a", display="A")])
+    after = Team(members=[Member(display="B")])
 
     assert PatchOp.build_from(before, after) is None
 
