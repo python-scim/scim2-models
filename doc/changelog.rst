@@ -1,6 +1,25 @@
 Changelog
 =========
 
+[Unreleased]
+------------
+
+Added
+^^^^^
+- :class:`~scim2_models.UnauthorizedException`, :class:`~scim2_models.ForbiddenException`,
+  :class:`~scim2_models.NotFoundException`, :class:`~scim2_models.ConflictException`,
+  :class:`~scim2_models.PreconditionFailedException`, :class:`~scim2_models.PayloadTooLargeException`
+  and :class:`~scim2_models.NotImplementedException`,
+  for the HTTP statuses of :rfc:`RFC7644 §3.12 <7644#section-3.12>` that come with no ``scimType``.
+
+Changed
+^^^^^^^
+- :meth:`SCIMException.from_error <scim2_models.SCIMException.from_error>` picks the exception from
+  the status when the :class:`~scim2_models.Error` has no known ``scimType``. A ``404`` gives a
+  :class:`~scim2_models.NotFoundException` instead of the base :class:`~scim2_models.SCIMException`.
+- :class:`~scim2_models.UniquenessException` is a subclass of
+  :class:`~scim2_models.ConflictException`.
+
 [0.10.2] - 2026-10-01
 ---------------------
 

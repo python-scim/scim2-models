@@ -7,10 +7,12 @@ from pydantic import ValidationError
 from pydantic import field_validator
 
 from scim2_models import BulkResponse
+from scim2_models import ConflictException
 from scim2_models import Context
 from scim2_models import EnterpriseUser
 from scim2_models import Error
 from scim2_models import ExpiredCursorException
+from scim2_models import ForbiddenException
 from scim2_models import Group
 from scim2_models import InvalidCountException
 from scim2_models import InvalidCursorException
@@ -22,11 +24,16 @@ from scim2_models import InvalidVersionException
 from scim2_models import ListResponse
 from scim2_models import MutabilityException
 from scim2_models import NoTargetException
+from scim2_models import NotFoundException
+from scim2_models import NotImplementedException
 from scim2_models import PatchOp
 from scim2_models import PathNotFoundException
+from scim2_models import PayloadTooLargeException
+from scim2_models import PreconditionFailedException
 from scim2_models import SCIMException
 from scim2_models import SensitiveException
 from scim2_models import TooManyException
+from scim2_models import UnauthorizedException
 from scim2_models import UniquenessException
 from scim2_models import User
 
@@ -412,6 +419,13 @@ def test_all_exceptions_inherit_from_scim_exception():
         InvalidCursorException(),
         ExpiredCursorException(),
         InvalidCountException(),
+        UnauthorizedException(),
+        ForbiddenException(),
+        NotFoundException(),
+        ConflictException(),
+        PreconditionFailedException(),
+        PayloadTooLargeException(),
+        NotImplementedException(),
     ]
     for exc in exceptions:
         assert isinstance(exc, SCIMException)
@@ -726,3 +740,72 @@ def test_message_attributes_keep_their_case_insensitive_names(key):
     )
     assert patch.operations[0].value == "Babs"
     assert "Operations" in patch.model_dump(scim_ctx=Context.RESOURCE_PATCH_REQUEST)
+
+
+STATUS_EXCEPTIONS = [
+    (UnauthorizedException, 401),
+    (ForbiddenException, 403),
+    (NotFoundException, 404),
+    (ConflictException, 409),
+    (PreconditionFailedException, 412),
+    (PayloadTooLargeException, 413),
+    (NotImplementedException, 501),
+]
+
+
+@pytest.mark.parametrize("exception_class,status", STATUS_EXCEPTIONS)
+def test_status_exception_converts_to_an_error_without_scim_type(
+    exception_class, status
+):
+    """An exception for a status of RFC 7644 Table 8 gives an Error with that status and no scimType."""
+    error = exception_class(detail="Something went wrong").to_error()
+    assert error.status == status
+    assert error.scim_type is None
+    assert error.detail == "Something went wrong"
+
+
+@pytest.mark.parametrize("exception_class,status", STATUS_EXCEPTIONS)
+def test_status_exception_has_a_default_detail(exception_class, status):
+    """An exception for a status of RFC 7644 Table 8 has a default detail."""
+    assert exception_class().detail == exception_class._default_detail
+
+
+@pytest.mark.parametrize("exception_class,status", STATUS_EXCEPTIONS)
+def test_from_error_picks_the_exception_from_the_status(exception_class, status):
+    """from_error() picks the exception from the status of an Error without scimType."""
+    error = Error(status=status, detail="Something went wrong")
+    exc = SCIMException.from_error(error)
+    assert type(exc) is exception_class
+    assert exc.status == status
+    assert exc.to_error() is error
+
+
+def test_uniqueness_is_a_conflict():
+    """UniquenessException is a subclass of ConflictException."""
+    exc = UniquenessException()
+    assert isinstance(exc, ConflictException)
+    assert exc.status == 409
+    assert exc.scim_type == "uniqueness"
+
+
+def test_from_error_conflict_without_scim_type_is_not_a_uniqueness_error():
+    """A 409 without scimType gives a ConflictException, as the conflict may be on a version."""
+    error = Error(status=409, detail="Version mismatch")
+    exc = SCIMException.from_error(error)
+    assert type(exc) is ConflictException
+
+
+def test_from_error_scim_type_wins_over_the_status():
+    """from_error() picks the exception from the scimType when the status names another one."""
+    error = Error(status=404, scim_type="invalidFilter", detail="Bad filter")
+    exc = SCIMException.from_error(error)
+    assert isinstance(exc, InvalidFilterException)
+    assert exc.status == 404
+
+
+def test_from_error_unknown_scim_type_falls_back_to_the_status():
+    """from_error() picks the exception from the status when the scimType is vendor specific."""
+    error = Error(status=404, scim_type="vendorNotFound", detail="Not here")
+    exc = SCIMException.from_error(error)
+    assert type(exc) is NotFoundException
+    assert exc.scim_type == "vendorNotFound"

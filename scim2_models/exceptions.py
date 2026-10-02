@@ -19,7 +19,9 @@ if TYPE_CHECKING:
 class SCIMException(Exception):
     """Base exception for SCIM protocol errors.
 
-    Each subclass corresponds to a scimType defined in :rfc:`RFC 7644 Table 9 <7644#section-3.12>`.
+    Most subclasses correspond to a scimType defined in :rfc:`RFC 7644 Table 9 <7644#section-3.12>`.
+    The others correspond to an HTTP status of :rfc:`RFC 7644 Table 8 <7644#section-3.12>`
+    that comes with no scimType, such as ``404``.
 
     :param detail: The error detail message.
     :param scim_ctx: The SCIM context in which the exception occurred.
@@ -92,7 +94,11 @@ class SCIMException(Exception):
         if not isinstance(error, Error):
             raise TypeError(f"Expected Error, got {type(error).__name__}")
 
-        exception_class = _SCIM_TYPE_TO_EXCEPTION.get(error.scim_type or "", cls)
+        exception_class = (
+            _SCIM_TYPE_TO_EXCEPTION.get(error.scim_type or "")
+            or _STATUS_TO_EXCEPTION.get(error.status or 0)
+            or cls
+        )
         exc = exception_class(detail=error.detail, scim_ctx=scim_ctx)
         exc._error = error
         if error.status is not None:
@@ -138,7 +144,97 @@ class TooManyException(SCIMException):
     )
 
 
-class UniquenessException(SCIMException):
+class UnauthorizedException(SCIMException):
+    """The authorization header is invalid or missing.
+
+    Corresponds to HTTP status 401, with no scimType.
+
+    :rfc:`RFC 7644 Section 3.12 <7644#section-3.12>`
+    """
+
+    status = 401
+    _default_detail = (
+        "Authorization failure. The authorization header is invalid or missing"
+    )
+
+
+class ForbiddenException(SCIMException):
+    """The operation is not permitted based on the supplied authorization.
+
+    Corresponds to HTTP status 403, with no scimType.
+
+    :rfc:`RFC 7644 Section 3.12 <7644#section-3.12>`
+    """
+
+    status = 403
+    _default_detail = "Operation is not permitted based on the supplied authorization"
+
+
+class NotFoundException(SCIMException):
+    """The specified resource or endpoint does not exist.
+
+    Corresponds to HTTP status 404, with no scimType.
+
+    :rfc:`RFC 7644 Section 3.12 <7644#section-3.12>`
+    """
+
+    status = 404
+    _default_detail = "Specified resource or endpoint does not exist"
+
+
+class ConflictException(SCIMException):
+    """The request conflicts with the current state of the service provider.
+
+    Corresponds to HTTP status 409. Per :rfc:`RFC 7644 Section 3.12 <7644#section-3.12>`,
+    this covers a version number that does not match the latest one of the resource, and
+    a duplicate resource. A duplicate resource raises :class:`UniquenessException`, which
+    is a subclass of this one.
+    """
+
+    status = 409
+    _default_detail = "The request conflicts with the current state of the resource"
+
+
+class PreconditionFailedException(SCIMException):
+    """The resource has changed on the server.
+
+    Corresponds to HTTP status 412, with no scimType.
+
+    :rfc:`RFC 7644 Section 3.12 <7644#section-3.12>`
+    """
+
+    status = 412
+    _default_detail = "Failed to update. Resource has changed on the server"
+
+
+class PayloadTooLargeException(SCIMException):
+    """The request exceeds the bulk limits of the service provider.
+
+    Corresponds to HTTP status 413, with no scimType.
+
+    :rfc:`RFC 7644 Section 3.7.4 <7644#section-3.7.4>`
+    """
+
+    status = 413
+    _default_detail = (
+        "The request exceeds the maximum number of operations "
+        "or the maximum payload size of the service provider"
+    )
+
+
+class NotImplementedException(SCIMException):
+    """The service provider does not support the request operation.
+
+    Corresponds to HTTP status 501, with no scimType.
+
+    :rfc:`RFC 7644 Section 3.12 <7644#section-3.12>`
+    """
+
+    status = 501
+    _default_detail = "Service provider does not support the request operation"
+
+
+class UniquenessException(ConflictException):
     """One or more attribute values are already in use or reserved.
 
     Corresponds to scimType ``uniqueness`` with HTTP status 409.
@@ -367,4 +463,14 @@ _SCIM_TYPE_TO_EXCEPTION: dict[str, type[SCIMException]] = {
     "invalidCursor": InvalidCursorException,
     "expiredCursor": ExpiredCursorException,
     "invalidCount": InvalidCountException,
+}
+
+_STATUS_TO_EXCEPTION: dict[int, type[SCIMException]] = {
+    401: UnauthorizedException,
+    403: ForbiddenException,
+    404: NotFoundException,
+    409: ConflictException,
+    412: PreconditionFailedException,
+    413: PayloadTooLargeException,
+    501: NotImplementedException,
 }

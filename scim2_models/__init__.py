@@ -22,7 +22,9 @@ from .attributes import ExtensibleStringEnum
 from .attributes import MultiValuedComplexAttribute
 from .base import BaseModel
 from .context import Context
+from .exceptions import ConflictException
 from .exceptions import ExpiredCursorException
+from .exceptions import ForbiddenException
 from .exceptions import InvalidCountException
 from .exceptions import InvalidCursorException
 from .exceptions import InvalidFilterException
@@ -32,10 +34,15 @@ from .exceptions import InvalidValueException
 from .exceptions import InvalidVersionException
 from .exceptions import MutabilityException
 from .exceptions import NoTargetException
+from .exceptions import NotFoundException
+from .exceptions import NotImplementedException
 from .exceptions import PathNotFoundException
+from .exceptions import PayloadTooLargeException
+from .exceptions import PreconditionFailedException
 from .exceptions import SCIMException
 from .exceptions import SensitiveException
 from .exceptions import TooManyException
+from .exceptions import UnauthorizedException
 from .exceptions import UniquenessException
 from .lookup import get_model_by_payload
 from .lookup import get_model_by_schema
@@ -114,6 +121,7 @@ __all__ = [
     "CaseExact",
     "ChangePassword",
     "ComplexAttribute",
+    "ConflictException",
     "Context",
     "CreationRequestContext",
     "CreationResponseContext",
@@ -128,6 +136,7 @@ __all__ = [
     "Extension",
     "External",
     "Filter",
+    "ForbiddenException",
     "Group",
     "GroupMember",
     "GroupMembership",
@@ -148,6 +157,8 @@ __all__ = [
     "MultiValuedComplexAttribute",
     "Name",
     "NoTargetException",
+    "NotFoundException",
+    "NotImplementedException",
     "Pagination",
     "Patch",
     "PatchOp",
@@ -156,8 +167,10 @@ __all__ = [
     "PatchResponseContext",
     "Path",
     "PathNotFoundException",
+    "PayloadTooLargeException",
     "PhoneNumber",
     "Photo",
+    "PreconditionFailedException",
     "QueryRequestContext",
     "QueryResponseContext",
     "Reference",
@@ -188,6 +201,7 @@ __all__ = [
     "TooManyException",
     "URI",
     "URN",
+    "UnauthorizedException",
     "Uniqueness",
     "UniquenessException",
     "User",
