@@ -45,21 +45,26 @@ intersphinx_mapping = {
 
 # -- Sibling projects ------------------------------------------------------
 
-# Kept identical in the scim2-models, scim2-client, scim2-cli and scim2-tester
-# documentations, so that any divergence shows up in a diff.
+# Kept identical in every python-scim documentation, so that any divergence
+# shows up in a diff.
 NAV_LINKS = [
     {
         "title": "Libraries",
         "children": [
             {
-                "title": "scim2-models",
-                "url": "https://scim2-models.readthedocs.io",
-                "summary": "SCIM resources and messages as Pydantic models",
+                "title": "scim2-server",
+                "url": "https://scim2-server.readthedocs.io",
+                "summary": "Serve the SCIM protocol over any storage",
             },
             {
                 "title": "scim2-client",
                 "url": "https://scim2-client.readthedocs.io",
                 "summary": "Pythonically build SCIM requests and parse SCIM responses",
+            },
+            {
+                "title": "scim2-models",
+                "url": "https://scim2-models.readthedocs.io",
+                "summary": "SCIM resources and messages as Pydantic models",
             },
         ],
     },
@@ -75,11 +80,6 @@ NAV_LINKS = [
                 "title": "scim2-cli",
                 "url": "https://scim2-cli.readthedocs.io",
                 "summary": "Query a SCIM server from the command line",
-            },
-            {
-                "title": "scim2-server",
-                "url": "https://github.com/python-scim/scim2-server",
-                "summary": "A lightweight SCIM2 server prototype",
             },
             {
                 "title": "pytest-scim2-server",
@@ -142,6 +142,7 @@ from scim2_models import *
 # and bookmarks keep working.
 redirects = {
     "tutorial": "overview.html",
+    "reference": "reference/index.html",
     "filters": "explanation/filters.html",
     "patch": "explanation/patch.html",
     "guides/index": "../integrations/index.html",

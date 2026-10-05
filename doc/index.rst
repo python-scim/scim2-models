@@ -46,7 +46,7 @@ the SCIM rules it applies.
 :doc:`Integrations <integrations/index>` shows how to build a SCIM server with Flask, Django,
 FastAPI or SQLAlchemy.
 
-:doc:`Reference <reference>` lists the complete public API.
+:doc:`Reference <reference/index>` lists the complete public API.
 
 .. toctree::
     :maxdepth: 2
@@ -56,6 +56,6 @@ FastAPI or SQLAlchemy.
     How-to guides <how-to/index>
     Explanation <explanation/index>
     Integrations <integrations/index>
-    Reference <reference>
+    Reference <reference/index>
     Contributing <contributing>
     Changelog <changelog>

@@ -73,7 +73,7 @@ pip install scim2-models
   SCIM rules and the choices behind them.
 - [Integrations](https://scim2-models.readthedocs.io/en/latest/integrations/index.html) build a
   SCIM server with Flask, Django, FastAPI or SQLAlchemy.
-- [Reference](https://scim2-models.readthedocs.io/en/latest/reference.html) lists the public API.
+- [Reference](https://scim2-models.readthedocs.io/en/latest/reference/index.html) lists the public API.
 
 ## What's SCIM anyway?
 
