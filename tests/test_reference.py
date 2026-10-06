@@ -6,8 +6,10 @@ from typing import Union
 import pytest
 
 from scim2_models import URI
+from scim2_models import EnterpriseUser
 from scim2_models import External
 from scim2_models import Reference
+from scim2_models import User as ScimUser
 from scim2_models.base import BaseModel
 from scim2_models.urn import URN
 
@@ -153,6 +155,13 @@ def test_reference_class_name():
     """Test that Reference subclass has descriptive name."""
     ref_type = Reference[Union["User", "Group"]]
     assert ref_type.__name__ == "Reference[User | Group]"
+
+
+def test_reference_to_extended_resource_class():
+    """A resource class with extensions stands for the name of its resource type."""
+    ref_type = Reference[ScimUser[EnterpriseUser]]
+    assert ref_type._get_scim_reference_types() == ["User"]
+    assert ref_type is Reference["User"]
 
 
 def test_reference_any_type():

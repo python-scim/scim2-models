@@ -1,6 +1,14 @@
 Changelog
 =========
 
+[0.10.6] - Unreleased
+---------------------
+
+Fixed
+^^^^^
+- ``Reference[User[EnterpriseUser]]`` publishes ``User`` as its reference type, instead of
+  ``User[EnterpriseUser]``.
+
 [0.10.5] - 2026-10-06
 ---------------------
 

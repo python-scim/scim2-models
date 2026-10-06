@@ -44,6 +44,10 @@ class Reference(str, Generic[ReferenceTypes]):
     - String forward references for SCIM resource types (``"User"``, ``"Group"``)
     - Resource classes directly if imports allow
 
+    The parameter gives the name of a resource type. A class stands for its
+    own name, so ``User[EnterpriseUser]`` stands for ``"User"``. When the
+    resource type name differs from the model name, give the name as a string.
+
     Examples::
 
         class Foobar(Resource):
@@ -122,7 +126,7 @@ def _to_type_string(item: Any) -> str:
     if isinstance(item, str):
         return item
     if isinstance(item, type):
-        return item.__name__
+        return item.__name__.split("[", 1)[0]
     if hasattr(item, "__forward_arg__"):
         return item.__forward_arg__  # type: ignore[no-any-return]
     raise TypeError(f"Invalid reference type: {item!r}")
