@@ -1294,3 +1294,20 @@ def test_a_filter_is_usable_as_a_pydantic_field():
 
     with pytest.raises(ValidationError, match="Expected str or ScimFilter, got int"):
         Query(scim_filter=42)
+
+
+def test_sub_attribute_compared_after_value_path_applies_to_the_selected_entry():
+    """The selection and the comparison must hold on the same entry."""
+    user = User(
+        user_name="bjensen",
+        emails=[
+            Email(type="work", value="bjensen@example.com"),
+            Email(type="home", value="babs@example.com"),
+        ],
+    )
+    assert ScimFilter[User](
+        'emails[type eq "work"].value eq "bjensen@example.com"'
+    ).match(user)
+    assert not ScimFilter[User](
+        'emails[type eq "work"].value eq "babs@example.com"'
+    ).match(user)

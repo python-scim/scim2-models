@@ -42,6 +42,7 @@ _GRAMMAR = rf"""
          | primary
 ?primary: _LPAR filter _RPAR
         | value_path
+        | value_path_exp
         | attr_exp
 
 // ---- PATH, RFC 7644 §3.5.2 with errata 7122 applied
@@ -56,6 +57,12 @@ _GRAMMAR = rf"""
 // has nothing below those.
 value_path_sub: ATTR_PATH _LBRACKET val_filter _RBRACKET [_DOT SUB_ATTR]
 value_path: ATTR_PATH _LBRACKET val_filter _RBRACKET
+
+// Not in the ABNF, but Microsoft Entra sends emails[type eq "work"].value eq
+// "x" and requires services to accept it. It reads as emails[type eq "work"
+// and value eq "x"], which is what the builder makes of it.
+value_path_exp: ATTR_PATH _LBRACKET val_filter _RBRACKET _DOT SUB_ATTR PR
+              | ATTR_PATH _LBRACKET val_filter _RBRACKET _DOT SUB_ATTR COMPARE_OP comp_value
 
 // valFilter is FILTER minus valuePath: full boolean expressions are allowed
 // inside the brackets, nested value selections are not (errata 4690 and 7322).
@@ -171,6 +178,32 @@ class _AstBuilder(Transformer[Token, Any]):
             sub_attr=str(sub_attr) if sub_attr is not None else None,
         )
 
+    def value_path_exp(
+        self, attr_path: Token, val_filter: FilterNode, sub_attr: Token, *exp: Any
+    ) -> FilterNode:
+        sub_attr_path = AttrPath(attr=str(sub_attr))
+        if len(exp) == 1:
+            sub_attr_exp: FilterNode = Present(attr_path=sub_attr_path)
+        else:
+            op, value = exp
+            sub_attr_exp = Comparison(
+                attr_path=sub_attr_path,
+                op=CompareOperator(str(op).lower()),
+                value=value,
+            )
+        terms = (
+            val_filter.terms
+            if isinstance(val_filter, LogicalExpr)
+            and val_filter.op == LogicalOperator.and_
+            else (val_filter,)
+        )
+        return ValuePath(
+            attr_path=_select_attr_path(str(attr_path)),
+            val_filter=LogicalExpr(
+                op=LogicalOperator.and_, terms=(*terms, sub_attr_exp)
+            ),
+        )
+
     def compare_exp(self, attr_path: Token, op: Token, value: Any) -> FilterNode:
         return Comparison(
             attr_path=_split_attr_path(str(attr_path)),
@@ -224,7 +257,14 @@ bounds the memory the cache holds.
 """
 
 _NESTING_RULES = frozenset(
-    {"or_expr", "and_expr", "not_expr", "value_path", "value_path_sub"}
+    {
+        "or_expr",
+        "and_expr",
+        "not_expr",
+        "value_path",
+        "value_path_sub",
+        "value_path_exp",
+    }
 )
 
 

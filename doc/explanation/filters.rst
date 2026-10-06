@@ -176,3 +176,11 @@ Some tolerances go the other way, and make filters from deployed servers usable.
 accepts irregular spacing around operators. It reads keywords in any case, as in ``AND`` or
 ``Eq``. And it accepts ``attrName[value eq "…"]``, the notation implementations use to address
 the values of a multi-valued attribute that is not complex.
+
+The parser also accepts a compared sub-attribute after a value selection, as in
+``emails[type eq "work"].value eq "bjensen@example.com"``. The ABNF has no such form, but
+Microsoft Entra ID sends it and `requires services to accept it
+<https://learn.microsoft.com/en-us/entra/identity/app-provisioning/use-scim-to-provision-users-and-groups#understand-the-microsoft-entra-scim-implementation>`_.
+The parser reads it as ``emails[type eq "work" and value eq "bjensen@example.com"]``, so the
+selection and the comparison apply to the same entry. The rendered filter uses the conformant
+form.

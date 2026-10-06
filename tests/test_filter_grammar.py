@@ -199,12 +199,60 @@ def test_nested_value_path_is_rejected(expression):
 
 @pytest.mark.parametrize(
     "expression",
-    ['emails[type eq "work"].value', 'emails[type eq "work"].value eq "x"'],
+    [
+        'emails[type eq "work"].value',
+        'emails[type eq "work"].value eq',
+        'emails[type eq "work"].value.display eq "x"',
+    ],
 )
-def test_sub_attribute_after_value_path_is_rejected_in_a_filter(expression):
-    """Only a PATCH path may follow a value selection with a sub-attribute."""
+def test_sub_attribute_after_value_path_without_expression_is_rejected_in_a_filter(
+    expression,
+):
+    """In a filter, a sub-attribute after a value selection must be compared."""
     with pytest.raises(InvalidFilterException):
         _parse_filter(expression)
+
+
+@pytest.mark.parametrize(
+    "expression,conformant",
+    [
+        (
+            'emails[type eq "work"].value eq "x"',
+            'emails[type eq "work" and value eq "x"]',
+        ),
+        (
+            'emails[type eq "work"].value pr',
+            'emails[type eq "work" and value pr]',
+        ),
+        (
+            'emails[type eq "work"].value EQ "x"',
+            'emails[type eq "work" and value eq "x"]',
+        ),
+        (
+            'emails[type eq "work" and primary eq true].value ew "x"',
+            'emails[type eq "work" and primary eq true and value ew "x"]',
+        ),
+        (
+            'emails[type eq "work" or primary eq true].value co "x"',
+            'emails[(type eq "work" or primary eq true) and value co "x"]',
+        ),
+        (
+            'urn:ietf:params:scim:schemas:core:2.0:User:emails[type eq "work"].value eq "x"',
+            'urn:ietf:params:scim:schemas:core:2.0:User:emails[type eq "work" and value eq "x"]',
+        ),
+        (
+            'not (emails[type eq "work"].value eq "x") and userName pr',
+            'not (emails[type eq "work" and value eq "x"]) and userName pr',
+        ),
+    ],
+)
+def test_sub_attribute_compared_after_value_path_reads_as_a_conjunction(
+    expression, conformant
+):
+    """Microsoft Entra sends this form, which the ABNF lacks, and requires services to accept it."""
+    node = _parse_filter(expression)
+    assert node == _parse_filter(conformant)
+    assert str(node) == conformant
 
 
 @pytest.mark.parametrize(
@@ -596,6 +644,12 @@ def test_a_value_selection_counts_as_nesting():
     _parse_filter(f"emails[{nested_negations(31)}]")
     with pytest.raises(InvalidFilterException):
         _parse_filter(f"emails[{nested_negations(32)}]")
+
+
+def test_a_value_selection_with_a_compared_sub_attribute_counts_as_nesting():
+    _parse_filter(f'emails[{nested_negations(31)}].value eq "x"')
+    with pytest.raises(InvalidFilterException):
+        _parse_filter(f'emails[{nested_negations(32)}].value eq "x"')
 
 
 def test_a_path_nesting_32_expressions_is_parsed():

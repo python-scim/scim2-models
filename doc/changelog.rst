@@ -4,6 +4,12 @@ Changelog
 [0.11.0] - Unreleased
 ---------------------
 
+Added
+^^^^^
+- Filters accept a compared sub-attribute after a value selection, as Microsoft Entra ID sends
+  it: ``emails[type eq "work"].value eq "x"`` reads as
+  ``emails[type eq "work" and value eq "x"]``.
+
 Changed
 ^^^^^^^
 - SCIM dumps omit empty complex attributes, empty arrays, and empty entries of multi-valued
