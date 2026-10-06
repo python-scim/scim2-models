@@ -1,6 +1,15 @@
 Changelog
 =========
 
+[Unreleased]
+------------
+
+Added
+^^^^^
+- :meth:`Path.iter_paths <scim2_models.Path.iter_paths>` takes a ``target_type`` filter. It yields
+  the paths whose value is one of the given types, sub-attributes and extensions included.
+  ``target_type=[Reference]`` yields ``members.$ref`` on a group.
+
 [0.10.4] - 2026-10-06
 ---------------------
 

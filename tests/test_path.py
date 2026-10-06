@@ -20,9 +20,11 @@ from scim2_models import Mutability
 from scim2_models import Name
 from scim2_models import PatchOp
 from scim2_models import PathNotFoundException
+from scim2_models import Reference
 from scim2_models import Required
 from scim2_models import Resource
 from scim2_models import Returned
+from scim2_models import Schema
 from scim2_models import Uniqueness
 from scim2_models import User
 from scim2_models.base import BaseModel
@@ -1588,6 +1590,90 @@ def test_iter_paths_filter_by_case_exact():
     assert "externalId" in path_strings
     for path in paths:
         assert path.resolve().get_annotation(CaseExact) == CaseExact.true
+
+
+def test_iter_paths_filter_by_target_type_reaches_sub_attributes_and_extensions():
+    """The target_type filter looks inside complex attributes and extensions."""
+    paths = list(Path[User[EnterpriseUser]].iter_paths(target_type=[Reference]))
+
+    assert [str(p) for p in paths] == [
+        "profileUrl",
+        "photos.value",
+        "groups.$ref",
+        "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:manager.$ref",
+    ]
+
+
+def test_iter_paths_filter_by_target_type_without_subattributes():
+    """Without sub-attributes, only top-level attributes of the type are yielded."""
+    paths = list(
+        Path[User[EnterpriseUser]].iter_paths(
+            include_subattributes=False, target_type=[Reference]
+        )
+    )
+
+    assert [str(p) for p in paths] == ["profileUrl"]
+
+
+def test_iter_paths_filter_by_target_type_matches_parameterized_references():
+    """Reference["User"] and the like are generated subclasses of Reference."""
+    paths = list(Path[Group].iter_paths(target_type=[Reference]))
+
+    assert [str(p) for p in paths] == ["members.$ref"]
+    assert paths[0].resolve().target_type.__reference_types__ == ("User", "Group")
+
+
+def test_iter_paths_filter_by_target_type_unwraps_annotated_types():
+    """Binary attributes declared as Base64Bytes match bytes."""
+    paths = list(Path[User].iter_paths(target_type=[bytes]))
+
+    assert [str(p) for p in paths] == ["x509Certificates.value"]
+
+
+def test_iter_paths_filter_by_several_target_types():
+    """A path is yielded when its value matches any of the given types."""
+    paths = list(Path[Group].iter_paths(target_type=[Reference, bytes]))
+    path_strings = [str(p) for p in Path[User].iter_paths(target_type=[bytes, bool])]
+
+    assert [str(p) for p in paths] == ["members.$ref"]
+    assert "active" in path_strings
+    assert "emails.primary" in path_strings
+    assert "x509Certificates.value" in path_strings
+
+
+def test_iter_paths_filter_by_target_type_combines_with_other_filters():
+    """The target_type filter applies on top of the annotation filters."""
+    paths = list(
+        Path[User].iter_paths(
+            target_type=[Reference], mutability=[Mutability.read_only]
+        )
+    )
+
+    assert [str(p) for p in paths] == ["groups.$ref"]
+
+
+def test_iter_paths_filter_by_target_type_on_models_built_from_schemas(load_sample):
+    """Models built from Schema resources expose their references too."""
+    user_model = Resource.from_schema(
+        Schema.model_validate(load_sample("rfc7643-8.7.1-schema-user.json"))
+    )
+    enterprise_model = Extension.from_schema(
+        Schema.model_validate(load_sample("rfc7643-8.7.1-schema-enterprise_user.json"))
+    )
+    group_model = Resource.from_schema(
+        Schema.model_validate(load_sample("rfc7643-8.7.1-schema-group.json"))
+    )
+
+    user_paths = Path[user_model[enterprise_model]].iter_paths(target_type=[Reference])
+    group_paths = Path[group_model].iter_paths(target_type=[Reference])
+
+    assert [str(p) for p in user_paths] == [
+        "profileUrl",
+        "photos.value",
+        "groups.$ref",
+        "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:manager.$ref",
+    ]
+    assert [str(p) for p in group_paths] == ["members.$ref"]
 
 
 def test_path_init_with_path_object():

@@ -39,6 +39,7 @@ from .grammar import _parse_path
 from .resolution import AttributeBinding
 from .resolution import _designated_model
 from .resolution import _resolve_attr_path
+from .resolution import _unwrap_annotated
 
 ResourceT = TypeVar("ResourceT", bound="Resource[Any]")
 
@@ -448,6 +449,7 @@ class Path(_BoundToModels, _Expression, Generic[ResourceT]):
         uniqueness: "list[Uniqueness] | None" = None,
         returned: "list[Returned] | None" = None,
         case_exact: "list[CaseExact] | None" = None,
+        target_type: "list[type] | None" = None,
     ) -> "Iterator[Path[ResourceT]]":
         """Iterate over all paths for the bound model and its extensions.
 
@@ -460,6 +462,10 @@ class Path(_BoundToModels, _Expression, Generic[ResourceT]):
         :param uniqueness: Filter by Uniqueness annotation values (e.g., [Uniqueness.server]).
         :param returned: Filter by Returned annotation values (e.g., [Returned.always]).
         :param case_exact: Filter by CaseExact annotation values (e.g., [CaseExact.true]).
+        :param target_type: Only yield paths whose value is an instance of one of these
+            types (e.g., [Reference]). Unlike the other filters, it does not skip the
+            sub-attributes of a complex attribute: ``members.$ref`` is yielded even
+            though ``members`` is not a :class:`~scim2_models.Reference`.
         :yields: Path instances for each attribute matching the filters.
         """
         from ..annotations import CaseExact
@@ -492,6 +498,12 @@ class Path(_BoundToModels, _Expression, Generic[ResourceT]):
                 if values is not None
             )
 
+        def matches_target_type(target_model: type[BaseModel], field_name: str) -> bool:
+            if target_type is None:
+                return True
+            field_type = _unwrap_annotated(target_model.get_field_root_type(field_name))
+            return isclass(field_type) and issubclass(field_type, tuple(target_type))
+
         def iter_model_paths(
             target_model: type[Resource[Any] | Extension],
         ) -> "Iterator[Path[ResourceT]]":
@@ -514,7 +526,8 @@ class Path(_BoundToModels, _Expression, Generic[ResourceT]):
                 else:
                     urn = target_model._scim_name(field_name)
 
-                yield cls(urn)
+                if matches_target_type(target_model, field_name):
+                    yield cls(urn)
 
                 is_complex = (
                     field_type is not None
@@ -524,6 +537,8 @@ class Path(_BoundToModels, _Expression, Generic[ResourceT]):
                 if include_subattributes and is_complex:
                     for sub_field_name in field_type.model_fields:  # type: ignore[union-attr]
                         if not matches_filters(field_type, sub_field_name):  # type: ignore[arg-type]
+                            continue
+                        if not matches_target_type(field_type, sub_field_name):  # type: ignore[arg-type]
                             continue
                         sub_urn = f"{urn}.{field_type._scim_name(sub_field_name)}"  # type: ignore[union-attr]
                         yield cls(sub_urn)
