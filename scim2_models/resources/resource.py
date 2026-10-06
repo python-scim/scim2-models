@@ -19,6 +19,7 @@ from pydantic import SerializerFunctionWrapHandler
 from pydantic import ValidationInfo
 from pydantic import ValidatorFunctionWrapHandler
 from pydantic import WrapSerializer
+from pydantic import model_serializer
 from pydantic import model_validator
 from pydantic_core import PydanticCustomError
 
@@ -374,6 +375,28 @@ class Resource(ScimObject, Generic[AnyExtension]):
     def _model_schemas(self) -> list[str]:
         """List the base schema and the schemas of the declared extensions."""
         return super()._model_schemas() + list(self.get_extension_models())
+
+    @model_serializer(mode="wrap")
+    def _scim_serializer(
+        self, handler: SerializerFunctionWrapHandler, info: SerializationInfo
+    ) -> dict[str, Any]:
+        """Leave out of 'schemas' the extensions the dump does not carry.
+
+        Per RFC7643 §3, 'schemas' lists the schemas of the attributes present
+        in the representation.
+        """
+        serialized = super()._scim_serializer(handler, info)
+        if not info.context or not info.context.get("scim"):
+            return serialized
+        schemas = serialized.get("schemas")
+        if schemas is None:
+            return serialized
+        for extension_field in self.__scim_info__.extensions:
+            urn = self.__scim_info__.attribute_urns[extension_field]
+            key = urn if info.by_alias else extension_field
+            if key not in serialized and urn in schemas:
+                schemas.remove(urn)
+        return serialized
 
     @model_validator(mode="wrap")
     @classmethod

@@ -252,9 +252,9 @@ def test_dump_extension(mut_resource_extension):
 
 
 def test_dump_empty_extension(mut_resource_extension_empty):
-    """Test dumps with empty extension."""
+    """An empty extension is left out of the dump and of 'schemas'."""
     assert mut_resource_extension_empty.model_dump() == {
-        "schemas": ["urn:org:example:MutResource", "urn:org:extensions:MutExtension"],
+        "schemas": ["urn:org:example:MutResource"],
         "id": "id",
         "readOnly": "x",
         "readWrite": "x",
@@ -293,7 +293,7 @@ def test_dump_empty_extension(mut_resource_extension_empty):
     }
 
     assert mut_resource_extension_empty.model_dump(by_alias=False) == {
-        "schemas": ["urn:org:example:MutResource", "urn:org:extensions:MutExtension"],
+        "schemas": ["urn:org:example:MutResource"],
         "id": "id",
         "read_only": "x",
         "read_write": "x",

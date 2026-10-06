@@ -12,6 +12,9 @@ Changed
   PATCH values are still dumped when empty.
 - An empty array no longer satisfies a required attribute in creation and replacement requests,
   as RFC 7643 §2.5 makes it an unassigned value. A bulk request with no ``Operations`` is refused.
+- ``schemas`` lists only the extensions present in the dump. A PATCH that removes an extension schema
+  from ``schemas``, such as ``schemas[value eq "urn:…:enterprise:2.0:User"]``, removes the extension.
+  Before, the operation reported a change but the extension stayed.
 
 [0.10.6] - 2026-10-06
 ---------------------

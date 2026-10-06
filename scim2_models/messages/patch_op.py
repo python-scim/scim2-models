@@ -546,6 +546,10 @@ def _apply_operation(
         writes = list(_writes(path, operation.value, policy))
         touched = [path, *(write_path for write_path, _ in writes)]
 
+    listed = None
+    if _targets_schemas(resource, path):
+        listed = resource.schemas = _listed_schemas(resource)
+
     memo: dict[int, Any] = {}
     before = _snapshot(resource, touched, memo)
     try:
@@ -556,11 +560,51 @@ def _apply_operation(
             _write(resource, path, writes, is_add=operation.op == PatchOperation.Op.add)
     except ValidationError as exc:
         raise InvalidValueException(detail=str(exc)) from exc
+    if listed is not None:
+        _remove_unlisted_extensions(resource, listed)
     _settle(before, resource, memo)
     return not all(
         _same(getattr(before, name), getattr(resource, name))
         for name in type(resource).model_fields
     )
+
+
+def _targets_schemas(resource: Resource[Any], path: Path[Any]) -> bool:
+    """Whether a path reaches the 'schemas' attribute of the resource itself."""
+    binding = path.resolve()
+    return (
+        binding is not None
+        and binding.model is type(resource)
+        and binding.field_name == "schemas"
+    )
+
+
+def _listed_schemas(resource: Resource[Any]) -> list[str]:
+    """Return the schemas a dump of the resource lists.
+
+    Per RFC7644 §3.5.2, an operation on 'schemas' sees the representation of
+    the service provider: the schema of the resource, the schemas of its
+    extensions, and the other schemas a peer sent.
+    """
+    listed = [str(type(resource).__schema__)]
+    listed += [
+        urn
+        for urn, extension in type(resource).get_extension_models().items()
+        if resource[extension] is not None
+    ]
+    listed += [schema for schema in resource.schemas if schema not in listed]
+    return listed
+
+
+def _remove_unlisted_extensions(resource: Resource[Any], listed: list[str]) -> None:
+    """Remove the extensions whose schema an operation took out of 'schemas'.
+
+    Per RFC7643 §3, 'schemas' lists the schemas of the attributes present, so
+    the attributes of an extension leave with its schema.
+    """
+    for urn, extension in type(resource).get_extension_models().items():
+        if urn in listed and urn not in resource.schemas:
+            del resource[extension]
 
 
 def _write(

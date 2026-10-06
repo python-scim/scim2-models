@@ -1147,6 +1147,12 @@ def test_serialized_schemas_come_from_the_model():
 
     assert User[EnterpriseUser](user_name="foobar").model_dump()["schemas"] == [
         "urn:ietf:params:scim:schemas:core:2.0:User",
+    ]
+
+    user = User[EnterpriseUser](user_name="foobar")
+    user[EnterpriseUser] = EnterpriseUser(employee_number="1")
+    assert user.model_dump()["schemas"] == [
+        "urn:ietf:params:scim:schemas:core:2.0:User",
         "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User",
     ]
 

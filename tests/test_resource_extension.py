@@ -273,7 +273,6 @@ def test_multiple_extensions_union():
     assert instance.model_dump() == {
         "schemas": [
             "urn:ietf:params:scim:schemas:core:2.0:User",
-            "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User",
             "urn:example:extensions:2.0:SuperHero",
         ],
         "urn:example:extensions:2.0:SuperHero": {
@@ -300,10 +299,7 @@ def test_extensions_schemas():
             ]
         ),
     ) == {
-        "schemas": [
-            "urn:ietf:params:scim:schemas:core:2.0:User",
-            "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User",
-        ],
+        "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
         "userName": "foobar",
     }
 

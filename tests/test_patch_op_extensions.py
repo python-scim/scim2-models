@@ -1,3 +1,4 @@
+from typing import Annotated
 from typing import TypeVar
 
 import pytest
@@ -5,6 +6,8 @@ from pydantic import ValidationError
 
 from scim2_models import URN
 from scim2_models import Group
+from scim2_models import InvalidValueException
+from scim2_models import Mutability
 from scim2_models import MutabilityException
 from scim2_models import PatchOp
 from scim2_models import PatchOperation
@@ -12,6 +15,7 @@ from scim2_models import ScimPolicy
 from scim2_models import User
 from scim2_models.context import Context
 from scim2_models.resources.enterprise_user import EnterpriseUser
+from scim2_models.resources.resource import Extension
 from scim2_models.resources.resource import Resource
 
 
@@ -534,3 +538,94 @@ def test_a_qualified_key_cannot_unassign_a_required_attribute():
         )
 
     assert raised.value.errors()[0]["type"] == "scim_mutability"
+
+
+ENTERPRISE = "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"
+CORE = "urn:ietf:params:scim:schemas:core:2.0:User"
+
+
+def _enterprise_user_from_payload():
+    return User[EnterpriseUser].model_validate(
+        {
+            "schemas": [CORE, ENTERPRISE],
+            "userName": "bjensen",
+            ENTERPRISE: {"employeeNumber": "1"},
+        }
+    )
+
+
+def _enterprise_user_built_in_python():
+    user = User[EnterpriseUser](user_name="bjensen")
+    user[EnterpriseUser] = EnterpriseUser(employee_number="1")
+    return user
+
+
+@pytest.mark.parametrize(
+    "build", [_enterprise_user_from_payload, _enterprise_user_built_in_python]
+)
+@pytest.mark.parametrize(
+    "path", [f'schemas[value eq "{ENTERPRISE}"]', f'schemas eq "{ENTERPRISE}"']
+)
+def test_removing_an_extension_schema_removes_the_extension(build, path):
+    """Per RFC7643 §3, 'schemas' lists the schemas of the attributes present."""
+    user = build()
+    patch = PatchOp[User[EnterpriseUser]](
+        operations=[PatchOperation(op="remove", path=path)]
+    )
+    assert patch.patch(user) is True
+    assert user[EnterpriseUser] is None
+    assert user.model_dump()["schemas"] == [CORE]
+
+
+def test_replacing_schemas_without_an_extension_removes_the_extension():
+    """A replace that leaves an extension schema out removes the extension."""
+    user = _enterprise_user_from_payload()
+    patch = PatchOp[User[EnterpriseUser]](
+        operations=[PatchOperation(op="replace", path="schemas", value=[CORE])]
+    )
+    assert patch.patch(user) is True
+    assert user[EnterpriseUser] is None
+
+
+def test_removing_the_schema_of_an_absent_extension_changes_nothing():
+    """A resource without the extension does not list its schema."""
+    user = User[EnterpriseUser](user_name="bjensen")
+    patch = PatchOp[User[EnterpriseUser]](
+        operations=[
+            PatchOperation(op="remove", path=f'schemas[value eq "{ENTERPRISE}"]')
+        ]
+    )
+    assert patch.patch(user) is False
+
+
+def test_removing_the_schema_of_the_resource_is_refused():
+    """The resource keeps its own schema, and the failed patch changes nothing."""
+    user = _enterprise_user_from_payload()
+    patch = PatchOp[User[EnterpriseUser]](
+        operations=[PatchOperation(op="remove", path=f'schemas[value eq "{CORE}"]')]
+    )
+    with pytest.raises(InvalidValueException):
+        patch.patch(user)
+    assert user[EnterpriseUser].employee_number == "1"
+
+
+class BadgeExtension(Extension):
+    __schema__ = URN("urn:example:extensions:2.0:Badge")
+
+    badge: Annotated[str | None, Mutability.immutable] = None
+
+
+def test_removing_an_extension_schema_keeps_its_assigned_immutable_attributes():
+    """Removing an extension through 'schemas' follows the mutability rules of a remove."""
+    user = User[BadgeExtension](user_name="bjensen")
+    user[BadgeExtension] = BadgeExtension(badge="42")
+    patch = PatchOp[User[BadgeExtension]](
+        operations=[
+            PatchOperation(
+                op="remove", path='schemas[value eq "urn:example:extensions:2.0:Badge"]'
+            )
+        ]
+    )
+    with pytest.raises(MutabilityException):
+        patch.patch(user)
+    assert user[BadgeExtension].badge == "42"
