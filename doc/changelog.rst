@@ -8,6 +8,9 @@ Added
 ^^^^^
 - :meth:`Path.resolve <scim2_models.Path.resolve>` takes an optional model. It picks one type of a
   union, or resolves an unbound path.
+- :meth:`SearchRequest.sort_binding <scim2_models.SearchRequest.sort_binding>` returns the attribute
+  that :meth:`~scim2_models.SearchRequest.sort` orders by on a model, for backends that sort on their
+  own. It returns :data:`None` when the model cannot sort on it. ``emails`` binds as ``emails.value``.
 
 Fixed
 ^^^^^

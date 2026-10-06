@@ -639,6 +639,70 @@ def test_an_unparameterised_request_does_not_check_what_its_sort_by_designates()
     assert SearchRequest.model_validate({"sortBy": "name"}).sort_by
 
 
+def test_sort_binding_without_sort_by_is_none():
+    """There is nothing to sort on."""
+    assert SearchRequest().sort_binding(User) is None
+
+
+def test_sort_binding_resolves_against_the_model_passed():
+    """On a union, a backend sorting one resource type gets the attribute of that type."""
+    request = SearchRequest[User | Group](sort_by="displayName")
+    assert request.sort_binding(Group).model is Group
+    assert request.sort_binding(User).model is User
+
+
+def test_sort_binding_resolves_an_unparameterised_request():
+    """A request naming no resource type is resolved against the type the backend serves."""
+    binding = SearchRequest(sort_by="name.familyName").sort_binding(User)
+    assert binding.field_name == "name"
+    assert binding.sub_field_name == "family_name"
+
+
+@pytest.mark.parametrize("attribute", ["emails", "emails.value"])
+def test_sort_binding_binds_a_multivalued_complex_attribute_to_its_value(attribute):
+    """RFC7644 §3.4.2.3 sorts it "by the value of the primary attribute"."""
+    binding = SearchRequest(sort_by=attribute).sort_binding(User)
+    assert binding.field_name == "emails"
+    assert binding.is_multivalued
+    assert binding.sub_field_name == "value"
+    assert binding.urn == "urn:ietf:params:scim:schemas:core:2.0:User:emails.value"
+
+
+def test_sort_binding_keeps_a_multivalued_scalar_attribute():
+    """A scalar entry is the value itself, so there is no sub-attribute to bind."""
+    binding = SearchRequest(sort_by="schemas").sort_binding(User)
+    assert binding.field_name == "schemas"
+    assert binding.sub_field_name is None
+
+
+def test_sort_binding_binds_an_extension_attribute():
+    """The value of an extension is bound to the extension model declaring it."""
+    request = SearchRequest(
+        sort_by="urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:employeeNumber"
+    )
+    binding = request.sort_binding(User[EnterpriseUser])
+    assert binding.model is EnterpriseUser
+    assert binding.field_name == "employee_number"
+
+
+@pytest.mark.parametrize(
+    ("model", "attribute"),
+    [
+        (User, "nonexistent"),
+        (Group, "userName"),
+        (User, "name"),
+        (User, "password"),
+        (User, "x509Certificates"),
+        (Vault, "keys"),
+    ],
+)
+def test_sort_binding_is_none_when_the_model_cannot_sort_on_the_attribute(
+    model, attribute
+):
+    """The backend sorts those resources as having no value, as sort() does."""
+    assert SearchRequest(sort_by=attribute).sort_binding(model) is None
+
+
 def ids(resources):
     """Return the ids of the resources, in their order."""
     return [resource.id for resource in resources]
