@@ -4,6 +4,11 @@ Changelog
 [Unreleased]
 ------------
 
+Added
+^^^^^
+- :meth:`Path.resolve <scim2_models.Path.resolve>` takes an optional model. It picks one type of a
+  union, or resolves an unbound path.
+
 Fixed
 ^^^^^
 - :attr:`SearchRequest.start_index_0 <scim2_models.SearchRequest.start_index_0>` is ``0`` without

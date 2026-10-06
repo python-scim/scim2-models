@@ -1676,6 +1676,31 @@ def test_a_path_designating_a_model_rather_than_an_attribute_resolves_to_nothing
     assert Path[User]("name.familyName").model is None
 
 
+def test_a_union_path_resolves_against_the_model_passed():
+    """A transpiler working on one type of a union needs the attribute of that type."""
+    path = Path[User | Group]("displayName")
+    assert path.resolve(Group).model is Group
+    assert (
+        path.resolve(Group).urn
+        == "urn:ietf:params:scim:schemas:core:2.0:Group:displayName"
+    )
+    assert Path[User | Group]("userName").resolve(Group) is None
+
+
+def test_an_unbound_path_resolves_against_the_model_passed():
+    """A path parsed without a model can still be resolved once the type is known."""
+    resolved = Path("name.familyName").resolve(User)
+    assert resolved.model is User
+    assert resolved.sub_field_name == "family_name"
+
+
+def test_a_path_designating_the_model_passed_resolves_to_nothing():
+    """The resource root and a schema URN stay models whichever type they are resolved on."""
+    assert Path("").resolve(User) is None
+    extension_urn = "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"
+    assert Path(extension_urn).resolve(User[EnterpriseUser]) is None
+
+
 def test_an_unbound_or_unknown_path_resolves_to_nothing():
     assert Path("userName").resolve() is None
     assert Path[User]("nonexistent").resolve() is None
