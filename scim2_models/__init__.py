@@ -60,6 +60,7 @@ from .path import AttributeBinding
 from .path import Path
 from .path import ScimFilter
 from .policy import ScimPolicy
+from .policy import default_comparison_key
 from .provider import DescribedModel
 from .provider import ScimProvider
 from .provider import ScimProviderError
@@ -206,6 +207,7 @@ __all__ = [
     "UniquenessException",
     "User",
     "X509Certificate",
+    "default_comparison_key",
     "get_model_by_payload",
     "get_model_by_schema",
 ]

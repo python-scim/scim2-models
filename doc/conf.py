@@ -36,6 +36,7 @@ toctree_collapse = False
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
     "scim2_client": ("https://scim2-client.readthedocs.io/en/latest/", None),
+    "scim2_server": ("https://scim2-server.readthedocs.io/en/latest/", None),
     "scim2_tester": ("https://scim2-tester.readthedocs.io/en/latest/", None),
     "scim2_cli": ("https://scim2-cli.readthedocs.io/en/latest/", None),
     "pydantic": ("https://docs.pydantic.dev/latest/", None),

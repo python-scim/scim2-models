@@ -10,6 +10,7 @@ ends where an application resumes its own work, and assumes the :doc:`../overvie
    access-resource-values
    build-a-patch
    build-filters
+   compare-values
    define-custom-models
    describe-a-scim-service
    generate-models-from-schemas

@@ -1,7 +1,10 @@
 """How a peer's deviations from the specification are treated."""
 
+from collections.abc import Callable
 from enum import StrEnum
 from types import TracebackType
+from typing import Any
+from unicodedata import normalize
 
 from pydantic import BaseModel
 from pydantic import ConfigDict
@@ -14,6 +17,36 @@ _AMBIENT_POLICIES: _AmbientStack["ScimPolicy"] = _AmbientStack("scim2_models_pol
 """The policies of the blocks a call is running inside."""
 
 
+def default_comparison_key(binding: Any, value: str) -> str:
+    """Return the string that comparisons use in place of a value, by default.
+
+    The string is normalized to Normalization Form C (NFC), and mapped to
+    lowercase unless its attribute is ``caseExact``. This is the
+    ``UsernameCaseMapped`` profile of :rfc:`8265`, without its width mapping
+    and without the strings it refuses.
+
+    >>> from scim2_models import Path, User, default_comparison_key
+    >>> binding = Path[User]("userName").resolve()
+    >>> default_comparison_key(binding, "BJensen")
+    'bjensen'
+    >>> binding = Path[User]("externalId").resolve()
+    >>> default_comparison_key(binding, "BJensen")
+    'BJensen'
+
+    :param binding: The :class:`~scim2_models.AttributeBinding` of the
+        attribute the string is a value of.
+    :param value: The string to compare.
+    :returns: The string that comparisons use in place of the value.
+    """
+    normalized = normalize("NFC", value)
+    if binding.case_exact:
+        return normalized
+
+    # Mapping to lowercase does not preserve the normalization form, so NFC is
+    # applied to its result too, and every operand comes out in the same form.
+    return normalize("NFC", normalized.lower())
+
+
 class ScimPolicy(BaseModel):
     """What a service tolerates from the payloads it reads.
 
@@ -23,9 +56,13 @@ class ScimPolicy(BaseModel):
     on the wire, symmetric, and defined by the specification; the second is
     local, and nothing on the wire announces it.
 
-    Every setting defaults to the strict reading of the specification. A
-    tolerance that cannot confuse one payload with another, such as a PATCH
-    value key that is an attribute path, needs no setting.
+    A policy also says how attribute values are compared, which the
+    specification leaves to the service provider.
+
+    Every setting defaults to the strict reading of the specification, except
+    :attr:`comparison_key`. A tolerance that cannot confuse one payload with
+    another, such as a PATCH value key that is an attribute path, needs no
+    setting.
 
     >>> from scim2_models import ScimPolicy
     >>> ScimPolicy().unknown is ScimPolicy.Unknown.forbid
@@ -125,6 +162,27 @@ class ScimPolicy(BaseModel):
 
     unmatched_path_filter: UnmatchedPathFilter = UnmatchedPathFilter.forbid
     """What becomes of a PATCH operation whose path filter matches no entry."""
+
+    comparison_key: Callable[[Any, str], str] = default_comparison_key
+    """The function giving the string that comparisons use in place of a value.
+
+    Filters, sorting, uniqueness checks and the PATCH operations that look for
+    a value compare strings through it. The callable has two arguments:
+    the :class:`~scim2_models.AttributeBinding` of an attribute, and a
+    string value of that attribute. It returns the string that comparisons
+    use in place of the value.
+
+    It must be deterministic, free of side effects, and return its input
+    unchanged when given its own output: a storage may keep the form it
+    returns, and apply it again. It raises :exc:`ValueError` on a string it
+    cannot prepare. Such a string is equal to no other, and a request that
+    writes it is refused with ``invalidValue``.
+
+    The default, :func:`~scim2_models.default_comparison_key`, does not apply
+    the PRECIS rules :rfc:`RFC7644 §5 <7644#section-5>` requires for
+    ``userName`` and ``password``. It is the one setting whose default is not
+    the strict reading. :doc:`/how-to/compare-values` shows how to apply them.
+    """
 
     def __enter__(self) -> "ScimPolicy":
         """Make this policy the one every call in the block runs under."""

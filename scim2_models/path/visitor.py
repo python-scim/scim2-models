@@ -110,6 +110,9 @@ def _compare(
     filter over a heterogeneous collection stays usable. ``actual`` is read
     from the resource, ``expected`` is what the filter compares it against, and
     ``resolved`` is the attribute, which gives the form both are compared under.
+
+    A string the policy cannot prepare is equal to no other value, so only ne
+    holds against it.
     """
     if actual is None or expected is None:
         if op == CompareOperator.eq:
@@ -118,8 +121,11 @@ def _compare(
             return (actual is None) != (expected is None)
         return False
 
-    left = resolved.comparable(actual)
-    right = resolved.comparable(expected)
+    try:
+        left = resolved.comparable(actual)
+        right = resolved.comparable(expected)
+    except ValueError:
+        return op == CompareOperator.ne
 
     if op in (CompareOperator.co, CompareOperator.sw, CompareOperator.ew):
         if not isinstance(left, str) or not isinstance(right, str):

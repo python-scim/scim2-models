@@ -152,15 +152,11 @@ Comparing values of different types
     The :doc:`../integrations/sqlalchemy` guide shows where.
 
 Case-insensitive comparison
-    §3.4.2.2 defers to ``caseExact``. :rfc:`RFC7644 §7.8 <7644#section-7.8>` asks for strings
-    to be "appropriately prepared" before comparison, but only defines that preparation for
-    ``userName`` and ``password``: :rfc:`RFC7644 §5 <7644#section-5>` points to the PRECIS
-    rules of RFC 7613, since replaced by :rfc:`8265`.
-    :meth:`~scim2_models.ScimFilter.match` applies Unicode case folding to every string, on
-    strings normalized to Normalization Form C (NFC). So ``title eq "STRASSE"`` matches
-    ``"Straße"``. PRECIS maps case to lowercase instead, and the two do not match there. A
-    transpiler emitting SQL ``LOWER()`` folds ASCII only, and departs from
-    :meth:`~scim2_models.ScimFilter.match` on such a value.
+    §3.4.2.2 defers to ``caseExact``. :meth:`~scim2_models.ScimFilter.match` compares strings in
+    the form :attr:`~scim2_models.ScimPolicy.comparison_key` gives them: by default, normalized
+    to NFC and mapped to lowercase unless the attribute is ``caseExact``. A transpiler emitting
+    SQL ``LOWER()`` lowercases ASCII only on SQLite, and departs from
+    :meth:`~scim2_models.ScimFilter.match` on ``ÉLOÏSE``. :doc:`comparisons` explains the choice.
 
 Coercion of comparison values
     :func:`~scim2_models.path.coerce_value` reads a comparison value as JSON, then converts it

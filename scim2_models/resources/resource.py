@@ -37,6 +37,7 @@ from ..exceptions import InvalidValueException
 from ..path import Path
 from ..policy import ScimPolicy
 from ..policy import _policy
+from ..policy import default_comparison_key
 from ..scim_object import ScimObject
 from ..utils import UNION_TYPES
 
@@ -450,6 +451,18 @@ class Resource(ScimObject, Generic[AnyExtension]):
 
         return self
 
+    @model_validator(mode="after")
+    def _validate_comparison_forms(self, info: ValidationInfo) -> Self:
+        """Refuse the strings a request writes and the policy cannot compare."""
+        scim_ctx = info.context.get("scim") if info.context else None
+        if scim_ctx not in _WRITING_CONTEXTS:
+            return self
+        try:
+            _check_comparison_forms(self, _policy(info))
+        except InvalidValueException as exc:
+            raise exc.as_pydantic_error() from exc
+        return self
+
     @classmethod
     def to_schema(cls) -> "Schema":
         """Build a :class:`~scim2_models.Schema` from the current resource class."""
@@ -464,6 +477,43 @@ class Resource(ScimObject, Generic[AnyExtension]):
 
 
 AnyResource = TypeVar("AnyResource", bound="Resource[Any]")
+
+_WRITING_CONTEXTS = (
+    Context.RESOURCE_CREATION_REQUEST,
+    Context.RESOURCE_REPLACEMENT_REQUEST,
+    Context.BULK_REQUEST,
+)
+"""The contexts of the requests that write a whole resource."""
+
+
+def _check_comparison_forms(
+    resource: Resource[Any],
+    policy: ScimPolicy,
+    fields: set[tuple[type[BaseModel], str]] | None = None,
+) -> None:
+    """Refuse a resource holding a string the policy cannot compare.
+
+    Every string attribute is checked, or only the ones in ``fields``, given as
+    the model and the Python name of the field. The default comparison key
+    prepares every string, so the check is skipped under it.
+    """
+    if policy.comparison_key is default_comparison_key:
+        return
+
+    for path in Path[type(resource)].iter_paths(target_type=[str]):  # type: ignore[misc]
+        binding = path.resolve()
+        if fields is not None and (binding.model, binding.field_name) not in fields:
+            continue
+        values = path.get(resource, strict=False)
+        for value in values if isinstance(values, list) else [values]:
+            if not isinstance(value, str):
+                continue
+            try:
+                binding.comparable(value, policy)
+            except ValueError as exc:
+                raise InvalidValueException(
+                    detail=f"'{binding.urn}' holds a value that cannot be compared: {exc}"
+                ) from exc
 
 
 def _unordered(value: Any) -> Any:

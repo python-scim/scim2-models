@@ -49,6 +49,7 @@ from ..policy import ScimPolicy
 from ..policy import _effective_policy
 from ..policy import _policy
 from ..resources.resource import Resource
+from ..resources.resource import _check_comparison_forms
 from ..urn import URN
 from ..utils import UNION_TYPES
 from .message import Message
@@ -563,10 +564,26 @@ def _apply_operation(
     if listed is not None:
         _remove_unlisted_extensions(resource, listed)
     _settle(before, resource, memo)
+    _check_comparison_forms(resource, policy, _written_fields(writes))
     return not all(
         _same(getattr(before, name), getattr(resource, name))
         for name in type(resource).model_fields
     )
+
+
+def _written_fields(
+    writes: list[tuple[Path[Any], Any]],
+) -> set[tuple[type[BaseModel], str]]:
+    """Return the fields the writes of an operation assign, as models and Python names.
+
+    A write to a whole extension only ever unassigns it, so it assigns no field.
+    """
+    fields = set()
+    for path, _ in writes:
+        binding = path.resolve() if path.model is None else None
+        if binding is not None:
+            fields.add((binding.model, binding.field_name))
+    return fields
 
 
 def _targets_schemas(resource: Resource[Any], path: Path[Any]) -> bool:

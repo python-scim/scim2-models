@@ -1,6 +1,24 @@
 Changelog
 =========
 
+[0.12.0] - Unreleased
+---------------------
+
+Added
+^^^^^
+- :attr:`ScimPolicy.comparison_key <scim2_models.ScimPolicy.comparison_key>` decides the form
+  strings are compared under in filters, sorting and PATCH operations. It can apply the PRECIS
+  rules RFC 7644 §5 requires for ``userName`` and ``password``. A request that writes a string the
+  key refuses is rejected with ``invalidValue``.
+
+Changed
+^^^^^^^
+- Strings are mapped to lowercase instead of case folded, as PRECIS does. ``Straße`` no longer
+  matches ``STRASSE``.
+- A PATCH ``add`` no longer duplicates a value the attribute holds under another case or
+  normalization form, and a removal by value finds it. A case-exact sub-attribute still tells two
+  entries apart.
+
 [0.11.0] - 2026-10-06
 ---------------------
 
