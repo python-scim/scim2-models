@@ -3,7 +3,6 @@
 from typing import Any
 from typing import Generic
 from typing import TypeVar
-from unicodedata import normalize
 
 from ..base import BaseModel
 from .expressions import AttrPath
@@ -102,29 +101,15 @@ def _is_present(value: Any) -> bool:
     return True
 
 
-def _comparable(value: Any, case_exact: bool) -> Any:
-    """Reduce a value to the form comparisons are performed on."""
-    if not isinstance(value, str):
-        return value
-
-    normalized = normalize("NFC", value)
-    if case_exact:
-        return normalized
-
-    # Case folding does not preserve the normalization form, so NFC is applied
-    # to its result too, and every operand comes out in the same form.
-    return normalize("NFC", normalized.casefold())
-
-
 def _compare(
-    actual: Any, expected: Any, op: CompareOperator, *, case_exact: bool = False
+    actual: Any, expected: Any, op: CompareOperator, resolved: AttributeBinding
 ) -> bool:
     """Apply a comparison operator to a single pair of values.
 
     Values of incomparable types never match, rather than raising, so that a
     filter over a heterogeneous collection stays usable. ``actual`` is read
     from the resource, ``expected`` is what the filter compares it against, and
-    ``case_exact`` says whether strings compare case-sensitively.
+    ``resolved`` is the attribute, which gives the form both are compared under.
     """
     if actual is None or expected is None:
         if op == CompareOperator.eq:
@@ -133,8 +118,8 @@ def _compare(
             return (actual is None) != (expected is None)
         return False
 
-    left = _comparable(actual, case_exact)
-    right = _comparable(expected, case_exact)
+    left = resolved.comparable(actual)
+    right = resolved.comparable(expected)
 
     if op in (CompareOperator.co, CompareOperator.sw, CompareOperator.ew):
         if not isinstance(left, str) or not isinstance(right, str):
@@ -230,21 +215,15 @@ class _Evaluator(FilterVisitor[bool]):
         actual = self._read(resolved)
 
         if not isinstance(actual, list):
-            return _compare(actual, expected, node.op, case_exact=resolved.case_exact)
+            return _compare(actual, expected, node.op, resolved)
 
         # A filter on a multi-valued attribute matches if any of its values
         # matches. The RFC does not say what that means for "ne", so the
         # universal reading is used: no value equals the operand.
         if node.op == CompareOperator.ne:
-            return all(
-                _compare(item, expected, node.op, case_exact=resolved.case_exact)
-                for item in actual
-            )
+            return all(_compare(item, expected, node.op, resolved) for item in actual)
 
-        return any(
-            _compare(item, expected, node.op, case_exact=resolved.case_exact)
-            for item in actual
-        )
+        return any(_compare(item, expected, node.op, resolved) for item in actual)
 
     def visit_present(self, node: Present) -> bool:
         resolved = self._resolve(node.attr_path)
@@ -300,7 +279,7 @@ class _Evaluator(FilterVisitor[bool]):
                 type(item), item, strict=self.strict, urn_prefix=resolved.urn
             ).visit(val_filter)
 
-        return _ScalarEvaluator(item, case_exact=resolved.case_exact).visit(val_filter)
+        return _ScalarEvaluator(item, resolved).visit(val_filter)
 
 
 class _ScalarEvaluator(FilterVisitor[bool]):
@@ -313,9 +292,9 @@ class _ScalarEvaluator(FilterVisitor[bool]):
     attribute name cannot match.
     """
 
-    def __init__(self, value: Any, *, case_exact: bool = False):
+    def __init__(self, value: Any, resolved: AttributeBinding):
         self.value = value
-        self.case_exact = case_exact
+        self.resolved = resolved
 
     def _targets_self(self, node: Comparison | Present) -> bool:
         return node.attr_path.attr.lower() == "value" and not node.attr_path.sub_attr
@@ -323,7 +302,7 @@ class _ScalarEvaluator(FilterVisitor[bool]):
     def visit_comparison(self, node: Comparison) -> bool:
         if not self._targets_self(node):
             return False
-        return _compare(self.value, node.value, node.op, case_exact=self.case_exact)
+        return _compare(self.value, node.value, node.op, self.resolved)
 
     def visit_present(self, node: Present) -> bool:
         return self._targets_self(node) and _is_present(self.value)

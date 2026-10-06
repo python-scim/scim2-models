@@ -1886,3 +1886,28 @@ def test_iter_paths_keeps_results_of_different_models_apart():
         in extended
     )
     assert not any(path.startswith("urn:") for path in plain)
+
+
+def test_comparable_folds_the_case_of_a_case_insensitive_string():
+    """A case-insensitive string is compared without its case."""
+    binding = Path[User]("userName").resolve()
+    assert binding.comparable("BJensen") == "bjensen"
+
+
+def test_comparable_keeps_the_case_of_a_case_exact_string():
+    """A case-exact string keeps its case."""
+    binding = Path[User]("externalId").resolve()
+    assert binding.comparable("BJensen") == "BJensen"
+
+
+@pytest.mark.parametrize("attribute", ["userName", "externalId"])
+def test_comparable_gives_composed_and_decomposed_strings_the_same_form(attribute):
+    """Strings are normalized to NFC, whatever their case sensitivity."""
+    binding = Path[User](attribute).resolve()
+    assert binding.comparable("Jos\u00e9") == binding.comparable("Jose\u0301")
+
+
+def test_comparable_leaves_other_values_unchanged():
+    """Only strings have a comparison form of their own."""
+    binding = Path[User]("active").resolve()
+    assert binding.comparable(True) is True

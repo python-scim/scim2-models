@@ -6,6 +6,7 @@ from inspect import isclass
 from typing import Any
 from typing import cast
 from typing import get_args
+from unicodedata import normalize
 
 from pydantic import TypeAdapter
 from pydantic import ValidationError
@@ -128,6 +129,33 @@ class AttributeBinding:
         if model is None:
             return None
         return model.get_field_annotation(self.target_field_name, annotation_type)
+
+    def comparable(self, value: Any) -> Any:
+        """Return the form a value of the attribute is compared under.
+
+        Filters, sorting and uniqueness checks compare values in this form, so
+        a storage that keeps it can compare as :meth:`~scim2_models.ScimFilter.match`
+        does. Strings are normalized to NFC, and case folded unless the attribute
+        is ``caseExact``. Other values are returned unchanged.
+
+        >>> from scim2_models import Path, User
+        >>> binding = Path[User]("userName").resolve()
+        >>> binding.comparable("BJensen")
+        'bjensen'
+
+        :param value: A value of the attribute.
+        :returns: The value in the form it is compared under.
+        """
+        if not isinstance(value, str):
+            return value
+
+        normalized = normalize("NFC", value)
+        if self.case_exact:
+            return normalized
+
+        # Case folding does not preserve the normalization form, so NFC is
+        # applied to its result too, and every operand comes out in the same form.
+        return normalize("NFC", normalized.casefold())
 
     def _nested_in(self, urn: str) -> "AttributeBinding":
         """Return the same attribute, qualified by the URN it was resolved under.

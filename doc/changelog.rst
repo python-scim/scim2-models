@@ -9,6 +9,10 @@ Added
 - Filters accept a compared sub-attribute after a value selection, as Microsoft Entra ID sends
   it: ``emails[type eq "work"].value eq "x"`` reads as
   ``emails[type eq "work" and value eq "x"]``.
+- :meth:`AttributeBinding.comparable <scim2_models.AttributeBinding.comparable>` returns the form
+  a value is compared under: NFC, and case folded unless the attribute is ``caseExact``. A storage
+  can keep this form to filter, sort and check uniqueness as :meth:`~scim2_models.ScimFilter.match`
+  does.
 
 Changed
 ^^^^^^^
@@ -21,6 +25,11 @@ Changed
 - ``schemas`` lists only the extensions present in the dump. A PATCH that removes an extension schema
   from ``schemas``, such as ``schemas[value eq "urn:…:enterprise:2.0:User"]``, removes the extension.
   Before, the operation reported a change but the extension stayed.
+
+Fixed
+^^^^^
+- :meth:`SearchRequest.sort <scim2_models.SearchRequest.sort>` normalizes strings to NFC, as filters
+  do. A composed and a decomposed ``José`` now sort together.
 
 [0.10.6] - 2026-10-06
 ---------------------

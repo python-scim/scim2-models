@@ -731,6 +731,20 @@ def test_sort_ignores_the_case_of_a_case_insensitive_string():
     ]
 
 
+def test_sort_places_composed_and_decomposed_strings_together():
+    """Sorting compares strings in the form filters do, normalized to NFC."""
+    users = [
+        User(id="composed", user_name="\u00c9mile"),
+        User(id="fabrice", user_name="Fabrice"),
+        User(id="decomposed", user_name="E\u0301mile"),
+    ]
+    assert ids(SearchRequest[User](sort_by="userName").sort(users)) == [
+        "fabrice",
+        "composed",
+        "decomposed",
+    ]
+
+
 def test_sort_follows_the_case_of_a_case_exact_string():
     """RFC7644 §3.4.2.3 sorts a case-exact string with its case, upper case first."""
     users = [

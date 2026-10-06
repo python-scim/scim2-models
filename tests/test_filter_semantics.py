@@ -537,9 +537,11 @@ def test_comparison_matches_a_canonically_equivalent_operand():
 
 def test_a_case_exact_comparison_matches_a_canonically_equivalent_operand():
     """Case exactness constrains the casing, not the normalization form."""
-    assert _compare(COMPOSED, DECOMPOSED, CompareOperator.eq, case_exact=True)
-    assert not _compare(
-        COMPOSED.upper(), DECOMPOSED, CompareOperator.eq, case_exact=True
+    assert ScimFilter[User](f'externalId eq "{DECOMPOSED}"').match(
+        User(external_id=COMPOSED)
+    )
+    assert not ScimFilter[User](f'externalId eq "{DECOMPOSED}"').match(
+        User(external_id=COMPOSED.upper())
     )
 
 
@@ -947,7 +949,11 @@ def test_presence_of_a_value(value, expected):
 )
 def test_comparing_two_values(actual, expected_value, operator, expected):
     """Incomparable values never match rather than raising."""
-    assert _compare(actual, expected_value, CompareOperator(operator)) is expected
+    resolved = Path[User]("displayName").resolve()
+    assert (
+        _compare(actual, expected_value, CompareOperator(operator), resolved)
+        is expected
+    )
 
 
 def test_a_visitor_must_implement_every_node_type():

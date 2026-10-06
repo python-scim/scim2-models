@@ -75,9 +75,7 @@ def _sort_value(resource: Any, binding: AttributeBinding | None) -> Any:
         value = getattr(value, binding.sub_field_name, None)
     # "String type attributes are case insensitive by default, unless the
     # attribute type is defined as a case-exact string", RFC7644 §3.4.2.3.
-    if isinstance(value, str) and not binding.case_exact:
-        return value.casefold()
-    return value
+    return binding.comparable(value)
 
 
 class SearchRequest(Message, ResponseParameters[ResourceT], Generic[ResourceT]):
