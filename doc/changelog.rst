@@ -1,6 +1,15 @@
 Changelog
 =========
 
+[Unreleased]
+------------
+
+Fixed
+^^^^^
+- :attr:`SearchRequest.start_index_0 <scim2_models.SearchRequest.start_index_0>` is ``0`` without
+  ``startIndex``, and :attr:`SearchRequest.stop_index_0 <scim2_models.SearchRequest.stop_index_0>`
+  follows ``count`` without ``startIndex``. Both stay :data:`None` with a ``cursor``.
+
 [0.10.3] - 2026-10-03
 ---------------------
 

@@ -299,14 +299,23 @@ class SearchRequest(Message, ResponseParameters[ResourceT], Generic[ResourceT]):
 
     @property
     def start_index_0(self) -> int | None:
-        """The 0 indexed start index."""
-        return self.start_index - 1 if self.start_index is not None else None
+        """The 0 indexed start index.
+
+        Without :attr:`start_index`, it is 0, as :rfc:`RFC7644 §3.4.2.4
+        <7644#section-3.4.2.4>` defaults ``startIndex`` to 1. It is :data:`None`
+        when a :attr:`cursor` paginates the results instead.
+        """
+        if self.cursor is not None:
+            return None
+        return (self.start_index or 1) - 1
 
     @property
     def stop_index_0(self) -> int | None:
-        """The 0 indexed stop index."""
-        return (
-            self.start_index_0 + self.count
-            if self.start_index_0 is not None and self.count is not None
-            else None
-        )
+        """The 0 indexed stop index, so ``results[start_index_0:stop_index_0]`` is the page.
+
+        It is :data:`None` when :attr:`count` is not set, or when a
+        :attr:`cursor` paginates the results instead.
+        """
+        if self.start_index_0 is None or self.count is None:
+            return None
+        return self.start_index_0 + self.count

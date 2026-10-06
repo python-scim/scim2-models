@@ -95,8 +95,24 @@ def test_pagination_does_not_default_if_cursor():
     req = SearchRequest(count=10, cursor="")
     assert not req.start_index
     assert req.cursor == ""
-    assert not req.start_index_0
-    assert not req.stop_index_0
+    assert req.start_index_0 is None
+    assert req.stop_index_0 is None
+
+
+def test_index_0_properties_default_start_index_to_1():
+    """RFC7644 §3.4.2.4 defaults startIndex to 1, so count still bounds the page."""
+    req = SearchRequest(count=2)
+    assert req.start_index_0 == 0
+    assert req.stop_index_0 == 2
+    assert list(range(5))[req.start_index_0 : req.stop_index_0] == [0, 1]
+
+
+def test_index_0_properties_without_count_leave_the_page_open():
+    """Without count, the page runs to the end of the results."""
+    req = SearchRequest(start_index=3)
+    assert req.start_index_0 == 2
+    assert req.stop_index_0 is None
+    assert SearchRequest().start_index_0 == 0
 
 
 def test_search_request_valid_attributes():
