@@ -3,7 +3,16 @@ from typing import Annotated
 import pytest
 
 from scim2_models import URN
+from scim2_models import Email
+from scim2_models import EnterpriseUser
+from scim2_models import ListResponse
+from scim2_models import Manager
+from scim2_models import Name
+from scim2_models import PatchOp
+from scim2_models import PatchOperation
+from scim2_models import PhoneNumber
 from scim2_models import ResponseParameters
+from scim2_models import ScimPolicy
 from scim2_models import SearchRequest
 from scim2_models import User
 from scim2_models.annotations import Mutability
@@ -715,3 +724,93 @@ def test_response_parameters_reach_the_json_dump():
     )
     assert "displayName" not in dumped
     assert '"userName":"bjensen"' in dumped
+
+
+def test_dump_omits_an_empty_complex_attribute():
+    """A complex attribute with no sub-attribute holds no value."""
+    user = User(user_name="bjensen", name=Name())
+    assert "name" not in user.model_dump()
+
+
+def test_dump_omits_an_empty_multi_valued_attribute():
+    """RFC7643 §2.5 makes an empty array equivalent to an unassigned attribute."""
+    user = User(user_name="bjensen", emails=[])
+    assert "emails" not in user.model_dump()
+
+
+def test_dump_omits_the_empty_entries_of_a_multi_valued_attribute():
+    """An entry with no sub-attribute holds no value."""
+    user = User(
+        user_name="bjensen", phone_numbers=[PhoneNumber(), PhoneNumber(value="555")]
+    )
+    assert user.model_dump()["phoneNumbers"] == [{"value": "555"}]
+
+
+def test_dump_omits_a_multi_valued_attribute_of_empty_entries():
+    """A list whose entries are all empty is an empty array."""
+    user = User(user_name="bjensen", phone_numbers=[PhoneNumber()])
+    assert "phoneNumbers" not in user.model_dump()
+
+
+def test_dump_omits_a_complex_attribute_the_projection_empties():
+    """Requesting a sub-attribute with no value does not return its parent empty."""
+    user = User(id="id", user_name="bjensen", name=Name(given_name="Barbara"))
+    dumped = user.model_dump(
+        scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
+        response_parameters=ResponseParameters(attributes=["name.familyName"]),
+    )
+    assert "name" not in dumped
+
+
+def test_dump_omits_an_extension_holding_an_empty_complex_attribute():
+    """An extension whose only attribute is empty holds no value."""
+    user = User[EnterpriseUser](user_name="bjensen")
+    user[EnterpriseUser] = EnterpriseUser(manager=Manager())
+    assert str(EnterpriseUser.__schema__) not in user.model_dump()
+
+
+def test_dump_keeps_the_empty_values_of_a_message():
+    """Message attributes are not resource attributes, and are dumped even when empty."""
+    response = ListResponse[User](resources=[], total_results=0)
+    assert response.model_dump()["Resources"] == []
+
+
+def test_dump_keeps_the_empty_values_of_a_patch_operation():
+    """In a PATCH value, an empty array clears its target."""
+    patch = PatchOp[User](
+        operations=[
+            PatchOperation(op="replace", value=User(emails=[])),
+            PatchOperation(op="replace", path="name", value=Name()),
+        ]
+    )
+    operations = patch.model_dump()["Operations"]
+    assert operations[0]["value"]["emails"] == []
+    assert operations[1]["value"] == {}
+
+
+def test_patch_value_built_from_a_model_keeps_its_empty_values():
+    """A replace with a model holding an empty array clears the attribute."""
+    user = User(user_name="bjensen", emails=[Email(value="bjensen@example.com")])
+    patch = PatchOp[User](
+        operations=[PatchOperation(op="replace", value=User(emails=[]))]
+    )
+    patch.patch(user)
+    assert not user.emails
+
+
+def test_dump_keeps_empty_unknown_attributes():
+    """Unknown attributes are dumped back as the peer spelled them."""
+    keep = ScimPolicy(unknown=ScimPolicy.Unknown.keep)
+    user = User.model_validate(
+        {"schemas": [str(User.__schema__)], "userName": "bjensen", "custom": []},
+        scim_policy=keep,
+    )
+    assert user.model_dump(scim_policy=keep)["custom"] == []
+
+
+def test_dump_without_scim_context_keeps_empty_values():
+    """Without a SCIM context, the dump is the plain pydantic one."""
+    user = User(user_name="bjensen", name=Name(), emails=[])
+    dumped = user.model_dump(scim_ctx=None)
+    assert dumped["emails"] == []
+    assert dumped["name"] is not None

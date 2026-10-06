@@ -1,5 +1,7 @@
 from collections.abc import Iterator
 from collections.abc import Mapping
+from contextlib import contextmanager
+from contextvars import ContextVar
 from inspect import isclass
 from types import MappingProxyType
 from typing import TYPE_CHECKING
@@ -46,6 +48,22 @@ if TYPE_CHECKING:
     from scim2_models.messages.response_parameters import ResponseParameters
     from scim2_models.provider import ScimProvider
     from scim2_models.resources.service_provider_config import ServiceProviderConfig
+
+
+_KEEP_EMPTY_VALUES: ContextVar[bool] = ContextVar("keep_empty_values", default=False)
+
+
+@contextmanager
+def _keeping_empty_values() -> Iterator[None]:
+    """Dump the empty values met in the block, instead of omitting them.
+
+    In a PATCH value, an empty array clears its target, so it must be sent.
+    """
+    token = _KEEP_EMPTY_VALUES.set(True)
+    try:
+        yield
+    finally:
+        _KEEP_EMPTY_VALUES.reset(token)
 
 
 def _short_attr_path(urn: str) -> str:
@@ -851,7 +869,26 @@ class BaseModel(PydanticBaseModel):
                 # Must be request
                 self._scim_request_serializer(serialized, scim_ctx)
 
+        if not _KEEP_EMPTY_VALUES.get():
+            self._drop_empty_values(serialized)
+
         return self._restore_unknown_attributes(serialized, info)
+
+    def _drop_empty_values(self, serialized: dict[str, Any]) -> None:
+        """Omit the attributes holding no value.
+
+        Per RFC7643 §2.5, an empty array is equivalent to an unassigned
+        attribute. A complex attribute with no sub-attribute holds no value
+        either, and neither does an empty entry of a multi-valued attribute.
+        The 'schemas' attribute is always dumped, as RFC7643 §3 requires it.
+        """
+        for key, value in list(serialized.items()):
+            if key == "schemas":
+                continue
+            if isinstance(value, list):
+                value = serialized[key] = [item for item in value if item != {}]
+            if value == [] or value == {}:
+                del serialized[key]
 
     def _restore_unknown_attributes(
         self, serialized: dict[str, Any], info: SerializationInfo

@@ -28,6 +28,7 @@ from ..annotations import Mutability
 from ..annotations import Required
 from ..attributes import ComplexAttribute
 from ..base import BaseModel
+from ..base import _keeping_empty_values
 from ..context import Context
 from ..exceptions import InvalidPathException
 from ..exceptions import InvalidValueException
@@ -127,12 +128,13 @@ class PatchOperation(ComplexAttribute, Generic[ResourceT]):
     def _scim_serializer(
         self, handler: SerializerFunctionWrapHandler, info: SerializationInfo
     ) -> dict[str, Any]:
-        """Keep a null value the operation was given.
+        """Keep a null or empty value the operation was given.
 
-        SCIM dumps drop null values, so a replace that clears its target would
-        be sent without a value.
+        SCIM dumps drop null and empty values, so a replace that clears its
+        target would be sent without a value.
         """
-        serialized = super()._scim_serializer(handler, info)
+        with _keeping_empty_values():
+            serialized = super()._scim_serializer(handler, info)
         if (
             self.op != PatchOperation.Op.remove
             and "value" in self.model_fields_set
@@ -388,9 +390,10 @@ def _is_model(type_: Any) -> TypeGuard[type[BaseModel]]:
 
 def _as_payload(value: Any) -> Any:
     """Return the payload a value built in Python would be sent as."""
-    if isinstance(value, BaseModel):
+    if not isinstance(value, BaseModel):
+        return value
+    with _keeping_empty_values():
         return value.model_dump(scim_ctx=Context.DEFAULT)
-    return value
 
 
 def _dropped(path: Path[Any], policy: ScimPolicy) -> bool:

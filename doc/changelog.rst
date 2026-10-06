@@ -1,6 +1,16 @@
 Changelog
 =========
 
+[0.11.0] - Unreleased
+---------------------
+
+Changed
+^^^^^^^
+- SCIM dumps omit empty complex attributes, empty arrays, and empty entries of multi-valued
+  attributes, as unassigned values. A PATCH that removes the last sub-attribute of ``name``, or a
+  projection that selects none of them, no longer returns ``"name": {}``. Message attributes and
+  PATCH values are still dumped when empty.
+
 [0.10.6] - 2026-10-06
 ---------------------
 

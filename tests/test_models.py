@@ -118,12 +118,21 @@ def sample_context(sample: str) -> Context:
     return Context.RESOURCE_QUERY_RESPONSE
 
 
+def without_empty_arrays(payload: dict) -> dict:
+    """Return a payload without its empty arrays, which dumps omit."""
+    return {
+        key: without_empty_arrays(value) if isinstance(value, dict) else value
+        for key, value in payload.items()
+        if value != []
+    }
+
+
 @pytest.mark.parametrize("sample", DECIDABLE_SAMPLES)
 def test_parse_and_serialize_examples(sample, load_sample):
-    """Examples are serialized back as they were read."""
+    """Examples are serialized back as they were read, empty arrays aside."""
     payload = load_sample(sample)
     obj = sample_model(sample).model_validate(payload)
-    assert obj.model_dump(exclude_unset=True) == payload
+    assert obj.model_dump(exclude_unset=True) == without_empty_arrays(payload)
 
 
 @pytest.mark.parametrize("sample", DECIDABLE_SAMPLES)

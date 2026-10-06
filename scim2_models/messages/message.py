@@ -30,6 +30,9 @@ class Message(ScimObject):
     ) -> None:
         """Message fields are not subject to attribute filtering."""
 
+    def _drop_empty_values(self, serialized: dict[str, Any]) -> None:
+        """Message fields are dumped even when empty."""
+
 
 def _create_schema_discriminator(
     resource_types_schemas: list[str],

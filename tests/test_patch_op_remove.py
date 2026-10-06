@@ -4,6 +4,7 @@ from pydantic import ValidationError
 from scim2_models import Group
 from scim2_models import GroupMember
 from scim2_models import InvalidValueException
+from scim2_models import Name
 from scim2_models import NoTargetException
 from scim2_models import PatchOp
 from scim2_models import PatchOperation
@@ -212,3 +213,13 @@ def test_remove_selecting_nothing_reports_no_change():
     )
     assert patch.patch(group) is False
     assert [member.value for member in group.members] == ["bob"]
+
+
+def test_removing_the_last_sub_attribute_omits_the_complex_attribute():
+    """A complex attribute emptied by a remove is dumped as unassigned."""
+    user = User(user_name="bjensen", name=Name(given_name="Barbara"))
+    patch = PatchOp[User](
+        operations=[PatchOperation(op="remove", path="name.givenName")]
+    )
+    patch.patch(user)
+    assert "name" not in user.model_dump()
