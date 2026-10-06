@@ -1854,3 +1854,35 @@ def test_delete_from_list_a_value_described_by_a_mapping():
     )
     assert Path("emails").delete(user, {"value": "john@example.com"}) is True
     assert [email.value for email in user.emails] == ["john@work.com"]
+
+
+def test_iter_paths_returns_the_same_paths_on_repeated_calls():
+    """A second identical call yields the paths computed by the first one."""
+    first = list(Path[Group].iter_paths(target_type=[Reference]))
+    second = list(Path[Group].iter_paths(target_type=[Reference]))
+    assert first == second == ["members.$ref"]
+    assert all(a is b for a, b in zip(first, second, strict=True))
+
+
+def test_iter_paths_keeps_results_of_different_filters_apart():
+    """Calls with different filters on one model do not share their paths."""
+    references = list(Path[Group].iter_paths(target_type=[Reference]))
+    read_write = list(Path[Group].iter_paths(mutability=[Mutability.read_write]))
+    every_path = list(Path[Group].iter_paths())
+    assert references == ["members.$ref"]
+    assert read_write == ["externalId", "displayName", "members", "members.display"]
+    assert "displayName" in every_path
+    assert list(Path[Group].iter_paths(include_subattributes=False)) == [
+        path for path in every_path if "." not in path
+    ]
+
+
+def test_iter_paths_keeps_results_of_different_models_apart():
+    """A resource and the same resource with an extension do not share their paths."""
+    plain = list(Path[User].iter_paths(target_type=[Reference]))
+    extended = list(Path[User[EnterpriseUser]].iter_paths(target_type=[Reference]))
+    assert (
+        "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:manager.$ref"
+        in extended
+    )
+    assert not any(path.startswith("urn:") for path in plain)

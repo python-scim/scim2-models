@@ -43,6 +43,8 @@ from .resolution import _unwrap_annotated
 
 ResourceT = TypeVar("ResourceT", bound="Resource[Any]")
 
+_ITERATED_PATHS = "__scim_iterated_paths__"
+
 
 def _node_attr_path(node: PathNode) -> AttrPath:
     """Return the attribute path a parsed path node applies to."""
@@ -468,6 +470,58 @@ class Path(_BoundToModels, _Expression, Generic[ResourceT]):
             though ``members`` is not a :class:`~scim2_models.Reference`.
         :yields: Path instances for each attribute matching the filters.
         """
+        if len(cls.__scim_models__) != 1:
+            raise TypeError(
+                "iter_paths requires a Path bound to one model: Path[Model]"
+            )
+        model = cls.__scim_models__[0]
+
+        filters = (required, mutability, uniqueness, returned, case_exact, target_type)
+        key = (
+            cls,
+            include_subattributes,
+            include_extensions,
+            *(None if values is None else tuple(values) for values in filters),
+        )
+
+        # The cache is held by the model, like the one of _resolve_attr_path,
+        # so that it does not keep alive the models built by from_schema.
+        cache: dict[tuple[Any, ...], tuple[Path[ResourceT], ...]] | None
+        cache = model.__dict__.get(_ITERATED_PATHS)
+        if cache is None:
+            cache = {}
+            setattr(model, _ITERATED_PATHS, cache)
+
+        if key not in cache:
+            cache[key] = tuple(
+                cls._walk_paths(
+                    model,
+                    include_subattributes,
+                    include_extensions,
+                    required,
+                    mutability,
+                    uniqueness,
+                    returned,
+                    case_exact,
+                    target_type,
+                )
+            )
+        yield from cache[key]
+
+    @classmethod
+    def _walk_paths(
+        cls,
+        model: type[BaseModel],
+        include_subattributes: bool,
+        include_extensions: bool,
+        required: "list[Required] | None",
+        mutability: "list[Mutability] | None",
+        uniqueness: "list[Uniqueness] | None",
+        returned: "list[Returned] | None",
+        case_exact: "list[CaseExact] | None",
+        target_type: "list[type] | None",
+    ) -> "Iterator[Path[ResourceT]]":
+        """Walk the attributes of a model and its extensions, as iter_paths does."""
         from ..annotations import CaseExact
         from ..annotations import Mutability
         from ..annotations import Required
@@ -476,12 +530,6 @@ class Path(_BoundToModels, _Expression, Generic[ResourceT]):
         from ..attributes import ComplexAttribute
         from ..resources.resource import Extension
         from ..resources.resource import Resource
-
-        if len(cls.__scim_models__) != 1:
-            raise TypeError(
-                "iter_paths requires a Path bound to one model: Path[Model]"
-            )
-        model = cls.__scim_models__[0]
 
         selected = (
             (required, Required),
