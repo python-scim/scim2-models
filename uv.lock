@@ -12,12 +12,12 @@ exclude-newer = "0001-01-01T00:00:00Z" # This has no effect and is included for 
 exclude-newer-span = "P14D"
 
 [options.exclude-newer-package]
-scim2-server = false
-scim2-models = false
+pytest-scim2-server = false
 scim2-cli = false
 scim2-client = false
+scim2-models = false
+scim2-server = false
 scim2-tester = false
-pytest-scim2-server = false
 
 [[package]]
 name = "alabaster"
@@ -1271,7 +1271,7 @@ wheels = [
 
 [[package]]
 name = "scim2-models"
-version = "0.10.3"
+version = "0.10.4"
 source = { editable = "." }
 dependencies = [
     { name = "lark" },
