@@ -26,6 +26,7 @@ from doc.integrations._examples.sqlalchemy_example import query_users  # noqa: E
 from doc.integrations._examples.sqlalchemy_example import to_scim_user  # noqa: E402
 from scim2_models import BulkRequest  # noqa: E402
 from scim2_models import Context  # noqa: E402
+from scim2_models import Group  # noqa: E402
 from scim2_models import InvalidPathException  # noqa: E402
 from scim2_models import ScimFilter  # noqa: E402
 from scim2_models import SearchRequest  # noqa: E402
@@ -829,10 +830,23 @@ def test_sqlalchemy_rejects_sorting_on_an_unreachable_attribute(
         query_users(sqlalchemy_session, SearchRequest[User](sort_by=attribute))
 
 
-def test_sqlalchemy_rejects_a_request_that_named_no_resource_type(sqlalchemy_session):
-    """The query orders by a resolved attribute, which an unparameterised request has none of."""
+@pytest.mark.parametrize("request_type", [SearchRequest, SearchRequest[User | Group]])
+def test_sqlalchemy_sorts_a_request_bound_to_any_type_as_users(
+    sqlalchemy_session, request_type
+):
+    """The table stores users, so the sortBy is resolved against User whatever the request names."""
+    expected = query_users(sqlalchemy_session, SearchRequest[User](sort_by="userName"))
+    total, page = query_users(sqlalchemy_session, request_type(sort_by="userName"))
+    assert (total, page) == expected
+
+
+@pytest.mark.parametrize("sort_by", ["password", "name", "nonexistent"])
+def test_sqlalchemy_rejects_an_attribute_users_cannot_be_sorted_on(
+    sqlalchemy_session, sort_by
+):
+    """An unparameterised request is not validated, so the query refuses the order itself."""
     with pytest.raises(InvalidPathException):
-        query_users(sqlalchemy_session, SearchRequest(sort_by="userName"))
+        query_users(sqlalchemy_session, SearchRequest(sort_by=sort_by))
 
 
 USER_SCHEMA = "urn:ietf:params:scim:schemas:core:2.0:User"

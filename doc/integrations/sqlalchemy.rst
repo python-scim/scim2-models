@@ -121,10 +121,13 @@ The test on the case reads the SCIM type and not the Python one: ``emails.value`
 Sorting
 -------
 
-:attr:`SearchRequest.sort_by <scim2_models.SearchRequest.sort_by>` is a
-:class:`~scim2_models.Path`, already resolved against the model on a parameterized request. On a
-union, it resolves against the first resource type declaring the attribute. ``sort_expression``
-looks the path up in the same table of columns as the filter does. A sub-attribute is filed under
+:meth:`SearchRequest.sort_binding <scim2_models.SearchRequest.sort_binding>` binds
+:attr:`~scim2_models.SearchRequest.sort_by` to an attribute of the model passed. Here the model is
+:class:`~scim2_models.User`, the type the table stores, so a request bound to a union or to no
+type at all sorts the same way. The method returns :data:`None` when users cannot be sorted on the
+attribute: unknown, complex, binary or write-only. A multi-valued complex attribute is bound to
+its ``value`` sub-attribute, so ``emails`` sorts as ``emails.value``. ``sort_expression`` looks
+the binding up in the same table of columns as the filter does. A sub-attribute is filed under
 the attribute holding it, so ``meta.lastModified`` is found at ``("meta", "last_modified")``. The
 remaining step turns the column into an ``ORDER BY`` term, and
 :rfc:`RFC7644 §3.4.2.3 <7644#section-3.4.2.3>` sets order rules that a bare ``ORDER BY column``

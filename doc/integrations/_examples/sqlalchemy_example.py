@@ -300,18 +300,18 @@ class SqlAlchemyVisitor(FilterVisitor):
 
 
 # -- sort-start --
-def sort_expression(sort_by, sort_order=None):
-    """Return the ``ORDER BY`` term a ``sortBy`` parameter names.
+def sort_expression(search_request):
+    """Return the ``ORDER BY`` term of the ``sortBy`` of a search request.
 
     A sub-attribute is looked up under the attribute holding it, the way the
     filter does: ``meta.lastModified`` is stored in ``("meta", "last_modified")``.
 
-    :param sort_by: The ``sortBy`` query parameter.
-    :param sort_order: The ``sortOrder`` query parameter, ascending by default.
-    :raises InvalidPathException: If the attribute is unknown, or is stored in
-        a table an ``ORDER BY`` over users cannot reach.
+    :param search_request: The query, with its ``sortBy`` and ``sortOrder``.
+    :raises InvalidPathException: If users cannot be sorted on the attribute,
+        or if it is stored in a table an ``ORDER BY`` over users cannot reach.
     """
-    resolved = sort_by.resolve()
+    sort_by = search_request.sort_by
+    resolved = search_request.sort_binding(User)
     relationship_, column = None, None
     if resolved is not None:
         relationship_, column = COLUMNS.get(
@@ -329,7 +329,7 @@ def sort_expression(sort_by, sort_order=None):
     # the sortOrder parameter, i.e., they are ordered last if ascending and
     # first if descending", which is the default of PostgreSQL and not of the
     # engines taking NULL for the smallest value.
-    if sort_order == SearchRequest.SortOrder.descending:
+    if search_request.sort_order == SearchRequest.SortOrder.descending:
         return nulls_first(column.desc())
     return nulls_last(column.asc())
 
@@ -361,9 +361,7 @@ def query_users(session, search_request):
 
     order_by = []
     if search_request.sort_by:
-        order_by.append(
-            sort_expression(search_request.sort_by, search_request.sort_order)
-        )
+        order_by.append(sort_expression(search_request))
     # A page is a slice of an ordered result. Rows sharing a sort key, or a
     # query with no sortBy at all, leave OFFSET free to return one row twice
     # and another never, so the primary key always closes the order.
