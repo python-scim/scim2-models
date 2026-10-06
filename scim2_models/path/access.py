@@ -15,6 +15,8 @@ from ..exceptions import PathNotFoundException
 from ..utils import UNION_TYPES
 from ..utils import _find_field_name
 from .filter import _validate_value_filter
+from .resolution import AttributeBinding
+from .resolution import _bind
 from .resolution import _designated_model
 from .resolution import _resolve_attr_path
 from .resolution import _target_model
@@ -64,9 +66,44 @@ def _as_entry(model: type[BaseModel], field_name: str, value: Any) -> Any:
     return value
 
 
-def _value_in_list(current_list: list[Any], new_value: Any) -> bool:
-    """Check if a value exists in a list, handling BaseModel comparison."""
-    return any(_values_match(item, new_value) for item in current_list)
+class _SameValue:
+    """Tell whether two values of a multi-valued attribute are the same value.
+
+    Strings are compared in the form the policy gives them, as a filter
+    compares them. The entries of a complex attribute are compared one
+    sub-attribute at a time. The bindings are built once, and serve every pair
+    of values compared.
+    """
+
+    def __init__(self, model: type[BaseModel], field_name: str):
+        self.model = model
+        self.field_name = field_name
+        self.bindings: dict[str | None, AttributeBinding] = {}
+
+    def __call__(self, value1: Any, value2: Any) -> bool:
+        if isinstance(value1, BaseModel) and type(value1) is type(value2):
+            return all(
+                self.same_string(name, getattr(value1, name), getattr(value2, name))
+                for name in type(value1).model_fields
+            )
+        return self.same_string(None, value1, value2)
+
+    def same_string(self, sub_field_name: str | None, value1: Any, value2: Any) -> bool:
+        """Whether two values are equal, strings compared in the form the policy gives them.
+
+        A string the policy cannot prepare is equal to no other value.
+        """
+        if not (isinstance(value1, str) and isinstance(value2, str)):
+            return _values_match(value1, value2)
+        if sub_field_name not in self.bindings:
+            self.bindings[sub_field_name] = _bind(
+                self.model, self.field_name, sub_field_name
+            )
+        binding = self.bindings[sub_field_name]
+        try:
+            return bool(binding.comparable(value1) == binding.comparable(value2))
+        except ValueError:
+            return False
 
 
 def _require_field(model: type[BaseModel], name: str, path: str) -> str:
@@ -412,7 +449,10 @@ def _set_field_value(obj: BaseModel, field_name: str, value: Any, is_add: bool) 
             _as_entry(type(obj), field_name, item)
             for item in (value if isinstance(value, list) else [value])
         ]
-        new_values = [e for e in entries if not _value_in_list(current_list, e)]
+        same = _SameValue(type(obj), field_name)
+        new_values = [
+            e for e in entries if not any(same(item, e) for item in current_list)
+        ]
         if not new_values:
             return False
         setattr(obj, field_name, current_list + new_values)
@@ -462,7 +502,8 @@ def _delete_field_value(
     if not isinstance(current_value, list):
         return False
 
-    new_list = [item for item in current_value if not _values_match(item, value)]
+    same = _SameValue(type(obj), field_name)
+    new_list = [item for item in current_value if not same(item, value)]
     if len(new_list) == len(current_value):
         return False
 

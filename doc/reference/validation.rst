@@ -7,6 +7,8 @@ operation accepts or returns.
 .. autoclass:: scim2_models.ScimPolicy
    :members:
 
+.. autofunction:: scim2_models.default_comparison_key
+
 .. autoclass:: scim2_models.Context
    :members:
 

@@ -8,6 +8,7 @@ written to be read away from the keyboard, rather than consulted while completin
 .. toctree::
    :maxdepth: 1
 
+   comparisons
    filters
    patch
    policies

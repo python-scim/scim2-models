@@ -173,9 +173,9 @@ The example refuses what a complete transpiler has to handle:
   not equal to anything.
 - **The string operators**, which ``LIKE`` implements once the ``%`` and ``_`` in the value are
   escaped. Otherwise ``title co "100%"`` also selects ``"1000 Files"``.
-- **The case**, which ``LOWER()`` folds over ASCII only, where
-  :meth:`ScimFilter.match <scim2_models.ScimFilter.match>` folds all of Unicode.
-  :ref:`filter-open-choices` describes the difference.
+- **The case**, which ``LOWER()`` lowercases over ASCII only on SQLite, where
+  :meth:`ScimFilter.match <scim2_models.ScimFilter.match>` lowercases all of Unicode and
+  normalizes to NFC. :doc:`../explanation/comparisons` describes the difference.
 
 Each of these mistakes produces valid SQL that answers a different question than the filter
 asked. :meth:`ScimFilter.match <scim2_models.ScimFilter.match>` walks the same tree through the
@@ -222,7 +222,7 @@ Where to go next
 
 The transpiler now answers filters over single-valued attributes, and its answers match the
 evaluator. It still refuses multi-valued attributes, value selections, ``ne``, the string
-operators and Unicode case folding. The :doc:`sqlalchemy` guide handles each of them on SQLAlchemy expressions, and runs every filter of
+operators and Unicode case mapping. The :doc:`sqlalchemy` guide handles each of them on SQLAlchemy expressions, and runs every filter of
 its test list through both the query and the evaluator.
 
 A search request also carries a ``sortBy`` parameter.

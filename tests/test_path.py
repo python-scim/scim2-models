@@ -1888,7 +1888,7 @@ def test_iter_paths_keeps_results_of_different_models_apart():
     assert not any(path.startswith("urn:") for path in plain)
 
 
-def test_comparable_folds_the_case_of_a_case_insensitive_string():
+def test_comparable_lowercases_a_case_insensitive_string():
     """A case-insensitive string is compared without its case."""
     binding = Path[User]("userName").resolve()
     assert binding.comparable("BJensen") == "bjensen"

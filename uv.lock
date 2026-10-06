@@ -1,5 +1,5 @@
 version = 1
-revision = 5
+revision = 3
 requires-python = ">=3.11"
 resolution-markers = [
     "python_full_version >= '3.15'",
@@ -1033,6 +1033,15 @@ wheels = [
 ]
 
 [[package]]
+name = "precis-i18n"
+version = "1.1.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/2f/b4/93612c7764d17ff421b2e56a16a14359ee389b9756a7311dc01f6e87f8a3/precis_i18n-1.1.2.tar.gz", hash = "sha256:78ef37bff7a8f8374aa65040aac1cedcd60bf97bf4a8113ee713cf72300517b9", size = 69687, upload-time = "2025-10-13T21:02:16.889Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c3/9b/b68be6845faedb6fa33c4ffda7741467a8e8aabff82c6a941a0ba2785c3d/precis_i18n-1.1.2-py3-none-any.whl", hash = "sha256:8e6cce33bdd8cb6289b9e85cdd7be74c30a1111cadb9d759492349c8c10b0840", size = 27797, upload-time = "2025-10-13T21:02:15.053Z" },
+]
+
+[[package]]
 name = "prek"
 version = "0.5.3"
 source = { registry = "https://pypi.org/simple" }
@@ -1286,6 +1295,7 @@ dev = [
     { name = "flask" },
     { name = "httpx2" },
     { name = "mypy" },
+    { name = "precis-i18n" },
     { name = "prek" },
     { name = "pytest" },
     { name = "pytest-cov" },
@@ -1294,6 +1304,7 @@ dev = [
     { name = "tox-uv" },
 ]
 doc = [
+    { name = "precis-i18n" },
     { name = "shibuya" },
     { name = "sphinx", version = "9.0.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
     { name = "sphinx", version = "9.1.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
@@ -1315,6 +1326,7 @@ dev = [
     { name = "flask", specifier = ">=3.0.0" },
     { name = "httpx2", specifier = ">=2.12" },
     { name = "mypy", specifier = ">=1.13.0" },
+    { name = "precis-i18n", specifier = ">=1.1.2" },
     { name = "prek", specifier = ">=0.1.0" },
     { name = "pytest", specifier = ">=8.2.1" },
     { name = "pytest-cov", specifier = ">=6.0.0" },
@@ -1323,6 +1335,7 @@ dev = [
     { name = "tox-uv", specifier = ">=1.16.0" },
 ]
 doc = [
+    { name = "precis-i18n", specifier = ">=1.1.2" },
     { name = "shibuya", specifier = ">=2024.5.15" },
     { name = "sphinx", specifier = ">=7.3.7" },
     { name = "sphinx-issues", specifier = ">=5.0.0" },

@@ -148,9 +148,12 @@ The case is the decision the ``WHERE`` clause already makes, from the same annot
 orders with the ``BINARY`` collation, where every uppercase letter precedes every lowercase one,
 so ``RSanchez`` would sort ahead of ``bjensen`` instead of behind ``mgarcia``. ``lower()`` costs
 the plain index on the column, and a functional index on ``lower(column)`` gives it back. The
-``lower()`` of SQLite folds ASCII only, where :meth:`str.casefold` folds everything, so the two
-disagree on ``ÉLOÏSE``. PostgreSQL folds by the collation of the column, and a case-insensitive
-International Components for Unicode (ICU) collation comes closest to the rule.
+``lower()`` of SQLite lowercases ASCII only, where
+:attr:`~scim2_models.ScimPolicy.comparison_key` lowercases everything, so the two disagree on
+``ÉLOÏSE``. PostgreSQL lowercases by the collation of the column. With a UTF-8 locale,
+``normalize(lower(normalize(column)))`` comes close to the default key, but ``İ`` and the final
+sigma still differ. :doc:`../explanation/comparisons`
+describes what a storage has to reproduce.
 
 PostgreSQL places missing values as the RFC asks by default, ``NULLS LAST`` ascending and
 ``NULLS FIRST`` descending. SQLite and MySQL take ``NULL`` for the smallest value instead, which

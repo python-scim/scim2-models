@@ -516,17 +516,20 @@ def test_the_common_attributes_rfc7643_declares_case_exact_are(attribute, user):
     assert not ScimFilter[User](f'{attribute} eq "abc"').match(user)
 
 
-def test_case_insensitive_comparison_folds_a_letter_expanding_to_two():
-    """Case folding expands the sharp s to a double s, where lowercasing does not."""
+def test_case_insensitive_comparison_does_not_expand_the_sharp_s():
+    """Lowercasing keeps the sharp s, as the case mapping of RFC 8265 does."""
     user = User(display_name="Stra\N{LATIN SMALL LETTER SHARP S}e")
-    assert ScimFilter[User]('displayName eq "STRASSE"').match(user)
+    assert not ScimFilter[User]('displayName eq "STRASSE"').match(user)
+    assert ScimFilter[User](
+        'displayName eq "STRA\N{LATIN SMALL LETTER SHARP S}E"'
+    ).match(user)
 
 
-def test_case_insensitive_comparison_folds_the_greek_final_sigma():
-    """A final and a medial sigma are the same letter and fold to the same value."""
+def test_case_insensitive_comparison_lowercases_a_final_capital_sigma_to_its_final_form():
+    """Unicode lowercasing turns a capital sigma ending a word into the final sigma."""
     user = User(display_name="\u039f\u0394\u039f\u03a3")
-    assert ScimFilter[User]('displayName eq "\u03bf\u03b4\u03bf\u03c3"').match(user)
     assert ScimFilter[User]('displayName eq "\u03bf\u03b4\u03bf\u03c2"').match(user)
+    assert not ScimFilter[User]('displayName eq "\u03bf\u03b4\u03bf\u03c3"').match(user)
 
 
 def test_comparison_matches_a_canonically_equivalent_operand():
