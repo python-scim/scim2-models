@@ -669,13 +669,19 @@ class BaseModel(PydanticBaseModel):
             self.__dict__[field_name] = None
 
     def _check_necessity(self, field_name: str, value: Any) -> None:
-        """Check that the required attributes are present in creations and replacement requests."""
-        necessity = self.__class__.get_field_annotation(field_name, Required)
+        """Check that the required attributes are present in creations and replacement requests.
 
-        if necessity == Required.true and value is None:
+        Per RFC7643 §2.5, an empty array is an unassigned value, so it does not
+        satisfy a required attribute. The 'schemas' attribute is empty when a
+        payload omits it, which is tolerated.
+        """
+        necessity = self.__class__.get_field_annotation(field_name, Required)
+        empty = value == [] and field_name != "schemas"
+
+        if necessity == Required.true and (value is None or empty):
             raise PydanticCustomError(
                 "required_error",
-                "Field '{field_name}' is required but value is missing or null",
+                "Field '{field_name}' is required but value is missing, null or empty",
                 {
                     "field_name": self._scim_name(field_name),
                 },

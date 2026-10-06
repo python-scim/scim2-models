@@ -41,6 +41,12 @@ class ReqResource(Resource):
     optional: Annotated[str | None, Required.false] = None
 
 
+class ReqListResource(Resource):
+    __schema__ = URN("urn:example:ReqListResource")
+
+    required: Annotated[list[str] | None, Required.true] = None
+
+
 def test_validate_bulkId_not_in_resource_id():
     """Test that a response carrying the reserved keyword "bulkId" in a resource id is rejected.
 
@@ -999,7 +1005,7 @@ def test_validate_creation_and_replacement_request_necessity(context):
 
     with pytest.raises(
         ValidationError,
-        match="Field 'required' is required but value is missing or null",
+        match="Field 'required' is required but value is missing, null or empty",
     ):
         ReqResource.model_validate(
             {
@@ -1228,9 +1234,46 @@ def test_required_error_names_the_attribute_as_scim_spells_it():
     """A missing required attribute is reported under its SCIM name, not its Python name."""
     with pytest.raises(
         ValidationError,
-        match="Field 'userName' is required but value is missing or null",
+        match="Field 'userName' is required but value is missing, null or empty",
     ):
         User.model_validate(
             {"schemas": [User.__schema__]},
             scim_ctx=Context.RESOURCE_CREATION_REQUEST,
         )
+
+
+@pytest.mark.parametrize(
+    "context",
+    [
+        Context.RESOURCE_CREATION_REQUEST,
+        Context.RESOURCE_REPLACEMENT_REQUEST,
+    ],
+)
+def test_required_attribute_given_an_empty_array_is_refused(context):
+    """Per RFC7643 §2.5, an empty array is an unassigned value."""
+    with pytest.raises(
+        ValidationError,
+        match="Field 'required' is required but value is missing, null or empty",
+    ):
+        ReqListResource.model_validate(
+            {"schemas": ["urn:example:ReqListResource"], "required": []},
+            scim_ctx=context,
+        )
+
+
+def test_required_attribute_given_values_is_accepted():
+    """A required multi-valued attribute with values satisfies the requirement."""
+    resource = ReqListResource.model_validate(
+        {"schemas": ["urn:example:ReqListResource"], "required": ["x"]},
+        scim_ctx=Context.RESOURCE_CREATION_REQUEST,
+    )
+    assert resource.required == ["x"]
+
+
+def test_required_attribute_given_an_empty_array_is_accepted_in_a_response():
+    """Necessity is only checked in creation and replacement requests."""
+    resource = ReqListResource.model_validate(
+        {"id": "id", "schemas": ["urn:example:ReqListResource"], "required": []},
+        scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
+    )
+    assert resource.required == []

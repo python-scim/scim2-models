@@ -867,3 +867,12 @@ def test_the_target_of_an_operation_is_read_from_its_path(path, endpoint, resour
     operation = BulkOperation[User](path=path)
     assert operation.endpoint == endpoint
     assert operation.resource_id == resource_id
+
+
+def test_a_bulk_request_without_operations_is_refused():
+    """Operations is required, and an empty array is an unassigned value."""
+    with pytest.raises(ValidationError, match="Operations"):
+        BulkRequest[User].model_validate(
+            {"schemas": [str(BulkRequest.__schema__)], "Operations": []},
+            scim_ctx=Context.BULK_REQUEST,
+        )

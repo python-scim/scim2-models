@@ -10,6 +10,8 @@ Changed
   attributes, as unassigned values. A PATCH that removes the last sub-attribute of ``name``, or a
   projection that selects none of them, no longer returns ``"name": {}``. Message attributes and
   PATCH values are still dumped when empty.
+- An empty array no longer satisfies a required attribute in creation and replacement requests,
+  as RFC 7643 §2.5 makes it an unassigned value. A bulk request with no ``Operations`` is refused.
 
 [0.10.6] - 2026-10-06
 ---------------------
