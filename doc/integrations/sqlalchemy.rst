@@ -12,6 +12,9 @@ SQLAlchemy 2.0 and later, installed with ``pip install sqlalchemy``. It covers
 :class:`~scim2_models.User` only, and stops at querying: creation, patching and deletion are
 ordinary ORM work that SCIM does not weigh on.
 
+For a ready-made storage that serves SQLAlchemy models with scim2-server, read
+`scim2-sqlalchemy <https://scim2-sqlalchemy.readthedocs.io>`_ instead.
+
 What changes is where the filter is applied. The other guides map every stored record to a SCIM
 resource and keep the ones :meth:`ScimFilter.match <scim2_models.ScimFilter.match>` accepts,
 which reads the whole store on every request. Here the filter becomes a ``WHERE`` clause, and

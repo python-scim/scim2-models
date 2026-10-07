@@ -107,6 +107,11 @@ NAV_LINKS = [
                 "url": "https://scim2-fastapi.readthedocs.io",
                 "summary": "Painless SCIM integration for FastAPI",
             },
+            {
+                "title": "scim2-sqlalchemy",
+                "url": "https://scim2-sqlalchemy.readthedocs.io",
+                "summary": "Painless SCIM integration for SQLAlchemy",
+            },
         ],
     },
 ]
