@@ -1,6 +1,15 @@
 Changelog
 =========
 
+[0.13.0] - Unreleased
+---------------------
+
+Added
+^^^^^
+- :meth:`Path.iter_paths <scim2_models.Path.iter_paths>` takes ``attributes`` and
+  ``excluded_attributes``, and then only yields the paths a response keeps. A storage can skip
+  loading the other ones.
+
 [0.12.0] - 2026-10-06
 ---------------------
 

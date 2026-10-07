@@ -133,6 +133,28 @@ def _is_attribute_requested(requested_attrs: list[str], current_urn: str) -> boo
     return any(_attr_matches(req, current_urn) for req in requested_attrs)
 
 
+def _is_returned(
+    returnability: Returned | None,
+    urn: str,
+    included_attrs: list[str],
+    excluded_attrs: list[str],
+) -> bool:
+    """Tell whether a response keeps an attribute, judged at its own level only.
+
+    A sub-attribute is also removed when its parent is: the caller checks each
+    level of the path.
+    """
+    if returnability == Returned.never:
+        return False
+    if returnability == Returned.default:
+        if included_attrs and not _is_attribute_requested(included_attrs, urn):
+            return False
+        return not _exact_attr_match(excluded_attrs, urn)
+    if returnability == Returned.request:
+        return _exact_attr_match(included_attrs, urn)
+    return True
+
+
 class _SCIMClassInfo(NamedTuple):
     """SCIM metadata for BaseModel."""
 
@@ -955,18 +977,8 @@ class BaseModel(PydanticBaseModel):
             returnability = self.get_field_annotation(field_name, Returned)
             attribute_urn = self._get_attribute_urn(field_name)
 
-            if returnability == Returned.never:
-                del serialized[alias]
-            elif returnability == Returned.default and (
-                (
-                    included_attrs
-                    and not _is_attribute_requested(included_attrs, attribute_urn)
-                )
-                or _exact_attr_match(excluded_attrs, attribute_urn)
-            ):
-                del serialized[alias]
-            elif returnability == Returned.request and not _exact_attr_match(
-                included_attrs, attribute_urn
+            if not _is_returned(
+                returnability, attribute_urn, included_attrs, excluded_attrs
             ):
                 del serialized[alias]
 

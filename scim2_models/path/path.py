@@ -9,6 +9,7 @@ from typing import Generic
 from typing import TypeVar
 
 from ..base import BaseModel
+from ..base import _is_returned
 from ..urn import URN
 from .access import _delete_value
 from .access import _get_value
@@ -42,6 +43,8 @@ from .resolution import _resolve_attr_path
 from .resolution import _unwrap_annotated
 
 ResourceT = TypeVar("ResourceT", bound="Resource[Any]")
+
+_Levels = tuple[tuple["Returned | None", str], ...]
 
 _ITERATED_PATHS = "__scim_iterated_paths__"
 
@@ -452,6 +455,8 @@ class Path(_BoundToModels, _Expression, Generic[ResourceT]):
         returned: "list[Returned] | None" = None,
         case_exact: "list[CaseExact] | None" = None,
         target_type: "list[type] | None" = None,
+        attributes: "list[Path[Any]] | None" = None,
+        excluded_attributes: "list[Path[Any]] | None" = None,
     ) -> "Iterator[Path[ResourceT]]":
         """Iterate over all paths for the bound model and its extensions.
 
@@ -468,6 +473,17 @@ class Path(_BoundToModels, _Expression, Generic[ResourceT]):
             types (e.g., [Reference]). Unlike the other filters, it does not skip the
             sub-attributes of a complex attribute: ``members.$ref`` is yielded even
             though ``members`` is not a :class:`~scim2_models.Reference`.
+        :param attributes: Only yield the paths a response keeps when a client
+            sends these ``attributes`` (:rfc:`RFC7644 §3.9 <7644#section-3.9>`).
+            Unlike *returned*, it applies the request on top of the
+            :class:`~scim2_models.Returned` annotations. An attribute is kept when
+            only some of its sub-attributes are requested.
+        :param excluded_attributes: Only yield the paths a response keeps when a
+            client sends these ``excludedAttributes``. An attribute is kept when
+            only some of its sub-attributes are excluded. Without both
+            *attributes* and *excluded_attributes*, the
+            :class:`~scim2_models.Returned` annotations filter nothing. Pass an
+            empty list to get the default response.
         :yields: Path instances for each attribute matching the filters.
         """
         if len(cls.__scim_models__) != 1:
@@ -486,7 +502,7 @@ class Path(_BoundToModels, _Expression, Generic[ResourceT]):
 
         # The cache is held by the model, like the one of _resolve_attr_path,
         # so that it does not keep alive the models built by from_schema.
-        cache: dict[tuple[Any, ...], tuple[Path[ResourceT], ...]] | None
+        cache: dict[tuple[Any, ...], tuple[tuple[Path[ResourceT], _Levels], ...]] | None
         cache = model.__dict__.get(_ITERATED_PATHS)
         if cache is None:
             cache = {}
@@ -506,7 +522,21 @@ class Path(_BoundToModels, _Expression, Generic[ResourceT]):
                     target_type,
                 )
             )
-        yield from cache[key]
+
+        if attributes is None and excluded_attributes is None:
+            for path, _ in cache[key]:
+                yield path
+            return
+
+        # The parameters come from the client, so they stay out of the cache key.
+        included = [str(path) for path in attributes or ()]
+        excluded = [str(path) for path in excluded_attributes or ()]
+        for path, levels in cache[key]:
+            if all(
+                _is_returned(returnability, urn, included, excluded)
+                for returnability, urn in levels
+            ):
+                yield path
 
     @classmethod
     def _walk_paths(
@@ -520,8 +550,12 @@ class Path(_BoundToModels, _Expression, Generic[ResourceT]):
         returned: "list[Returned] | None",
         case_exact: "list[CaseExact] | None",
         target_type: "list[type] | None",
-    ) -> "Iterator[Path[ResourceT]]":
-        """Walk the attributes of a model and its extensions, as iter_paths does."""
+    ) -> "Iterator[tuple[Path[ResourceT], _Levels]]":
+        """Walk the attributes of a model and its extensions, as iter_paths does.
+
+        Each path comes with the returnability and the URN of each level it
+        goes through, from the extension down to the sub-attribute.
+        """
         from ..annotations import CaseExact
         from ..annotations import Mutability
         from ..annotations import Required
@@ -554,7 +588,8 @@ class Path(_BoundToModels, _Expression, Generic[ResourceT]):
 
         def iter_model_paths(
             target_model: type[Resource[Any] | Extension],
-        ) -> "Iterator[Path[ResourceT]]":
+            parents: _Levels = (),
+        ) -> "Iterator[tuple[Path[ResourceT], _Levels]]":
             for field_name in target_model.model_fields:
                 if field_name in ("meta", "id", "schemas"):
                     continue
@@ -574,8 +609,13 @@ class Path(_BoundToModels, _Expression, Generic[ResourceT]):
                 else:
                     urn = target_model._scim_name(field_name)
 
+                full_urn = target_model.__scim_info__.attribute_urns[field_name]
+                levels = (
+                    *parents,
+                    (target_model.get_field_annotation(field_name, Returned), full_urn),
+                )
                 if matches_target_type(target_model, field_name):
-                    yield cls(urn)
+                    yield cls(urn), levels
 
                 is_complex = (
                     field_type is not None
@@ -588,11 +628,21 @@ class Path(_BoundToModels, _Expression, Generic[ResourceT]):
                             continue
                         if not matches_target_type(field_type, sub_field_name):  # type: ignore[arg-type]
                             continue
-                        sub_urn = f"{urn}.{field_type._scim_name(sub_field_name)}"  # type: ignore[union-attr]
-                        yield cls(sub_urn)
+                        sub_name = field_type._scim_name(sub_field_name)  # type: ignore[union-attr]
+                        sub_level = (
+                            field_type.get_field_annotation(sub_field_name, Returned),  # type: ignore[union-attr]
+                            f"{full_urn}.{sub_name}",
+                        )
+                        yield cls(f"{urn}.{sub_name}"), (*levels, sub_level)
 
         yield from iter_model_paths(model)  # type: ignore[arg-type]
 
         if include_extensions and isclass(model) and issubclass(model, Resource):
-            for extension_model in model.get_extension_models().values():
-                yield from iter_model_paths(extension_model)
+            field_names = {
+                urn: name for name, urn in model.__scim_info__.attribute_urns.items()
+            }
+            for schema, extension_model in model.get_extension_models().items():
+                returnability = model.get_field_annotation(
+                    field_names[schema], Returned
+                )
+                yield from iter_model_paths(extension_model, ((returnability, schema),))
