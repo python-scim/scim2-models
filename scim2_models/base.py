@@ -90,10 +90,8 @@ def _attr_matches(requested: str, current_urn: str) -> bool:
         current_lower = current_urn.lower()
         return (
             current_lower == req_lower
-            or req_lower.startswith(current_lower + ":")
-            or req_lower.startswith(current_lower + ".")
-            or current_lower.startswith(req_lower + ".")
-            or current_lower.startswith(req_lower + ":")
+            or req_lower.startswith((current_lower + ":", current_lower + "."))
+            or current_lower.startswith((req_lower + ".", req_lower + ":"))
         )
 
     current_short = _short_attr_path(current_urn).lower()

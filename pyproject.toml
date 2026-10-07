@@ -92,8 +92,11 @@ select = [
     "B", # flake8-bugbear
     "D", # pydocstyle
     "E", # pycodestyle
+    "FURB", # refurb
     "F", # pyflakes
     "I", # isort
+    "PERF", # perflint
+    "PIE", # flake8-pie
     "UP", # pyupgrade
 ]
 ignore = [
