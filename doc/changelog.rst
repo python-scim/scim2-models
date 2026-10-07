@@ -10,6 +10,11 @@ Added
   ``excluded_attributes``, and then only yields the paths a response keeps. A storage can skip
   loading the other ones.
 
+Fixed
+^^^^^
+- A complex attribute returned on request is kept when ``attributes`` holds one of its
+  sub-attributes, as for an attribute returned by default.
+
 [0.12.0] - 2026-10-06
 ---------------------
 

@@ -3,8 +3,10 @@ from typing import Annotated
 import pytest
 
 from scim2_models import URN
+from scim2_models import Context
 from scim2_models import EnterpriseUser
 from scim2_models import Path
+from scim2_models import ResponseParameters
 from scim2_models import Returned
 from scim2_models import User
 from scim2_models.attributes import ComplexAttribute
@@ -103,15 +105,32 @@ def test_returns_checks_each_level(parameters, path, expected):
     assert returns(Report, path, **parameters) is expected
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="a request attribute is only kept when requested by its exact name",
+@pytest.mark.parametrize(
+    "requested",
+    [
+        "requestDetail.defaultReturned",
+        "REQUESTDETAIL.DEFAULTRETURNED",
+        "urn:org:example:Report:requestDetail.defaultReturned",
+    ],
 )
-def test_requesting_a_sub_attribute_keeps_its_request_parent():
-    """Requesting requestDetail.defaultReturned should keep requestDetail, as for a default attribute."""
-    assert returns(
-        Report, "requestDetail", attributes=["requestDetail.defaultReturned"]
+def test_requesting_a_sub_attribute_keeps_its_request_parent(requested):
+    """A request attribute is requested through one of its sub-attributes too."""
+    assert returns(Report, "requestDetail", attributes=[requested])
+    assert not returns(Report, "requestReturned", attributes=[requested])
+
+
+def test_the_response_keeps_a_request_parent_of_a_requested_sub_attribute():
+    """The serializer applies the same rule as iter_paths."""
+    report = Report(id="1", request_detail=Detail(default_returned="x"))
+    parameters = ResponseParameters[Report](
+        attributes=["requestDetail.defaultReturned"]
     )
+
+    payload = report.model_dump(
+        scim_ctx=Context.RESOURCE_QUERY_RESPONSE, response_parameters=parameters
+    )
+
+    assert payload["requestDetail"] == {"defaultReturned": "x"}
 
 
 def test_without_projection_every_attribute_is_yielded():

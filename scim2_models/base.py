@@ -107,8 +107,8 @@ def _attr_matches(requested: str, current_urn: str) -> bool:
 def _exact_attr_match(attrs: list[str], current_urn: str) -> bool:
     """Check if current_urn exactly matches any entry in attrs (case-insensitive).
 
-    Used for ``excludedAttributes`` matching and Returned.request checking,
-    where parent/child relationship should not apply.
+    Used for ``excludedAttributes`` matching, where parent/child relationship
+    should not apply.
     """
     current_short = _short_attr_path(current_urn).lower()
     for attr in attrs:
@@ -119,6 +119,22 @@ def _exact_attr_match(attrs: list[str], current_urn: str) -> bool:
         else:
             if current_short == attr_lower:
                 return True
+    return False
+
+
+def _is_attribute_or_child_requested(attrs: list[str], current_urn: str) -> bool:
+    """Check if current_urn or one of its sub-attributes is in attrs (case-insensitive).
+
+    Used for Returned.request checking, where requesting a parent does not
+    request its children.
+    """
+    current_lower = current_urn.lower()
+    current_short = _short_attr_path(current_urn).lower()
+    for attr in attrs:
+        attr_lower = attr.lower()
+        target = current_lower if ":" in attr else current_short
+        if attr_lower == target or attr_lower.startswith(target + "."):
+            return True
     return False
 
 
@@ -151,7 +167,7 @@ def _is_returned(
             return False
         return not _exact_attr_match(excluded_attrs, urn)
     if returnability == Returned.request:
-        return _exact_attr_match(included_attrs, urn)
+        return _is_attribute_or_child_requested(included_attrs, urn)
     return True
 
 
