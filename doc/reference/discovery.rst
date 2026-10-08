@@ -45,3 +45,6 @@ and the registry gathering them.
 
 .. autoclass:: scim2_models.ETag
    :members:
+
+.. autoclass:: scim2_models.Pagination
+   :members:

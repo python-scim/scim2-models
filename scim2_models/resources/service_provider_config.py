@@ -57,8 +57,13 @@ class ETag(ComplexAttribute):
 
 class Pagination(ComplexAttribute):
     class DefaultPaginationMethod(ExtensibleStringEnum):
+        """A pagination method of :rfc:`RFC 9865 §4 <9865#section-4>`."""
+
         cursor = "cursor"
+        """Pagination with ``cursor`` (:rfc:`RFC 9865 §2 <9865#section-2>`)."""
+
         index = "index"  # type: ignore[assignment]
+        """Pagination with ``startIndex`` (:rfc:`RFC 7644 §3.4.2.4 <7644#section-3.4.2.4>`)."""
 
     cursor: Annotated[bool | None, Mutability.read_only, Required.true] = None
     """A Boolean value specifying support of cursor-based pagination."""
