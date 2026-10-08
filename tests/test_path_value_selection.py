@@ -75,7 +75,7 @@ def test_a_value_selection_is_not_part_of_the_segments():
     assert Path('emails[type eq "work"]').parts == ("emails",)
 
 
-def test_a_value_selecting_path_designates_an_attribute(user):
+def test_a_value_selecting_path_designates_an_attribute():
     """The selection is not part of the attribute the path designates."""
     path = Path[User](
         'urn:ietf:params:scim:schemas:core:2.0:User:emails[type eq "work"].value'

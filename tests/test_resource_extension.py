@@ -1,5 +1,6 @@
 import datetime
 import gc
+import re
 import weakref
 from typing import Annotated
 
@@ -395,7 +396,7 @@ def test_model_attribute_to_scim_attribute_error():
 
     # Mock get_field_root_type to return None
     original_method = TestModel.get_field_root_type
-    TestModel.get_field_root_type = classmethod(lambda cls, attr: None)
+    TestModel.get_field_root_type = classmethod(lambda _cls, _attr: None)
 
     try:
         with pytest.raises(
@@ -456,7 +457,9 @@ def test_a_required_extension_must_be_carried_by_a_creation_request():
 
     with pytest.raises(
         ValidationError,
-        match="Field 'urn:ietf:params:scim:schemas:extension:enterprise:2.0:User' is required",
+        match=re.escape(
+            "Field 'urn:ietf:params:scim:schemas:extension:enterprise:2.0:User' is required"
+        ),
     ):
         User[Annotated[EnterpriseUser, Required.true]].model_validate(
             payload, scim_ctx=Context.RESOURCE_CREATION_REQUEST

@@ -864,7 +864,7 @@ def test_make_user_model_from_schema(load_sample):
     assert Groups.get_field_annotation("value", Uniqueness) == Uniqueness.none
 
     # group.ref
-    assert Groups.get_field_root_type("ref") == Reference["Group"]  # noqa: F821
+    assert Groups.get_field_root_type("ref") == Reference["Group"]
     assert not Groups.get_field_multiplicity("ref")
     assert (
         Groups.model_fields["ref"].description

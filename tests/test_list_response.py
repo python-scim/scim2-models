@@ -134,7 +134,7 @@ def test_mixed_types_type_missing(load_sample):
         ListResponse[User].model_validate(payload)
 
 
-def test_missing_resource_payload(load_sample):
+def test_missing_resource_payload():
     """Check that validation fails if resources schemas are missing."""
     payload = {
         "totalResults": 2,
@@ -151,7 +151,7 @@ def test_missing_resource_payload(load_sample):
     ListResponse[User].model_validate(payload, strict=True)
 
 
-def test_missing_resource_schema(load_sample):
+def test_missing_resource_schema():
     """Check that validation fails if resources schemas are missing."""
     payload = {
         "totalResults": 2,

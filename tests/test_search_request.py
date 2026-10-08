@@ -194,7 +194,7 @@ def test_search_request_invalid_sort_by():
     ]
 
     for case in invalid_cases:
-        with pytest.raises(ValidationError, match="path|Path"):
+        with pytest.raises(ValidationError, match=r"path|Path"):
             SearchRequest.model_validate(case)
 
 
@@ -348,7 +348,7 @@ def test_search_request_integration_with_existing_validation():
         "excluded_attributes": ["password"],
     }
 
-    with pytest.raises(ValidationError, match="path|Path"):
+    with pytest.raises(ValidationError, match=r"path|Path"):
         SearchRequest.model_validate(invalid_data)
 
 

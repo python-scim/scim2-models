@@ -20,12 +20,12 @@ def test_urn_syntax_valid_urns():
 def test_urn_syntax_invalid_urns():
     """Test that invalid SCIM URN paths are rejected."""
     invalid_urns = [
-        "not_an_urn",  # Doesn't start with urn:
-        "urn:invalid",  # Too short
+        ("not_an_urn", "does not start with urn:"),
+        ("urn:invalid", "at least 3 parts"),
     ]
 
-    for urn in invalid_urns:
-        with pytest.raises(ValueError):
+    for urn, message in invalid_urns:
+        with pytest.raises(ValueError, match=message):
             URN(urn)
 
 

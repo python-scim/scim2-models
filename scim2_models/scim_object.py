@@ -74,7 +74,7 @@ class ScimObject(BaseModel):
     @model_validator(mode="wrap")
     @classmethod
     def _validate_schemas_attribute(
-        cls, value: Any, handler: ValidatorFunctionWrapHandler, info: ValidationInfo
+        cls, value: Any, handler: ValidatorFunctionWrapHandler
     ) -> Self:
         """Validate that the schemas a payload asserts match the model.
 

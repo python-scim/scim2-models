@@ -91,7 +91,7 @@ def _create_tagged_resource_union(resource_union: Any) -> Any:
         for resource_type in resource_types
     ]
     # Dynamic union construction from tuple - MyPy can't validate this at compile time
-    union = Union[tuple(tagged_resources)]  # type: ignore  # noqa: UP007
+    union = Union[tuple(tagged_resources)]  # type: ignore[valid-type]  # noqa: UP007
     return Annotated[union, discriminator]
 
 

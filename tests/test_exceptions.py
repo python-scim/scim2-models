@@ -764,8 +764,8 @@ def test_status_exception_converts_to_an_error_without_scim_type(
     assert error.detail == "Something went wrong"
 
 
-@pytest.mark.parametrize("exception_class,status", STATUS_EXCEPTIONS)
-def test_status_exception_has_a_default_detail(exception_class, status):
+@pytest.mark.parametrize("exception_class", [cls for cls, _ in STATUS_EXCEPTIONS])
+def test_status_exception_has_a_default_detail(exception_class):
     """An exception for a status of RFC 7644 Table 8 has a default detail."""
     assert exception_class().detail == exception_class._default_detail
 

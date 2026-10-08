@@ -4,7 +4,7 @@ from datetime import datetime
 from enum import StrEnum
 from typing import Annotated
 from typing import Any
-from typing import List  # noqa : UP005,UP035
+from typing import List  # noqa: UP035
 from typing import Optional
 from typing import TypeVar
 from typing import Union
@@ -299,10 +299,10 @@ class Attribute(ComplexAttribute):
             attr_type = _make_python_model(obj=self, base=attr_type, depth=depth + 1)
 
         if self.multi_valued:
-            attr_type = list[attr_type]  # type: ignore
+            attr_type = list[attr_type]  # type: ignore[valid-type]
 
         annotation = Annotated[
-            attr_type | None,  # type: ignore
+            attr_type | None,  # type: ignore[valid-type]
             self.required,
             self._implicit_case_exact(),
             self.mutability,

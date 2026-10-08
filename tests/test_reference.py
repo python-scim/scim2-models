@@ -4,6 +4,7 @@ from typing import Any
 from typing import Union
 
 import pytest
+from pydantic import ValidationError
 
 from scim2_models import URI
 from scim2_models import EnterpriseUser
@@ -78,7 +79,7 @@ def test_reference_serialization():
 
 def test_reference_validation_error():
     """Test that invalid values raise validation errors."""
-    with pytest.raises(ValueError):
+    with pytest.raises(ValidationError, match="Expected string, got int"):
         ReferenceTestModel(uri_ref=123)
 
 

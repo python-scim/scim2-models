@@ -1,5 +1,6 @@
 from enum import StrEnum
 from inspect import isclass
+from typing import TYPE_CHECKING
 from typing import Annotated
 from typing import Any
 from typing import ClassVar
@@ -16,6 +17,9 @@ from .annotations import Mutability
 # This import will work because we'll import this module after BaseModel is defined
 from .base import BaseModel
 from .reference import Reference
+
+if TYPE_CHECKING:
+    from typing_extensions import TypeIs
 
 
 class ExtensibleStringEnum(StrEnum):
@@ -96,7 +100,7 @@ class MultiValuedComplexAttribute(ComplexAttribute):
     reference."""
 
 
-def _is_complex_attribute(type_: type) -> bool:
+def _is_complex_attribute(type_: type) -> "TypeIs[type[ComplexAttribute]]":
     # issubclass raise a TypeError with 'Reference' on python < 3.11
     return (
         get_origin(type_) != Reference

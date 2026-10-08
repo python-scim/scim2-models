@@ -1,3 +1,4 @@
+import re
 from typing import Annotated
 from unicodedata import normalize
 
@@ -213,7 +214,9 @@ def test_extension_attributes_are_checked_too():
         "userName": "bjensen",
         str(EnterpriseUser.__schema__): {"department": "Tour Operations"},
     }
-    with pytest.raises(ValidationError, match="enterprise:2.0:User:department"):
+    with pytest.raises(
+        ValidationError, match=re.escape("enterprise:2.0:User:department")
+    ):
         User[EnterpriseUser].model_validate(
             payload,
             scim_ctx=Context.RESOURCE_CREATION_REQUEST,

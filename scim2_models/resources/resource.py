@@ -619,7 +619,7 @@ def _model_attribute_to_scim_attribute(
     sub_attributes = (
         [
             _model_attribute_to_scim_attribute(root_type, sub_attribute_name)
-            for sub_attribute_name in root_type.model_fields  # type: ignore
+            for sub_attribute_name in root_type.model_fields
             if (
                 attribute_name != "sub_attributes"
                 or sub_attribute_name != "sub_attributes"

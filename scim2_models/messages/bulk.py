@@ -152,7 +152,7 @@ class BulkOperation(_ResourceParameterized, ComplexAttribute, Generic[ResourceT]
 
         if not isinstance(param, TypeVar) and get_origin(param) in UNION_TYPES:
             members = get_args(param)
-            return Union[tuple(cls[member] for member in members)]  # type: ignore  # noqa: UP007
+            return Union[tuple(cls[member] for member in members)]  # type: ignore[index]  # noqa: UP007
 
         return super().__class_getitem__(item)
 
