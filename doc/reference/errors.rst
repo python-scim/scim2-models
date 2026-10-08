@@ -9,7 +9,16 @@ Exceptions raised when a SCIM payload or operation is invalid.
 .. autoclass:: scim2_models.ConflictException
    :members:
 
+.. autoclass:: scim2_models.ExpiredCursorException
+   :members:
+
 .. autoclass:: scim2_models.ForbiddenException
+   :members:
+
+.. autoclass:: scim2_models.InvalidCountException
+   :members:
+
+.. autoclass:: scim2_models.InvalidCursorException
    :members:
 
 .. autoclass:: scim2_models.InvalidFilterException
