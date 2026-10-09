@@ -278,6 +278,30 @@ class SearchRequest(Message, ResponseParameters[ResourceT], Generic[ResourceT]):
         value_path = AttrPath(designated.attr, "value", designated.uri)
         return _resolve_attr_path(model, value_path, strict=False)
 
+    def sort_value(self, resource: ResourceT) -> Any:
+        """Return the value :meth:`sort` orders a resource by.
+
+        A storage that pages by keyset can keep it to resume after a resource.
+        It is a :class:`str` for strings and references, in the form the
+        :attr:`~scim2_models.ScimPolicy.comparison_key` of the policy gives.
+        It is a :class:`bool`, :class:`int`, :class:`float` or
+        :class:`~datetime.datetime` for the other SCIM types. A value of an
+        attribute with a custom Python type is returned unchanged.
+        :meth:`sort` puts the resources without a value last when ascending,
+        and first when descending.
+
+        >>> from scim2_models import SearchRequest, User
+        >>> SearchRequest(sort_by="userName").sort_value(User(user_name="BJensen"))
+        'bjensen'
+
+        :param resource: The resource to read the value from.
+        :returns: The value, or :data:`None` when :attr:`sort_by` is not set,
+            when the resource has no value, when its type does not declare the
+            attribute or cannot sort on it, or when the policy cannot prepare
+            the string.
+        """
+        return _sort_value(resource, self.sort_binding(type(resource)))
+
     def sort(self, resources: Iterable[ResourceT]) -> list[ResourceT]:
         """Order resources as :rfc:`RFC7644 §3.4.2.3 <7644#section-3.4.2.3>` describes.
 

@@ -1,6 +1,15 @@
 Changelog
 =========
 
+[0.13.0] - Unreleased
+---------------------
+
+Added
+^^^^^
+- :meth:`SearchRequest.sort_value <scim2_models.SearchRequest.sort_value>` returns the value
+  :meth:`~scim2_models.SearchRequest.sort` orders a resource by. A storage that pages by keyset
+  can resume after that resource.
+
 [0.12.1] - 2026-10-07
 ---------------------
 

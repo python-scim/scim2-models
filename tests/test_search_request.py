@@ -1,3 +1,5 @@
+from datetime import UTC
+from datetime import datetime
 from typing import Annotated
 
 import pytest
@@ -7,6 +9,7 @@ from scim2_models import URN
 from scim2_models import ComplexAttribute
 from scim2_models import EnterpriseUser
 from scim2_models import Group
+from scim2_models import Meta
 from scim2_models import Mutability
 from scim2_models import Resource
 from scim2_models import Returned
@@ -701,6 +704,48 @@ def test_sort_binding_is_none_when_the_model_cannot_sort_on_the_attribute(
 ):
     """The backend sorts those resources as having no value, as sort() does."""
     assert SearchRequest(sort_by=attribute).sort_binding(model) is None
+
+
+def test_sort_value_without_sort_by_is_none():
+    """There is nothing to order the resource by."""
+    assert SearchRequest().sort_value(User(user_name="bjensen")) is None
+
+
+def test_sort_value_is_the_string_sort_compares():
+    """A keyset storage resumes on the same form of the string as sort() orders by."""
+    request = SearchRequest(sort_by="userName")
+    assert request.sort_value(User(user_name="ÉMILE")) == "émile"
+
+
+def test_sort_value_reads_the_primary_entry_of_a_multivalued_attribute():
+    """RFC7644 §3.4.2.3 sorts on "the value of the primary attribute"."""
+    user = User(
+        user_name="bjensen",
+        emails=[
+            User.Emails(value="b@example.com"),
+            User.Emails(value="A@example.com", primary=True),
+        ],
+    )
+    assert SearchRequest(sort_by="emails").sort_value(user) == "a@example.com"
+
+
+def test_sort_value_keeps_the_type_of_a_non_string_value():
+    """A storage gets the boolean or the date as sort() compares it."""
+    when = datetime(2026, 10, 9, tzinfo=UTC)
+    user = User(user_name="bjensen", active=True, meta=Meta(last_modified=when))
+    assert SearchRequest(sort_by="active").sort_value(user) is True
+    assert SearchRequest(sort_by="meta.lastModified").sort_value(user) == when
+
+
+def test_sort_value_is_none_without_a_value():
+    """sort() puts such a resource last when ascending and first when descending."""
+    assert SearchRequest(sort_by="displayName").sort_value(User(user_name="b")) is None
+
+
+def test_sort_value_is_none_when_the_type_cannot_sort_on_the_attribute():
+    """A resource of a union whose type lacks the attribute is ordered as one without a value."""
+    request = SearchRequest[User | Group](sort_by="userName")
+    assert request.sort_value(Group(display_name="admins")) is None
 
 
 def ids(resources):
