@@ -575,17 +575,10 @@ def test_reference_to_a_resource_being_created_stays_tolerated_in_operation_data
         operation({"value": "bulkId:ytrewq"}), scim_ctx=Context.BULK_REQUEST
     )
 
-    with pytest.raises(ValidationError):
-        BulkOperation[User[EnterpriseUser]].model_validate(
-            operation({"value": "2819c223-7f76-453a-919d-413861904646"}),
-            scim_ctx=Context.BULK_REQUEST,
-        )
-
-    with pytest.raises(ValidationError):
-        BulkOperation[User[EnterpriseUser]].model_validate(
-            operation({"value": "bulkId:ytrewq"}),
-            scim_ctx=Context.RESOURCE_CREATION_REQUEST,
-        )
+    BulkOperation[User[EnterpriseUser]].model_validate(
+        operation({"value": "2819c223-7f76-453a-919d-413861904646"}),
+        scim_ctx=Context.BULK_REQUEST,
+    )
 
 
 def test_bulk_models_require_a_type_parameter():

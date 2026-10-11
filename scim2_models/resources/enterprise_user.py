@@ -19,10 +19,9 @@ class Manager(ComplexAttribute):
     value: Annotated[str | None, Required.true, CaseExact.true] = None
     """The id of the SCIM resource representing the User's manager."""
 
-    ref: Annotated[  # type: ignore[type-arg]
-        Reference["User"] | None,
-        Required.true,
-    ] = Field(None, serialization_alias="$ref", validation_alias="$ref")
+    ref: Reference["User"] | None = Field(  # type: ignore[type-arg]
+        None, serialization_alias="$ref", validation_alias="$ref"
+    )
     """The URI of the SCIM resource representing the User's manager."""
 
     display_name: Annotated[str | None, Mutability.read_only] = None

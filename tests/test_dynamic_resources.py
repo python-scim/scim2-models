@@ -1390,7 +1390,7 @@ def test_make_enterprise_user_model_from_schema(load_sample):
     assert not Manager.get_field_multiplicity("value")
     assert (
         Manager.model_fields["value"].description
-        == "The id of the SCIM resource representing the User's manager.  REQUIRED."
+        == "The id of the SCIM resource representing the User's manager.  RECOMMENDED."
     )
     assert Manager.get_field_annotation("value", Required) == Required.true
     assert Manager.get_field_annotation("value", CaseExact) == CaseExact.true
@@ -1403,9 +1403,9 @@ def test_make_enterprise_user_model_from_schema(load_sample):
     assert not Manager.get_field_multiplicity("ref")
     assert (
         Manager.model_fields["ref"].description
-        == "The URI of the SCIM resource representing the User's manager.  REQUIRED."
+        == "The URI of the SCIM resource representing the User's manager.  RECOMMENDED."
     )
-    assert Manager.get_field_annotation("ref", Required) == Required.true
+    assert Manager.get_field_annotation("ref", Required) == Required.false
     assert Manager.get_field_annotation("ref", CaseExact) == CaseExact.true
     assert Manager.get_field_annotation("ref", Mutability) == Mutability.read_write
     assert Manager.get_field_annotation("ref", Returned) == Returned.default
