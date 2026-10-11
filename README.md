@@ -1,3 +1,5 @@
+<img alt="python-scim logo" src="https://raw.githubusercontent.com/python-scim/.github/refs/heads/main/python-scim.svg" height="72" align="right">
+
 # scim2-models
 
 [Pydantic](https://pydantic.dev/docs/) models for the SCIM 2.0 schemas and protocol.
