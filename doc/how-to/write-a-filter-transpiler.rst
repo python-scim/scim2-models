@@ -3,23 +3,24 @@
 Write a filter transpiler
 =========================
 
-In this tutorial, a SCIM filter becomes the ``WHERE`` clause of an SQL query, and the query is
+In this guide, a SCIM filter becomes the ``WHERE`` clause of an SQL query, and the query is
 checked against the filter evaluator of scim2-models. The result is a working transpiler of about
 forty lines, and a test that says whether it answers the question the filter asked.
 
-The tutorial is written for people building a SCIM server who can read SQL. It assumes the
+The guide is written for people building a SCIM server who can read SQL. It assumes the
 :ref:`Filter resources <overview-filters>` section of the :doc:`../overview`, and it uses SQLite
 through the :mod:`sqlite3` module of the standard library, so it needs no installation.
 :doc:`../explanation/filters` covers the grammar and the comparison rules the transpiler has to
-honor; :doc:`sqlalchemy` covers the same work on a real ORM.
+honor. `scim2-sqlalchemy <https://scim2-sqlalchemy.readthedocs.io>`_ does the same work on a
+real ORM.
 
 Over a large collection, a filter has to become a query the database runs: a ``WHERE`` clause, or
 its equivalent in another store. A server receives filters from its clients, in the query
 parameter of a ``GET /Users?filter=…`` or in the
 :attr:`SearchRequest.filter <scim2_models.SearchRequest.filter>` of a ``POST /Users/.search``.
-The framework guides of this section answer such a request with
-:meth:`ScimFilter.match <scim2_models.ScimFilter.match>`: they load every resource and keep the
-ones that match. That works while the store is small. Over a million users, every request reads
+The simplest answer to such a request is
+:meth:`ScimFilter.match <scim2_models.ScimFilter.match>`: load every resource and keep the ones
+that match. That works while the store is small. Over a million users, every request reads
 the whole table.
 
 Read a filter as a tree
@@ -51,7 +52,7 @@ is a transpiler.
 
 A filter is checked before it is translated. The constructor checks its syntax. Binding the
 filter to a model checks the attributes it names, which :class:`~scim2_models.SearchRequest`\
-[:class:`~scim2_models.User`] does for a query parameter. The visitor of this tutorial assumes a
+[:class:`~scim2_models.User`] does for a query parameter. The visitor of this guide assumes a
 filter that passed both checks, so it can resolve a path without handling an unknown attribute at
 every node.
 
@@ -222,12 +223,14 @@ Where to go next
 
 The transpiler now answers filters over single-valued attributes, and its answers match the
 evaluator. It still refuses multi-valued attributes, value selections, ``ne``, the string
-operators and Unicode case mapping. The :doc:`sqlalchemy` guide handles each of them on SQLAlchemy expressions, and runs every filter of
-its test list through both the query and the evaluator.
+operators and Unicode case mapping.
+`scim2-sqlalchemy <https://scim2-sqlalchemy.readthedocs.io>`_ handles each of them on SQLAlchemy
+expressions.
 
 A search request also carries a ``sortBy`` parameter.
 :attr:`SearchRequest.sort_by <scim2_models.SearchRequest.sort_by>` is a
 :class:`~scim2_models.Path`, and it resolves the same way. The attribute it resolves to gives the
 column an ``ORDER BY`` sorts on. The column alone does not settle the order: the case, the missing
 values and the multi-valued attributes each have a rule of their own in
-:rfc:`RFC7644 §3.4.2.3 <7644#section-3.4.2.3>`. The :doc:`sqlalchemy` guide implements them.
+:rfc:`RFC7644 §3.4.2.3 <7644#section-3.4.2.3>`, which
+:meth:`SearchRequest.sort <scim2_models.SearchRequest.sort>` describes.

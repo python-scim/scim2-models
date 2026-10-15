@@ -96,4 +96,4 @@ render valid syntax and quote comparison values.
    userName eq "bjensen" and active pr
 
 :doc:`../explanation/filters` describes the grammar deviations and the errata applied, and
-:doc:`../integrations/filter-transpiler` turns a filter into a database query.
+:doc:`write-a-filter-transpiler` turns a filter into a database query.

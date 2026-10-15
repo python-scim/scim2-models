@@ -1,12 +1,11 @@
 Validate and serialize SCIM payloads
 ====================================
 
-Use this guide when an application receives or sends a SCIM resource outside a framework
-integration. It shows which context each HTTP operation calls for, how to apply the projection a
+Use this guide when an application receives or sends a SCIM resource without
+:doc:`scim2-server <scim2_server:index>`. It shows which context each HTTP operation calls for, how to apply the projection a
 client asked for, what :meth:`~scim2_models.Resource.replace` settles on a ``PUT``, and how to
 answer a rejected payload. It assumes the :doc:`../overview`.
-:doc:`../explanation/scim-contexts` gives the rules behind the contexts, and the
-:doc:`../integrations/index` guides wire them into a framework.
+:doc:`../explanation/scim-contexts` gives the rules behind the contexts.
 
 Choose the context of an operation
 ----------------------------------

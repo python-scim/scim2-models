@@ -13,7 +13,7 @@ checks which comparisons each attribute supports. A bound filter may still accep
 only some types in a resource union declare, because
 :rfc:`RFC7644 §3.4.2.1 <7644#section-3.4.2.1>` requires that comparison to evaluate to false on
 the remaining types. :doc:`../how-to/build-filters` covers building a filter from untrusted
-values, and :doc:`../integrations/filter-transpiler` covers turning one into a database query.
+values, and :doc:`../how-to/write-a-filter-transpiler` covers turning one into a database query.
 
 .. _filter-errata:
 
@@ -149,7 +149,6 @@ Comparing values of different types
     A naive :class:`~datetime.datetime`, read from a store that drops offsets, is incomparable
     with the aware one a filter carries in the same way: an ordering filter on it quietly
     matches nothing. Make attributes typed ``dateTime`` timezone-aware before filtering them.
-    The :doc:`../integrations/sqlalchemy` guide shows where.
 
 Case-insensitive comparison
     §3.4.2.2 defers to ``caseExact``. :meth:`~scim2_models.ScimFilter.match` compares strings in

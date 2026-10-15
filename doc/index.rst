@@ -21,7 +21,7 @@ A client or a server uses it to parse the payloads it receives, and to produce t
    'bjensen'
 
 It provides no HTTP endpoint, no persistence and no authorization: those belong to the
-application, and the :doc:`integrations <integrations/index>` show how to wire them together.
+application. :doc:`scim2-server <scim2_server:index>` serves SCIM over HTTP with these models.
 
 It does not (yet) implement the other SCIM RFCs: :rfc:`RFC 9944 <9944>` (device schema extensions)
 and :rfc:`RFC 9967 <9967>` (security event tokens). You can still define a device resource with
@@ -43,9 +43,6 @@ resource value with a SCIM path.
 :doc:`Explanation <explanation/index>` gives the reasons behind the behavior of the library, and
 the SCIM rules it applies.
 
-:doc:`Integrations <integrations/index>` shows how to build a SCIM server with Flask, Django,
-FastAPI or SQLAlchemy.
-
 :doc:`Reference <reference/index>` lists the complete public API.
 
 .. toctree::
@@ -55,7 +52,6 @@ FastAPI or SQLAlchemy.
     Overview <overview>
     How-to guides <how-to/index>
     Explanation <explanation/index>
-    Integrations <integrations/index>
     Reference <reference/index>
     Contributing <contributing>
     Changelog <changelog>

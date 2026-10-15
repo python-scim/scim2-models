@@ -16,3 +16,4 @@ ends where an application resumes its own work, and assumes the :doc:`../overvie
    generate-models-from-schemas
    tolerate-a-nonconformant-peer
    validate-and-serialize
+   write-a-filter-transpiler

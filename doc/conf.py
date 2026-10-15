@@ -40,8 +40,6 @@ intersphinx_mapping = {
     "scim2_tester": ("https://scim2-tester.readthedocs.io/en/latest/", None),
     "scim2_cli": ("https://scim2-cli.readthedocs.io/en/latest/", None),
     "pydantic": ("https://docs.pydantic.dev/latest/", None),
-    "flask": ("https://flask.palletsprojects.com/en/stable/", None),
-    "sqlalchemy": ("https://docs.sqlalchemy.org/en/20/", None),
 }
 
 # -- Sibling projects ------------------------------------------------------
@@ -151,11 +149,18 @@ redirects = {
     "reference": "reference/index.html",
     "filters": "explanation/filters.html",
     "patch": "explanation/patch.html",
-    "guides/index": "../integrations/index.html",
-    "guides/flask": "../integrations/flask.html",
-    "guides/django": "../integrations/django.html",
-    "guides/fastapi": "../integrations/fastapi.html",
-    "guides/sqlalchemy": "../integrations/sqlalchemy.html",
+    "guides/index": "https://scim2-server.readthedocs.io/en/latest/how-to/integrate-a-web-framework.html",
+    "guides/flask": "https://scim2-flask.readthedocs.io",
+    "guides/django": "https://scim2-django.readthedocs.io",
+    "guides/fastapi": "https://scim2-fastapi.readthedocs.io",
+    "guides/sqlalchemy": "https://scim2-sqlalchemy.readthedocs.io",
+    "integrations/index": "https://scim2-server.readthedocs.io/en/latest/how-to/integrate-a-web-framework.html",
+    "integrations/helpers": "https://scim2-server.readthedocs.io/en/latest/how-to/integrate-a-web-framework.html",
+    "integrations/flask": "https://scim2-flask.readthedocs.io",
+    "integrations/django": "https://scim2-django.readthedocs.io",
+    "integrations/fastapi": "https://scim2-fastapi.readthedocs.io",
+    "integrations/sqlalchemy": "https://scim2-sqlalchemy.readthedocs.io",
+    "integrations/filter-transpiler": "../how-to/write-a-filter-transpiler.html",
 }
 
 # -- Options for sphinx-issues -------------------------------------

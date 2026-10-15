@@ -17,8 +17,7 @@ Install scim2-models in the application environment:
 
 This page introduces the operations used most often by SCIM clients and servers. Follow it in
 order for a first tour. The :doc:`how-to guides <how-to/index>` cover focused tasks, the
-:doc:`explanations <explanation/index>` cover protocol behavior, the
-:doc:`integrations <integrations/index>` cover frameworks, and the
+:doc:`explanations <explanation/index>` cover protocol behavior, and the
 :doc:`reference <reference/index>` lists the complete API.
 
 Create and access a resource
@@ -87,8 +86,7 @@ projection requested by a client:
 
 :doc:`how-to/validate-and-serialize` walks through validating creation requests, serializing
 projected responses, and replacing resources. :doc:`explanation/scim-contexts` describes contexts
-and attribute characteristics. The :doc:`integrations/fastapi` guide shows context type aliases
-in an endpoint signature.
+and attribute characteristics.
 
 Read a typed collection
 -----------------------

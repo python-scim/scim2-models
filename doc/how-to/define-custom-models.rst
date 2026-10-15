@@ -211,5 +211,5 @@ response:
    >>> Pet.to_schema().id
    'urn:example:schemas:Pet'
 
-The :doc:`../integrations/index` integration guides show how to expose schemas, resource types, and
+:doc:`describe-a-scim-service` shows how to expose schemas, resource types, and
 service-provider configuration from a server.

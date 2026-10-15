@@ -46,16 +46,10 @@ module-root = ""
 
 [dependency-groups]
 dev = [
-    "django>=5.1",
-    "fastapi>=0.133.0",
-    "flask>=3.0.0",
-    "httpx2>=2.12",
     "mypy>=1.13.0",
     "pytest>=8.2.1",
     "pytest-cov>=6.0.0",
     "prek>=0.1.0",
-    "starlette>=1.2.0",
-    "sqlalchemy>=2.0",
     "tox-uv>=1.16.0",
     "precis-i18n>=1.1.2",
 ]
@@ -124,10 +118,6 @@ docstring-code-format = true
 [tool.pytest.ini_options]
 addopts = "--doctest-modules --doctest-glob='*.rst'"
 doctest_optionflags= "ALLOW_UNICODE ELLIPSIS"
-
-[tool.codespell]
-# ``selectin`` is the SQLAlchemy relationship loading strategy.
-ignore-words-list = "selectin"
 
 [tool.mypy]
 plugins = [

@@ -8,6 +8,14 @@ Added
 ^^^^^
 - Support for Python 3.15.
 
+Removed
+^^^^^^^
+- The integration guides for Flask, Django, FastAPI and SQLAlchemy. Use
+  `scim2-flask <https://scim2-flask.readthedocs.io>`_ and
+  `scim2-sqlalchemy <https://scim2-sqlalchemy.readthedocs.io>`_, or
+  :doc:`scim2-server <scim2_server:how-to/integrate-a-web-framework>` for other frameworks.
+  The filter transpiler guide moves to :doc:`how-to/write-a-filter-transpiler`.
+
 [0.12.2] - 2026-10-09
 ---------------------
 
@@ -407,7 +415,7 @@ Added
 - Bulk messages are validated, in the new :attr:`~scim2_models.Context.BULK_REQUEST` and
   :attr:`~scim2_models.Context.BULK_RESPONSE` contexts. Each operation's
   :attr:`~scim2_models.BulkOperation.data` is checked as the single request it stands for.
-  See :ref:`helpers-bulk`. :pr:`149`
+  See :class:`~scim2_models.BulkRequest`. :pr:`149`
 - lark is a new dependency.
 
 Changed
