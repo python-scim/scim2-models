@@ -22,8 +22,8 @@ class GroupMember(ComplexAttribute):
     value: Annotated[str | None, Mutability.immutable, CaseExact.true] = None
     """Identifier of the member of this Group."""
 
-    ref: Annotated[  # type: ignore[type-arg]
-        Reference[Union["User", "Group"]] | None,
+    ref: Annotated[
+        Reference[Union["User", "Group"]] | None,  # type: ignore[type-arg]
         Mutability.immutable,
     ] = Field(None, serialization_alias="$ref", validation_alias="$ref")
     """The reference URI of a target resource, if the attribute is a
