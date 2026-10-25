@@ -77,6 +77,51 @@ def test_case_exact_annotation_takes_precedence_over_the_field_type():
     )
 
 
+def test_field_accessors_accept_keyword_arguments():
+    """The accessors keep their signature."""
+    assert (
+        CaseSensitivity.get_field_annotation(
+            field_name="ref", annotation_type=CaseExact
+        )
+        == CaseExact.true
+    )
+
+
+def test_field_accessors_follow_a_model_rebuild():
+    """An answer given before a forward reference is resolved is not kept after it."""
+
+    class Early(Resource):
+        __schema__ = URN("urn:example:2.0:Early")
+
+        later: "list[Later] | None" = None
+
+    assert not Early.get_field_multiplicity("later")
+
+    class Later(ComplexAttribute):
+        value: str | None = None
+
+    Early.model_rebuild()
+
+    assert Early.get_field_multiplicity("later")
+    assert Early.get_field_root_type("later") is Later
+
+
+def test_an_incomplete_subclass_does_not_read_the_answers_of_its_parent():
+    """A subclass may give a field another type, even before it can be resolved."""
+
+    class Parent(Resource):
+        __schema__ = URN("urn:example:2.0:Parent")
+
+        value: str | None = None
+
+    assert Parent.get_field_root_type("value") is str
+
+    class Child(Parent):
+        value: "list[Unknown] | None" = None  # noqa: F821
+
+    assert Child.get_field_root_type("value") is not str
+
+
 class ReturnedModel(BaseModel):
     always: Annotated[str | None, Returned.always] = None
     never: Annotated[str | None, Returned.never] = None

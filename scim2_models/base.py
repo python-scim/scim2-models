@@ -1,15 +1,20 @@
+from collections.abc import Callable
 from collections.abc import Iterator
 from collections.abc import Mapping
 from contextlib import contextmanager
 from contextvars import ContextVar
+from functools import wraps
 from inspect import isclass
 from types import MappingProxyType
 from typing import TYPE_CHECKING
 from typing import Any
 from typing import ClassVar
+from typing import Concatenate
 from typing import NamedTuple
 from typing import NoReturn
+from typing import ParamSpec
 from typing import Self
+from typing import TypeVar
 from typing import cast
 from typing import get_args
 from typing import get_origin
@@ -49,6 +54,9 @@ if TYPE_CHECKING:
     from scim2_models.provider import ScimProvider
     from scim2_models.resources.service_provider_config import ServiceProviderConfig
 
+
+_P = ParamSpec("_P")
+_R = TypeVar("_R")
 
 _KEEP_EMPTY_VALUES: ContextVar[bool] = ContextVar("keep_empty_values", default=False)
 
@@ -303,6 +311,33 @@ def _entries_by_value(entries: list[Any]) -> dict[Any, list[Any]]:
     return grouped
 
 
+def _cached_per_class(
+    method: Callable[Concatenate[Any, _P], _R],
+) -> Callable[Concatenate[Any, _P], _R]:
+    """Cache what a class method returns, on the class it is called on.
+
+    Each class reads its own cache and never the one of a parent, whose fields
+    may have other types. The cache is emptied when pydantic completes the
+    class, so it follows a model_rebuild.
+    """
+    name = method.__name__
+
+    @wraps(method)
+    def cached(cls: Any, /, *args: _P.args, **kwargs: _P.kwargs) -> _R:
+        try:
+            cache: dict[Any, _R] = cls.__dict__["__scim_field_cache__"]
+        except KeyError:
+            cache = cls.__scim_field_cache__ = {}
+        key = (name, args, tuple(kwargs.items())) if kwargs else (name, args)
+        try:
+            return cache[key]
+        except KeyError:
+            value = cache[key] = method(cls, *args, **kwargs)
+            return value
+
+    return cached
+
+
 class BaseModel(PydanticBaseModel):
     """Base Model for everything."""
 
@@ -321,6 +356,9 @@ class BaseModel(PydanticBaseModel):
 
     __scim_info__: ClassVar[_SCIMClassInfo] = _SCIMClassInfo()
     """Cached model metadata"""
+
+    __scim_field_cache__: ClassVar[dict[Any, Any]]
+    """What the field accessors returned, for this class only."""
 
     _unknown_attributes: dict[str, Any] = PrivateAttr(default_factory=dict)
 
@@ -351,6 +389,7 @@ class BaseModel(PydanticBaseModel):
         return mutability == Mutability.write_only or returned == Returned.never
 
     @classmethod
+    @_cached_per_class
     def get_field_annotation(cls, field_name: str, annotation_type: type) -> Any:
         """Return the annotation of type 'annotation_type' of the field 'field_name'.
 
@@ -412,6 +451,7 @@ class BaseModel(PydanticBaseModel):
         return CaseExact.false
 
     @classmethod
+    @_cached_per_class
     def get_field_root_type(cls, attribute_name: str) -> type | None:
         """Extract the root type from a model field.
 
@@ -458,6 +498,7 @@ class BaseModel(PydanticBaseModel):
         return cast("type | None", attribute_type)
 
     @classmethod
+    @_cached_per_class
     def get_field_multiplicity(cls, attribute_name: str) -> bool:
         """Indicate whether a field holds multiple values.
 
@@ -493,6 +534,7 @@ class BaseModel(PydanticBaseModel):
 
         Fires after pydantic resolves field types (re-fires after ``model_rebuild``). Idempotent.
         """
+        cls.__scim_field_cache__ = {}
         if not cls.model_fields:
             return
 
