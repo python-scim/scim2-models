@@ -1,13 +1,26 @@
 import pytest
 from pydantic import ValidationError
 
+from scim2_models import ComplexAttribute
 from scim2_models import Group
 from scim2_models import GroupMember
 from scim2_models import InvalidValueException
 from scim2_models import NoTargetException
 from scim2_models import PatchOp
 from scim2_models import PatchOperation
+from scim2_models import Resource
 from scim2_models import User
+
+
+class Badge(ComplexAttribute):
+    value: str | None = None
+    scopes: list[str] | None = None
+
+
+class Badged(Resource):
+    __schema__ = "urn:example:2.0:Badged"
+
+    badges: list[Badge] | None = None
 
 
 def test_add_operation_single_attribute():
@@ -168,6 +181,29 @@ def test_an_entry_spelled_in_other_capitals_is_already_present():
 
     assert patch.patch(group) is False
     assert len(group.members) == 1
+
+
+def test_an_entry_holding_a_multi_valued_sub_attribute_is_already_present():
+    """An entry is compared sub-attribute by sub-attribute, a list of values included."""
+    badged = Badged(badges=[Badge(value="Admin", scopes=["read"])])
+    patch = PatchOp[Badged](
+        operations=[
+            PatchOperation[Badged](
+                op=PatchOperation.Op.add,
+                path="badges",
+                value=[
+                    {"value": "ADMIN", "scopes": ["read"]},
+                    {"value": "Admin", "scopes": ["write"]},
+                ],
+            )
+        ]
+    )
+
+    assert patch.patch(badged) is True
+    assert badged.badges == [
+        Badge(value="Admin", scopes=["read"]),
+        Badge(value="Admin", scopes=["write"]),
+    ]
 
 
 def test_add_operation_single_value_in_multivalued_field():

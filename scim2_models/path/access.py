@@ -83,27 +83,73 @@ class _SameValue:
     def __call__(self, value1: Any, value2: Any) -> bool:
         if isinstance(value1, BaseModel) and type(value1) is type(value2):
             return all(
-                self.same_string(name, getattr(value1, name), getattr(value2, name))
+                self._same_string(name, getattr(value1, name), getattr(value2, name))
                 for name in type(value1).model_fields
             )
-        return self.same_string(None, value1, value2)
+        return self._same_string(None, value1, value2)
 
-    def same_string(self, sub_field_name: str | None, value1: Any, value2: Any) -> bool:
+    def _binding(self, sub_field_name: str | None) -> AttributeBinding:
+        """Return the binding of the attribute, or of one of its sub-attributes."""
+        if sub_field_name not in self.bindings:
+            self.bindings[sub_field_name] = _bind(
+                self.model, self.field_name, sub_field_name
+            )
+        return self.bindings[sub_field_name]
+
+    def _same_string(
+        self, sub_field_name: str | None, value1: Any, value2: Any
+    ) -> bool:
         """Whether two values are equal, strings compared in the form the policy gives them.
 
         A string the policy cannot prepare is equal to no other value.
         """
         if not (isinstance(value1, str) and isinstance(value2, str)):
             return _values_match(value1, value2)
-        if sub_field_name not in self.bindings:
-            self.bindings[sub_field_name] = _bind(
-                self.model, self.field_name, sub_field_name
-            )
-        binding = self.bindings[sub_field_name]
+        binding = self._binding(sub_field_name)
         try:
             return bool(binding.comparable(value1) == binding.comparable(value2))
         except ValueError:
             return False
+
+    def _key(self, value: Any) -> Any:
+        """Return a hashable key that is equal for two values that are the same.
+
+        Entries of different types get different keys.
+        """
+        if isinstance(value, BaseModel):
+            return (
+                type(value),
+                tuple(
+                    self._string_key(name, getattr(value, name))
+                    for name in type(value).model_fields
+                ),
+            )
+        return self._string_key(None, value)
+
+    def _string_key(self, sub_field_name: str | None, value: Any) -> Any:
+        """Return the key of a value, strings taken in the form the policy gives them."""
+        if not isinstance(value, str):
+            return _to_comparable(value)
+        try:
+            return self._binding(sub_field_name).comparable(value)
+        except ValueError:
+            return object()
+
+    def new_values(self, current: list[Any], entries: list[Any]) -> list[Any]:
+        """Return the entries that are not among the current values.
+
+        Keys spare comparing each entry to every current value. A value that
+        cannot be hashed is compared pair by pair instead.
+        """
+        try:
+            keys = {self._key(item) for item in current}
+            return [entry for entry in entries if self._key(entry) not in keys]
+        except TypeError:
+            return [
+                entry
+                for entry in entries
+                if not any(self(item, entry) for item in current)
+            ]
 
 
 def _require_field(model: type[BaseModel], name: str, path: str) -> str:
@@ -449,10 +495,7 @@ def _set_field_value(obj: BaseModel, field_name: str, value: Any, is_add: bool) 
             _as_entry(type(obj), field_name, item)
             for item in (value if isinstance(value, list) else [value])
         ]
-        same = _SameValue(type(obj), field_name)
-        new_values = [
-            e for e in entries if not any(same(item, e) for item in current_list)
-        ]
+        new_values = _SameValue(type(obj), field_name).new_values(current_list, entries)
         if not new_values:
             return False
         setattr(obj, field_name, current_list + new_values)
