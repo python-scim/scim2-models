@@ -466,8 +466,13 @@ def coerce_value(
         no conversion applies.
     :raises InvalidFilterException: If the value is not valid for the attribute.
     """
+    # The annotated form is what carries a decoder, so a base64 operand of a
+    # binary attribute is decoded rather than taken for raw bytes.
+    annotated_type = (
+        resolved.sub_field_type if resolved.sub_field_name else resolved.field_type
+    )
     target_type = resolved.target_type
-    if value is None or target_type is None or target_type is Any:
+    if value is None or annotated_type is None or target_type is Any:
         return value
 
     if op is not None and op in STRING_OPERATORS:
@@ -478,12 +483,6 @@ def coerce_value(
 
     if isinstance(value, target_type) and not issubclass(target_type, bytes):
         return value
-
-    # The annotated form is what carries a decoder, so a base64 operand of a
-    # binary attribute is decoded rather than taken for raw bytes.
-    annotated_type = (
-        resolved.sub_field_type if resolved.sub_field_name else resolved.field_type
-    )
 
     try:
         return TypeAdapter(annotated_type).validate_python(value)

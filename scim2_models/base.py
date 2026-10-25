@@ -455,7 +455,7 @@ class BaseModel(PydanticBaseModel):
         if origin and isclass(origin) and issubclass(origin, list):
             attribute_type = get_args(attribute_type)[0]
 
-        return attribute_type
+        return cast("type | None", attribute_type)
 
     @classmethod
     def get_field_multiplicity(cls, attribute_name: str) -> bool:
