@@ -1,6 +1,15 @@
 Changelog
 =========
 
+[0.12.4] - Unreleased
+---------------------
+
+Added
+^^^^^
+- :class:`~scim2_models.SCIMException` takes a ``response`` parameter and exposes it as an attribute.
+  A client can attach the HTTP response that carried the error.
+  :meth:`~scim2_models.SCIMException.from_error` takes it too.
+
 [0.12.3] - 2026-10-25
 ---------------------
 

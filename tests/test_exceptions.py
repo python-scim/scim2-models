@@ -78,6 +78,20 @@ def test_context_attributes():
     assert exc.context["extra"] == "data"
 
 
+def test_response_defaults_to_none():
+    """An exception built without a response has a response attribute set to None."""
+    assert SCIMException().response is None
+
+
+def test_response_is_not_stored_in_the_context():
+    """A response given to a subclass reaches the base class instead of the context."""
+    response = object()
+    exc = InvalidFilterException(filter="invalid()", response=response)
+    assert exc.response is response
+    assert "response" not in exc.context
+    assert "response" not in exc.as_pydantic_error().context
+
+
 def test_invalid_filter_exception():
     """InvalidFilterException has correct status and scim_type."""
     exc = InvalidFilterException(filter="invalid()")
@@ -809,3 +823,11 @@ def test_from_error_unknown_scim_type_falls_back_to_the_status():
     exc = SCIMException.from_error(error)
     assert type(exc) is NotFoundException
     assert exc.scim_type == "vendorNotFound"
+
+
+def test_from_error_keeps_the_response():
+    """from_error() attaches the HTTP response to the exception it builds."""
+    response = object()
+    error = Error(status=404, detail="Not here")
+    exc = SCIMException.from_error(error, response=response)
+    assert exc.response is response

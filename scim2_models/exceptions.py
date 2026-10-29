@@ -25,6 +25,7 @@ class SCIMException(Exception):
 
     :param detail: The error detail message.
     :param scim_ctx: The SCIM context in which the exception occurred.
+    :param response: The HTTP response that carried the error, when a client received it.
     """
 
     status: int = 400
@@ -36,11 +37,13 @@ class SCIMException(Exception):
         *,
         detail: str | None = None,
         scim_ctx: Context | None = None,
+        response: Any = None,
         **context: Any,
     ):
         self.context = context
         self._detail = detail
         self.scim_ctx = scim_ctx
+        self.response = response
         self._error: Error | None = None
         super().__init__(detail or self._default_detail)
 
@@ -76,7 +79,10 @@ class SCIMException(Exception):
 
     @classmethod
     def from_error(
-        cls, error: "Error", scim_ctx: Context | None = None
+        cls,
+        error: "Error",
+        scim_ctx: Context | None = None,
+        response: Any = None,
     ) -> "SCIMException":
         """Create an exception from a SCIM Error object.
 
@@ -87,6 +93,7 @@ class SCIMException(Exception):
 
         :param error: The SCIM Error object to convert.
         :param scim_ctx: The SCIM context in which the exception occurred.
+        :param response: The HTTP response that carried the error.
         :return: The appropriate SCIMException subclass instance.
         """
         from .messages.error import Error
@@ -99,7 +106,7 @@ class SCIMException(Exception):
             or _STATUS_TO_EXCEPTION.get(error.status or 0)
             or cls
         )
-        exc = exception_class(detail=error.detail, scim_ctx=scim_ctx)
+        exc = exception_class(detail=error.detail, scim_ctx=scim_ctx, response=response)
         exc._error = error
         if error.status is not None:
             exc.status = error.status
