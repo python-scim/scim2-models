@@ -1283,3 +1283,82 @@ def test_required_attribute_given_an_empty_array_is_accepted_in_a_response():
         scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
     )
     assert resource.required == []
+
+
+def test_replace_preserves_a_never_returned_field_left_out():
+    """A client never got a never-returned value back, so it cannot resend it."""
+    original = RetResource(never_returned="hint")
+    replacement = RetResource(default_returned="x")
+    replacement.replace(original)
+    assert replacement.never_returned == "hint"
+    assert "never_returned" not in replacement.model_fields_set
+
+
+def test_replace_clears_a_never_returned_field_set_to_null():
+    """An explicit null still clears a never-returned value."""
+    original = RetResource(never_returned="hint")
+    replacement = RetResource(never_returned=None)
+    replacement.replace(original)
+    assert replacement.never_returned is None
+
+
+def test_replace_preserves_a_never_returned_sub_attribute_left_out():
+    """The rule applies to the sub-attributes of a complex attribute."""
+
+    class Key(ComplexAttribute):
+        label: str | None = None
+        hint: Annotated[str | None, Returned.never] = None
+
+    class Device(Resource):
+        __schema__ = URN("urn:example:Device")
+        key: Key | None = None
+
+    original = Device(key=Key(label="k", hint="secret"))
+    replacement = Device.model_validate(
+        {"schemas": ["urn:example:Device"], "key": {"label": "k2"}},
+        scim_ctx=Context.RESOURCE_REPLACEMENT_REQUEST,
+    )
+    replacement.replace(original)
+    assert replacement.key.hint == "secret"
+
+
+def test_a_response_holding_a_write_only_value_is_rejected():
+    """Per RFC 7643 §7, a write-only value SHALL NOT be returned."""
+    with pytest.raises(
+        ValidationError,
+        match="Field 'writeOnly' has mutability 'writeOnly' but value is set",
+    ):
+        MutResource.model_validate(
+            {"schemas": ["urn:example:MutResource"], "id": "id", "writeOnly": "x"},
+            scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
+        )
+
+
+def test_a_response_accepts_a_hidden_field_left_to_its_default():
+    """Only a value the payload sets is refused, not a default of the model."""
+
+    class Defaults(Resource):
+        __schema__ = URN("urn:example:Defaults")
+        flag: Annotated[bool, Mutability.write_only] = False
+        level: Annotated[int, Returned.never] = 0
+
+    resource = Defaults.model_validate(
+        {"schemas": ["urn:example:Defaults"], "id": "id"},
+        scim_ctx=Context.RESOURCE_QUERY_RESPONSE,
+    )
+    assert resource.flag is False
+    assert resource.level == 0
+
+
+def test_a_write_only_field_returned_always_is_not_required_in_a_response():
+    """Write-only wins over Returned.always, so a response without the value is valid."""
+
+    class Tagged(Resource):
+        __schema__ = URN("urn:example:Tagged")
+        tag: Annotated[str | None, Mutability.write_only, Returned.always] = None
+
+    payload = Tagged(id="id", tag="x").model_dump(
+        scim_ctx=Context.RESOURCE_QUERY_RESPONSE
+    )
+    assert "tag" not in payload
+    Tagged.model_validate(payload, scim_ctx=Context.RESOURCE_QUERY_RESPONSE)

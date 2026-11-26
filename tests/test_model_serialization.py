@@ -814,3 +814,46 @@ def test_dump_without_scim_context_keeps_empty_values():
     dumped = user.model_dump(scim_ctx=None)
     assert dumped["emails"] == []
     assert dumped["name"] is not None
+
+
+class Boss(ComplexAttribute):
+    value: str | None = None
+
+
+class Thing(Resource):
+    __schema__ = URN("urn:org:example:Thing")
+
+    name: str | None = None
+    secret: Annotated[str | None, Mutability.write_only] = None
+    chief: Annotated[Boss | None, Mutability.write_only] = None
+
+
+@pytest.mark.parametrize(
+    "context",
+    [
+        Context.RESOURCE_CREATION_RESPONSE,
+        Context.RESOURCE_QUERY_RESPONSE,
+        Context.RESOURCE_REPLACEMENT_RESPONSE,
+        Context.RESOURCE_PATCH_RESPONSE,
+        Context.SEARCH_RESPONSE,
+    ],
+)
+def test_a_response_leaves_out_a_write_only_attribute(context):
+    """Per RFC 7643 §7, a write-only value SHALL NOT be returned, even without Returned.never."""
+    thing = Thing(id="1", name="a", secret="s", chief=Boss(value="b"))
+    assert thing.model_dump(scim_ctx=context) == {
+        "schemas": ["urn:org:example:Thing"],
+        "id": "1",
+        "name": "a",
+    }
+
+
+def test_a_requested_write_only_attribute_is_not_returned():
+    """Asking for a write-only attribute does not return it."""
+    thing = Thing(id="1", secret="s", chief=Boss(value="b"))
+    parameters = ResponseParameters[Thing](attributes=["secret", "chief.value"])
+    payload = thing.model_dump(
+        scim_ctx=Context.RESOURCE_QUERY_RESPONSE, response_parameters=parameters
+    )
+    assert "secret" not in payload
+    assert "chief" not in payload

@@ -612,7 +612,7 @@ class Path(_BoundToModels, _Expression, Generic[ResourceT]):
                 full_urn = target_model.__scim_info__.attribute_urns[field_name]
                 levels = (
                     *parents,
-                    (target_model.get_field_annotation(field_name, Returned), full_urn),
+                    (target_model._returnability(field_name), full_urn),
                 )
                 if matches_target_type(target_model, field_name):
                     yield cls(urn), levels
@@ -630,7 +630,7 @@ class Path(_BoundToModels, _Expression, Generic[ResourceT]):
                             continue
                         sub_name = field_type._scim_name(sub_field_name)  # type: ignore[union-attr]
                         sub_level = (
-                            field_type.get_field_annotation(sub_field_name, Returned),  # type: ignore[union-attr]
+                            field_type._returnability(sub_field_name),  # type: ignore[union-attr]
                             f"{full_urn}.{sub_name}",
                         )
                         yield cls(f"{urn}.{sub_name}"), (*levels, sub_level)
@@ -642,7 +642,5 @@ class Path(_BoundToModels, _Expression, Generic[ResourceT]):
                 urn: name for name, urn in model.__scim_info__.attribute_urns.items()
             }
             for schema, extension_model in model.get_extension_models().items():
-                returnability = model.get_field_annotation(
-                    field_names[schema], Returned
-                )
+                returnability = model._returnability(field_names[schema])
                 yield from iter_model_paths(extension_model, ((returnability, schema),))

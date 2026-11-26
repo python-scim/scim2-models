@@ -5,6 +5,7 @@ import pytest
 from scim2_models import URN
 from scim2_models import Context
 from scim2_models import EnterpriseUser
+from scim2_models import Mutability
 from scim2_models import Path
 from scim2_models import ResponseParameters
 from scim2_models import Returned
@@ -149,3 +150,21 @@ def test_the_extension_itself_follows_the_projection():
     assert not returns(
         User[EnterpriseUser], ENTERPRISE, excluded_attributes=[ENTERPRISE]
     )
+
+
+class Boss(ComplexAttribute):
+    value: str | None = None
+
+
+class Thing(Resource):
+    __schema__ = URN("urn:org:example:Thing")
+
+    secret: Annotated[str | None, Mutability.write_only] = None
+    chief: Annotated[Boss | None, Mutability.write_only] = None
+
+
+@pytest.mark.parametrize("path", ["secret", "chief", "chief.value"])
+@pytest.mark.parametrize("attributes", [[], ["secret", "chief.value"]])
+def test_a_response_keeps_no_write_only_attribute(path, attributes):
+    """A write-only attribute and its sub-attributes are left out like the serializer does."""
+    assert not returns(Thing, path, attributes=attributes)

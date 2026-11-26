@@ -389,6 +389,14 @@ class BaseModel(PydanticBaseModel):
         return mutability == Mutability.write_only or returned == Returned.never
 
     @classmethod
+    def _returnability(cls, field_name: str) -> Returned:
+        """Return when a field is returned. Per RFC 7643 §7, a write-only value is never returned."""
+        if cls._is_hidden(field_name):
+            return Returned.never
+        returnability: Returned = cls.get_field_annotation(field_name, Returned)
+        return returnability
+
+    @classmethod
     @_cached_per_class
     def get_field_annotation(cls, field_name: str, annotation_type: type) -> Any:
         """Return the annotation of type 'annotation_type' of the field 'field_name'.
@@ -766,8 +774,13 @@ class BaseModel(PydanticBaseModel):
             )
 
     def _check_returnability(self, field_name: str, value: Any) -> None:
-        """Check that the fields returnability is expected according to the responses validation context, as defined in RFC7643 §7."""
-        returnability = self.__class__.get_field_annotation(field_name, Returned)
+        """Check that the fields returnability is expected according to the responses validation context, as defined in RFC7643 §7.
+
+        A never returned field only fails when the payload sets it, so that a
+        default value is accepted.
+        """
+        cls = self.__class__
+        returnability = cls._returnability(field_name)
 
         if returnability == Returned.always and value is None:
             raise PydanticCustomError(
@@ -778,14 +791,26 @@ class BaseModel(PydanticBaseModel):
                 },
             )
 
-        elif returnability == Returned.never and value is not None:
-            raise PydanticCustomError(
-                "returned_error",
-                "Field '{field_name}' has returnability 'never' but value is set",
-                {
-                    "field_name": self._scim_name(field_name),
-                },
-            )
+        if (
+            returnability != Returned.never
+            or value is None
+            or field_name not in self.model_fields_set
+        ):
+            return
+
+        reason = (
+            "returnability 'never'"
+            if cls.get_field_annotation(field_name, Returned) == Returned.never
+            else "mutability 'writeOnly'"
+        )
+        raise PydanticCustomError(
+            "returned_error",
+            "Field '{field_name}' has {reason} but value is set",
+            {
+                "field_name": self._scim_name(field_name),
+                "reason": reason,
+            },
+        )
 
     def _check_primary_uniqueness(self, field_name: str, value: Any) -> None:
         """Validate that only one attribute can be marked as primary in multi-valued lists, per RFC7643 §2.4."""
@@ -818,8 +843,8 @@ class BaseModel(PydanticBaseModel):
         - ``readOnly`` fields are copied from *original* unconditionally.
         - ``immutable`` fields are copied from *original* when absent from
           ``self``; a MutabilityException is raised when the value differs.
-        - ``writeOnly`` fields left out of ``self`` are copied from *original*,
-          and only an explicit null clears them.
+        - ``writeOnly`` and never returned fields left out of ``self`` are
+          copied from *original*, and only an explicit null clears them.
 
         Recursively applies to nested complex attributes, and to the entries of
         a multi-valued one whose ``value`` designates a single entry on both
@@ -847,12 +872,10 @@ class BaseModel(PydanticBaseModel):
                         attribute=field_name, mutability="immutable"
                     )
             elif (
-                mutability == Mutability.write_only
+                type(self)._is_hidden(field_name)
                 and field_name not in self.model_fields_set
             ):
-                # RFC 7644 §3.5.1 only lets an omitted "readWrite" attribute be
-                # cleared: a client that retrieved the resource and revised it
-                # never got the write-only value back, and cannot resend it.
+                # The client never got the hidden value, so it cannot resend it.
                 self.__dict__[field_name] = original_val
 
         complex_and_extensions = self.__scim_info__.complex_fields.union(
@@ -1030,7 +1053,7 @@ class BaseModel(PydanticBaseModel):
                 continue
 
             field_name = self.__scim_info__.alias_to_field.get(alias, alias)
-            returnability = self.get_field_annotation(field_name, Returned)
+            returnability = self._returnability(field_name)
             attribute_urn = self._get_attribute_urn(field_name)
 
             if not _is_returned(

@@ -1,6 +1,18 @@
 Changelog
 =========
 
+[0.12.5] - Unreleased
+---------------------
+
+Fixed
+^^^^^
+- :meth:`~scim2_models.Resource.replace` keeps a never-returned attribute that the replacement leaves out, as it does for a write-only one.
+  The client never got this value, so it cannot send it back.
+  An explicit null still clears it.
+- A write-only attribute is no longer returned in responses, even without :attr:`~scim2_models.Returned.never` (:rfc:`RFC7643 §7 <7643#section-7>`).
+  Its sub-attributes are not returned either.
+  The validation of a response rejects a write-only value.
+
 [0.12.4] - 2026-10-29
 ---------------------
 
