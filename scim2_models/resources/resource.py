@@ -31,6 +31,7 @@ from ..annotations import Uniqueness
 from ..attributes import ComplexAttribute
 from ..attributes import _is_complex_attribute
 from ..base import BaseModel
+from ..base import _unordered
 from ..context import Context
 from ..exceptions import InvalidPathException
 from ..exceptions import InvalidValueException
@@ -514,15 +515,6 @@ def _check_comparison_forms(
                 raise InvalidValueException(
                     detail=f"'{binding.urn}' holds a value that cannot be compared: {exc}"
                 ) from exc
-
-
-def _unordered(value: Any) -> Any:
-    """Reduce a dumped value to a form that compares equal regardless of entry order."""
-    if isinstance(value, dict):
-        return {key: _unordered(item) for key, item in value.items()}
-    if isinstance(value, list):
-        return sorted((_unordered(item) for item in value), key=repr)
-    return value
 
 
 def _dedicated_attributes(

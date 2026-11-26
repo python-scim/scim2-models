@@ -1,6 +1,21 @@
 Changelog
 =========
 
+[0.12.6] - Unreleased
+---------------------
+
+Fixed
+^^^^^
+- A PUT that sends back a retrieved resource no longer fails on an immutable complex attribute with hidden sub-attributes.
+  :meth:`~scim2_models.Resource.replace` keeps the hidden sub-attributes that the client leaves out before it compares the immutable value.
+- A write-only sub-attribute of an immutable attribute can change, through PUT and PATCH (:rfc:`RFC7643 §2.2 <7643#section-2.2>`).
+  Its other sub-attributes, including the never-returned ones, still cannot.
+- A PUT can set an immutable attribute that has no value yet (:rfc:`RFC7644 §3.5.1 <7644#section-3.5.1>`), as a PATCH already could.
+  An attribute that only holds write-only values counts as having no value.
+- A PUT accepts the entries of an immutable multi-valued attribute in another order, as a PATCH already did.
+- :meth:`~scim2_models.Resource.replace` also keeps the hidden sub-attributes of an entry that has no ``value``, or that shares its ``value`` with another entry.
+  It pairs such an entry with the stored entry that has the same visible sub-attributes.
+
 [0.12.5] - 2026-11-26
 ---------------------
 

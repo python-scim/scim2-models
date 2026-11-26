@@ -296,19 +296,85 @@ def _holds_reference(model: type["BaseModel"], field_name: str) -> bool:
     return isinstance(root_type, type) and issubclass(root_type, Reference)
 
 
-def _entries_by_value(entries: list[Any]) -> dict[Any, list[Any]]:
-    """Group the entries of a multi-valued attribute by their ``value``.
+def _entry_value(entry: Any) -> Any:
+    """Return the value sub-attribute of an entry, where RFC7643 §2.4 holds its significant value."""
+    return getattr(entry, "value", None)
 
-    RFC7643 §2.4 holds the significant value of an entry there, but it is no
-    key: one value may appear twice under different ``type`` sub-attributes,
-    and only the whole pair is unique.
+
+def _entry_visible_part(entry: Any) -> str:
+    """Return the sub-attributes a client sees in an entry, as a key."""
+    model = type(entry)
+    return repr(
+        {
+            name: getattr(entry, name)
+            for name in model.model_fields
+            if not model._is_hidden(name)
+        }
+    )
+
+
+def _paired_entries(
+    replacements: list[Any], originals: list[Any]
+) -> list[tuple[Any, Any]]:
+    """Pair the entries of a multi-valued attribute with their stored state.
+
+    An entry is paired by its value sub-attribute, or else by the
+    sub-attributes a client sees, when this designates a single entry on both
+    sides. A value is no key: one value may appear twice under different type
+    sub-attributes, and only the whole pair is unique.
     """
-    grouped: dict[Any, list[Any]] = {}
-    for entry in entries:
-        value = getattr(entry, "value", None)
-        if value is not None:
-            grouped.setdefault(value, []).append(entry)
-    return grouped
+    pairs: list[tuple[Any, Any]] = []
+    for key in (_entry_value, _entry_visible_part):
+        paired = {id(entry) for pair in pairs for entry in pair}
+        stored: dict[Any, list[Any]] = {}
+        for entry in originals:
+            if id(entry) not in paired and key(entry) is not None:
+                stored.setdefault(key(entry), []).append(entry)
+        sent: dict[Any, list[Any]] = {}
+        for entry in replacements:
+            if id(entry) not in paired and key(entry) is not None:
+                sent.setdefault(key(entry), []).append(entry)
+        for value, entries in sent.items():
+            candidates = stored.get(value, [])
+            if len(entries) == 1 and len(candidates) == 1:
+                pairs.append((entries[0], candidates[0]))
+    return pairs
+
+
+def _unordered(value: Any) -> Any:
+    """Reduce a dumped value to a form that compares equal regardless of entry order."""
+    if isinstance(value, dict):
+        return {key: _unordered(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return sorted((_unordered(item) for item in value), key=repr)
+    return value
+
+
+def _assigned(value: Any) -> bool:
+    """Whether a value is assigned, as RFC7643 §2.5 defines it."""
+    if isinstance(value, BaseModel):
+        return any(_assigned(getattr(value, name)) for name in type(value).model_fields)
+    if isinstance(value, dict):
+        return any(_assigned(item) for item in value.values())
+    return value is not None and value != []
+
+
+def _without_write_only(value: Any) -> Any:
+    """Return a value without its write-only sub-attributes, to compare an immutable value.
+
+    Per RFC7643 §2.2, each sub-attribute has its own mutability, so a
+    write-only sub-attribute may change under an immutable attribute.
+    """
+    if isinstance(value, list):
+        return [_without_write_only(item) for item in value]
+    if not isinstance(value, BaseModel):
+        return value
+    model = type(value)
+    return {
+        name: _without_write_only(getattr(value, name))
+        for name in model.model_fields
+        if model.get_field_annotation(name, Mutability) != Mutability.write_only
+    }
 
 
 def _cached_per_class(
@@ -840,17 +906,21 @@ class BaseModel(PydanticBaseModel):
     def _apply_replace_constraints(self, original: Self) -> None:
         """Enforce RFC 7644 §3.5.1 replace (PUT) semantics.
 
-        - ``readOnly`` fields are copied from *original* unconditionally.
-        - ``immutable`` fields are copied from *original* when absent from
-          ``self``; a MutabilityException is raised when the value differs.
-        - ``writeOnly`` and never returned fields left out of ``self`` are
-          copied from *original*, and only an explicit null clears them.
+        - readOnly fields are copied from the original unconditionally.
+        - immutable fields are copied from the original when the replacement
+          leaves them out. When the original has a value, a MutabilityException
+          is raised if the value differs, its write-only sub-attributes and the
+          order of its entries aside.
+        - writeOnly and never returned fields left out of the replacement are
+          copied from the original, and only an explicit null clears them.
 
-        Recursively applies to nested complex attributes, and to the entries of
-        a multi-valued one whose ``value`` designates a single entry on both
-        sides. An immutable reference is preserved rather than compared, since
-        two spellings of one URI are equivalent per RFC7643 §2.4.
+        Applies first to nested complex attributes, and to the paired entries of
+        multi-valued ones, so that their hidden sub-attributes are restored
+        before an immutable value is compared. An immutable reference is
+        preserved rather than compared, since two spellings of one URI are
+        equivalent per RFC7643 §2.4.
         """
+        self._apply_nested_replace_constraints(original)
         for field_name in type(self).model_fields:
             mutability = type(self).get_field_annotation(field_name, Mutability)
             original_val = getattr(original, field_name)
@@ -864,10 +934,14 @@ class BaseModel(PydanticBaseModel):
                     # RFC 7643 §7: "SHALL NOT be updated" — omitting an
                     # immutable field is not a request to clear it.
                     self.__dict__[field_name] = original_val
-                elif self_val != original_val and not _holds_reference(
-                    type(self), field_name
+                elif (
+                    _assigned(_without_write_only(original_val))
+                    and _unordered(_without_write_only(self_val))
+                    != _unordered(_without_write_only(original_val))
+                    and not _holds_reference(type(self), field_name)
                 ):
-                    # RFC 7644 §3.5.1: input values MUST match.
+                    # RFC 7644 §3.5.1: "If one or more values are already set
+                    # for the attribute, the input value(s) MUST match."
                     raise MutabilityException(
                         attribute=field_name, mutability="immutable"
                     )
@@ -878,6 +952,8 @@ class BaseModel(PydanticBaseModel):
                 # The client never got the hidden value, so it cannot resend it.
                 self.__dict__[field_name] = original_val
 
+    def _apply_nested_replace_constraints(self, original: Self) -> None:
+        """Apply the replace constraints to the complex attributes and extensions."""
         complex_and_extensions = self.__scim_info__.complex_fields.union(
             self.__scim_info__.extensions
         )
@@ -885,7 +961,7 @@ class BaseModel(PydanticBaseModel):
             if type(self).get_field_annotation(complex_attr, Mutability) == (
                 Mutability.read_only
             ):
-                # The whole attribute was already taken from *original*.
+                # The whole attribute is taken from the original.
                 continue
 
             original_sub = getattr(original, complex_attr)
@@ -897,12 +973,8 @@ class BaseModel(PydanticBaseModel):
                 replacement_sub._apply_replace_constraints(original_sub)
                 continue
 
-            # A value borne by several entries identifies none of them.
-            stored_entries = _entries_by_value(original_sub)
-            for value, entries in _entries_by_value(replacement_sub).items():
-                candidates = stored_entries.get(value, [])
-                if len(entries) == 1 and len(candidates) == 1:
-                    entries[0]._apply_replace_constraints(candidates[0])
+            for entry, stored in _paired_entries(replacement_sub, original_sub):
+                entry._apply_replace_constraints(stored)
 
     def _get_attribute_urn(self, field_name: str) -> str:
         """Build the full URN of the attribute.

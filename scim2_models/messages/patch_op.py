@@ -28,7 +28,9 @@ from ..annotations import Mutability
 from ..annotations import Required
 from ..attributes import ComplexAttribute
 from ..base import BaseModel
+from ..base import _assigned
 from ..base import _keeping_empty_values
+from ..base import _without_write_only
 from ..context import Context
 from ..exceptions import InvalidPathException
 from ..exceptions import InvalidValueException
@@ -819,7 +821,8 @@ def _settle(before: Any, after: Any, memo: dict[int, Any]) -> None:
     Each attribute is compared with its earlier value, and each entry of a
     multi-valued attribute with its earlier state, as the memo pairs them. Per
     RFC7644 §3.5.2, a read-only attribute cannot change, an immutable one
-    cannot change once assigned, and a required one cannot become unassigned.
+    cannot change once assigned, except for its write-only sub-attributes, and
+    a required one cannot become unassigned.
     Removing an extension or a complex attribute may remove its read-only and
     required attributes, but not its assigned immutable ones. A value marked
     primary unmarks the others.
@@ -836,7 +839,11 @@ def _settle(before: Any, after: Any, memo: dict[int, Any]) -> None:
 
         name = model._scim_name(field_name)
         mutability = model.get_field_annotation(field_name, Mutability)
-        if mutability == Mutability.immutable and _assigned(old):
+        if (
+            mutability == Mutability.immutable
+            and _assigned(_without_write_only(old))
+            and not _same(_without_write_only(old), _without_write_only(new))
+        ):
             raise MutabilityException(attribute=name, detail=f"'{name}' is immutable")
         if not removed and mutability == Mutability.read_only:
             raise MutabilityException(attribute=name, detail=f"'{name}' is read-only")
@@ -915,13 +922,6 @@ def _comparable(value: Any, include: set[str] | None = None) -> Any:
     if isinstance(value, BaseModel):
         return value.model_dump(include=include)
     return value
-
-
-def _assigned(value: Any) -> bool:
-    """Whether a value is assigned, as RFC7643 §2.5 defines it."""
-    if isinstance(value, BaseModel):
-        return any(_assigned(getattr(value, name)) for name in type(value).model_fields)
-    return value is not None and value != []
 
 
 def _restore(resource: BaseModel, snapshot: BaseModel) -> None:
