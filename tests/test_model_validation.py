@@ -11,6 +11,7 @@ from scim2_models.context import Context
 from scim2_models.resources.enterprise_user import EnterpriseUser
 from scim2_models.resources.group import Group
 from scim2_models.resources.group import GroupMember
+from scim2_models.resources.resource import Extension
 from scim2_models.resources.resource import Resource
 from scim2_models.resources.user import User
 from scim2_models.urn import URN
@@ -557,6 +558,126 @@ def test_replace_preserves_a_write_only_sub_attribute_left_out():
     replacement.replace(original)
     assert replacement.sub.write_only == "secret"
     assert replacement.subs[0].write_only == "secret"
+
+
+class Pin(ComplexAttribute):
+    value: Annotated[str | None, Mutability.write_only] = None
+
+
+class Tag(ComplexAttribute):
+    value: str | None = None
+    secret: Annotated[str | None, Mutability.write_only] = None
+
+
+class HiddenExtension(Extension):
+    __schema__ = URN("urn:example:ext:Hidden")
+
+    boss: Annotated[GroupMember | None, Returned.never] = None
+    pin: Annotated[str | None, Mutability.write_only] = None
+
+
+class MixedExtension(Extension):
+    __schema__ = URN("urn:example:ext:Mixed")
+
+    label: str | None = None
+    pin: Annotated[str | None, Mutability.write_only] = None
+
+
+class HiddenHolder(Resource[HiddenExtension | MixedExtension]):
+    __schema__ = URN("urn:example:HiddenHolder")
+
+    label: str | None = None
+    pin: Pin | None = None
+    pins: list[Pin] | None = None
+    tags: list[Tag] | None = None
+
+
+def stored_hidden_holder():
+    holder = HiddenHolder(
+        id="1",
+        label="l",
+        pin=Pin(value="p"),
+        pins=[Pin(value="p")],
+        tags=[Tag(value="a"), Tag(secret="s")],
+    )
+    holder[HiddenExtension] = HiddenExtension(boss=GroupMember(value="b"), pin="p")
+    holder[MixedExtension] = MixedExtension(label="l", pin="p")
+    return holder
+
+
+def put_hidden_holder(stored, payload):
+    replacement = HiddenHolder.model_validate(
+        payload, scim_ctx=Context.RESOURCE_REPLACEMENT_REQUEST
+    )
+    replacement.replace(stored)
+    return replacement
+
+
+def test_replace_keeps_the_attributes_a_response_shows_nothing_of():
+    """A client that read the resource never saw these attributes, so it cannot resend them."""
+    stored = stored_hidden_holder()
+    retrieved = stored.model_dump(scim_ctx=Context.RESOURCE_QUERY_RESPONSE)
+    assert {"pin", "pins", "urn:example:ext:Hidden"}.isdisjoint(retrieved)
+
+    replacement = put_hidden_holder(stored, retrieved)
+
+    hidden = replacement[HiddenExtension]
+    mixed = replacement[MixedExtension]
+    assert (replacement.pin.value, replacement.pins[0].value) == ("p", "p")
+    assert (hidden.boss.value, hidden.pin) == ("b", "p")
+    assert (mixed.label, mixed.pin) == ("l", "p")
+    assert [(tag.value, tag.secret) for tag in replacement.tags] == [
+        ("a", None),
+        (None, "s"),
+    ]
+    assert "pin" not in replacement.model_fields_set
+
+
+@pytest.mark.parametrize(
+    ("tags", "expected"),
+    [
+        ([{"secret": "new"}], [(None, "new")]),
+        ([{"value": "a"}, {"secret": "new"}], [("a", None), (None, "new")]),
+    ],
+    ids=["hidden only", "mixed"],
+)
+def test_replace_takes_the_hidden_entries_a_replacement_sends(tags, expected):
+    """A client that sends hidden entries replaces the stored ones, to rotate a secret."""
+    stored = HiddenHolder(
+        id="1", tags=[Tag(value="a"), Tag(secret="s1"), Tag(secret="s2")]
+    )
+    replacement = put_hidden_holder(
+        stored, {"schemas": ["urn:example:HiddenHolder"], "tags": tags}
+    )
+    assert [(tag.value, tag.secret) for tag in replacement.tags] == expected
+
+
+@pytest.mark.parametrize("tags", [[], None], ids=["empty", "null"])
+def test_replace_clears_the_hidden_entries_of_a_cleared_attribute(tags):
+    """Per RFC7643 §2.5, an empty array clears the attribute like a null does."""
+    stored = stored_hidden_holder()
+    replacement = put_hidden_holder(
+        stored, {"schemas": ["urn:example:HiddenHolder"], "tags": tags}
+    )
+    assert not replacement.tags
+
+
+def test_replace_clears_an_extension_whose_visible_part_is_left_out():
+    """A client that saw the extension and left it out asks to clear it, per RFC 7644 §3.5.1."""
+    stored = stored_hidden_holder()
+    replacement = put_hidden_holder(stored, {"schemas": ["urn:example:HiddenHolder"]})
+    assert replacement[MixedExtension] is None
+    assert replacement[HiddenExtension] is not None
+
+
+@pytest.mark.parametrize("attribute", ["pin", "pins", "urn:example:ext:Hidden"])
+def test_replace_clears_an_attribute_with_hidden_values_set_to_null(attribute):
+    """An explicit null is how RFC 7644 §3.5.1 lets a client clear a value."""
+    stored = stored_hidden_holder()
+    replacement = put_hidden_holder(
+        stored, {"schemas": ["urn:example:HiddenHolder"], attribute: None}
+    )
+    assert replacement.model_dump(by_alias=True).get(attribute) is None
 
 
 def test_replace_does_not_assert_the_fields_it_copies():

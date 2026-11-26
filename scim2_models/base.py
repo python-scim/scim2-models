@@ -359,6 +359,20 @@ def _assigned(value: Any) -> bool:
     return value is not None and value != []
 
 
+def _visible(value: Any) -> bool:
+    """Whether a value has a part that a response shows to a client."""
+    if isinstance(value, list):
+        return any(_visible(item) for item in value)
+    if not isinstance(value, BaseModel):
+        return value is not None
+    model = type(value)
+    return any(
+        _visible(getattr(value, name))
+        for name in model.model_fields
+        if name != "schemas" and not model._is_hidden(name)
+    )
+
+
 def _without_write_only(value: Any) -> Any:
     """Return a value without its write-only sub-attributes, to compare an immutable value.
 
@@ -913,10 +927,15 @@ class BaseModel(PydanticBaseModel):
           order of its entries aside.
         - writeOnly and never returned fields left out of the replacement are
           copied from the original, and only an explicit null clears them.
+          So are the complex attributes and extensions whose stored value only
+          holds such fields, since a response shows nothing of them.
 
         Applies first to nested complex attributes, and to the paired entries of
         multi-valued ones, so that their hidden sub-attributes are restored
-        before an immutable value is compared. An immutable reference is
+        before an immutable value is compared. The stored entries that only
+        hold hidden sub-attributes are added back, unless the replacement
+        clears the attribute or sends such entries itself. An immutable
+        reference is
         preserved rather than compared, since two spellings of one URI are
         equivalent per RFC7643 §2.4.
         """
@@ -945,9 +964,9 @@ class BaseModel(PydanticBaseModel):
                     raise MutabilityException(
                         attribute=field_name, mutability="immutable"
                     )
-            elif (
+            elif field_name not in self.model_fields_set and (
                 type(self)._is_hidden(field_name)
-                and field_name not in self.model_fields_set
+                or (_assigned(original_val) and not _visible(original_val))
             ):
                 # The client never got the hidden value, so it cannot resend it.
                 self.__dict__[field_name] = original_val
@@ -973,8 +992,19 @@ class BaseModel(PydanticBaseModel):
                 replacement_sub._apply_replace_constraints(original_sub)
                 continue
 
-            for entry, stored in _paired_entries(replacement_sub, original_sub):
+            pairs = _paired_entries(replacement_sub, original_sub)
+            for entry, stored in pairs:
                 entry._apply_replace_constraints(stored)
+            if not replacement_sub or not all(map(_visible, replacement_sub)):
+                continue
+            paired = {id(stored) for _, stored in pairs}
+            replacement_sub.extend(
+                stored
+                for stored in original_sub
+                if id(stored) not in paired
+                and _assigned(stored)
+                and not _visible(stored)
+            )
 
     def _get_attribute_urn(self, field_name: str) -> str:
         """Build the full URN of the attribute.

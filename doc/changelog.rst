@@ -1,6 +1,16 @@
 Changelog
 =========
 
+[0.12.7] - Unreleased
+---------------------
+
+Fixed
+^^^^^
+- :meth:`~scim2_models.Resource.replace` keeps a complex attribute or an extension that the replacement leaves out, when it only holds hidden values.
+  It also keeps the entries of a multi-valued attribute that only hold hidden values, unless the replacement sends such entries itself.
+  A response shows nothing of them, so the client cannot send them back.
+  An explicit null still clears the attribute, and so does an empty array.
+
 [0.12.6] - 2026-11-26
 ---------------------
 

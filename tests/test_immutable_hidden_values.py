@@ -160,6 +160,22 @@ def test_a_put_pairs_entries_by_what_the_client_sees(credentials):
     }
 
 
+def test_a_put_keeps_the_hidden_entries_of_an_immutable_attribute():
+    """A response shows nothing of an entry that only holds hidden values."""
+    stored = Device(
+        id="1", credentials=[Credential(value="a"), Credential(secret="s", hint="h")]
+    )
+    retrieved = stored.model_dump(scim_ctx=Context.RESOURCE_QUERY_RESPONSE)
+    assert retrieved["credentials"] == [{"value": "a"}]
+
+    replacement = put(stored, retrieved)
+
+    assert [(entry.secret, entry.hint) for entry in replacement.credentials] == [
+        (None, None),
+        ("s", "h"),
+    ]
+
+
 def test_a_put_takes_back_the_entries_of_an_immutable_attribute_in_another_order():
     """RFC7643 §2.4 gives no significance to the order of a multi-valued attribute."""
     stored = Device(id="1", credentials=[Credential(value="a"), Credential(value="b")])

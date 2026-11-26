@@ -197,7 +197,9 @@ class Resource(ScimObject, Generic[AnyExtension]):
         ``immutable`` fields are preserved from *original* when absent,
         or checked for equality when present. ``writeOnly`` fields, such as
         ``password``, are preserved from *original* when left out, and cleared
-        by an explicit null only.
+        by an explicit null only. So are the complex attributes, extensions
+        and entries that only hold such values, since a response shows nothing
+        of them.
 
         The same applies to the sub-attributes of a complex attribute, and to
         those of an entry a multi-valued one keeps. Entries are matched on their
